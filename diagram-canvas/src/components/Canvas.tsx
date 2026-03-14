@@ -28,7 +28,7 @@ function CanvasInner() {
     useDiagramStore.setState((state) => ({
       nodes: [
         ...state.nodes,
-        { id, type: 'systemNode', position, data: { label: comp.label, category: comp.category } },
+        { id, type: 'systemNode', position, data: { label: comp.label, category: comp.category, color: comp.color, icon: comp.icon } },
       ],
     }));
   }, [reactFlowInstance]);

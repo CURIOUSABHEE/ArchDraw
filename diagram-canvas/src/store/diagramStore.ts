@@ -17,7 +17,7 @@ interface DiagramState {
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
-  addNode: (type: string, label: string, category: string) => void;
+  addNode: (type: string, label: string, category: string, color?: string, icon?: string) => void;
   removeNode: (id: string) => void;
   importDiagram: (nodes: Node[], edges: Edge[]) => void;
   clearDiagram: () => void;
@@ -51,7 +51,7 @@ export const useDiagramStore = create<DiagramState>((set, get) => ({
   },
 
   /** Add a new node at a slightly randomized center position */
-  addNode: (type, label, category) => {
+  addNode: (type, label, category, color, icon) => {
     const id = `${type}-${Date.now()}`;
     const offsetX = Math.random() * 200 - 100;
     const offsetY = Math.random() * 200 - 100;
@@ -59,7 +59,7 @@ export const useDiagramStore = create<DiagramState>((set, get) => ({
       id,
       type: 'systemNode',
       position: { x: 400 + offsetX, y: 300 + offsetY },
-      data: { label, category },
+      data: { label, category, color, icon },
     };
     set({ nodes: [...get().nodes, newNode] });
   },

@@ -50,7 +50,7 @@ export function ComponentSidebar() {
                     e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
                     e.dataTransfer.effectAllowed = 'move';
                   }}
-                  onClick={() => addNode(comp.id, comp.label, comp.category)}
+                  onClick={() => addNode(comp.id, comp.label, comp.category, comp.color, comp.icon)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-secondary-foreground bg-card rounded-lg transition-all hover:bg-accent/10 hover:shadow-sm group cursor-grab active:cursor-grabbing"
                   style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.06)' }}
                 >

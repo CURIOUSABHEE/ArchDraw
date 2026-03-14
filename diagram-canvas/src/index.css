@@ -5,6 +5,7 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Light tokens ─────────────────────────────────────────────── */
   :root {
     --background: 210 20% 98%;
     --foreground: 215 25% 12%;
@@ -36,11 +37,43 @@
     --sidebar-border: 214 20% 91%;
     --sidebar-ring: 239 84% 67%;
 
-    --toolbar-bg: 0 0% 100%;
-    --canvas-bg: 210 20% 98%;
-    --node-bg: 0 0% 100%;
     --node-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04), 0 12px 24px -4px rgba(0,0,0,0.08);
     --node-shadow-hover: 0 0 0 1px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06), 0 20px 32px -8px rgba(0,0,0,0.12);
+  }
+
+  /* ── Dark tokens ──────────────────────────────────────────────── */
+  .dark {
+    --background: 224 20% 10%;
+    --foreground: 213 31% 91%;
+    --card: 224 18% 14%;
+    --card-foreground: 213 31% 91%;
+    --popover: 224 18% 14%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 224 16% 20%;
+    --secondary-foreground: 213 31% 80%;
+    --muted: 224 16% 18%;
+    --muted-foreground: 215 16% 50%;
+    --accent: 239 84% 67%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 224 14% 22%;
+    --input: 224 14% 22%;
+    --ring: 239 84% 67%;
+
+    --sidebar-background: 224 20% 12%;
+    --sidebar-foreground: 213 31% 80%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 224 16% 18%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 224 14% 22%;
+    --sidebar-ring: 239 84% 67%;
+
+    --node-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3), 0 12px 24px -4px rgba(0,0,0,0.4);
+    --node-shadow-hover: 0 0 0 1px rgba(255,255,255,0.10), 0 4px 8px rgba(0,0,0,0.4), 0 20px 32px -8px rgba(0,0,0,0.5);
   }
 }
 
@@ -54,18 +87,31 @@
   }
 }
 
-/* React Flow overrides */
+/* React Flow overrides — theme-aware */
 .react-flow__controls {
-  background: white !important;
-  border: none !important;
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
   border-radius: 0.5rem !important;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.08) !important;
+  box-shadow: var(--node-shadow) !important;
   overflow: hidden !important;
 }
 .react-flow__controls-button {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
   border: none !important;
-  border-bottom: 1px solid hsl(214 20% 91%) !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
 }
 .react-flow__controls-button:last-child {
   border-bottom: none !important;
+}
+.react-flow__controls-button:hover {
+  background: hsl(var(--muted)) !important;
+}
+.react-flow__controls-button svg {
+  fill: hsl(var(--foreground)) !important;
+}
+
+/* MiniMap dark-mode background */
+.react-flow__minimap {
+  background: hsl(var(--card)) !important;
 }
