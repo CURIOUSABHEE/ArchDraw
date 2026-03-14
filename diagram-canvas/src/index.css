@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 215 25% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 12%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 215 25% 27%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 14% 55%;
+    --accent: 239 84% 67%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 20% 91%;
+    --input: 214 20% 91%;
+    --ring: 239 84% 67%;
+    --radius: 0.5rem;
+
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 215 25% 27%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent-foreground: 215 25% 12%;
+    --sidebar-border: 214 20% 91%;
+    --sidebar-ring: 239 84% 67%;
+
+    --toolbar-bg: 0 0% 100%;
+    --canvas-bg: 210 20% 98%;
+    --node-bg: 0 0% 100%;
+    --node-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04), 0 12px 24px -4px rgba(0,0,0,0.08);
+    --node-shadow-hover: 0 0 0 1px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06), 0 20px 32px -8px rgba(0,0,0,0.12);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+/* React Flow overrides */
+.react-flow__controls {
+  background: white !important;
+  border: none !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.08) !important;
+  overflow: hidden !important;
+}
+.react-flow__controls-button {
+  border: none !important;
+  border-bottom: 1px solid hsl(214 20% 91%) !important;
+}
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}

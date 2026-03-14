@@ -1,0 +1,14 @@
+[
+  { "id": "api_gateway", "label": "API Gateway", "category": "Network", "color": "#6366f1" },
+  { "id": "load_balancer", "label": "Load Balancer", "category": "Network", "color": "#6366f1" },
+  { "id": "cdn", "label": "CDN", "category": "Network", "color": "#6366f1" },
+  { "id": "web_server", "label": "Web Server", "category": "Compute", "color": "#3b82f6" },
+  { "id": "lambda", "label": "Lambda", "category": "Compute", "color": "#f97316" },
+  { "id": "auth_service", "label": "Auth Service", "category": "Compute", "color": "#3b82f6" },
+  { "id": "redis", "label": "Redis Cache", "category": "Database", "color": "#ef4444" },
+  { "id": "postgresql", "label": "PostgreSQL", "category": "Database", "color": "#334155" },
+  { "id": "mongodb", "label": "MongoDB", "category": "Database", "color": "#22c55e" },
+  { "id": "kafka", "label": "Kafka", "category": "Messaging", "color": "#f59e0b" },
+  { "id": "rabbitmq", "label": "RabbitMQ", "category": "Messaging", "color": "#f59e0b" },
+  { "id": "s3", "label": "S3 Storage", "category": "Storage", "color": "#ec4899" }
+]
