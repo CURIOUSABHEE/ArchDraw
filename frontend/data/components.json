@@ -1,0 +1,331 @@
+[
+  {
+    "id": "client_web_mobile",
+    "label": "Client (Web / Mobile)",
+    "category": "Client & Entry",
+    "color": "#6366f1",
+    "icon": "Monitor"
+  },
+  {
+    "id": "dns",
+    "label": "DNS",
+    "category": "Client & Entry",
+    "color": "#6366f1",
+    "icon": "Globe"
+  },
+  {
+    "id": "cdn",
+    "label": "CDN",
+    "category": "Client & Entry",
+    "color": "#6366f1",
+    "icon": "RadioTower"
+  },
+  {
+    "id": "api_gateway",
+    "label": "API Gateway",
+    "category": "Client & Entry",
+    "color": "#6366f1",
+    "icon": "Webhook"
+  },
+  {
+    "id": "load_balancer",
+    "label": "Load Balancer",
+    "category": "Client & Entry",
+    "color": "#6366f1",
+    "icon": "Scale"
+  },
+  {
+    "id": "reverse_proxy",
+    "label": "Reverse Proxy",
+    "category": "Client & Entry",
+    "color": "#6366f1",
+    "icon": "Shuffle"
+  },
+  {
+    "id": "server_monolith",
+    "label": "Server (Monolith)",
+    "category": "Compute",
+    "color": "#3b82f6",
+    "icon": "Server"
+  },
+  {
+    "id": "microservice",
+    "label": "Microservice",
+    "category": "Compute",
+    "color": "#3b82f6",
+    "icon": "Boxes"
+  },
+  {
+    "id": "serverless_fn",
+    "label": "Serverless Function",
+    "category": "Compute",
+    "color": "#3b82f6",
+    "icon": "Zap"
+  },
+  {
+    "id": "worker_job",
+    "label": "Worker / Background Job",
+    "category": "Compute",
+    "color": "#3b82f6",
+    "icon": "Timer"
+  },
+  {
+    "id": "container",
+    "label": "Container (Docker / K8s)",
+    "category": "Compute",
+    "color": "#3b82f6",
+    "icon": "Box"
+  },
+  {
+    "id": "sql_db",
+    "label": "SQL Database",
+    "category": "Data Storage",
+    "color": "#334155",
+    "icon": "Database"
+  },
+  {
+    "id": "nosql_db",
+    "label": "NoSQL Database",
+    "category": "Data Storage",
+    "color": "#334155",
+    "icon": "Leaf"
+  },
+  {
+    "id": "object_storage",
+    "label": "Object Storage (S3-like)",
+    "category": "Data Storage",
+    "color": "#334155",
+    "icon": "HardDrive"
+  },
+  {
+    "id": "file_system",
+    "label": "File System",
+    "category": "Data Storage",
+    "color": "#334155",
+    "icon": "FolderOpen"
+  },
+  {
+    "id": "search_engine",
+    "label": "Search Engine",
+    "category": "Data Storage",
+    "color": "#334155",
+    "icon": "Search"
+  },
+  {
+    "id": "data_warehouse",
+    "label": "Data Warehouse",
+    "category": "Data Storage",
+    "color": "#334155",
+    "icon": "Building2"
+  },
+  {
+    "id": "in_memory_cache",
+    "label": "In-Memory Cache",
+    "category": "Caching",
+    "color": "#ef4444",
+    "icon": "Layers"
+  },
+  {
+    "id": "cdn_cache",
+    "label": "CDN Cache",
+    "category": "Caching",
+    "color": "#ef4444",
+    "icon": "Globe"
+  },
+  {
+    "id": "app_cache",
+    "label": "Application Cache",
+    "category": "Caching",
+    "color": "#ef4444",
+    "icon": "AppWindow"
+  },
+  {
+    "id": "message_queue",
+    "label": "Message Queue",
+    "category": "Messaging & Events",
+    "color": "#f59e0b",
+    "icon": "MessageSquare"
+  },
+  {
+    "id": "event_bus",
+    "label": "Event Bus / Pub-Sub",
+    "category": "Messaging & Events",
+    "color": "#f59e0b",
+    "icon": "Radio"
+  },
+  {
+    "id": "kafka_streaming",
+    "label": "Kafka / Streaming",
+    "category": "Messaging & Events",
+    "color": "#f59e0b",
+    "icon": "Activity"
+  },
+  {
+    "id": "webhook",
+    "label": "Webhook",
+    "category": "Messaging & Events",
+    "color": "#f59e0b",
+    "icon": "Webhook"
+  },
+  {
+    "id": "auth_service",
+    "label": "Auth Service (JWT)",
+    "category": "Auth & Security",
+    "color": "#8b5cf6",
+    "icon": "Shield"
+  },
+  {
+    "id": "oauth_provider",
+    "label": "OAuth / Identity Provider",
+    "category": "Auth & Security",
+    "color": "#8b5cf6",
+    "icon": "KeyRound"
+  },
+  {
+    "id": "api_key_manager",
+    "label": "API Key Manager",
+    "category": "Auth & Security",
+    "color": "#8b5cf6",
+    "icon": "Key"
+  },
+  {
+    "id": "firewall_waf",
+    "label": "Firewall / WAF",
+    "category": "Auth & Security",
+    "color": "#8b5cf6",
+    "icon": "ShieldAlert"
+  },
+  {
+    "id": "logger",
+    "label": "Logger",
+    "category": "Observability",
+    "color": "#06b6d4",
+    "icon": "ScrollText"
+  },
+  {
+    "id": "metrics_collector",
+    "label": "Metrics Collector",
+    "category": "Observability",
+    "color": "#06b6d4",
+    "icon": "BarChart2"
+  },
+  {
+    "id": "tracing_service",
+    "label": "Tracing Service",
+    "category": "Observability",
+    "color": "#06b6d4",
+    "icon": "GitBranch"
+  },
+  {
+    "id": "alert_manager",
+    "label": "Alert Manager",
+    "category": "Observability",
+    "color": "#06b6d4",
+    "icon": "Bell"
+  },
+  {
+    "id": "dashboard",
+    "label": "Dashboard (Grafana)",
+    "category": "Observability",
+    "color": "#06b6d4",
+    "icon": "LayoutDashboard"
+  },
+  {
+    "id": "llm_api",
+    "label": "LLM API (GPT / Claude)",
+    "category": "AI / ML",
+    "color": "#ec4899",
+    "icon": "Brain"
+  },
+  {
+    "id": "vector_db",
+    "label": "Vector Database",
+    "category": "AI / ML",
+    "color": "#ec4899",
+    "icon": "Cpu"
+  },
+  {
+    "id": "embedding_service",
+    "label": "Embedding Service",
+    "category": "AI / ML",
+    "color": "#ec4899",
+    "icon": "Network"
+  },
+  {
+    "id": "rag_pipeline",
+    "label": "RAG Pipeline",
+    "category": "AI / ML",
+    "color": "#ec4899",
+    "icon": "GitMerge"
+  },
+  {
+    "id": "model_server",
+    "label": "Model Server",
+    "category": "AI / ML",
+    "color": "#ec4899",
+    "icon": "Bot"
+  },
+  {
+    "id": "email_service",
+    "label": "Email Service (SendGrid)",
+    "category": "External Services",
+    "color": "#10b981",
+    "icon": "Mail"
+  },
+  {
+    "id": "payment_gateway",
+    "label": "Payment Gateway (Stripe)",
+    "category": "External Services",
+    "color": "#10b981",
+    "icon": "CreditCard"
+  },
+  {
+    "id": "sms_push",
+    "label": "SMS / Push Notification",
+    "category": "External Services",
+    "color": "#10b981",
+    "icon": "Smartphone"
+  },
+  {
+    "id": "maps_api",
+    "label": "Maps API",
+    "category": "External Services",
+    "color": "#10b981",
+    "icon": "Map"
+  },
+  {
+    "id": "third_party_api",
+    "label": "Generic 3rd Party API",
+    "category": "External Services",
+    "color": "#10b981",
+    "icon": "Plug"
+  },
+  {
+    "id": "cicd_pipeline",
+    "label": "CI/CD Pipeline",
+    "category": "DevOps / Infra",
+    "color": "#64748b",
+    "icon": "GitPullRequest"
+  },
+  {
+    "id": "container_registry",
+    "label": "Container Registry",
+    "category": "DevOps / Infra",
+    "color": "#64748b",
+    "icon": "Package"
+  },
+  {
+    "id": "secret_manager",
+    "label": "Secret Manager",
+    "category": "DevOps / Infra",
+    "color": "#64748b",
+    "icon": "Lock"
+  },
+  {
+    "id": "config_service",
+    "label": "Config Service",
+    "category": "DevOps / Infra",
+    "color": "#64748b",
+    "icon": "Settings"
+  }
+]
