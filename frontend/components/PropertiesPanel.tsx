@@ -58,13 +58,9 @@ export function PropertiesPanel() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <Field label="Label">
-            <input
-              defaultValue={ed.label ?? ''}
-              onBlur={(e) => updateEdgeData(edge.id, { label: e.target.value })}
-              className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-md outline-none focus:ring-2 focus:ring-ring/30"
-            />
-          </Field>
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            Double-click the edge to add a label. Drag the blue handles to reshape the curve.
+          </p>
           <Field label="Connection Type">
             <select
               value={ed.connectionType ?? 'smoothstep'}

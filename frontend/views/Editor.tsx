@@ -36,7 +36,7 @@ export default function EditorPage() {
       <div className="flex flex-1 overflow-hidden">
         <ComponentSidebar />
         <Canvas />
-        {(selectedNodeId || selectedEdgeId) && <PropertiesPanel />}
+        {(selectedNodeId) && <PropertiesPanel />}
       </div>
       <CommandPalette />
     </div>

@@ -2,140 +2,133 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import {
-  Monitor, Globe, RadioTower, Webhook, Scale, Shuffle,
-  Server, Boxes, Zap, Timer, Box,
-  Database, Leaf, HardDrive, FolderOpen, Search, Building2,
-  Layers, AppWindow,
-  MessageSquare, Radio, Activity,
-  Shield, KeyRound, Key, ShieldAlert,
-  ScrollText, BarChart2, GitBranch, Bell, LayoutDashboard,
-  Brain, Binary, Network, GitMerge, Bot,
-  Mail, CreditCard, Smartphone, Map, Plug,
-  GitPullRequest, Package, Lock, Settings,
-  Cpu,
-  LucideIcon,
-} from 'lucide-react';
+import { Server, LucideIcon } from 'lucide-react';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { NodeIcon, resolveNodeColor } from '@/components/NodeIcon';
 
-const ICON_MAP: Record<string, LucideIcon> = {
-  Monitor, Globe, RadioTower, Webhook, Scale, Shuffle,
-  Server, Boxes, Zap, Timer, Box,
-  Database, Leaf, HardDrive, FolderOpen, Search, Building2,
-  Layers, AppWindow,
-  MessageSquare, Radio, Activity,
-  Shield, KeyRound, Key, ShieldAlert,
-  ScrollText, BarChart2, GitBranch, Bell, LayoutDashboard,
-  Brain, Binary, Network, GitMerge, Bot,
-  Mail, CreditCard, Smartphone, Map, Plug,
-  GitPullRequest, Package, Lock, Settings,
-  Cpu,
-};
-
-/** Shorten long category strings to a single line */
-const CATEGORY_SHORT: Record<string, string> = {
-  'Client & Entry':    'Entry',
-  'Data Storage':      'Storage',
-  'Messaging & Events':'Messaging',
-  'Auth & Security':   'Security',
-  'External Services': 'External',
-  'DevOps / Infra':    'DevOps',
-};
+const ICON_MAP: Record<string, LucideIcon> = {};
 
 function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
-  const Icon: LucideIcon = (data.icon ? ICON_MAP[data.icon] : undefined) ?? Server;
   const accent = data.accentColor ?? data.color ?? '#6366f1';
-  const hasError = data.hasError;
-  const categoryLabel = CATEGORY_SHORT[data.category] ?? data.category;
-  // Use brand color from iconRegistry when technology is set
   const resolvedAccent = data.technology ? resolveNodeColor(data.technology, accent) : accent;
+  const hasError = data.hasError;
 
-  const borderColor = hasError ? '#ef4444' : selected ? resolvedAccent : undefined;
+  const nodeStyles: React.CSSProperties = {
+    width: 140,
+    borderRadius: 12,
+    background: 'hsl(var(--card))',
+    border: `1px solid ${selected ? resolvedAccent : 'hsl(var(--border))'}`,
+    boxShadow: selected 
+      ? `0 0 0 1px ${resolvedAccent}30, 0 4px 12px -2px ${resolvedAccent}20`
+      : hasError 
+        ? `0 0 0 1px #ef444430, 0 4px 12px -2px #ef444420`
+        : '0 1px 3px -1px hsl(var(--border)), 0 1px 2px -1px hsl(var(--border))',
+    transition: 'all 0.15s ease',
+    cursor: 'pointer',
+  };
 
-  const glowStyle = selected
-    ? { boxShadow: `0 0 0 2px ${resolvedAccent}55, 0 0 0 4px ${resolvedAccent}22, 0 8px 24px -4px ${resolvedAccent}33` }
-    : hasError
-    ? { boxShadow: '0 0 0 2px #ef444455, 0 4px 12px rgba(239,68,68,0.2)' }
-    : {};
+  const iconContainerStyle: React.CSSProperties = {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    background: `${resolvedAccent}12`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const handleStyle: React.CSSProperties = {
+    width: 8,
+    height: 8,
+    background: 'hsl(var(--card))',
+    border: `2px solid ${selected ? resolvedAccent : 'hsl(var(--border))'}`,
+    borderRadius: '50%',
+    transition: 'all 0.15s ease',
+  };
 
   return (
     <div
-      className="group relative flex flex-col rounded-xl transition-all duration-200 cursor-pointer"
-      style={{
-        width: 160,
-        borderLeft: `3px solid ${hasError ? '#ef4444' : resolvedAccent}`,
-        border: `1px solid ${borderColor ?? 'rgba(0,0,0,0.08)'}`,
-        background: `linear-gradient(135deg, ${resolvedAccent}22 0%, hsl(var(--card)) 50%)`,
-        ...glowStyle,
-      }}
+      style={nodeStyles}
       onClick={() => setSelectedNodeId(id)}
+      onMouseEnter={(e) => {
+        if (!selected) {
+          e.currentTarget.style.borderColor = resolvedAccent + '60';
+          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.boxShadow = `0 4px 12px -2px ${resolvedAccent}15`;
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!selected) {
+          e.currentTarget.style.borderColor = 'hsl(var(--border))';
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 1px 3px -1px hsl(var(--border)), 0 1px 2px -1px hsl(var(--border))';
+        }
+      }}
     >
-      {/* Handles — fixed size, no transform on hover to avoid offset */}
       <Handle
         type="target"
         position={Position.Left}
-        style={{ width: 10, height: 10, background: `${resolvedAccent}99`, border: '2px solid hsl(var(--card))', borderRadius: '50%' }}
+        style={handleStyle}
       />
       <Handle
         type="source"
         position={Position.Right}
-        style={{ width: 10, height: 10, background: resolvedAccent, border: '2px solid hsl(var(--card))', borderRadius: '50%' }}
+        style={handleStyle}
       />
 
-      {/* Content */}
-      <div className="flex items-center gap-2.5 px-3 pt-3 pb-2">
-        <div
-          className="flex items-center justify-center rounded-lg shrink-0"
-          style={{
-            width: 36,
-            height: 36,
-            background: `${resolvedAccent}28`,
-            border: `1.5px solid ${resolvedAccent}55`,
-          }}
-        >
+      <div style={{
+        padding: '16px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 8,
+      }}>
+        {/* Big Icon */}
+        <div style={iconContainerStyle}>
           {data.technology ? (
-            <NodeIcon technology={data.technology} size={18} />
+            <NodeIcon technology={data.technology} size={24} />
           ) : (
-            <Icon size={18} style={{ color: resolvedAccent }} strokeWidth={1.8} />
+            <Server size={24} style={{ color: resolvedAccent, strokeWidth: 1.5 }} />
           )}
         </div>
 
-        <div className="flex flex-col min-w-0 flex-1">
-          {/* Label — wraps to 2 lines max */}
-          <span
-            className="text-[11px] font-semibold text-foreground leading-tight"
-            style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
-            {data.label}
+        {/* Label */}
+        <span style={{
+          fontSize: 13,
+          fontWeight: 500,
+          color: 'hsl(var(--foreground))',
+          textAlign: 'center',
+          lineHeight: 1.3,
+          maxWidth: 110,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
+          {data.label}
+        </span>
+
+        {/* Category/Type - subtle */}
+        <span style={{
+          fontSize: 10,
+          fontWeight: 400,
+          color: 'hsl(var(--muted-foreground))',
+          letterSpacing: '0.02em',
+        }}>
+          {data.technology || data.category?.replace(/[^A-Z]/g, '').slice(0, 3) || 'Service'}
+        </span>
+
+        {/* Error state */}
+        {hasError && (
+          <span style={{
+            fontSize: 9,
+            color: '#ef4444',
+            fontWeight: 500,
+          }}>
+            No connections
           </span>
-          <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5 whitespace-nowrap">
-            {categoryLabel}
-          </span>
-          {data.tech && (
-            <span className="text-[9px] font-mono text-muted-foreground/70 mt-0.5 truncate">
-              {data.tech}
-            </span>
-          )}
-        </div>
+        )}
       </div>
-
-      {hasError && (
-        <div className="px-3 pb-2">
-          <span className="text-[9px] text-red-500 font-medium">⚠ No connections</span>
-        </div>
-      )}
-
-      <div
-        className="h-0.5 w-full rounded-b-xl transition-opacity duration-200 opacity-30 group-hover:opacity-80"
-        style={{ background: resolvedAccent }}
-      />
     </div>
   );
 }

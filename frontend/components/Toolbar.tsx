@@ -101,13 +101,13 @@ export function Toolbar() {
   };
 
   return (
-    <header className="h-12 border-b border-border bg-card flex items-center justify-between px-4 z-20 shrink-0 gap-2">
+    <header className="h-11 border-b border-border/60 bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 z-20 shrink-0 gap-2">
       {/* Logo */}
       <div className="flex items-center gap-2 shrink-0">
-        <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
-          <div className="w-3 h-3 border-2 border-primary-foreground rounded-sm" />
+        <div className="w-5 h-5 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-md flex items-center justify-center">
+          <div className="w-2 h-2 border border-white/80 rounded-sm" />
         </div>
-        <span className="font-bold text-foreground tracking-tight text-sm">ArchDraw</span>
+        <span className="font-semibold text-foreground text-sm tracking-tight">Archflow</span>
       </div>
 
       {/* Center actions */}
@@ -168,33 +168,33 @@ export function Toolbar() {
         </ToolBtn>
       </div>
       {/* Stats */}
-      <div className="hidden md:flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
+      <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground font-medium">
         <span>{nodes.length} nodes</span>
         <span>{edges.length} edges</span>
       </div>
 
       {/* Right actions */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-1 shrink-0">
         <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
         >
           <Upload className="w-3.5 h-3.5" />
-          Import
+          <span className="hidden sm:inline">Import</span>
         </button>
         <button
           onClick={clearDiagram}
           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-destructive rounded-md hover:bg-destructive/10 transition-colors"
         >
           <Trash2 className="w-3.5 h-3.5" />
-          Clear
+          <span className="hidden sm:inline">Clear</span>
         </button>
 
         <div className="relative">
           <button
             onClick={() => setExportOpen(!exportOpen)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background text-xs font-semibold rounded-md hover:opacity-90 transition-all shadow-sm active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-medium rounded-md hover:opacity-90 transition-all shadow-sm active:scale-95"
           >
             <Download className="w-3.5 h-3.5" />
             Export
@@ -203,14 +203,14 @@ export function Toolbar() {
           {exportOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setExportOpen(false)} />
-              <div className="absolute right-0 mt-2 w-44 bg-card rounded-lg border border-border shadow-lg z-40 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-44 bg-card/95 backdrop-blur-sm rounded-lg border border-border shadow-xl z-40 overflow-hidden">
                 {[
                   { label: 'Export as JSON', icon: FileJson, fn: exportJson },
                   { label: 'Export as PNG', icon: Image, fn: exportPng },
                   { label: 'Export as SVG', icon: FileImage, fn: exportSvg },
                   { label: 'Export as PDF', icon: FileText, fn: exportPdf },
                 ].map(({ label, icon: Icon, fn }) => (
-                  <button key={label} onClick={fn} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium text-secondary-foreground hover:bg-muted transition-colors">
+                  <button key={label} onClick={fn} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-foreground/80 hover:bg-accent hover:text-foreground transition-colors">
                     <Icon className="w-3.5 h-3.5 text-muted-foreground" />
                     {label}
                   </button>
@@ -238,10 +238,10 @@ function ToolBtn({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`p-1.5 rounded-md transition-colors ${
+      className={`p-1.5 rounded-md transition-all duration-150 ${
         active
-          ? 'bg-primary/15 text-primary'
-          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
+          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
       } disabled:opacity-30 disabled:cursor-not-allowed`}
     >
       {children}
@@ -250,5 +250,5 @@ function ToolBtn({
 }
 
 function Divider() {
-  return <div className="w-px h-4 bg-border mx-1" />;
+  return <div className="w-px h-4 bg-border/60 mx-1" />;
 }

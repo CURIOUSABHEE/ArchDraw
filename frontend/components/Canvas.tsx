@@ -146,21 +146,17 @@ function CanvasInner() {
   }, [setSelectedNodeId, setSelectedEdgeId]);
 
   const onEdgeClick: EdgeMouseHandler = useCallback((_e, edge) => {
-    setSelectedEdgeId(edge.id);
+    const { editingEdgeId, pendingEditEdgeId } = useDiagramStore.getState();
+    if (editingEdgeId === edge.id || pendingEditEdgeId === edge.id) return;
+    useDiagramStore.getState().setSelectedEdgeId(edge.id);
     setSelectedNodeId(null);
-  }, [setSelectedEdgeId, setSelectedNodeId]);
-
-  const onEdgeDoubleClick: EdgeMouseHandler = useCallback((e, edge) => {
-    e.stopPropagation();
-    // Start inline editing without opening the sidebar
-    useDiagramStore.getState().setEditingEdgeId(edge.id);
-    // Don't select the edge — keeps sidebar closed
-    setSelectedEdgeId(null);
-  }, [setSelectedEdgeId]);
+  }, [setSelectedNodeId]);
 
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
+    useDiagramStore.getState().setEditingEdgeId(null);
+    useDiagramStore.getState().setPendingEditEdgeId(null);
     setContextMenu(null);
   }, [setSelectedNodeId, setSelectedEdgeId]);
 
@@ -195,7 +191,6 @@ function CanvasInner() {
         onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
-        onEdgeDoubleClick={onEdgeDoubleClick}
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
@@ -208,24 +203,27 @@ function CanvasInner() {
         defaultEdgeOptions={{
           type: 'custom',
           data: { edgeStyle: 'solid', connectionType: 'smoothstep' },
-          style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+          style: { stroke: '#94a3b8', strokeWidth: 1.25 },
         }}
       >
         {showGrid && (
           <Background
             variant={BackgroundVariant.Dots}
-            color="hsl(var(--border))"
-            gap={24}
-            size={1.5}
+            color="hsl(var(--grid-color))"
+            gap={20}
+            size={1}
           />
         )}
-        <Controls showInteractive={false} />
+        <Controls 
+          showInteractive={false}
+          className="!bg-card/90 !backdrop-blur-sm !border !border-border/60 !rounded-lg !shadow-md [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-border/40 [&>button:hover]:!bg-accent"
+        />
         <MiniMap
           nodeStrokeWidth={3}
           zoomable
           pannable
-          className="!bg-card !border !border-border !rounded-lg !shadow-lg"
-          maskColor="rgba(0,0,0,0.06)"
+          className="!bg-card/90 !backdrop-blur-sm !border !border-border/60 !rounded-lg !shadow-md"
+          maskColor="rgba(0,0,0,0.04)"
         />
       </ReactFlow>
 
@@ -238,10 +236,10 @@ function CanvasInner() {
       {nodes.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center space-y-1">
-            <p className="text-muted-foreground text-sm font-medium">
+            <p className="text-muted-foreground/70 text-sm font-medium">
               Drag a component from the sidebar to start
             </p>
-            <p className="text-muted-foreground/60 text-xs">or press ⌘K to search</p>
+            <p className="text-muted-foreground/40 text-xs">or press ⌘K to search</p>
           </div>
         </div>
       )}

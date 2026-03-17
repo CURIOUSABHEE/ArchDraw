@@ -81,6 +81,9 @@ interface DiagramState {
   // Inline edge label editing
   editingEdgeId: string | null;
   setEditingEdgeId: (id: string | null) => void;
+  // Track double-click to prevent selection race
+  pendingEditEdgeId: string | null;
+  setPendingEditEdgeId: (id: string | null) => void;
 }
 
 export const useDiagramStore = create<DiagramState>()(
@@ -264,6 +267,8 @@ export const useDiagramStore = create<DiagramState>()(
       // Inline edge label editing
       editingEdgeId: null,
       setEditingEdgeId: (id) => set({ editingEdgeId: id }),
+      pendingEditEdgeId: null,
+      setPendingEditEdgeId: (id) => set({ pendingEditEdgeId: id }),
 
       toggleEdgeAnimations: () => {
         const next = !get().edgeAnimations;

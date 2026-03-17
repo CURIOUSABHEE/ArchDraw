@@ -1,26 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
 import { useAuthStore } from '@/store/authStore';
-import { AuthScreen } from '@/components/AuthScreen';
 
-const EditorPage = dynamic(() => import('@/views/Editor'), {
-  ssr: false,
-  loading: () => (
-    <div style={{ minHeight: '100vh', background: '#0a0a12' }} />
-  ),
-});
-
-export default function EditorRoute() {
-  const { user, loading, initialized } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [initialized, setInitialized] = useState(false);
+  const { initialize, user, loading } = useAuthStore();
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    initialize().then(() => setInitialized(true));
+  }, [initialize]);
 
-  if (!mounted || !initialized || loading) {
+  if (!initialized || loading) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -50,9 +41,5 @@ export default function EditorRoute() {
     );
   }
 
-  if (!user) {
-    return <AuthScreen />;
-  }
-
-  return <EditorPage />;
+  return <>{children}</>;
 }

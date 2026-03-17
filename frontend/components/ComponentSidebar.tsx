@@ -126,23 +126,23 @@ function SidebarSection({ title, items, sectionKey, collapsed, onToggle, onAdd }
   const isTopCollapsed = collapsed[`top:${sectionKey}`];
 
   return (
-    <div className="mb-1">
+    <div className="mb-3">
       {/* Top-level section header */}
       <button
         onClick={() => onToggle(`top:${sectionKey}`)}
-        className="w-full flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-muted/60 transition-colors group"
+        className="w-full flex items-center justify-between px-3 py-1.5 rounded-md hover:bg-accent transition-colors group"
       >
-        <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/70 group-hover:text-foreground transition-colors">
+        <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors tracking-wide">
           {title}
         </span>
         {isTopCollapsed
-          ? <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-          : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+          ? <ChevronRight className="w-3 h-3 text-muted-foreground" />
+          : <ChevronDown className="w-3 h-3 text-muted-foreground" />
         }
       </button>
 
       {!isTopCollapsed && (
-        <div className="pl-1">
+        <div className="pl-1 pr-2">
           {Object.entries(grouped).map(([category, catItems]) => {
             const catKey = `cat:${sectionKey}:${category}`;
             const isCatCollapsed = collapsed[catKey];
@@ -150,19 +150,19 @@ function SidebarSection({ title, items, sectionKey, collapsed, onToggle, onAdd }
               <div key={category}>
                 <button
                   onClick={() => onToggle(catKey)}
-                  className="w-full flex items-center justify-between px-2 py-1 rounded-md hover:bg-muted/40 transition-colors group"
+                  className="w-full flex items-center justify-between px-3 py-1 rounded-md hover:bg-accent/50 transition-colors group"
                 >
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground transition-colors">
+                  <span className="text-[9px] font-medium text-muted-foreground/80 group-hover:text-foreground transition-colors">
                     {category}
                   </span>
                   {isCatCollapsed
-                    ? <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                    : <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                    ? <ChevronRight className="w-2.5 h-2.5 text-muted-foreground/60" />
+                    : <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/60" />
                   }
                 </button>
 
                 {!isCatCollapsed && (
-                  <div className="space-y-0.5 mb-1">
+                  <div className="space-y-0.5 mb-2 ml-1 border-l border-border/50 pl-2">
                     {catItems.map((comp) => {
                       const FallbackIcon: LucideIcon = (comp.icon ? ICON_MAP[comp.icon] : undefined) ?? Server;
                       const displayColor = comp.technology
@@ -182,19 +182,19 @@ function SidebarSection({ title, items, sectionKey, collapsed, onToggle, onAdd }
                           }}
                           onClick={() => onAdd(comp)}
                           title={getDescription(comp)}
-                          className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-secondary-foreground rounded-lg transition-all hover:bg-accent/10 hover:scale-[1.02] hover:shadow-sm group cursor-grab active:cursor-grabbing active:scale-95"
+                          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-foreground rounded-md transition-all hover:bg-accent cursor-grab active:cursor-grabbing"
                         >
                           <div
-                            className="flex items-center justify-center rounded-md shrink-0"
-                            style={{ width: 24, height: 24, background: `${displayColor}18`, border: `1px solid ${displayColor}33` }}
+                            className="flex items-center justify-center rounded shrink-0"
+                            style={{ width: 22, height: 22, background: `${displayColor}12`, border: `1px solid ${displayColor}25` }}
                           >
                             {comp.technology ? (
-                              <NodeIcon technology={comp.technology} size={12} />
+                              <NodeIcon technology={comp.technology} size={11} />
                             ) : (
-                              <FallbackIcon size={12} style={{ color: displayColor }} strokeWidth={2} />
+                              <FallbackIcon size={11} style={{ color: displayColor }} strokeWidth={1.75} />
                             )}
                           </div>
-                          <span className="flex-1 text-left leading-tight">{comp.label}</span>
+                          <span className="flex-1 text-left leading-tight text-foreground/90">{comp.label}</span>
                         </button>
                       );
                     })}
@@ -242,7 +242,7 @@ export function ComponentSidebar() {
     );
 
     return (
-      <aside className="w-64 border-r border-border bg-sidebar flex flex-col h-full shrink-0">
+      <aside className="w-60 border-r border-border bg-sidebar flex flex-col h-full shrink-0">
         <SearchBar value={search} onChange={setSearch} />
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {filtered.length === 0 ? (
@@ -267,19 +267,19 @@ export function ComponentSidebar() {
                   }}
                   onClick={() => handleAdd(comp)}
                   title={getDescription(comp)}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-secondary-foreground rounded-lg transition-all hover:bg-accent/10 hover:scale-[1.02] hover:shadow-sm group cursor-grab active:cursor-grabbing active:scale-95"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-foreground rounded-md transition-all hover:bg-accent cursor-grab active:cursor-grabbing"
                 >
                   <div
-                    className="flex items-center justify-center rounded-md shrink-0"
-                    style={{ width: 24, height: 24, background: `${displayColor}18`, border: `1px solid ${displayColor}33` }}
+                    className="flex items-center justify-center rounded shrink-0"
+                    style={{ width: 22, height: 22, background: `${displayColor}12`, border: `1px solid ${displayColor}25` }}
                   >
                     {comp.technology ? (
-                      <NodeIcon technology={comp.technology} size={12} />
+                      <NodeIcon technology={comp.technology} size={11} />
                     ) : (
-                      <FallbackIcon size={12} style={{ color: displayColor }} strokeWidth={2} />
+                      <FallbackIcon size={11} style={{ color: displayColor }} strokeWidth={1.75} />
                     )}
                   </div>
-                  <span className="flex-1 text-left leading-tight">{comp.label}</span>
+                  <span className="flex-1 text-left leading-tight text-foreground/90">{comp.label}</span>
                 </button>
               );
             })
@@ -291,9 +291,9 @@ export function ComponentSidebar() {
   }
 
   return (
-    <aside className="w-64 border-r border-border bg-sidebar flex flex-col h-full shrink-0">
+    <aside className="w-60 border-r border-border bg-sidebar flex flex-col h-full shrink-0">
       <SearchBar value={search} onChange={setSearch} />
-      <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+      <div className="flex-1 overflow-y-auto p-2">
         {TOP_SECTIONS.map((section) => (
           <SidebarSection
             key={section.key}
@@ -313,13 +313,13 @@ export function ComponentSidebar() {
 
 function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div className="p-3 border-b border-border">
+    <div className="p-2.5 border-b border-border">
       <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
         <input
           type="text"
-          placeholder="Search components..."
-          className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted border-none rounded-md focus:ring-2 focus:ring-ring/20 transition-all outline-none placeholder:text-muted-foreground"
+          placeholder="Search..."
+          className="w-full pl-8 pr-3 py-1.5 text-xs bg-accent/50 border border-transparent rounded-md focus:ring-1 focus:ring-ring/20 focus:bg-accent transition-all outline-none placeholder:text-muted-foreground/60"
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -330,9 +330,9 @@ function SearchBar({ value, onChange }: { value: string; onChange: (v: string) =
 
 function SidebarFooter() {
   return (
-    <div className="px-3 py-2 border-t border-border">
-      <p className="text-[10px] text-muted-foreground text-center">
-        Drag to canvas or click to add
+    <div className="px-3 py-2 border-t border-border/50">
+      <p className="text-[9px] text-muted-foreground/60 text-center">
+        Click or drag to add
       </p>
     </div>
   );
