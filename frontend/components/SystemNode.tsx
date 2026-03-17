@@ -46,6 +46,7 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
 
   return (
     <div
+      className="relative group"
       style={nodeStyles}
       onClick={() => setSelectedNodeId(id)}
       onMouseEnter={(e) => {
@@ -63,6 +64,8 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         }
       }}
     >
+      {/* Diagonal corner shine */}
+      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/10 via-white/[0.03] to-transparent group-hover:from-white/[0.15] group-hover:via-white/[0.06] transition-all duration-300" />
       <Handle
         type="target"
         position={Position.Left}

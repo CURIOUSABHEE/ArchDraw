@@ -22,6 +22,26 @@ import { useDiagramStore } from '@/store/diagramStore';
 import { NodeIcon } from '@/components/NodeIcon';
 import { iconRegistry } from '@/lib/iconRegistry';
 
+function getViewportCenter(): { x: number; y: number } {
+  const store = useDiagramStore.getState();
+  const vp = store.fitViewFn ? (() => {
+    const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
+    if (!el) return null;
+    const style = el.style.transform;
+    const match = style.match(/translate\(([^,]+)px,\s*([^)]+)px\)\s*scale\(([^)]+)\)/);
+    if (!match) return null;
+    return { x: parseFloat(match[1]), y: parseFloat(match[2]), zoom: parseFloat(match[3]) };
+  })() : null;
+
+  const bounds = document.querySelector('.react-flow__renderer')?.getBoundingClientRect();
+  if (!vp || !bounds) return { x: 400 + Math.random() * 40 - 20, y: 300 + Math.random() * 40 - 20 };
+
+  return {
+    x: (bounds.width / 2 - vp.x) / vp.zoom + Math.random() * 40 - 20,
+    y: (bounds.height / 2 - vp.y) / vp.zoom + Math.random() * 40 - 20,
+  };
+}
+
 const ICON_MAP: Record<string, LucideIcon> = {
   Monitor, Globe, RadioTower, Webhook, Scale, Shuffle,
   Server, Boxes, Zap, Timer, Box,
@@ -226,7 +246,7 @@ export function ComponentSidebar() {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleAdd = (comp: ComponentEntry) => {
-    addNode(comp.id, comp.label, comp.category, comp.color, comp.icon, comp.technology);
+    addNode(comp.id, comp.label, comp.category, comp.color, comp.icon, comp.technology, getViewportCenter());
   };
 
   const q = search.toLowerCase().trim();

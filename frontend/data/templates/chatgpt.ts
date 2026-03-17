@@ -1,39 +1,48 @@
 import { Node, Edge } from 'reactflow';
 
+// Column x positions
+// Col 0: x=0    — Client
+// Col 1: x=350  — CDN, API Gateway
+// Col 2: x=700  — Load Balancer, Auth Service
+// Col 3: x=1050 — Chat Service, Streaming Service
+// Col 4: x=1400 — LLM API, Embedding, Cache, MQ, RAG
+// Col 5: x=1750 — Vector DB, NoSQL, Object Storage, SQL DB, Worker
+// Col 6: x=2100 — Logger, Metrics
+
 export const chatgptNodes: Node[] = [
-  // Column 0 — Client (x: 0)
-  { id: 'cg_client',    type: 'systemNode', position: { x: 0,    y: 300 }, data: { label: 'Client (Web / Mobile)', category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
-  // Column 1 — CDN + API Gateway (x: 220)
-  { id: 'cg_cdn',       type: 'systemNode', position: { x: 220,  y: 150 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#6366f1', icon: 'RadioTower'    } },
-  { id: 'cg_apigw',     type: 'systemNode', position: { x: 220,  y: 450 }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#6366f1', icon: 'Webhook'       } },
-  // Column 2 — Load Balancer + Auth (x: 440)
-  { id: 'cg_lb',        type: 'systemNode', position: { x: 440,  y: 300 }, data: { label: 'Load Balancer',         category: 'Client & Entry',    color: '#6366f1', icon: 'Scale'         } },
-  { id: 'cg_jwt',       type: 'systemNode', position: { x: 440,  y: 600 }, data: { label: 'Auth Service (JWT)',    category: 'Auth & Security',   color: '#8b5cf6', icon: 'Shield'        } },
-  // Column 3 — Microservices (x: 680)
-  { id: 'cg_auth_ms',   type: 'systemNode', position: { x: 680,  y: 0   }, data: { label: 'Auth Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
-  { id: 'cg_chat_ms',   type: 'systemNode', position: { x: 680,  y: 300 }, data: { label: 'Chat Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
-  { id: 'cg_stream_ms', type: 'systemNode', position: { x: 680,  y: 600 }, data: { label: 'Streaming Service',     category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
-  // Column 4 — AI + Cache + MQ (x: 920)
-  { id: 'cg_llm',       type: 'systemNode', position: { x: 920,  y: 150 }, data: { label: 'LLM API (GPT / Claude)',category: 'AI / ML',           color: '#ec4899', icon: 'Brain'         } },
-  { id: 'cg_embed',     type: 'systemNode', position: { x: 920,  y: 450 }, data: { label: 'Embedding Service',     category: 'AI / ML',           color: '#ec4899', icon: 'Network'       } },
-  { id: 'cg_cache',     type: 'systemNode', position: { x: 920,  y: 750 }, data: { label: 'In-Memory Cache',       category: 'Caching',           color: '#ef4444', icon: 'Layers'        } },
-  { id: 'cg_mq',        type: 'systemNode', position: { x: 920,  y: 900 }, data: { label: 'Message Queue',         category: 'Messaging & Events',color: '#f59e0b', icon: 'MessageSquare' } },
-  // Column 5 — Data + RAG + Worker (x: 1160)
-  { id: 'cg_sql',       type: 'systemNode', position: { x: 1160, y: 0   }, data: { label: 'SQL Database',          category: 'Data Storage',      color: '#334155', icon: 'Database'      } },
-  { id: 'cg_nosql',     type: 'systemNode', position: { x: 1160, y: 150 }, data: { label: 'NoSQL Database',        category: 'Data Storage',      color: '#334155', icon: 'Leaf'          } },
-  { id: 'cg_rag',       type: 'systemNode', position: { x: 1160, y: 300 }, data: { label: 'RAG Pipeline',          category: 'AI / ML',           color: '#ec4899', icon: 'GitMerge'      } },
-  { id: 'cg_vector',    type: 'systemNode', position: { x: 1160, y: 450 }, data: { label: 'Vector Database',       category: 'AI / ML',           color: '#ec4899', icon: 'Cpu'           } },
-  { id: 'cg_objstore',  type: 'systemNode', position: { x: 1160, y: 600 }, data: { label: 'Object Storage',        category: 'Data Storage',      color: '#334155', icon: 'HardDrive'     } },
-  { id: 'cg_worker',    type: 'systemNode', position: { x: 1160, y: 900 }, data: { label: 'Worker / Background Job',category:'Compute',           color: '#3b82f6', icon: 'Timer'         } },
-  // Column 6 — Observability (x: 1400)
-  { id: 'cg_logger',    type: 'systemNode', position: { x: 1400, y: 150 }, data: { label: 'Logger',                category: 'Observability',     color: '#06b6d4', icon: 'ScrollText'    } },
-  { id: 'cg_metrics',   type: 'systemNode', position: { x: 1400, y: 450 }, data: { label: 'Metrics Collector',     category: 'Observability',     color: '#06b6d4', icon: 'BarChart2'     } },
+  // Col 0 — 1 node, centered at y=400
+  { id: 'cg_client',    type: 'systemNode', position: { x: 0,    y: 400  }, data: { label: 'Client (Web / Mobile)', category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
+  // Col 1 — 2 nodes, centered at y=400, spacing 180 → y=310, 490
+  { id: 'cg_cdn',       type: 'systemNode', position: { x: 350,  y: 310  }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#6366f1', icon: 'RadioTower'    } },
+  { id: 'cg_apigw',     type: 'systemNode', position: { x: 350,  y: 490  }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#6366f1', icon: 'Webhook'       } },
+  // Col 2 — 2 nodes → y=310, 490
+  { id: 'cg_lb',        type: 'systemNode', position: { x: 700,  y: 310  }, data: { label: 'Load Balancer',         category: 'Client & Entry',    color: '#6366f1', icon: 'Scale'         } },
+  { id: 'cg_jwt',       type: 'systemNode', position: { x: 700,  y: 490  }, data: { label: 'Auth Service (JWT)',    category: 'Auth & Security',   color: '#8b5cf6', icon: 'Shield'        } },
+  // Col 3 — 3 nodes, centered at y=400, spacing 180 → y=220, 400, 580
+  { id: 'cg_auth_ms',   type: 'systemNode', position: { x: 1050, y: 220  }, data: { label: 'Auth Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  { id: 'cg_chat_ms',   type: 'systemNode', position: { x: 1050, y: 400  }, data: { label: 'Chat Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  { id: 'cg_stream_ms', type: 'systemNode', position: { x: 1050, y: 580  }, data: { label: 'Streaming Service',     category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  // Col 4 — 5 nodes, centered at y=400, spacing 180 → y=40, 220, 400, 580, 760
+  { id: 'cg_llm',       type: 'systemNode', position: { x: 1400, y: 40   }, data: { label: 'LLM API (GPT / Claude)',category: 'AI / ML',           color: '#ec4899', icon: 'Brain'         } },
+  { id: 'cg_embed',     type: 'systemNode', position: { x: 1400, y: 220  }, data: { label: 'Embedding Service',     category: 'AI / ML',           color: '#ec4899', icon: 'Network'       } },
+  { id: 'cg_cache',     type: 'systemNode', position: { x: 1400, y: 400  }, data: { label: 'In-Memory Cache',       category: 'Caching',           color: '#ef4444', icon: 'Layers'        } },
+  { id: 'cg_mq',        type: 'systemNode', position: { x: 1400, y: 580  }, data: { label: 'Message Queue',         category: 'Messaging & Events',color: '#f59e0b', icon: 'MessageSquare' } },
+  { id: 'cg_rag',       type: 'systemNode', position: { x: 1400, y: 760  }, data: { label: 'RAG Pipeline',          category: 'AI / ML',           color: '#ec4899', icon: 'GitMerge'      } },
+  // Col 5 — 5 nodes, centered at y=400, spacing 180 → y=40, 220, 400, 580, 760
+  { id: 'cg_sql',       type: 'systemNode', position: { x: 1750, y: 40   }, data: { label: 'SQL Database',          category: 'Data Storage',      color: '#334155', icon: 'Database'      } },
+  { id: 'cg_nosql',     type: 'systemNode', position: { x: 1750, y: 220  }, data: { label: 'NoSQL Database',        category: 'Data Storage',      color: '#334155', icon: 'Leaf'          } },
+  { id: 'cg_vector',    type: 'systemNode', position: { x: 1750, y: 400  }, data: { label: 'Vector Database',       category: 'AI / ML',           color: '#ec4899', icon: 'Cpu'           } },
+  { id: 'cg_objstore',  type: 'systemNode', position: { x: 1750, y: 580  }, data: { label: 'Object Storage',        category: 'Data Storage',      color: '#334155', icon: 'HardDrive'     } },
+  { id: 'cg_worker',    type: 'systemNode', position: { x: 1750, y: 760  }, data: { label: 'Worker / Background Job',category:'Compute',           color: '#3b82f6', icon: 'Timer'         } },
+  // Col 6 — 2 nodes → y=310, 490
+  { id: 'cg_logger',    type: 'systemNode', position: { x: 2100, y: 310  }, data: { label: 'Logger',                category: 'Observability',     color: '#06b6d4', icon: 'ScrollText'    } },
+  { id: 'cg_metrics',   type: 'systemNode', position: { x: 2100, y: 490  }, data: { label: 'Metrics Collector',     category: 'Observability',     color: '#06b6d4', icon: 'BarChart2'     } },
 ];
 
 const E = (id: string, source: string, target: string, label: string): Edge => ({
-  id, source, target, type: 'smoothstep', animated: true,
-  data: { label, edgeStyle: 'solid', connectionType: 'smoothstep', color: '#94a3b8' },
+  id, source, target, type: 'default', animated: true,
   style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+  label,
 });
 
 export const chatgptEdges: Edge[] = [

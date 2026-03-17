@@ -48,10 +48,10 @@ export function CanvasTabBar() {
   return (
     <>
       <div className="flex items-center border-b border-border/60 bg-card/60 shrink-0 h-8 px-1 gap-0">
-        {/* Scrollable tab list */}
+        {/* Scrollable tab list + new tab button grouped together on the left */}
         <div
           ref={scrollRef}
-          className="flex items-end flex-1 overflow-x-auto gap-0.5 px-1 scrollbar-none"
+          className="flex items-end overflow-x-auto gap-0.5 px-1 scrollbar-none"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {canvases.map((canvas) => {
@@ -106,16 +106,16 @@ export function CanvasTabBar() {
               </div>
             );
           })}
-        </div>
 
-        {/* New tab button */}
-        <button
-          onClick={addCanvas}
-          className="shrink-0 p-1 mx-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          title="New canvas"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
+          {/* New tab button — immediately after last tab */}
+          <button
+            onClick={addCanvas}
+            className="shrink-0 self-center p-1 mx-0.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="New canvas"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Delete confirmation */}

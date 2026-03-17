@@ -4,7 +4,7 @@ import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap,
   useReactFlow, ReactFlowProvider,
   NodeMouseHandler, EdgeMouseHandler, NodeDragHandler,
-  SelectionMode,
+  SelectionMode, ConnectionLineType,
   type OnSelectionChangeParams,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -29,10 +29,6 @@ const NODE_TYPES = {
   annotationNode: AnnotationNode,
 };
 
-const EDGE_TYPES = {
-  custom: CustomEdge,
-};
-
 function CanvasInner() {
   const {
     nodes, edges, onNodesChange, onEdgesChange, onConnect,
@@ -43,26 +39,43 @@ function CanvasInner() {
 
   const reactFlowInstance = useReactFlow();
   const { onNodeDrag, onNodeDragStop: onNodeDragStopSnap } = useSnapping();
-  const cloneIdRef = useRef<string | null>(null);
-  const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const [labelDraft, setLabelDraft] = useState('');
   const labelInputRef = useRef<HTMLInputElement>(null);
-
-  // State
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-  const [altHeld, setAltHeld] = useState(false);
 
-  // Alt key tracking for copy cursor
+  // Cmd+D / Ctrl+D — duplicate selected nodes
   useEffect(() => {
-    const down = (e: KeyboardEvent) => { if (e.key === 'Alt') setAltHeld(true); };
-    const up   = (e: KeyboardEvent) => { if (e.key === 'Alt') setAltHeld(false); };
-    window.addEventListener('keydown', down);
-    window.addEventListener('keyup', up);
-    return () => {
-      window.removeEventListener('keydown', down);
-      window.removeEventListener('keyup', up);
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key !== 'd') return;
+      const active = document.activeElement;
+      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return;
+      e.preventDefault();
+
+      const store = useDiagramStore.getState();
+      const selected = store.nodes.filter((n) => n.selected);
+      if (!selected.length) return;
+
+      store.pushHistory();
+
+      const duplicates = selected.map((n) => ({
+        ...n,
+        id: crypto.randomUUID(),
+        position: { x: n.position.x + 40, y: n.position.y + 40 },
+        selected: true,
+        data: { ...n.data },
+      }));
+
+      const deselectedOriginals = store.nodes.map((n) =>
+        n.selected ? { ...n, selected: false } : n
+      );
+
+      store.importDiagram([...deselectedOriginals, ...duplicates], store.edges);
+      setSelectedNodeIds(duplicates.map((d) => d.id));
     };
-  }, []);
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setSelectedNodeIds]);
 
   // Focus label input when a new edge is drawn
   useEffect(() => {
@@ -83,50 +96,16 @@ function CanvasInner() {
     setPendingLabelEdgeId(null);
     setLabelDraft('');
   }, [setPendingLabelEdgeId]);
+
   useEffect(() => {
     registerFitView(() => reactFlowInstance.fitView({ padding: 0.1, duration: 400 }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registerFitView]);
 
-  // Push history after drag ends
-  const onNodeDragStop: NodeDragHandler = useCallback((...args) => {
-    onNodeDragStopSnap(...args);
-    cloneIdRef.current = null;
-    dragStartPosRef.current = null;
+  const onNodeDragStop: NodeDragHandler = useCallback((_e, node) => {
+    onNodeDragStopSnap(_e, node, reactFlowInstance.getNodes());
     useDiagramStore.getState().pushHistory();
-  }, [onNodeDragStopSnap]);
-
-  // Option+drag: on drag start, freeze original and spawn clone at same spot
-  const onNodeDragStart: NodeDragHandler = useCallback((e, node) => {
-    if (!e.altKey) return;
-    dragStartPosRef.current = { x: node.position.x, y: node.position.y };
-    const cloneId = `${node.id}-copy-${Date.now()}`;
-    cloneIdRef.current = cloneId;
-    const store = useDiagramStore.getState();
-    store.pushHistory();
-    const frozenNodes = store.nodes
-      .map((n) =>
-        n.id === node.id
-          ? { ...n, selected: false, dragging: false, position: dragStartPosRef.current! }
-          : n
-      )
-      .concat({ ...node, id: cloneId, selected: true, dragging: true, data: { ...node.data } });
-    store.importDiagram(frozenNodes, store.edges);
-    setSelectedNodeId(cloneId);
-  }, [setSelectedNodeId]);
-
-  const onNodeDragWithAlt: NodeDragHandler = useCallback((e, node, nodes) => {
-    onNodeDrag(e, node, nodes);
-    if (!cloneIdRef.current) return;
-    if (node.id !== cloneIdRef.current && dragStartPosRef.current) {
-      const store = useDiagramStore.getState();
-      const frozen = store.nodes.map((n) =>
-        n.id === node.id ? { ...n, position: dragStartPosRef.current! } : n
-      );
-      store.importDiagram(frozen, store.edges);
-    }
-  }, [onNodeDrag]);
-
+  }, [onNodeDragStopSnap, reactFlowInstance]);
 
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -183,7 +162,7 @@ function CanvasInner() {
   }, []);
 
   return (
-    <div className="flex-1 relative bg-background" style={{ cursor: altHeld ? 'copy' : undefined }}>
+    <div className="flex-1 relative bg-background">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -191,11 +170,9 @@ function CanvasInner() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={NODE_TYPES}
-        edgeTypes={EDGE_TYPES}
         onDragOver={onDragOver}
         onDrop={onDrop}
-        onNodeDrag={onNodeDragWithAlt}
-        onNodeDragStart={onNodeDragStart}
+        onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
@@ -210,10 +187,10 @@ function CanvasInner() {
         maxZoom={2}
         fitView
         proOptions={{ hideAttribution: true }}
+        connectionLineType={ConnectionLineType.Bezier}
         defaultEdgeOptions={{
-          type: 'custom',
+          type: 'default',
           animated: true,
-          data: { edgeStyle: 'solid', connectionType: 'smoothstep', color: '#94a3b8' },
           style: { stroke: '#94a3b8', strokeWidth: 1.5 },
         }}
       >
@@ -225,7 +202,7 @@ function CanvasInner() {
             size={1.5}
           />
         )}
-        <Controls 
+        <Controls
           showInteractive={false}
           className="!bg-card/90 !backdrop-blur-sm !border !border-border/60 !rounded-lg !shadow-md [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-border/40 [&>button:hover]:!bg-accent"
         />

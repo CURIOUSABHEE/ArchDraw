@@ -9,9 +9,9 @@ import { toast } from 'sonner';
 interface Props { onClose: () => void }
 
 export function TemplateModal({ onClose }: Props) {
-  const [query, setQuery]         = useState('');
-  const [confirming, setConfirming] = useState<Template | null>(null);
-  const { nodes, loadTemplate, fitView } = useDiagramStore();
+  const [query, setQuery] = useState('');
+  const { nodes, loadTemplate, fitView, addCanvas } = useDiagramStore();
+  const renameCanvas = useDiagramStore((s) => s.renameCanvas);
 
   const filtered = TEMPLATES.filter((t) =>
     t.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -19,13 +19,25 @@ export function TemplateModal({ onClose }: Props) {
   );
 
   const handleLoad = (t: Template) => {
-    if (nodes.length > 0) { setConfirming(t); return; }
+    if (nodes.length > 0) {
+      addCanvas();
+      setTimeout(() => {
+        const { activeCanvasId } = useDiagramStore.getState();
+        useDiagramStore.getState().renameCanvas(activeCanvasId, t.name);
+        useDiagramStore.getState().loadTemplate(t.nodes, t.edges);
+        setTimeout(() => useDiagramStore.getState().fitView(), 80);
+      }, 0);
+      toast.success(`"${t.name}" loaded in new tab`);
+      onClose();
+      return;
+    }
     apply(t);
   };
 
   const apply = (t: Template) => {
+    const { activeCanvasId } = useDiagramStore.getState();
+    renameCanvas(activeCanvasId, t.name);
     loadTemplate(t.nodes, t.edges);
-    // give React Flow a tick to mount the nodes, then fit
     setTimeout(() => fitView(), 80);
     toast.success(`"${t.name}" loaded`);
     onClose();
@@ -93,31 +105,6 @@ export function TemplateModal({ onClose }: Props) {
         </div>
       </div>
 
-      {/* Confirm overlay */}
-      {confirming && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
-          <div className="bg-card border border-border rounded-xl shadow-2xl p-5 w-72">
-            <p className="text-xs font-semibold text-foreground mb-1">Replace canvas?</p>
-            <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
-              Loading <span className="text-foreground font-medium">"{confirming.name}"</span> will clear your current diagram. You can undo this.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setConfirming(null)}
-                className="flex-1 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-accent text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { apply(confirming); setConfirming(null); }}
-                className="flex-1 py-1.5 text-xs font-medium rounded-md bg-indigo-500 hover:bg-indigo-600 text-white transition-colors"
-              >
-                Load
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

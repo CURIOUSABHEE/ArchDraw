@@ -83,7 +83,7 @@ interface DiagramState {
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
-  addNode: (type: string, label: string, category: string, color?: string, icon?: string, technology?: string) => void;
+  addNode: (type: string, label: string, category: string, color?: string, icon?: string, technology?: string, position?: { x: number; y: number }) => void;
   removeNode: (id: string) => void;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
   updateEdgeData: (id: string, data: Record<string, unknown>) => void;
@@ -246,9 +246,8 @@ export const useDiagramStore = create<DiagramState>()(
           {
             ...connection,
             id: edgeId,
+            type: 'default',
             animated: get().edgeAnimations,
-            type: 'custom',
-            data: { label: '', edgeStyle: 'solid', connectionType: 'smoothstep', color: '#94a3b8' },
             style: { stroke: '#94a3b8', strokeWidth: 1.5 },
           },
           get().edges
@@ -257,13 +256,14 @@ export const useDiagramStore = create<DiagramState>()(
         set({ edges, canvases, pendingLabelEdgeId: edgeId });
       },
 
-      addNode: (type, label, category, color, icon, technology) => {
+      addNode: (type, label, category, color, icon, technology, position) => {
         get().pushHistory();
         const id = `${type}-${Date.now()}`;
+        const pos = position ?? { x: 400 + Math.random() * 200 - 100, y: 300 + Math.random() * 200 - 100 };
         const newNode: Node<NodeData> = {
           id,
           type: 'systemNode',
-          position: { x: 400 + Math.random() * 200 - 100, y: 300 + Math.random() * 200 - 100 },
+          position: pos,
           data: { label, category, color, icon, technology },
         };
         const nodes = [...get().nodes, newNode];
