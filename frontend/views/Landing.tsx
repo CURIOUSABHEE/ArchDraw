@@ -159,7 +159,7 @@ export default function LandingPage() {
               background: '#3b82f6', color: '#fff', fontSize: 14, fontWeight: 600,
               cursor: 'pointer',
             }}
-          >Get started</button>
+          >Start designing</button>
         </div>
       </nav>
 
@@ -214,7 +214,7 @@ export default function LandingPage() {
             Drag, connect, and think in systems.
           </p>
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
             <button
               onClick={() => router.push('/editor')}
               style={{
@@ -234,29 +234,9 @@ export default function LandingPage() {
                 (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 20px rgba(59,130,246,0.35)';
               }}
             >
-              Start Building →
+              Try it free — no signup →
             </button>
-            <button
-              onClick={() => router.push('/editor')}
-              style={{
-                padding: '14px 28px', borderRadius: 10,
-                border: '1.5px solid #cbd5e1',
-                background: '#fff', color: '#0f172a',
-                fontSize: 15, fontWeight: 600,
-                cursor: 'pointer', letterSpacing: '-0.01em',
-                transition: 'border-color 0.15s, background 0.15s',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = '#3b82f6';
-                (e.currentTarget as HTMLButtonElement).style.background = '#eff6ff';
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = '#cbd5e1';
-                (e.currentTarget as HTMLButtonElement).style.background = '#fff';
-              }}
-            >
-              See Examples
-            </button>
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>No account needed to start</span>
           </div>
 
           {/* Stats row */}

@@ -14,19 +14,27 @@ import {
   Mail, CreditCard, Smartphone, Map, Plug,
   GitPullRequest, Package, Lock, Settings,
   Cpu,
+  UserCheck, Flame, Users, ShieldCheck,
+  Wallet, ShoppingCart,
+  Phone,
+  Sparkles, Wind, Image, Mic, AudioLines,
+  Container, AlertTriangle, TrendingUp,
+  FileText, BookOpen,
+  Flag, Clock,
+  Chrome, Github, Twitter, Linkedin,
+  Upload, Video,
 } from 'lucide-react';
 import componentsData from '@/data/components.json';
 import awsData from '@/data/aws-components.json';
 import dbData from '@/data/db-components.json';
+import servicesData from '@/data/services-components.json';
 import { useDiagramStore } from '@/store/diagramStore';
 import { NodeIcon } from '@/components/NodeIcon';
 import { iconRegistry } from '@/lib/iconRegistry';
 
 function getViewportCenter(): { x: number; y: number } {
-  const store = useDiagramStore.getState();
-  const vp = store.fitViewFn ? (() => {
-    const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
-    if (!el) return null;
+  const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
+  const vp = el ? (() => {
     const style = el.style.transform;
     const match = style.match(/translate\(([^,]+)px,\s*([^)]+)px\)\s*scale\(([^)]+)\)/);
     if (!match) return null;
@@ -54,6 +62,15 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Mail, CreditCard, Smartphone, Map, Plug,
   GitPullRequest, Package, Lock, Settings,
   Cpu,
+  UserCheck, Flame, Users, ShieldCheck,
+  Wallet, ShoppingCart,
+  Phone,
+  Sparkles, Wind, Image, Mic, AudioLines,
+  Container, AlertTriangle, TrendingUp,
+  FileText, BookOpen,
+  Flag, Clock,
+  Chrome, Github, Twitter, Linkedin,
+  Upload, Video,
 };
 
 interface ComponentEntry {
@@ -235,6 +252,7 @@ const TOP_SECTIONS = [
   { key: 'aws',       title: 'AWS Services',           data: awsData as ComponentEntry[] },
   { key: 'databases', title: 'Databases & Storage',    data: (dbData as ComponentEntry[]).filter(c => ['Databases','ORMs & Tools','Search'].includes(c.category)) },
   { key: 'devtools',  title: 'Developer Tools',        data: (dbData as ComponentEntry[]).filter(c => !['Databases','ORMs & Tools','Search'].includes(c.category)) },
+  { key: 'services',  title: 'Services & Integrations', data: servicesData as ComponentEntry[] },
 ];
 
 export function ComponentSidebar() {

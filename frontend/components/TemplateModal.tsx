@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, Search, LayoutTemplate } from 'lucide-react';
 import { TEMPLATES, type Template } from '@/data/templates/index';
 import { useDiagramStore } from '@/store/diagramStore';
+import { getLayoutedElements } from '@/lib/layoutUtils';
 import { toast } from 'sonner';
 
 interface Props { onClose: () => void }
@@ -19,25 +20,26 @@ export function TemplateModal({ onClose }: Props) {
   );
 
   const handleLoad = (t: Template) => {
+    const { nodes: ln, edges: le } = getLayoutedElements(t.nodes, t.edges, 'LR');
     if (nodes.length > 0) {
       addCanvas();
       setTimeout(() => {
         const { activeCanvasId } = useDiagramStore.getState();
         useDiagramStore.getState().renameCanvas(activeCanvasId, t.name);
-        useDiagramStore.getState().loadTemplate(t.nodes, t.edges);
+        useDiagramStore.getState().loadTemplate(ln, le);
         setTimeout(() => useDiagramStore.getState().fitView(), 80);
       }, 0);
       toast.success(`"${t.name}" loaded in new tab`);
       onClose();
       return;
     }
-    apply(t);
+    apply(t, ln, le);
   };
 
-  const apply = (t: Template) => {
+  const apply = (t: Template, ln = getLayoutedElements(t.nodes, t.edges, 'LR').nodes, le = getLayoutedElements(t.nodes, t.edges, 'LR').edges) => {
     const { activeCanvasId } = useDiagramStore.getState();
     renameCanvas(activeCanvasId, t.name);
-    loadTemplate(t.nodes, t.edges);
+    loadTemplate(ln, le);
     setTimeout(() => fitView(), 80);
     toast.success(`"${t.name}" loaded`);
     onClose();

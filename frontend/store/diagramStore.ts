@@ -11,6 +11,13 @@ import {
   applyEdgeChanges,
 } from 'reactflow';
 
+// Module-level fitView callback — set by Canvas on mount, avoids circular imports
+type FitViewOptions = { padding?: number; duration?: number };
+let fitViewCallback: ((opts?: FitViewOptions) => void) | null = null;
+export function registerFitViewCallback(fn: (opts?: FitViewOptions) => void) {
+  fitViewCallback = fn;
+}
+
 export interface GuideLine {
   orientation: 'h' | 'v';
   position: number;
@@ -95,8 +102,6 @@ interface DiagramState {
   loadTemplate: (nodes: Node[], edges: Edge[]) => void;
 
   // ── Fit view ──────────────────────────────────────────────────────────────
-  fitViewFn: (() => void) | null;
-  registerFitView: (fn: () => void) => void;
   fitView: () => void;
 
   // ── Edge editing ──────────────────────────────────────────────────────────
@@ -166,7 +171,7 @@ export const useDiagramStore = create<DiagramState>()(
         const target = saved.find((c) => c.id === id)!;
         set({ canvases: saved, activeCanvasId: id, nodes: target.nodes, edges: target.edges, past: [], future: [], selectedNodeId: null, selectedEdgeId: null });
         // fitView after switch
-        setTimeout(() => get().fitViewFn?.(), 80);
+        setTimeout(() => get().fitView(), 80);
       },
 
       renameCanvas: (id, name) => {
@@ -343,9 +348,9 @@ export const useDiagramStore = create<DiagramState>()(
       },
 
       // ── Fit view ─────────────────────────────────────────────────────────────
-      fitViewFn: null,
-      registerFitView: (fn) => set({ fitViewFn: fn }),
-      fitView: () => get().fitViewFn?.(),
+      fitView: () => {
+        fitViewCallback?.({ padding: 0.1, duration: 400 });
+      },
 
       // ── Edge editing ─────────────────────────────────────────────────────────
       editingEdgeId: null,

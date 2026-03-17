@@ -7,7 +7,6 @@ let supabase: SupabaseClient | null = null;
 export function getSupabaseInstance(): SupabaseClient {
   if (!supabase) {
     supabase = getSupabaseClient();
-    console.log('Supabase client initialized');
   }
   return supabase;
 }
@@ -35,14 +34,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   sendMagicLink: async (email) => {
     const supabase = getSupabaseInstance();
-    console.log('Sending magic link to:', email);
+    const redirectTo = process.env.NEXT_PUBLIC_APP_URL
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
+      : typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : undefined;
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
-      },
+      options: { emailRedirectTo: redirectTo },
     });
-    console.log('Magic link response:', error);
     if (!error) {
       set({ email });
     }

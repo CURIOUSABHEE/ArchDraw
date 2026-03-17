@@ -1,9 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useAuthStore } from '@/store/authStore';
-import { AuthScreen } from '@/components/AuthScreen';
 
 const EditorPage = dynamic(() => import('@/views/Editor'), {
   ssr: false,
@@ -12,47 +9,7 @@ const EditorPage = dynamic(() => import('@/views/Editor'), {
   ),
 });
 
+// Canvas is open to everyone — no auth required
 export default function EditorRoute() {
-  const { user, loading, initialized } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted || !initialized || loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#0a0a12',
-      }}>
-        <div style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 16,
-          animation: 'pulse 1.5s ease-in-out infinite',
-        }}>⬡</div>
-        <style>{`
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthScreen />;
-  }
-
   return <EditorPage />;
 }

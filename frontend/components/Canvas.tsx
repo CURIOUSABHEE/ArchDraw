@@ -8,18 +8,21 @@ import ReactFlow, {
   type OnSelectionChangeParams,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { useDiagramStore } from '@/store/diagramStore';
+import { useDiagramStore, registerFitViewCallback } from '@/store/diagramStore';
 import { SystemNode } from '@/components/SystemNode';
 import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
-import { CustomEdge } from '@/components/CustomEdge';
+import { CustomBezierEdge } from '@/components/edges/CustomBezierEdge';
 import { GuideLines } from '@/components/GuideLines';
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu';
 import { useSnapping } from '@/hooks/useSnapping';
 import { useCallback, useEffect, useRef, DragEvent, useState } from 'react';
-import { EdgeLabelRenderer } from 'reactflow';
+import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
+
+// Module-level ref so the store can call fitView without hooks
+export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
 
 const NODE_TYPES = {
   systemNode:     SystemNode,
@@ -29,11 +32,15 @@ const NODE_TYPES = {
   annotationNode: AnnotationNode,
 };
 
+const EDGE_TYPES = {
+  default: CustomBezierEdge,
+};
+
 function CanvasInner() {
   const {
     nodes, edges, onNodesChange, onEdgesChange, onConnect,
     setSelectedNodeId, setSelectedNodeIds, setSelectedEdgeId,
-    showGrid, registerFitView,
+    showGrid,
     pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData,
   } = useDiagramStore();
 
@@ -42,6 +49,15 @@ function CanvasInner() {
   const [labelDraft, setLabelDraft] = useState('');
   const labelInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+
+  // Keep module ref in sync so store.fitView() can call it directly
+  useEffect(() => {
+    reactFlowRef.instance = reactFlowInstance;
+    registerFitViewCallback((opts) => reactFlowInstance.fitView(opts));
+    return () => {
+      reactFlowRef.instance = null;
+    };
+  }, [reactFlowInstance]);
 
   // Cmd+D / Ctrl+D — duplicate selected nodes
   useEffect(() => {
@@ -97,10 +113,6 @@ function CanvasInner() {
     setLabelDraft('');
   }, [setPendingLabelEdgeId]);
 
-  useEffect(() => {
-    registerFitView(() => reactFlowInstance.fitView({ padding: 0.1, duration: 400 }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [registerFitView]);
 
   const onNodeDragStop: NodeDragHandler = useCallback((_e, node) => {
     onNodeDragStopSnap(_e, node, reactFlowInstance.getNodes());
@@ -170,6 +182,7 @@ function CanvasInner() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
         onDragOver={onDragOver}
         onDrop={onDrop}
         onNodeDrag={onNodeDrag}
