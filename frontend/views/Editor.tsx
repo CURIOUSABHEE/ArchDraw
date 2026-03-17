@@ -6,6 +6,7 @@ import { ComponentSidebar } from '@/components/ComponentSidebar';
 import { Canvas } from '@/components/Canvas';
 import { CommandPalette } from '@/components/CommandPalette';
 import { PropertiesPanel } from '@/components/PropertiesPanel';
+import { CanvasTabBar } from '@/components/CanvasTabBar';
 import { useDiagramStore } from '@/store/diagramStore';
 
 export default function EditorPage() {
@@ -35,7 +36,10 @@ export default function EditorPage() {
       <Toolbar />
       <div className="flex flex-1 overflow-hidden">
         <ComponentSidebar />
-        <Canvas />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <CanvasTabBar />
+          <Canvas />
+        </div>
         {(selectedNodeId || selectedEdgeId) && <PropertiesPanel />}
       </div>
       <CommandPalette />

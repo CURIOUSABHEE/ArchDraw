@@ -34,7 +34,7 @@ export function TemplateModal({ onClose }: Props) {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="fixed inset-0 z-50 bg-black/10 backdrop-blur-[10px]" onClick={onClose} />
 
       {/* Panel */}
       <div

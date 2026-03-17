@@ -99,42 +99,31 @@ function CanvasInner() {
   // Option+drag: on drag start, freeze original and spawn clone at same spot
   const onNodeDragStart: NodeDragHandler = useCallback((e, node) => {
     if (!e.altKey) return;
-    // Save where the original was
     dragStartPosRef.current = { x: node.position.x, y: node.position.y };
     const cloneId = `${node.id}-copy-${Date.now()}`;
     cloneIdRef.current = cloneId;
-    useDiagramStore.getState().pushHistory();
-    useDiagramStore.setState((s) => ({
-      nodes: s.nodes
-        // freeze original back to its start position, deselect it
-        .map((n) =>
-          n.id === node.id
-            ? { ...n, selected: false, dragging: false, position: dragStartPosRef.current! }
-            : n
-        )
-        // add clone at the dragged position so it follows the cursor
-        .concat({
-          ...node,
-          id: cloneId,
-          selected: true,
-          dragging: true,
-          data: { ...node.data },
-        }),
-    }));
+    const store = useDiagramStore.getState();
+    store.pushHistory();
+    const frozenNodes = store.nodes
+      .map((n) =>
+        n.id === node.id
+          ? { ...n, selected: false, dragging: false, position: dragStartPosRef.current! }
+          : n
+      )
+      .concat({ ...node, id: cloneId, selected: true, dragging: true, data: { ...node.data } });
+    store.importDiagram(frozenNodes, store.edges);
     setSelectedNodeId(cloneId);
   }, [setSelectedNodeId]);
 
-  // While dragging with alt: keep original frozen, only move the clone
   const onNodeDragWithAlt: NodeDragHandler = useCallback((e, node, nodes) => {
     onNodeDrag(e, node, nodes);
     if (!cloneIdRef.current) return;
-    // If somehow the original is moving instead of the clone, freeze it
     if (node.id !== cloneIdRef.current && dragStartPosRef.current) {
-      useDiagramStore.setState((s) => ({
-        nodes: s.nodes.map((n) =>
-          n.id === node.id ? { ...n, position: dragStartPosRef.current! } : n
-        ),
-      }));
+      const store = useDiagramStore.getState();
+      const frozen = store.nodes.map((n) =>
+        n.id === node.id ? { ...n, position: dragStartPosRef.current! } : n
+      );
+      store.importDiagram(frozen, store.edges);
     }
   }, [onNodeDrag]);
 
@@ -151,12 +140,11 @@ function CanvasInner() {
     const comp = JSON.parse(raw);
     const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
     const id = `${comp.id}-${Date.now()}`;
-    useDiagramStore.setState((s) => ({
-      nodes: [...s.nodes, {
-        id, type: 'systemNode', position,
-        data: { label: comp.label, category: comp.category, color: comp.color, icon: comp.icon, technology: comp.technology },
-      }],
-    }));
+    const store = useDiagramStore.getState();
+    store.importDiagram([...store.nodes, {
+      id, type: 'systemNode', position,
+      data: { label: comp.label, category: comp.category, color: comp.color, icon: comp.icon, technology: comp.technology },
+    }], store.edges);
   }, [reactFlowInstance]);
 
   const onNodeClick: NodeMouseHandler = useCallback((_e, node) => {
