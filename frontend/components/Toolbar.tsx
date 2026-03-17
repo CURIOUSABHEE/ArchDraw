@@ -1,15 +1,15 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import {
+import { useRef, useState } from 'react';import {
   Download, Trash2, Upload, ChevronDown, FileJson, Image,
   FileImage, FileText, Undo2, Redo2, Grid3X3, Zap, Moon, Sun,
-  Type, StickyNote, Group, Maximize2,
+  Type, StickyNote, Group, Maximize2, LayoutTemplate,
 } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 import { toPng, toSvg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
+import { TemplateModal } from '@/components/TemplateModal';
 
 export function Toolbar() {
   const {
@@ -24,6 +24,7 @@ export function Toolbar() {
   } = useDiagramStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   const downloadFile = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
@@ -101,6 +102,7 @@ export function Toolbar() {
   };
 
   return (
+    <>
     <header className="h-11 border-b border-border/60 bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 z-20 shrink-0 gap-2">
       {/* Logo */}
       <div className="flex items-center gap-2 shrink-0">
@@ -166,6 +168,12 @@ export function Toolbar() {
         >
           <StickyNote className="w-3.5 h-3.5" />
         </ToolBtn>
+
+        <Divider />
+
+        <ToolBtn onClick={() => setTemplatesOpen(true)} title="Browse Templates">
+          <LayoutTemplate className="w-3.5 h-3.5" />
+        </ToolBtn>
       </div>
       {/* Stats */}
       <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground font-medium">
@@ -221,6 +229,9 @@ export function Toolbar() {
         </div>
       </div>
     </header>
+
+    {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}
+    </>
   );
 }
 

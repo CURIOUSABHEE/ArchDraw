@@ -3,12 +3,13 @@ import { createBrowserClient } from '@supabase/ssr';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 10)}...` : 'MISSING');
+export const isSupabaseConfigured = Boolean(
+  supabaseUrl && supabaseAnonKey && supabaseAnonKey.startsWith('eyJ')
+);
 
 export function createClient() {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase configuration. Check .env.local');
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase not configured');
   }
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }

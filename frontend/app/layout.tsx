@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import 'reactflow/dist/style.css';
 import { AuthProvider } from '@/components/AuthProvider';
+import { Toaster } from 'sonner';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
           {children}
+          <Toaster position="bottom-right" theme="dark" richColors />
         </AuthProvider>
       </body>
     </html>

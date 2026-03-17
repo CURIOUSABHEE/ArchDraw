@@ -84,6 +84,11 @@ interface DiagramState {
   // Track double-click to prevent selection race
   pendingEditEdgeId: string | null;
   setPendingEditEdgeId: (id: string | null) => void;
+  // Templates
+  loadTemplate: (nodes: Node[], edges: Edge[]) => void;
+  // Pending label prompt after new edge drawn
+  pendingLabelEdgeId: string | null;
+  setPendingLabelEdgeId: (id: string | null) => void;
 }
 
 export const useDiagramStore = create<DiagramState>()(
@@ -146,17 +151,20 @@ export const useDiagramStore = create<DiagramState>()(
 
       onConnect: (connection) => {
         get().pushHistory();
+        const edgeId = `edge-${Date.now()}`;
         set({
           edges: addEdge(
             {
               ...connection,
+              id: edgeId,
               animated: get().edgeAnimations,
-              type: 'smoothstep',
-              style: { stroke: '#94a3b8', strokeWidth: 2 },
-              markerEnd: { type: 'arrowclosed' as any, color: '#94a3b8' },
+              type: 'custom',
+              data: { label: '', edgeStyle: 'solid', connectionType: 'smoothstep', color: '#94a3b8' },
+              style: { stroke: '#94a3b8', strokeWidth: 1.5 },
             },
             get().edges
           ),
+          pendingLabelEdgeId: edgeId,
         });
       },
 
@@ -269,6 +277,15 @@ export const useDiagramStore = create<DiagramState>()(
       setEditingEdgeId: (id) => set({ editingEdgeId: id }),
       pendingEditEdgeId: null,
       setPendingEditEdgeId: (id) => set({ pendingEditEdgeId: id }),
+
+      // Templates
+      loadTemplate: (nodes, edges) => {
+        get().pushHistory();
+        set({ nodes, edges, selectedNodeId: null, selectedEdgeId: null });
+      },
+
+      pendingLabelEdgeId: null,
+      setPendingLabelEdgeId: (id) => set({ pendingLabelEdgeId: id }),
 
       toggleEdgeAnimations: () => {
         const next = !get().edgeAnimations;

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { SupabaseClient, User } from '@supabase/supabase-js';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 
 let supabase: SupabaseClient | null = null;
 
@@ -57,16 +57,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     if (get().initialized) return;
-    const supabase = getSupabaseInstance();
-    const { data: { session } } = await supabase.auth.getSession();
-    set({ 
-      user: session?.user ?? null, 
-      loading: false, 
-      initialized: true 
-    });
+    // If Supabase isn't properly configured, skip auth and allow access
+    if (!isSupabaseConfigured) {
+      set({ user: { id: 'guest', email: 'guest@local' } as User, loading: false, initialized: true });
+      return;
+    }
+    try {
+      const supabase = getSupabaseInstance();
+      const { data: { session } } = await supabase.auth.getSession();
+      set({ 
+        user: session?.user ?? null, 
+        loading: false, 
+        initialized: true 
+      });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      set({ user: session?.user ?? null, loading: false });
-    });
+      supabase.auth.onAuthStateChange((_event, session) => {
+        set({ user: session?.user ?? null, loading: false });
+      });
+    } catch (err) {
+      console.error('Auth initialization failed:', err);
+      set({ user: null, loading: false, initialized: true });
+    }
   },
 }));

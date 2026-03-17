@@ -2,11 +2,8 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Server, LucideIcon } from 'lucide-react';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { NodeIcon, resolveNodeColor } from '@/components/NodeIcon';
-
-const ICON_MAP: Record<string, LucideIcon> = {};
 
 function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
@@ -89,7 +86,7 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
           {data.technology ? (
             <NodeIcon technology={data.technology} size={24} />
           ) : (
-            <Server size={24} style={{ color: resolvedAccent, strokeWidth: 1.5 }} />
+            <NodeIcon technology={undefined} fallbackIcon={data.icon} fallbackColor={resolvedAccent} size={24} />
           )}
         </div>
 

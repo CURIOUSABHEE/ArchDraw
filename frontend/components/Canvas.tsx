@@ -18,7 +18,8 @@ import { CustomEdge } from '@/components/CustomEdge';
 import { GuideLines } from '@/components/GuideLines';
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu';
 import { useSnapping } from '@/hooks/useSnapping';
-import { useMemo, useCallback, useEffect, useRef, DragEvent, useState } from 'react';
+import { useCallback, useEffect, useRef, DragEvent, useState } from 'react';
+import { EdgeLabelRenderer } from 'reactflow';
 
 const NODE_TYPES = {
   systemNode:     SystemNode,
@@ -37,15 +38,15 @@ function CanvasInner() {
     nodes, edges, onNodesChange, onEdgesChange, onConnect,
     setSelectedNodeId, setSelectedNodeIds, setSelectedEdgeId,
     showGrid, registerFitView,
+    pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData,
   } = useDiagramStore();
 
   const reactFlowInstance = useReactFlow();
-  const nodeTypes = useMemo(() => NODE_TYPES, []);
-  const edgeTypes = useMemo(() => EDGE_TYPES, []);
   const { onNodeDrag, onNodeDragStop: onNodeDragStopSnap } = useSnapping();
   const cloneIdRef = useRef<string | null>(null);
-  // Store the original position before drag starts (for alt+drag clone)
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const [labelDraft, setLabelDraft] = useState('');
+  const labelInputRef = useRef<HTMLInputElement>(null);
 
   // State
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -63,11 +64,29 @@ function CanvasInner() {
     };
   }, []);
 
-  // Register fitView for toolbar button
-  const { fitView } = reactFlowInstance;
+  // Focus label input when a new edge is drawn
   useEffect(() => {
-    registerFitView(() => fitView({ padding: 0.1, duration: 400 }));
-  }, [fitView, registerFitView]);
+    if (pendingLabelEdgeId) {
+      setLabelDraft('');
+      requestAnimationFrame(() => labelInputRef.current?.focus());
+    }
+  }, [pendingLabelEdgeId]);
+
+  const commitEdgeLabel = useCallback(() => {
+    if (pendingLabelEdgeId) {
+      if (labelDraft.trim()) updateEdgeData(pendingLabelEdgeId, { label: labelDraft.trim() });
+      setPendingLabelEdgeId(null);
+    }
+  }, [pendingLabelEdgeId, labelDraft, updateEdgeData, setPendingLabelEdgeId]);
+
+  const dismissEdgeLabel = useCallback(() => {
+    setPendingLabelEdgeId(null);
+    setLabelDraft('');
+  }, [setPendingLabelEdgeId]);
+  useEffect(() => {
+    registerFitView(() => reactFlowInstance.fitView({ padding: 0.1, duration: 400 }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registerFitView]);
 
   // Push history after drag ends
   const onNodeDragStop: NodeDragHandler = useCallback((...args) => {
@@ -157,8 +176,9 @@ function CanvasInner() {
     setSelectedEdgeId(null);
     useDiagramStore.getState().setEditingEdgeId(null);
     useDiagramStore.getState().setPendingEditEdgeId(null);
+    dismissEdgeLabel();
     setContextMenu(null);
-  }, [setSelectedNodeId, setSelectedEdgeId]);
+  }, [setSelectedNodeId, setSelectedEdgeId, dismissEdgeLabel]);
 
   const onSelectionChange = useCallback(({ nodes: sel }: OnSelectionChangeParams) => {
     setSelectedNodeIds(sel.map((n) => n.id));
@@ -182,8 +202,8 @@ function CanvasInner() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
         onDragOver={onDragOver}
         onDrop={onDrop}
         onNodeDrag={onNodeDragWithAlt}
@@ -225,6 +245,81 @@ function CanvasInner() {
           className="!bg-card/90 !backdrop-blur-sm !border !border-border/60 !rounded-lg !shadow-md"
           maskColor="rgba(0,0,0,0.04)"
         />
+
+        {/* Floating label prompt after drawing a new edge */}
+        {pendingLabelEdgeId && (() => {
+          const edge = edges.find((e) => e.id === pendingLabelEdgeId);
+          const srcNode = edge ? nodes.find((n) => n.id === edge.source) : null;
+          const tgtNode = edge ? nodes.find((n) => n.id === edge.target) : null;
+          const midX = srcNode && tgtNode
+            ? (srcNode.position.x + (srcNode.width ?? 140) / 2 + tgtNode.position.x + (tgtNode.width ?? 140) / 2) / 2
+            : 400;
+          const midY = srcNode && tgtNode
+            ? (srcNode.position.y + (srcNode.height ?? 80) / 2 + tgtNode.position.y + (tgtNode.height ?? 80) / 2) / 2
+            : 300;
+          return (
+            <EdgeLabelRenderer>
+              <div
+                className="nodrag nopan"
+                style={{
+                  position: 'absolute',
+                  transform: `translate(-50%, -50%) translate(${midX}px, ${midY}px)`,
+                  pointerEvents: 'all',
+                  zIndex: 1000,
+                }}
+              >
+                <div style={{
+                  background: 'hsl(var(--card))',
+                  border: '1.5px solid #6366f1',
+                  borderRadius: 8,
+                  padding: '6px 10px',
+                  boxShadow: '0 0 0 3px rgba(99,102,241,0.15), 0 4px 16px rgba(0,0,0,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  minWidth: 180,
+                }}>
+                  <input
+                    ref={labelInputRef}
+                    value={labelDraft}
+                    onChange={(e) => setLabelDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === 'Enter') { e.preventDefault(); commitEdgeLabel(); }
+                      if (e.key === 'Escape') dismissEdgeLabel();
+                    }}
+                    placeholder="Add label (optional)"
+                    style={{
+                      flex: 1,
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: 11,
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                  />
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); commitEdgeLabel(); }}
+                    style={{
+                      background: '#6366f1',
+                      border: 'none',
+                      borderRadius: 4,
+                      padding: '2px 8px',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: '#fff',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ↵
+                  </button>
+                </div>
+              </div>
+            </EdgeLabelRenderer>
+          );
+        })()}
       </ReactFlow>
 
       <GuideLines />
