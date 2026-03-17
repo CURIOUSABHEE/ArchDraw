@@ -45,7 +45,7 @@ export const archflowNodes: Node[] = [
 
 const E = (id: string, source: string, target: string, label: string): Edge => ({
   id, source, target,
-  type: 'smoothstep',
+  type: 'default',
   animated: true,
   style: { stroke: '#94a3b8', strokeWidth: 1.5 },
   label,
