@@ -218,20 +218,23 @@ function CanvasInner() {
         selectionMode={SelectionMode.Partial}
         snapToGrid
         snapGrid={[20, 20]}
+        minZoom={0.1}
+        maxZoom={2}
         fitView
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
           type: 'custom',
-          data: { edgeStyle: 'solid', connectionType: 'smoothstep' },
-          style: { stroke: '#94a3b8', strokeWidth: 1.25 },
+          animated: true,
+          data: { edgeStyle: 'solid', connectionType: 'smoothstep', color: '#94a3b8' },
+          style: { stroke: '#94a3b8', strokeWidth: 1.5 },
         }}
       >
         {showGrid && (
           <Background
             variant={BackgroundVariant.Dots}
-            color="hsl(var(--grid-color))"
+            color="#334155"
             gap={20}
-            size={1}
+            size={1.5}
           />
         )}
         <Controls 

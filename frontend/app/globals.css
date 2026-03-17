@@ -2,37 +2,37 @@
 
 @layer base {
   :root {
-    /* Premium neutral-first palette */
-    --background: 250 250% 98%;
+    /* Neutral light palette */
+    --background: 210 20% 98%;
     --foreground: 222 47% 8%;
     
-    /* Cards and surfaces - subtle elevation */
+    /* Cards and surfaces */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 8%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 8%;
     
-    /* Primary - muted indigo */
+    /* Primary */
     --primary: 222 47% 8%;
     --primary-foreground: 0 0% 100%;
     
-    /* Secondary - soft grays */
-    --secondary: 210 20% 96%;
+    /* Secondary */
+    --secondary: 210 16% 95%;
     --secondary-foreground: 222 47% 12%;
     
-    /* Muted - for labels and secondary text */
-    --muted: 210 20% 94%;
+    /* Muted */
+    --muted: 210 16% 93%;
     --muted-foreground: 215 14% 45%;
     
-    /* Accent - subtle blue tint */
-    --accent: 217 91% 96%;
-    --accent-foreground: 217 91% 30%;
+    /* Accent */
+    --accent: 210 16% 93%;
+    --accent-foreground: 222 47% 12%;
     
     /* Destructive */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Borders - hairline style */
+    /* Borders */
     --border: 214 14% 85%;
     --input: 214 14% 85%;
     --ring: 217 91% 60%;
@@ -40,19 +40,19 @@
     /* Radius */
     --radius: 0.625rem;
     
-    /* Sidebar - premium minimal */
+    /* Sidebar */
     --sidebar: 0 0% 98%;
     --sidebar-foreground: 222 47% 12%;
     --sidebar-primary: 217 91% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent: 210 16% 93%;
     --sidebar-accent-foreground: 222 47% 12%;
     --sidebar-border: 214 14% 85%;
     --sidebar-ring: 217 91% 60%;
     
     /* Canvas specific */
-    --canvas-bg: 250 249% 98%;
-    --grid-color: 214 14% 90%;
+    --canvas-bg: 210 20% 98%;
+    --grid-color: 214 14% 88%;
   }
 
   .dark {

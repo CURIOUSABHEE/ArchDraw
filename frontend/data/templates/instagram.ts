@@ -1,43 +1,43 @@
 import { Node, Edge } from 'reactflow';
 
 export const instagramNodes: Node[] = [
-  // Entry
-  { id: 'ig_client',   type: 'systemNode', position: { x: 600, y: 0   }, data: { label: 'Client (Web / Mobile)', category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
-  { id: 'ig_dns',      type: 'systemNode', position: { x: 300, y: 140 }, data: { label: 'DNS',                   category: 'Client & Entry',    color: '#6366f1', icon: 'Globe'         } },
-  { id: 'ig_cdn',      type: 'systemNode', position: { x: 600, y: 140 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#6366f1', icon: 'RadioTower'    } },
-  { id: 'ig_apigw',    type: 'systemNode', position: { x: 900, y: 140 }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#6366f1', icon: 'Webhook'       } },
-  { id: 'ig_lb',       type: 'systemNode', position: { x: 900, y: 280 }, data: { label: 'Load Balancer',         category: 'Client & Entry',    color: '#6366f1', icon: 'Scale'         } },
-  // Microservices
-  { id: 'ig_user_svc', type: 'systemNode', position: { x: 200, y: 420 }, data: { label: 'User Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
-  { id: 'ig_feed_svc', type: 'systemNode', position: { x: 600, y: 420 }, data: { label: 'Feed Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
-  { id: 'ig_media_svc',type: 'systemNode', position: { x: 900, y: 420 }, data: { label: 'Media Service',         category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
-  { id: 'ig_notif_svc',type: 'systemNode', position: { x: 1200, y: 420}, data: { label: 'Notification Service',  category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
-  { id: 'ig_search_svc',type:'systemNode', position: { x: 400, y: 420 }, data: { label: 'Search Service',        category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
-  // Data
-  { id: 'ig_sql',      type: 'systemNode', position: { x: 0,   y: 580 }, data: { label: 'SQL Database',          category: 'Data Storage',      color: '#334155', icon: 'Database'      } },
-  { id: 'ig_nosql',    type: 'systemNode', position: { x: 600, y: 580 }, data: { label: 'NoSQL Database',        category: 'Data Storage',      color: '#334155', icon: 'Leaf'          } },
-  { id: 'ig_s3',       type: 'systemNode', position: { x: 900, y: 580 }, data: { label: 'Object Storage (S3)',   category: 'Data Storage',      color: '#334155', icon: 'HardDrive'     } },
-  { id: 'ig_cache',    type: 'systemNode', position: { x: 400, y: 580 }, data: { label: 'In-Memory Cache',       category: 'Caching',           color: '#ef4444', icon: 'Layers'        } },
-  { id: 'ig_elastic',  type: 'systemNode', position: { x: 200, y: 580 }, data: { label: 'Search Engine',         category: 'Data Storage',      color: '#334155', icon: 'Search'        } },
-  // Messaging
-  { id: 'ig_kafka',    type: 'systemNode', position: { x: 900, y: 720 }, data: { label: 'Kafka / Streaming',     category: 'Messaging & Events',color: '#f59e0b', icon: 'Activity'      } },
-  { id: 'ig_mq',       type: 'systemNode', position: { x: 700, y: 720 }, data: { label: 'Message Queue',         category: 'Messaging & Events',color: '#f59e0b', icon: 'MessageSquare' } },
-  { id: 'ig_eventbus', type: 'systemNode', position: { x: 1100, y: 720}, data: { label: 'Event Bus / Pub-Sub',   category: 'Messaging & Events',color: '#f59e0b', icon: 'Radio'         } },
-  { id: 'ig_worker',   type: 'systemNode', position: { x: 900, y: 860 }, data: { label: 'Worker / Background Job',category:'Compute',           color: '#3b82f6', icon: 'Timer'         } },
-  // Auth
-  { id: 'ig_auth',     type: 'systemNode', position: { x: 0,   y: 280 }, data: { label: 'Auth Service (JWT)',    category: 'Auth & Security',   color: '#8b5cf6', icon: 'Shield'        } },
-  { id: 'ig_oauth',    type: 'systemNode', position: { x: 0,   y: 420 }, data: { label: 'OAuth / Identity Provider',category:'Auth & Security', color: '#8b5cf6', icon: 'KeyRound'      } },
-  // Notifications
-  { id: 'ig_push',     type: 'systemNode', position: { x: 1400, y: 580}, data: { label: 'SMS / Push Notification',category:'External Services', color: '#10b981', icon: 'Smartphone'    } },
-  // Observability
-  { id: 'ig_logger',   type: 'systemNode', position: { x: 1400, y: 420}, data: { label: 'Logger',                category: 'Observability',     color: '#06b6d4', icon: 'ScrollText'    } },
-  { id: 'ig_metrics',  type: 'systemNode', position: { x: 1400, y: 280}, data: { label: 'Metrics Collector',     category: 'Observability',     color: '#06b6d4', icon: 'BarChart2'     } },
-  { id: 'ig_dashboard',type: 'systemNode', position: { x: 1400, y: 140}, data: { label: 'Dashboard (Grafana)',   category: 'Observability',     color: '#06b6d4', icon: 'LayoutDashboard'} },
-  { id: 'ig_dw',       type: 'systemNode', position: { x: 1200, y: 860}, data: { label: 'Data Warehouse',        category: 'Data Storage',      color: '#334155', icon: 'Building2'     } },
+  // Column 0 — Client (x: 0)
+  { id: 'ig_client',    type: 'systemNode', position: { x: 0,    y: 300 }, data: { label: 'Client (Web / Mobile)', category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
+  // Column 1 — DNS + CDN + Auth (x: 220)
+  { id: 'ig_dns',       type: 'systemNode', position: { x: 220,  y: 0   }, data: { label: 'DNS',                   category: 'Client & Entry',    color: '#6366f1', icon: 'Globe'         } },
+  { id: 'ig_cdn',       type: 'systemNode', position: { x: 220,  y: 150 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#6366f1', icon: 'RadioTower'    } },
+  { id: 'ig_auth',      type: 'systemNode', position: { x: 220,  y: 450 }, data: { label: 'Auth Service (JWT)',    category: 'Auth & Security',   color: '#8b5cf6', icon: 'Shield'        } },
+  { id: 'ig_oauth',     type: 'systemNode', position: { x: 220,  y: 600 }, data: { label: 'OAuth / Identity Provider',category:'Auth & Security', color: '#8b5cf6', icon: 'KeyRound'      } },
+  // Column 2 — API Gateway + LB (x: 440)
+  { id: 'ig_apigw',     type: 'systemNode', position: { x: 440,  y: 150 }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#6366f1', icon: 'Webhook'       } },
+  { id: 'ig_lb',        type: 'systemNode', position: { x: 440,  y: 300 }, data: { label: 'Load Balancer',         category: 'Client & Entry',    color: '#6366f1', icon: 'Scale'         } },
+  // Column 3 — Microservices (x: 680)
+  { id: 'ig_user_svc',  type: 'systemNode', position: { x: 680,  y: 0   }, data: { label: 'User Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  { id: 'ig_search_svc',type: 'systemNode', position: { x: 680,  y: 150 }, data: { label: 'Search Service',        category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  { id: 'ig_feed_svc',  type: 'systemNode', position: { x: 680,  y: 300 }, data: { label: 'Feed Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  { id: 'ig_media_svc', type: 'systemNode', position: { x: 680,  y: 450 }, data: { label: 'Media Service',         category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  { id: 'ig_notif_svc', type: 'systemNode', position: { x: 680,  y: 600 }, data: { label: 'Notification Service',  category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  // Column 4 — Data + Cache + Search (x: 920)
+  { id: 'ig_sql',       type: 'systemNode', position: { x: 920,  y: 0   }, data: { label: 'SQL Database',          category: 'Data Storage',      color: '#334155', icon: 'Database'      } },
+  { id: 'ig_elastic',   type: 'systemNode', position: { x: 920,  y: 150 }, data: { label: 'Search Engine',         category: 'Data Storage',      color: '#334155', icon: 'Search'        } },
+  { id: 'ig_cache',     type: 'systemNode', position: { x: 920,  y: 300 }, data: { label: 'In-Memory Cache',       category: 'Caching',           color: '#ef4444', icon: 'Layers'        } },
+  { id: 'ig_nosql',     type: 'systemNode', position: { x: 920,  y: 450 }, data: { label: 'NoSQL Database',        category: 'Data Storage',      color: '#334155', icon: 'Leaf'          } },
+  { id: 'ig_s3',        type: 'systemNode', position: { x: 920,  y: 600 }, data: { label: 'Object Storage (S3)',   category: 'Data Storage',      color: '#334155', icon: 'HardDrive'     } },
+  // Column 5 — Messaging + Worker (x: 1160)
+  { id: 'ig_mq',        type: 'systemNode', position: { x: 1160, y: 150 }, data: { label: 'Message Queue',         category: 'Messaging & Events',color: '#f59e0b', icon: 'MessageSquare' } },
+  { id: 'ig_kafka',     type: 'systemNode', position: { x: 1160, y: 300 }, data: { label: 'Kafka / Streaming',     category: 'Messaging & Events',color: '#f59e0b', icon: 'Activity'      } },
+  { id: 'ig_eventbus',  type: 'systemNode', position: { x: 1160, y: 450 }, data: { label: 'Event Bus / Pub-Sub',   category: 'Messaging & Events',color: '#f59e0b', icon: 'Radio'         } },
+  { id: 'ig_worker',    type: 'systemNode', position: { x: 1160, y: 600 }, data: { label: 'Worker / Background Job',category:'Compute',           color: '#3b82f6', icon: 'Timer'         } },
+  // Column 6 — External + Observability + DW (x: 1400)
+  { id: 'ig_push',      type: 'systemNode', position: { x: 1400, y: 0   }, data: { label: 'SMS / Push Notification',category:'External Services', color: '#10b981', icon: 'Smartphone'    } },
+  { id: 'ig_metrics',   type: 'systemNode', position: { x: 1400, y: 150 }, data: { label: 'Metrics Collector',     category: 'Observability',     color: '#06b6d4', icon: 'BarChart2'     } },
+  { id: 'ig_dashboard', type: 'systemNode', position: { x: 1400, y: 300 }, data: { label: 'Dashboard (Grafana)',   category: 'Observability',     color: '#06b6d4', icon: 'LayoutDashboard'} },
+  { id: 'ig_logger',    type: 'systemNode', position: { x: 1400, y: 450 }, data: { label: 'Logger',                category: 'Observability',     color: '#06b6d4', icon: 'ScrollText'    } },
+  { id: 'ig_dw',        type: 'systemNode', position: { x: 1400, y: 600 }, data: { label: 'Data Warehouse',        category: 'Data Storage',      color: '#334155', icon: 'Building2'     } },
 ];
 
 const E = (id: string, source: string, target: string, label: string): Edge => ({
-  id, source, target, type: 'custom', animated: true,
+  id, source, target, type: 'smoothstep', animated: true,
   data: { label, edgeStyle: 'solid', connectionType: 'smoothstep', color: '#94a3b8' },
   style: { stroke: '#94a3b8', strokeWidth: 1.5 },
 });
