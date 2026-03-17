@@ -13,31 +13,15 @@ import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 import { TemplateModal } from '@/components/TemplateModal';
 import { TooltipWrapper } from '@/components/TooltipWrapper';
+import { ShareModal } from '@/components/ShareModal';
+import { EmailCaptureModal, type EmailCaptureReason } from '@/components/EmailCaptureModal';
+import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
+
+type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf';
+
 export function Toolbar() {
   const {
     clearDiagram, nodes, edges, importDiagram,
-    undo, redo, past, future,
-    deleteSelected, selectedNodeId,
-    toggleEdgeAnimations, edgeAnimations,
-    toggleGrid, showGrid,
-    toggleDarkMode, darkMode,
-    selectedNodeIds, createGroup,
-    fitView, canvases, activeCanvasId,
-  } = useDiagramStore();
-
-  const { user } = useAuthStore();
-  const isGuest = !user;
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
-  const [shareUrl, setShareUrl] = useState('');
-  const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [emailCapture, setEmailCapture] = useState<EmailCaptureReason | null>(null);
-
-  const activeCanvas = canvases.find((c) => c.id === activeCanvasId);
     undo, redo, past, future,
     deleteSelected, selectedNodeId,
     toggleEdgeAnimations, edgeAnimations,
@@ -75,27 +59,22 @@ export function Toolbar() {
 
   const doExport = async (format: ExportFormat) => {
     setExportOpen(false);
-
     if (format === 'json') {
       const blob = new Blob([JSON.stringify({ nodes, edges }, null, 2)], { type: 'application/json' });
       downloadFile(blob, 'diagram.json');
       toast.success('Exported as JSON');
       return;
     }
-
     const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
     if (!element) return;
-
     setIsExporting(true);
     fitView();
     await new Promise((r) => setTimeout(r, 120));
-
     try {
       const bgColor =
         format === 'png-dark'    ? '#0f172a'
         : format === 'png-light' ? '#ffffff'
         : undefined;
-
       const dataUrl = await toPng(element, {
         backgroundColor: bgColor,
         pixelRatio: 3,
@@ -111,7 +90,6 @@ export function Toolbar() {
           );
         },
       });
-
       if (format === 'pdf') {
         const img = new window.Image();
         img.src = dataUrl;
@@ -122,10 +100,10 @@ export function Toolbar() {
           format: [img.width, img.height],
         });
         pdf.addImage(dataUrl, 'PNG', 0, 0, img.width, img.height);
-        pdf.save(`archflow-${Date.now()}.pdf`);
+        pdf.save('archflow-export.pdf');
         toast.success('Exported as PDF');
       } else {
-        downloadFile(await (await fetch(dataUrl)).blob(), `archflow-${Date.now()}.png`);
+        downloadFile(await (await fetch(dataUrl)).blob(), 'archflow-export.png');
         toast.success('Exported as PNG');
       }
     } catch (err) {
@@ -167,7 +145,7 @@ export function Toolbar() {
     const store = useDiagramStore.getState();
     store.pushHistory();
     const newNode = {
-      id: `${nodeType}-${Date.now()}`,
+      id: nodeType + '-' + Date.now(),
       type: nodeType,
       position: { x: 300 + Math.random() * 200, y: 200 + Math.random() * 200 },
       data: nodeData,
@@ -190,13 +168,20 @@ export function Toolbar() {
         .insert({ canvas_name: canvasName, nodes, edges })
         .select('id')
         .single();
-      if (error || !data) {
+      if (error) {
+        console.error('Share error:', error);
+        toast.error('Could not generate link: ' + error.message);
+        return;
+      }
+      if (!data?.id) {
         toast.error('Could not generate link, try again');
         return;
       }
-      setShareUrl(`${window.location.origin}/share/${data.id}`);
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
+      setShareUrl(baseUrl + '/share/' + data.id);
       setShareModalOpen(true);
-    } catch {
+    } catch (err) {
+      console.error('Share exception:', err);
       toast.error('Could not generate link, try again');
     } finally {
       setIsSharing(false);
@@ -214,7 +199,6 @@ export function Toolbar() {
   return (
     <>
       <header className="h-11 border-b border-border/60 bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 z-20 shrink-0 gap-2">
-        {/* Logo */}
         <div className="flex items-center gap-2 shrink-0">
           <div className="w-5 h-5 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-md flex items-center justify-center">
             <div className="w-2 h-2 border border-white/80 rounded-sm" />
@@ -222,12 +206,11 @@ export function Toolbar() {
           <span className="font-semibold text-foreground text-sm tracking-tight">Archflow</span>
         </div>
 
-        {/* Icon tools */}
         <div className="flex items-center gap-0.5">
-          <TooltipWrapper label="Undo (⌘Z)">
+          <TooltipWrapper label="Undo (cmd+Z)">
             <ToolBtn onClick={undo} disabled={!past.length}><Undo2 className="w-3.5 h-3.5" /></ToolBtn>
           </TooltipWrapper>
-          <TooltipWrapper label="Redo (⌘⇧Z)">
+          <TooltipWrapper label="Redo (cmd+shift+Z)">
             <ToolBtn onClick={redo} disabled={!future.length}><Redo2 className="w-3.5 h-3.5" /></ToolBtn>
           </TooltipWrapper>
           <Divider />
@@ -265,14 +248,12 @@ export function Toolbar() {
           </TooltipWrapper>
         </div>
 
-        {/* Stats */}
         <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground font-medium">
           <span>{nodes.length} nodes</span>
           <span>{edges.length} edges</span>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
 
           <TooltipWrapper label="Import JSON">
@@ -295,18 +276,17 @@ export function Toolbar() {
             </button>
           </TooltipWrapper>
 
-          <TooltipWrapper label={nodes.length === 0 ? 'Add nodes before sharing' : 'Share this diagram'}>
+          <TooltipWrapper label={nodes.length === 0 ? 'Add nodes to share' : 'Share this diagram'}>
             <button
               onClick={handleShare}
               disabled={isSharing || nodes.length === 0}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-500 hover:text-white hover:bg-indigo-500 rounded-md border border-indigo-500/30 hover:border-indigo-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSharing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{isSharing ? 'Sharing…' : 'Share'}</span>
+              {isSharing ? 'Sharing...' : 'Share'}
             </button>
           </TooltipWrapper>
 
-          {/* Export dropdown */}
           <div className="relative">
             <TooltipWrapper label="Export diagram">
               <button
@@ -315,7 +295,7 @@ export function Toolbar() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-medium rounded-md hover:opacity-90 transition-all shadow-sm active:scale-95 disabled:opacity-60"
               >
                 {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                {isExporting ? 'Exporting…' : 'Export'}
+                {isExporting ? 'Exporting...' : 'Export'}
                 {!isExporting && <ChevronDown className="w-3 h-3 ml-0.5" />}
               </button>
             </TooltipWrapper>
