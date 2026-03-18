@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import {
   Download, Trash2, Upload, ChevronDown, FileJson,
   Undo2, Redo2, Grid3X3, Zap, Moon, Sun,
-  Type, StickyNote, Group, Maximize2, LayoutTemplate, Share2, Loader2, Check,
+  Type, StickyNote, Group, Maximize2, LayoutTemplate, Share2, Loader2, Check, HelpCircle,
 } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
@@ -16,6 +16,7 @@ import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { ShareModal } from '@/components/ShareModal';
 import { EmailCaptureModal, type EmailCaptureReason } from '@/components/EmailCaptureModal';
 import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
+import { useOnboardingStore } from '@/store/onboardingStore';
 
 type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf';
 
@@ -43,6 +44,8 @@ export function Toolbar() {
   const [shareUrl, setShareUrl] = useState('');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [emailCapture, setEmailCapture] = useState<EmailCaptureReason | null>(null);
+
+  const openGuide = useOnboardingStore((s) => s.open);
 
   const activeCanvas = canvases.find((c) => c.id === activeCanvasId);
 
@@ -245,7 +248,7 @@ export function Toolbar() {
           </TooltipWrapper>
           <Divider />
           <TooltipWrapper label="Browse templates">
-            <ToolBtn onClick={() => setTemplatesOpen(true)}><LayoutTemplate className="w-3.5 h-3.5" /></ToolBtn>
+            <ToolBtn onClick={() => setTemplatesOpen(true)} data-onboarding="templates-btn"><LayoutTemplate className="w-3.5 h-3.5" /></ToolBtn>
           </TooltipWrapper>
         </div>
 
@@ -263,6 +266,16 @@ export function Toolbar() {
 
         <div className="flex items-center gap-1.5 shrink-0">
           <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+
+          <TooltipWrapper label="Quick Guide">
+            <button
+              onClick={openGuide}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Guide</span>
+            </button>
+          </TooltipWrapper>
 
           <TooltipWrapper label="Import JSON">
             <button
@@ -300,6 +313,7 @@ export function Toolbar() {
               <button
                 onClick={() => setExportOpen(!exportOpen)}
                 disabled={isExporting}
+                data-onboarding="export-btn"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-md transition-all shadow-sm active:scale-95 disabled:opacity-60"
               >
                 {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
@@ -371,17 +385,18 @@ export function Toolbar() {
 }
 
 function ToolBtn({
-  children, onClick, disabled, active,
+  children, onClick, disabled, active, ...rest
 }: {
   children: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
   active?: boolean;
-}) {
+} & React.HTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      {...rest}
       className={`p-1.5 rounded-md transition-all duration-150 ${
         active
           ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
