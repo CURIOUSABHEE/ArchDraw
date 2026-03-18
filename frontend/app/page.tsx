@@ -1,14 +1,51 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import { Navbar } from '@/components/landing/Navbar';
+import { Hero } from '@/components/landing/Hero';
+import { SocialProof } from '@/components/landing/SocialProof';
+import { Features } from '@/components/landing/Features';
+import { HowItWorks } from '@/components/landing/HowItWorks';
+import { Templates } from '@/components/landing/Templates';
+import { ComponentsShowcase } from '@/components/landing/ComponentsShowcase';
+import { UseCases } from '@/components/landing/UseCases';
+import { Pricing } from '@/components/landing/Pricing';
+import { FAQ } from '@/components/landing/FAQ';
+import { CTASection } from '@/components/landing/CTASection';
+import { Footer } from '@/components/landing/Footer';
 
-const LandingPage = dynamic(() => import('@/views/Landing'), {
-  ssr: false,
-  loading: () => (
-    <div style={{ minHeight: '100vh', background: '#0a0a12' }} />
-  ),
-});
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'ArchFlow',
+  applicationCategory: 'DesignApplication',
+  operatingSystem: 'Web',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  description: 'Visual system architecture design tool for engineers',
+};
 
 export default function Home() {
-  return <LandingPage />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div className="min-h-screen bg-white font-sans" style={{ scrollBehavior: 'smooth' }}>
+        <Navbar />
+        <main>
+          <Hero />
+          <SocialProof />
+          <Features />
+          <HowItWorks />
+          <Templates />
+          <ComponentsShowcase />
+          <UseCases />
+          <Pricing />
+          <FAQ />
+          <CTASection />
+        </main>
+        <Footer />
+      </div>
+    </>
+  );
 }

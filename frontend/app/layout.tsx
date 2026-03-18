@@ -16,24 +16,45 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Archflow — Visual Architecture Diagramming',
-  description: 'Canvas-first architecture diagramming with 150+ components, AWS service icons, smart snapping, and animated edges. No signup required.',
-  keywords: ['architecture diagram', 'system design', 'AWS diagram', 'cloud architecture', 'diagramming tool'],
-  authors: [{ name: 'Archflow' }],
+  metadataBase: new URL('https://archflow.app'),
+  title: {
+    default: 'ArchFlow — Visual System Architecture Design Tool',
+    template: '%s | ArchFlow',
+  },
+  description: 'Design production-ready system architecture diagrams visually. Drag, connect, and think in systems. Used by engineers to design scalable backends.',
+  keywords: [
+    'system design tool', 'architecture diagram', 'system architecture',
+    'software architecture diagram', 'system design diagram maker',
+    'backend architecture tool', 'microservices diagram', 'cloud architecture diagram',
+    'system design interview', 'network diagram tool',
+  ],
+  authors: [{ name: 'ArchFlow' }],
+  creator: 'ArchFlow',
   openGraph: {
-    title: 'Archflow — Visual Architecture Diagramming',
-    description: 'Design system architecture visually. 150+ components, AWS icons, smart snapping. Free to use.',
     type: 'website',
-    siteName: 'Archflow',
+    locale: 'en_US',
+    url: 'https://archflow.app',
+    title: 'ArchFlow — Visual System Architecture Design Tool',
+    description: 'Design production-ready system architecture diagrams visually.',
+    siteName: 'ArchFlow',
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'ArchFlow System Architecture Design Tool' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Archflow — Visual Architecture Diagramming',
-    description: 'Design system architecture visually. 150+ components, AWS icons, smart snapping. Free to use.',
+    title: 'ArchFlow — Visual System Architecture Design Tool',
+    description: 'Design production-ready system architecture diagrams visually.',
+    images: ['/og-image.png'],
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 
