@@ -31,7 +31,7 @@ export function Navbar() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex space-x-8">
-            {['Features', 'Templates', 'Use Cases', 'Pricing'].map((item) => (
+            {['Features', 'Templates', 'Use Cases'].map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase().replace(' ', '-')}`}
@@ -78,7 +78,7 @@ export function Navbar() {
       {mobileOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white">
           <div className="px-4 pt-2 pb-6 space-y-1">
-            {['Features', 'Templates', 'Use Cases', 'Pricing'].map((item) => (
+            {['Features', 'Templates', 'Use Cases'].map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase().replace(' ', '-')}`}

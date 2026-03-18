@@ -8,7 +8,6 @@ import { HowItWorks } from '@/components/landing/HowItWorks';
 import { Templates } from '@/components/landing/Templates';
 import { ComponentsShowcase } from '@/components/landing/ComponentsShowcase';
 import { UseCases } from '@/components/landing/UseCases';
-import { Pricing } from '@/components/landing/Pricing';
 import { FAQ } from '@/components/landing/FAQ';
 import { CTASection } from '@/components/landing/CTASection';
 import { Footer } from '@/components/landing/Footer';
@@ -40,7 +39,6 @@ export default function Home() {
           <Templates />
           <ComponentsShowcase />
           <UseCases />
-          <Pricing />
           <FAQ />
           <CTASection />
         </main>

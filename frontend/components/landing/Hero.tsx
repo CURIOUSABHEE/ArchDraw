@@ -1,9 +1,85 @@
 'use client';
 
+import { useCallback, memo } from 'react';
 import { useRouter } from 'next/navigation';
+import ReactFlow, {
+  Background,
+  BackgroundVariant,
+  type NodeTypes,
+  type NodeProps,
+  Handle,
+  Position,
+  ConnectionLineType,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import { NodeIcon } from '@/components/NodeIcon';
+
+// ── Lightweight hero node — same visual design as SystemNode, no store dependency ──
+
+interface HeroNodeData {
+  label: string;
+  icon: string;
+  color: string;
+  category: string;
+}
+
+const HeroNode = memo(function HeroNode({ data }: NodeProps<HeroNodeData>) {
+  return (
+    <div className="relative group" style={{
+      width: 120,
+      borderRadius: 12,
+      background: 'hsl(215 28% 17%)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      boxShadow: '0 1px 3px -1px rgba(0,0,0,0.4)',
+      cursor: 'grab',
+    }}>
+      {/* Shine overlay — required by rules */}
+      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/10 via-white/[0.03] to-transparent group-hover:from-white/[0.15] group-hover:via-white/[0.06] transition-all duration-300" />
+      <Handle type="target" position={Position.Left} style={{ width: 7, height: 7, background: 'hsl(215 28% 17%)', border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%' }} />
+      <Handle type="source" position={Position.Right} style={{ width: 7, height: 7, background: 'hsl(215 28% 17%)', border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%' }} />
+      <div className="flex flex-col items-center gap-1.5 px-3 py-3">
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: data.color + '20' }}>
+          <NodeIcon fallbackIcon={data.icon} fallbackColor={data.color} size={18} />
+        </div>
+        <span className="text-[11px] font-medium text-slate-200 text-center leading-tight max-w-[100px] truncate">{data.label}</span>
+        <span className="text-[9px] text-slate-500">{data.category}</span>
+      </div>
+    </div>
+  );
+});
+
+const nodeTypes: NodeTypes = { heroNode: HeroNode };
+
+// ── Curated 8-node subset of ChatGPT architecture ──
+
+const HERO_NODES = [
+  { id: 'h_client',  type: 'heroNode', position: { x: 0,   y: 80  }, data: { label: 'Client',         icon: 'Monitor',      color: '#6366f1', category: 'Entry'     } },
+  { id: 'h_apigw',   type: 'heroNode', position: { x: 160, y: 80  }, data: { label: 'API Gateway',    icon: 'Webhook',      color: '#6366f1', category: 'Gateway'   } },
+  { id: 'h_auth',    type: 'heroNode', position: { x: 320, y: 0   }, data: { label: 'Auth Service',   icon: 'Shield',       color: '#8b5cf6', category: 'Security'  } },
+  { id: 'h_chat',    type: 'heroNode', position: { x: 320, y: 160 }, data: { label: 'Chat Service',   icon: 'Boxes',        color: '#3b82f6', category: 'Compute'   } },
+  { id: 'h_llm',     type: 'heroNode', position: { x: 480, y: 80  }, data: { label: 'LLM API',        icon: 'Brain',        color: '#ec4899', category: 'AI / ML'   } },
+  { id: 'h_rag',     type: 'heroNode', position: { x: 480, y: 240 }, data: { label: 'RAG Pipeline',   icon: 'GitMerge',     color: '#ec4899', category: 'AI / ML'   } },
+  { id: 'h_vector',  type: 'heroNode', position: { x: 640, y: 160 }, data: { label: 'Vector DB',      icon: 'Cpu',          color: '#ec4899', category: 'Storage'   } },
+  { id: 'h_nosql',   type: 'heroNode', position: { x: 640, y: 320 }, data: { label: 'NoSQL DB',       icon: 'Leaf',         color: '#334155', category: 'Storage'   } },
+];
+
+const HERO_EDGES = [
+  { id: 'he1', source: 'h_client', target: 'h_apigw',  type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he2', source: 'h_apigw',  target: 'h_auth',   type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he3', source: 'h_apigw',  target: 'h_chat',   type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he4', source: 'h_chat',   target: 'h_llm',    type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he5', source: 'h_chat',   target: 'h_rag',    type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he6', source: 'h_rag',    target: 'h_llm',    type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he7', source: 'h_rag',    target: 'h_vector', type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he8', source: 'h_chat',   target: 'h_nosql',  type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+];
+
+// ── Hero ──────────────────────────────────────────────────────────────────────
 
 export function Hero() {
   const router = useRouter();
+
+  const onNodeClick = useCallback(() => {}, []);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-20 lg:py-0 bg-white">
@@ -64,70 +140,63 @@ export function Hero() {
             </div>
           </div>
 
-          {/* Right: canvas mockup */}
-          <div className="relative lg:h-[600px] flex items-center justify-center">
-            <div className="absolute -z-10 w-2/3 h-2/3 bg-indigo-500/10 blur-[120px] rounded-full" />
-            <div
-              className="w-full max-w-[640px] aspect-[4/3] bg-slate-900 rounded-xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col"
-              style={{ animation: 'float 6s ease-in-out infinite' }}
-            >
+          {/* Right: interactive canvas mockup */}
+          <div className="relative lg:h-[520px] flex items-center justify-center">
+            {/* Glow */}
+            <div className="absolute -z-10 w-2/3 h-2/3 bg-indigo-500/10 blur-[100px] rounded-full" />
+
+            {/* Browser chrome */}
+            <div className="w-full h-[460px] rounded-xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col bg-slate-900">
               {/* macOS title bar */}
-              <div className="h-10 bg-slate-800 flex items-center px-4 gap-2 border-b border-slate-700">
+              <div className="h-9 bg-slate-800 flex items-center px-4 gap-2 border-b border-slate-700 shrink-0">
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
                   <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
                   <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
                 </div>
-                <div className="mx-auto text-[10px] text-slate-400 font-medium tracking-wide">Archflow — system-design.af</div>
+                <div className="mx-auto text-[10px] text-slate-400 font-medium tracking-wide">Archflow — ChatGPT Architecture</div>
+                <div className="text-[9px] text-indigo-400 font-medium px-2 py-0.5 bg-indigo-500/10 rounded-full border border-indigo-500/20">Interactive</div>
               </div>
 
-              {/* Canvas area */}
-              <div
-                className="flex-1 relative bg-[#0f172a] overflow-hidden"
-                style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '20px 20px' }}
-              >
-                {/* SVG edges */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M 120 120 C 180 120, 180 180, 240 180" fill="none" stroke="#6366f1" strokeWidth="2" opacity="0.8" />
-                  <path d="M 360 180 C 400 180, 420 120, 480 120" fill="none" stroke="#0ea5e9" strokeWidth="2" opacity="0.6" />
-                  <path d="M 360 180 C 400 180, 420 240, 480 240" fill="none" stroke="#10b981" strokeWidth="2" opacity="0.6" />
-                  <path d="M 520 260 C 520 280, 400 320, 360 320" fill="none" stroke="#f59e0b" strokeWidth="2" opacity="0.4" />
-                </svg>
+              {/* ReactFlow canvas */}
+              <div className="flex-1 relative">
+                <ReactFlow
+                  nodes={HERO_NODES}
+                  edges={HERO_EDGES}
+                  nodeTypes={nodeTypes}
+                  fitView
+                  fitViewOptions={{ padding: 0.2 }}
+                  nodesDraggable={true}
+                  nodesConnectable={false}
+                  elementsSelectable={false}
+                  deleteKeyCode={null}
+                  panOnDrag={true}
+                  zoomOnScroll={true}
+                  zoomOnPinch={true}
+                  zoomOnDoubleClick={false}
+                  minZoom={0.4}
+                  maxZoom={1.5}
+                  snapToGrid={true}
+                  snapGrid={[20, 20]}
+                  connectionLineType={ConnectionLineType.SmoothStep}
+                  defaultEdgeOptions={{ type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } }}
+                  proOptions={{ hideAttribution: true }}
+                  onNodeClick={onNodeClick}
+                  style={{ background: 'transparent' }}
+                >
+                  <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#334155" />
+                </ReactFlow>
 
-                {/* Node cards */}
-                {[
-                  { top: 80, left: 40, color: '#6366f1', label: 'Web App', sub: 'Client Side', icon: 'M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z' },
-                  { top: 144, left: 192, color: '#3b82f6', label: 'Kong Gateway', sub: 'API Layer', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-                  { top: 80, left: 320, color: '#06b6d4', label: 'Nginx LB', sub: 'Networking', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
-                  { top: 208, left: 320, color: '#10b981', label: 'PostgreSQL', sub: 'Primary DB', icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4' },
-                  { top: 288, left: 192, color: '#f59e0b', label: 'Redis', sub: 'Caching', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
-                ].map((node) => (
-                  <div
-                    key={node.label}
-                    className="absolute w-32 bg-slate-800 border border-white/10 rounded-xl p-3 shadow-xl"
-                    style={{ top: node.top, left: node.left }}
-                  >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: node.color + '33' }}>
-                      <svg className="w-4 h-4" fill="none" stroke={node.color} viewBox="0 0 24 24">
-                        <path d={node.icon} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                      </svg>
-                    </div>
-                    <div className="text-[11px] font-bold text-white">{node.label}</div>
-                    <div className="text-[9px] text-slate-400">{node.sub}</div>
-                  </div>
-                ))}
+                {/* Hint overlay */}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-slate-500 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 pointer-events-none">
+                  Drag nodes to rearrange · Scroll to zoom
+                </div>
               </div>
             </div>
           </div>
+
         </div>
       </div>
-
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-12px); }
-        }
-      `}</style>
     </section>
   );
 }
