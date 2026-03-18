@@ -14,14 +14,16 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
-import { CustomBezierEdge } from '@/components/edges/CustomBezierEdge';
 import { GuideLines } from '@/components/GuideLines';
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu';
 import { useSnapping } from '@/hooks/useSnapping';
-import { useCallback, useEffect, useRef, DragEvent, useState } from 'react';
+import { useCallback, useEffect, useRef, DragEvent, useState, Fragment } from 'react';
 import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
 import { LayoutGrid } from 'lucide-react';
 import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
+import { FlowEdge } from '@/components/edges/FlowEdge';
+import { EdgeLegend } from '@/components/edges/EdgeLegend';
+import { EDGE_TYPE_CONFIGS, EdgeType } from '@/data/edgeTypes';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -35,7 +37,7 @@ const NODE_TYPES = {
 };
 
 const EDGE_TYPES = {
-  default: CustomBezierEdge,
+  custom: FlowEdge,
 };
 
 function CanvasInner() {
@@ -210,11 +212,29 @@ function CanvasInner() {
         proOptions={{ hideAttribution: true }}
         connectionLineType={ConnectionLineType.Bezier}
         defaultEdgeOptions={{
-          type: 'default',
-          animated: true,
-          style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+          type: 'custom',
+          data: { edgeType: 'sync' },
         }}
       >
+        <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+          <defs>
+            {Object.values(EDGE_TYPE_CONFIGS).map((cfg) => (
+              <Fragment key={cfg.id}>
+                <marker id={`marker-${cfg.id}-end`} markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                  <path d="M0,0 L0,6 L9,3 z" fill={cfg.color} />
+                </marker>
+                {cfg.markerStart && (
+                  <marker id={`marker-${cfg.id}-start`} markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill={cfg.color} />
+                  </marker>
+                )}
+              </Fragment>
+            ))}
+            <style>{`
+              @keyframes edgeDash { to { stroke-dashoffset: -20; } }
+            `}</style>
+          </defs>
+        </svg>
         {showGrid && (
           <Background
             variant={BackgroundVariant.Dots}
@@ -312,6 +332,7 @@ function CanvasInner() {
       </ReactFlow>
 
       <GuideLines />
+      <EdgeLegend />
 
       {contextMenu && (
         <ContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />

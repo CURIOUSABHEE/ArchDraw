@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap, ReactFlowProvider,
 } from 'reactflow';
@@ -13,7 +13,8 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
-import { CustomBezierEdge } from '@/components/edges/CustomBezierEdge';
+import { FlowEdge } from '@/components/edges/FlowEdge';
+import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
 import { EmailCaptureModal } from '@/components/EmailCaptureModal';
 
 const NODE_TYPES = {
@@ -24,7 +25,7 @@ const NODE_TYPES = {
   annotationNode: AnnotationNode,
 };
 
-const EDGE_TYPES = { default: CustomBezierEdge };
+const EDGE_TYPES = { custom: FlowEdge };
 
 interface SharedCanvas {
   id: string;
@@ -140,11 +141,29 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
         fitViewOptions={{ padding: 0.15 }}
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
-          type: 'default',
-          animated: true,
-          style: { strokeWidth: 1.5, stroke: '#94a3b8' },
+          type: 'custom',
+          data: { edgeType: 'sync' },
         }}
       >
+        <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+          <defs>
+            {Object.values(EDGE_TYPE_CONFIGS).map((cfg) => (
+              <Fragment key={cfg.id}>
+                <marker id={`marker-${cfg.id}-end`} markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                  <path d="M0,0 L0,6 L9,3 z" fill={cfg.color} />
+                </marker>
+                {cfg.markerStart && (
+                  <marker id={`marker-${cfg.id}-start`} markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill={cfg.color} />
+                  </marker>
+                )}
+              </Fragment>
+            ))}
+            <style>{`
+              @keyframes edgeDash { to { stroke-dashoffset: -20; } }
+            `}</style>
+          </defs>
+        </svg>
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#334155" />
         <Controls showInteractive={false} className="!bg-card/90 !border !border-border/60 !rounded-lg" />
         <MiniMap zoomable pannable className="!bg-card/90 !border !border-border/60 !rounded-lg" maskColor="rgba(0,0,0,0.04)" />
