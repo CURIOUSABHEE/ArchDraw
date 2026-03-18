@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  Bot, Plus, Lightbulb, Check, AlertCircle, CheckCircle, Search,
+  Bot, Check, AlertCircle, CheckCircle,
 } from 'lucide-react';
 import type { TutorialStep, TutorialData } from '@/data/tutorials';
 import type { TutorialMessage } from '@/store/tutorialStore';
@@ -91,65 +91,27 @@ export function GuidePanel({
 
         <h3 className="text-sm font-semibold text-white mb-2">{step.title}</h3>
         <p className="text-xs text-slate-400 leading-relaxed">{step.explanation}</p>
+      </div>
 
-        {step.action && (
-          <div
-            className="mt-3 p-3 rounded-lg"
-            style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Plus className="w-3 h-3 text-indigo-400" />
-              <span className="text-xs text-indigo-400 font-medium">Your task:</span>
-            </div>
-            <p className="text-xs text-white leading-relaxed">{step.action}</p>
-
-            {/* Cmd+K hint */}
-            <div className="mt-3 flex items-center gap-2 p-2 rounded-lg bg-white/[0.04] border border-white/[0.08]">
-              <div className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white text-[10px] font-mono border border-white/20">
-                  {isMac ? '⌘' : 'Ctrl'}
-                </kbd>
-                <span className="text-[10px] text-slate-500">+</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white text-[10px] font-mono border border-white/20">
-                  K
-                </kbd>
-              </div>
-              <span className="text-[10px] text-slate-400">to search and add components</span>
-            </div>
-
-            {/* Step-specific search hint */}
-            {(step as any).searchHint && (
-              <button
-                onClick={() => {
-                  const fn = (window as any).__tutorialOpenPalette;
-                  if (fn) fn((step as any).searchHint);
-                }}
-                className="mt-2 flex items-center gap-1.5 text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors group"
-              >
-                <Search className="w-3 h-3" />
-                Search for &ldquo;{(step as any).searchHint}&rdquo;
-                <span className="text-slate-600 group-hover:text-slate-500">or press ⌘K</span>
-              </button>
-            )}
-          </div>
-        )}
-
-        {step.why && (
-          <div
-            className="mt-2 p-3 rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Lightbulb className="w-3 h-3 text-amber-400" />
-              <span className="text-xs text-amber-400 font-medium">Why this matters:</span>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">{step.why}</p>
-          </div>
-        )}
+      {/* Cmd+K hint bar */}
+      <div
+        className="px-4 flex items-center gap-2 shrink-0"
+        style={{ height: 38, borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        <div className="flex items-center gap-1">
+          <kbd className="px-1.5 py-0.5 rounded bg-white/[0.07] text-slate-300 text-[10px] font-mono border border-white/[0.12]">
+            {isMac ? '⌘' : 'Ctrl'}
+          </kbd>
+          <span className="text-[10px] text-slate-600">+</span>
+          <kbd className="px-1.5 py-0.5 rounded bg-white/[0.07] text-slate-300 text-[10px] font-mono border border-white/[0.12]">
+            K
+          </kbd>
+        </div>
+        <span className="text-[11px] text-slate-500">to search and add components</span>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[150px]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
         {messages.map((msg, i) => (
           <div
             key={i}
