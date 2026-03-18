@@ -2,14 +2,16 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Clock, Layers, Brain, Image, ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Clock, Layers, Brain, Image, BarChart2, Video, ArrowRight, CheckCircle } from 'lucide-react';
 import { TUTORIALS } from '@/data/tutorials';
 import { useTutorialStore } from '@/store/tutorialStore';
 import type { TutorialData } from '@/data/tutorials';
 
 const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
-  Brain: ({ className }) => <Brain className={className} />,
-  Image: ({ className }) => <Image className={className} />,
+  Brain:     ({ className }) => <Brain className={className} />,
+  Image:     ({ className }) => <Image className={className} />,
+  BarChart2: ({ className }) => <BarChart2 className={className} />,
+  Video:     ({ className }) => <Video className={className} />,
 };
 
 const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: string }> = {
