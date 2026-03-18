@@ -1,40 +1,65 @@
-# ArchDraw
+# ArchFlow
 
-A browser-based, drag-and-drop **architecture diagramming tool** for designing and visualising software system diagrams — built as an MVP.
+A browser-based, drag-and-drop **system architecture diagramming tool** — built with Next.js, React Flow, and Supabase.
+
+Live at: [archflow.app](https://archflow.app)
 
 ---
 
 ## Features
 
-- 🖱️ **Drag & Drop Canvas** — drag components from the sidebar onto a ReactFlow-powered canvas
-- 🔗 **Connect Nodes** — draw animated, smooth-step edges between components
-- 🔍 **Searchable Component Library** — filter components by name, grouped by category
-- 🗺️ **MiniMap & Controls** — zoom, pan, and navigate large diagrams easily
-- 📥 **Import** — load a previously saved `.json` diagram
-- 📤 **Export** — save your diagram as **JSON**, **PNG**, **SVG**, or **PDF**
-- 🗑️ **Clear** — wipe the canvas and start fresh
+- 🖱️ **Drag & Drop Canvas** — drag 150+ components from the sidebar onto a React Flow canvas
+- 🔗 **Connect Nodes** — draw animated smoothstep edges between components
+- 🗂️ **Multi-Canvas Tabs** — work across multiple diagrams simultaneously, persisted to localStorage
+- 🤖 **Auto Layout** — one-click Dagre-powered left-to-right layout
+- 📐 **Snap to Grid** — 20px grid snapping for clean, aligned diagrams
+- 🔍 **Searchable Component Library** — filter 150+ components by name, grouped by category
+- 📋 **Templates** — pre-built architectures (ArchFlow, ChatGPT-like, Instagram-like) loaded with auto layout
+- ⌨️ **Keyboard Shortcuts** — Cmd/Ctrl+D to duplicate, and more
+- 🗺️ **MiniMap & Controls** — zoom, pan, and navigate large diagrams
+- 📤 **Export** — save as Dark PNG, Light PNG, or Transparent PNG (3× pixel ratio)
+- 🔗 **Share** — publish a read-only shareable link via Supabase
+- 👤 **Auth** — magic link / OTP via Supabase (no passwords)
+- 🧑‍💻 **Guest Mode** — full canvas access without an account; work is preserved through auth flow
 
 ---
 
 ## Component Library
 
-| Category | Components |
+| Category | Examples |
 |---|---|
 | Network | API Gateway, Load Balancer, CDN |
 | Compute | Web Server, Lambda, Auth Service |
 | Database | Redis Cache, PostgreSQL, MongoDB |
 | Messaging | Kafka, RabbitMQ |
-| Storage | S3 Storage |
+| Storage | S3 Storage, Object Storage |
+| AI / ML | LLM API, RAG Pipeline, Vector DB |
+| Services | Stripe, Resend, Analytics |
+
+---
+
+## Templates
+
+| Template | Description |
+|---|---|
+| ArchFlow Architecture | The system design of ArchFlow itself |
+| ChatGPT-like | LLM chat app with RAG, vector DB, and streaming |
+| Instagram-like | Social platform with Kafka, media storage, and search |
 
 ---
 
 ## Tech Stack
 
-- **React + TypeScript** (Vite)
-- **ReactFlow** — interactive node-based canvas
+- **Next.js 16** (App Router) + **React 19** + **TypeScript**
+- **React Flow** — interactive node-based canvas
 - **Zustand** — global state management
-- **Tailwind CSS + shadcn/ui** — UI and styling
-- **html-to-image + jsPDF** — diagram export
+- **Tailwind CSS v4** + **shadcn/ui** + **Radix UI** — styling and components
+- **Supabase** — PostgreSQL database + magic link auth
+- **Dagre** — automatic graph layout
+- **html-to-image** — PNG export
+- **GSAP** — landing page animations
+- **Sonner** — toast notifications
+- **Vercel** — hosting
 
 ---
 
@@ -42,32 +67,53 @@ A browser-based, drag-and-drop **architecture diagramming tool** for designing a
 
 ```sh
 # Install dependencies
-cd diagram-canvas
+cd frontend
 npm install
+
+# Copy env vars
+cp .env.example .env.local
+# Fill in your Supabase URL and anon key in .env.local
 
 # Start the dev server
 npm run dev
 ```
 
-Then open [http://localhost:5173](http://localhost:5173) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
 ## Project Structure
 
 ```
-ArchDraw/
-├── diagram-canvas/          # Frontend (Vite + React)
-│   └── src/
-│       ├── components/      # Canvas, Toolbar, Sidebar, SystemNode
-│       ├── store/           # Zustand diagramStore
-│       ├── data/            # components.json (component library)
-│       └── pages/           # Editor, NotFound
-└── backend/                 # (not yet implemented)
+frontend/
+├── app/
+│   ├── editor/          # Main canvas page (no auth required)
+│   ├── share/[id]/      # Public read-only shared canvas viewer
+│   └── auth/callback/   # Supabase magic link callback
+├── components/
+│   ├── edges/           # Custom edge components
+│   ├── landing/         # Landing page sections
+│   └── ui/              # shadcn/ui components
+├── data/
+│   ├── templates/       # Pre-built diagram templates
+│   └── components.json  # Single source of truth for all node types
+├── hooks/               # Custom React hooks
+├── lib/                 # Utilities (Dagre layout, icon registry, Supabase client)
+├── store/               # Zustand diagram store
+└── views/               # Page-level view components
+```
+
+---
+
+## Environment Variables
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ---
 
 ## Status
 
-MVP — core diagramming loop is fully functional. Backend (persistence, auth, collaboration) not yet implemented.
+Beta — core diagramming loop, auth, sharing, and export are fully functional.
