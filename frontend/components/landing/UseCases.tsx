@@ -3,14 +3,16 @@
 import { useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { GraduationCap, FileText, BarChart2, Users } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
-const cases = [
-  { icon: '🎓', color: '#6366f1', title: 'System Design Interviews', desc: 'Practice drawing architectures for FAANG interviews. Use real templates as study guides.' },
-  { icon: '📄', color: '#3b82f6', title: 'Engineering Documentation', desc: 'Replace Confluence diagrams with interactive, shareable architecture docs.' },
-  { icon: '📊', color: '#8b5cf6', title: 'Technical Presentations', desc: 'Export clean diagrams for pitch decks, RFCs, and engineering all-hands.' },
-  { icon: '👥', color: '#10b981', title: 'Team Onboarding', desc: 'Help new engineers understand your system architecture from day one.' },
+const cases: { Icon: LucideIcon; color: string; title: string; desc: string }[] = [
+  { Icon: GraduationCap, color: '#6366f1', title: 'System Design Interviews',  desc: 'Practice drawing architectures for FAANG interviews. Use real templates as study guides.' },
+  { Icon: FileText,      color: '#3b82f6', title: 'Engineering Documentation', desc: 'Replace Confluence diagrams with interactive, shareable architecture docs.' },
+  { Icon: BarChart2,     color: '#6366f1', title: 'Technical Presentations',   desc: 'Export clean diagrams for pitch decks, RFCs, and engineering all-hands.' },
+  { Icon: Users,         color: '#10b981', title: 'Team Onboarding',           desc: 'Help new engineers understand your system architecture from day one.' },
 ];
 
 export function UseCases() {
@@ -19,14 +21,14 @@ export function UseCases() {
     if (prefersReducedMotion) return;
 
     gsap.fromTo('.usecases-headline',
-      { opacity: 0, y: 50, filter: 'blur(8px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out',
+      { opacity: 0, y: 50 },
+      { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
         scrollTrigger: { trigger: '.usecases-headline', start: 'top 85%', toggleActions: 'play none none none' } }
     );
 
     gsap.fromTo('.usecase-card',
-      { opacity: 0, y: 40, filter: 'blur(4px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7, stagger: 0.1, ease: 'power2.out',
+      { opacity: 0, y: 40 },
+      { opacity: 1, y: 0, duration: 0.7, stagger: 0.1, ease: 'power2.out',
         scrollTrigger: { trigger: '.usecases-grid', start: 'top 80%', toggleActions: 'play none none none' } }
     );
 
@@ -47,7 +49,6 @@ export function UseCases() {
 
   return (
     <section className="py-28 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#080c14' }} id="use-cases">
-      {/* Section divider */}
       <div className="max-w-5xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-5xl mx-auto">
@@ -61,8 +62,11 @@ export function UseCases() {
         <div className="usecases-grid grid grid-cols-1 md:grid-cols-2 gap-5">
           {cases.map((c) => (
             <article key={c.title} className="usecase-card will-change-transform p-6 rounded-2xl flex flex-col gap-4 opacity-0" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <div className="card-icon will-change-transform w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: c.color + '15', border: `1px solid ${c.color}25` }}>
-                {c.icon}
+              <div
+                className="card-icon will-change-transform w-11 h-11 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: c.color + '15', border: `1px solid ${c.color}25` }}
+              >
+                <c.Icon style={{ width: 18, height: 18, color: c.color }} />
               </div>
               <div className="space-y-1.5">
                 <h3 className="font-semibold text-white">{c.title}</h3>

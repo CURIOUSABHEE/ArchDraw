@@ -3,16 +3,18 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Boxes, Zap, LayoutTemplate, Link2, Download, LayoutGrid } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
-const features = [
-  { icon: '⬡', color: '#6366f1', title: '150+ Components', desc: 'Pre-built nodes for every layer — auth, databases, queues, AI services, cloud infra and more.' },
-  { icon: '⚡', color: '#3b82f6', title: 'Smart Auto Layout', desc: "One click to organize your entire diagram with Dagre's hierarchical layout algorithm." },
-  { icon: '📐', color: '#8b5cf6', title: 'Real-time Templates', desc: 'Start from battle-tested architectures — ChatGPT, Instagram, Netflix and more.' },
-  { icon: '🔗', color: '#10b981', title: 'Share with a Link', desc: 'Generate a shareable URL for any diagram. Anyone can view and interact — no account needed.' },
-  { icon: '⬇', color: '#f59e0b', title: 'Export as PNG', desc: 'Export high-resolution images for docs, presentations, or Notion pages. 3× resolution.' },
-  { icon: '⊞', color: '#06b6d4', title: 'Multiple Canvases', desc: 'Work on different systems simultaneously with tabbed canvases. Switch instantly.' },
+const features: { Icon: LucideIcon; color: string; title: string; desc: string }[] = [
+  { Icon: Boxes,          color: '#6366f1', title: '150+ Components',    desc: 'Pre-built nodes for every layer — auth, databases, queues, AI services, cloud infra and more.' },
+  { Icon: Zap,            color: '#3b82f6', title: 'Smart Auto Layout',  desc: "One click to organize your entire diagram with Dagre's hierarchical layout algorithm." },
+  { Icon: LayoutTemplate, color: '#6366f1', title: 'Real-time Templates', desc: 'Start from battle-tested architectures — ChatGPT, Instagram, Netflix and more.' },
+  { Icon: Link2,          color: '#10b981', title: 'Share with a Link',  desc: 'Generate a shareable URL for any diagram. Anyone can view and interact — no account needed.' },
+  { Icon: Download,       color: '#f59e0b', title: 'Export as PNG',      desc: 'Export high-resolution images for docs, presentations, or Notion pages. 3× resolution.' },
+  { Icon: LayoutGrid,     color: '#06b6d4', title: 'Multiple Canvases',  desc: 'Work on different systems simultaneously with tabbed canvases. Switch instantly.' },
 ];
 
 export function Features() {
@@ -23,8 +25,8 @@ export function Features() {
     if (prefersReducedMotion) return;
 
     gsap.fromTo('.features-headline',
-      { opacity: 0, y: 50, filter: 'blur(8px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out',
+      { opacity: 0, y: 50 },
+      { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
         scrollTrigger: { trigger: '.features-headline', start: 'top 85%', toggleActions: 'play none none none' } }
     );
 
@@ -36,7 +38,6 @@ export function Features() {
         scrollTrigger: { trigger: '.features-grid', start: 'top 75%', toggleActions: 'play none none none' } }
     );
 
-    // Card hover effects
     document.querySelectorAll<HTMLElement>('.feature-card').forEach(card => {
       const icon = card.querySelector<HTMLElement>('.card-icon');
       card.addEventListener('mouseenter', () => {
@@ -54,7 +55,6 @@ export function Features() {
 
   return (
     <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#080c14' }} id="features">
-      {/* Section divider */}
       <div className="section-divider max-w-5xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-5xl mx-auto">
@@ -72,8 +72,11 @@ export function Features() {
               className="feature-card will-change-transform p-6 rounded-2xl flex flex-col gap-4 opacity-0 cursor-default"
               style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <div className="card-icon will-change-transform w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: f.color + '15', border: `1px solid ${f.color}25` }}>
-                {f.icon}
+              <div
+                className="card-icon will-change-transform w-11 h-11 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: f.color + '15', border: `1px solid ${f.color}25` }}
+              >
+                <f.Icon style={{ width: 18, height: 18, color: f.color }} />
               </div>
               <div className="space-y-1.5">
                 <h3 className="font-semibold text-white">{f.title}</h3>

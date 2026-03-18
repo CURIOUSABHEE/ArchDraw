@@ -4,16 +4,18 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Bot, Camera, Film, Car, Layers, Brain } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
-const templates = [
-  { emoji: '🤖', name: 'ChatGPT Architecture', desc: 'LLM RAG pipeline, vector DB, streaming', nodes: '14', tags: ['AI', 'LLM', 'RAG'], accent: '#6366f1' },
-  { emoji: '📸', name: 'Instagram', desc: 'Feed service, media pipeline, Kafka, CDN', nodes: '22', tags: ['Social', 'Kafka'], accent: '#ec4899' },
-  { emoji: '🎞️', name: 'Netflix', desc: 'Video transcoding, CDN, recommendation ML', nodes: '18', tags: ['Streaming', 'CDN', 'ML'], accent: '#ef4444' },
-  { emoji: '🚗', name: 'Uber', desc: 'Real-time matching, maps API, location tracking', nodes: '26', tags: ['Real-time', 'Maps'], accent: '#f59e0b' },
-  { emoji: '🏗️', name: 'ArchFlow itself', desc: 'The architecture of this very tool', nodes: '23', tags: ['Next.js', 'Supabase'], accent: '#10b981' },
-  { emoji: '🧠', name: 'RAG Application', desc: 'Vector DB, embeddings, LLM, retrieval pipeline', nodes: '10', tags: ['AI', 'Vector', 'RAG'], accent: '#8b5cf6' },
+const templates: { Icon: LucideIcon; name: string; desc: string; nodes: string; tags: string[]; accent: string }[] = [
+  { Icon: Bot,    name: 'ChatGPT Architecture', desc: 'LLM RAG pipeline, vector DB, streaming',          nodes: '14', tags: ['AI', 'LLM', 'RAG'],        accent: '#6366f1' },
+  { Icon: Camera, name: 'Instagram',            desc: 'Feed service, media pipeline, Kafka, CDN',        nodes: '22', tags: ['Social', 'Kafka'],          accent: '#6366f1' },
+  { Icon: Film,   name: 'Netflix',              desc: 'Video transcoding, CDN, recommendation ML',       nodes: '18', tags: ['Streaming', 'CDN', 'ML'],   accent: '#ef4444' },
+  { Icon: Car,    name: 'Uber',                 desc: 'Real-time matching, maps API, location tracking', nodes: '26', tags: ['Real-time', 'Maps'],        accent: '#f59e0b' },
+  { Icon: Layers, name: 'ArchFlow itself',      desc: 'The architecture of this very tool',              nodes: '23', tags: ['Next.js', 'Supabase'],      accent: '#10b981' },
+  { Icon: Brain,  name: 'RAG Application',      desc: 'Vector DB, embeddings, LLM, retrieval pipeline', nodes: '10', tags: ['AI', 'Vector', 'RAG'],      accent: '#6366f1' },
 ];
 
 export function Templates() {
@@ -24,14 +26,14 @@ export function Templates() {
     if (prefersReducedMotion) return;
 
     gsap.fromTo('.templates-headline',
-      { opacity: 0, y: 50, filter: 'blur(8px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out',
+      { opacity: 0, y: 50 },
+      { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
         scrollTrigger: { trigger: '.templates-headline', start: 'top 85%', toggleActions: 'play none none none' } }
     );
 
     gsap.fromTo('.template-card',
-      { opacity: 0, y: 40, filter: 'blur(4px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7, stagger: 0.1, ease: 'power2.out',
+      { opacity: 0, y: 40 },
+      { opacity: 1, y: 0, duration: 0.7, stagger: 0.1, ease: 'power2.out',
         scrollTrigger: { trigger: '.templates-grid', start: 'top 80%', toggleActions: 'play none none none' } }
     );
 
@@ -49,7 +51,6 @@ export function Templates() {
 
   return (
     <section className="py-28 px-6 sm:px-12 lg:px-24" style={{ backgroundColor: '#080c14' }} id="templates">
-      {/* Section divider */}
       <div className="max-w-6xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-6xl mx-auto">
@@ -73,8 +74,10 @@ export function Templates() {
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{t.emoji}</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: t.accent + '15', border: `1px solid ${t.accent}25` }}>
+                      <t.Icon style={{ width: 15, height: 15, color: t.accent }} />
+                    </div>
                     <h3 className="font-semibold text-white">{t.name}</h3>
                   </div>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-wider" style={{ color: '#475569', backgroundColor: 'rgba(255,255,255,0.04)' }}>{t.nodes} Nodes</span>

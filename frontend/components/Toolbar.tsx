@@ -201,7 +201,7 @@ export function Toolbar() {
     <>
       <header className="h-11 border-b border-border/60 bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 z-20 shrink-0 gap-2">
         <div className="flex items-center gap-2 shrink-0">
-          <div className="w-5 h-5 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-md flex items-center justify-center">
+          <div className="w-5 h-5 bg-indigo-600 rounded-md flex items-center justify-center">
             <div className="w-2 h-2 border border-white/80 rounded-sm" />
           </div>
           <span className="font-semibold text-foreground text-sm tracking-tight">Archflow</span>
@@ -300,7 +300,7 @@ export function Toolbar() {
               <button
                 onClick={() => setExportOpen(!exportOpen)}
                 disabled={isExporting}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-medium rounded-md hover:opacity-90 transition-all shadow-sm active:scale-95 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-md transition-all shadow-sm active:scale-95 disabled:opacity-60"
               >
                 {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                 {isExporting ? 'Exporting...' : 'Export'}

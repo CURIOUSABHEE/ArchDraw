@@ -158,3 +158,12 @@ body {
   outline: 1px solid hsl(var(--ring));
   outline-offset: 2px;
 }
+
+/* ── Landing float animations ── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+.animate-float          { animation: float 4s ease-in-out infinite; will-change: transform; }
+.animate-float-delay-1  { animation-delay: 0.7s; }
+.animate-float-delay-2  { animation-delay: 1.4s; }

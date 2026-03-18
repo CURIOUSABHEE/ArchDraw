@@ -71,7 +71,7 @@ export function CTASection() {
             Start building your
           </span>
           <br />
-          <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-indigo-300 via-indigo-400 to-indigo-500 bg-clip-text text-transparent">
             architecture today.
           </span>
         </h2>
