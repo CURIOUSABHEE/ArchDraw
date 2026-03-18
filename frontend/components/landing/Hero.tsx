@@ -55,25 +55,25 @@ const nodeTypes: NodeTypes = { heroNode: HeroNode };
 // ── Curated 8-node subset of ChatGPT architecture ──
 
 const HERO_NODES = [
-  { id: 'h_client',  type: 'heroNode', position: { x: 0,   y: 80  }, data: { label: 'Client',         icon: 'Monitor',      color: '#6366f1', category: 'Entry'     } },
-  { id: 'h_apigw',   type: 'heroNode', position: { x: 160, y: 80  }, data: { label: 'API Gateway',    icon: 'Webhook',      color: '#6366f1', category: 'Gateway'   } },
-  { id: 'h_auth',    type: 'heroNode', position: { x: 320, y: 0   }, data: { label: 'Auth Service',   icon: 'Shield',       color: '#8b5cf6', category: 'Security'  } },
-  { id: 'h_chat',    type: 'heroNode', position: { x: 320, y: 160 }, data: { label: 'Chat Service',   icon: 'Boxes',        color: '#3b82f6', category: 'Compute'   } },
-  { id: 'h_llm',     type: 'heroNode', position: { x: 480, y: 80  }, data: { label: 'LLM API',        icon: 'Brain',        color: '#ec4899', category: 'AI / ML'   } },
-  { id: 'h_rag',     type: 'heroNode', position: { x: 480, y: 240 }, data: { label: 'RAG Pipeline',   icon: 'GitMerge',     color: '#ec4899', category: 'AI / ML'   } },
-  { id: 'h_vector',  type: 'heroNode', position: { x: 640, y: 160 }, data: { label: 'Vector DB',      icon: 'Cpu',          color: '#ec4899', category: 'Storage'   } },
-  { id: 'h_nosql',   type: 'heroNode', position: { x: 640, y: 320 }, data: { label: 'NoSQL DB',       icon: 'Leaf',         color: '#334155', category: 'Storage'   } },
+  { id: 'client',       type: 'heroNode', position: { x: 0,   y: 180 }, data: { label: 'Client',       icon: 'Monitor',   color: '#6366f1', category: 'Entry'    } },
+  { id: 'api-gateway',  type: 'heroNode', position: { x: 220, y: 160 }, data: { label: 'API Gateway',  icon: 'Webhook',   color: '#6366f1', category: 'Gateway'  } },
+  { id: 'auth-service', type: 'heroNode', position: { x: 460, y: 20  }, data: { label: 'Auth Service', icon: 'Shield',    color: '#8b5cf6', category: 'Security' } },
+  { id: 'chat-service', type: 'heroNode', position: { x: 460, y: 240 }, data: { label: 'Chat Service', icon: 'Boxes',     color: '#3b82f6', category: 'Compute'  } },
+  { id: 'llm-api',      type: 'heroNode', position: { x: 720, y: 20  }, data: { label: 'LLM API',      icon: 'Brain',     color: '#ec4899', category: 'AI / ML'  } },
+  { id: 'rag-pipeline', type: 'heroNode', position: { x: 680, y: 260 }, data: { label: 'RAG Pipeline', icon: 'GitMerge',  color: '#ec4899', category: 'AI / ML'  } },
+  { id: 'vector-db',    type: 'heroNode', position: { x: 920, y: 130 }, data: { label: 'Vector DB',    icon: 'Cpu',       color: '#ec4899', category: 'Storage'  } },
+  { id: 'nosql-db',     type: 'heroNode', position: { x: 920, y: 360 }, data: { label: 'NoSQL DB',     icon: 'Leaf',      color: '#334155', category: 'Storage'  } },
 ];
 
 const HERO_EDGES = [
-  { id: 'he1', source: 'h_client', target: 'h_apigw',  type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he2', source: 'h_apigw',  target: 'h_auth',   type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he3', source: 'h_apigw',  target: 'h_chat',   type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he4', source: 'h_chat',   target: 'h_llm',    type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he5', source: 'h_chat',   target: 'h_rag',    type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he6', source: 'h_rag',    target: 'h_llm',    type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he7', source: 'h_rag',    target: 'h_vector', type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he8', source: 'h_chat',   target: 'h_nosql',  type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'e1', source: 'client',       target: 'api-gateway',  type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 1.5, strokeDasharray: '5,5' } },
+  { id: 'e2', source: 'api-gateway',  target: 'auth-service', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 1.5, strokeDasharray: '5,5' } },
+  { id: 'e3', source: 'api-gateway',  target: 'chat-service', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 1.5, strokeDasharray: '5,5' } },
+  { id: 'e4', source: 'chat-service', target: 'llm-api',      type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 1.5, strokeDasharray: '5,5' } },
+  { id: 'e5', source: 'chat-service', target: 'rag-pipeline', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 1.5, strokeDasharray: '5,5' } },
+  { id: 'e6', source: 'rag-pipeline', target: 'vector-db',    type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 1.5, strokeDasharray: '5,5' } },
+  { id: 'e7', source: 'rag-pipeline', target: 'nosql-db',     type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 1.5, strokeDasharray: '5,5' } },
+  { id: 'e8', source: 'llm-api',      target: 'vector-db',    type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 1.5, strokeDasharray: '5,5' } },
 ];
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
@@ -169,7 +169,7 @@ export function Hero() {
                   onEdgesChange={onEdgesChange}
                   nodeTypes={nodeTypes}
                   fitView
-                  fitViewOptions={{ padding: 0.2 }}
+                  fitViewOptions={{ padding: 0.15 }}
                   nodesDraggable={true}
                   nodesConnectable={false}
                   elementsSelectable={true}
@@ -183,7 +183,7 @@ export function Hero() {
                   snapToGrid={true}
                   snapGrid={[20, 20]}
                   connectionLineType={ConnectionLineType.Bezier}
-                  defaultEdgeOptions={{ type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } }}
+                  defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
                   proOptions={{ hideAttribution: true }}
                   style={{ background: 'transparent' }}
                 >
