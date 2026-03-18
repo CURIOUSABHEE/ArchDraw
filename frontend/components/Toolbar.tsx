@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import {
   Download, Trash2, Upload, ChevronDown, FileJson,
   Undo2, Redo2, Grid3X3, Zap, Moon, Sun,
-  Type, StickyNote, Group, Maximize2, LayoutTemplate, Share2, Loader2,
+  Type, StickyNote, Group, Maximize2, LayoutTemplate, Share2, Loader2, Check,
 } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
@@ -29,6 +29,7 @@ export function Toolbar() {
     toggleDarkMode, darkMode,
     selectedNodeIds, createGroup,
     fitView, canvases, activeCanvasId,
+    savingState, userProfile,
   } = useDiagramStore();
 
   const { user } = useAuthStore();
@@ -249,8 +250,15 @@ export function Toolbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground font-medium">
-          <span>{nodes.length} nodes</span>
-          <span>{edges.length} edges</span>
+          <span>{nodes.length} nodes · {edges.length} edges</span>
+          {userProfile && savingState !== 'idle' && (
+            <span className="flex items-center gap-1 text-slate-400">
+              {savingState === 'saving'
+                ? <><Loader2 className="w-3 h-3 animate-spin" /> Saving...</>
+                : <><Check className="w-3 h-3 text-green-500" /> Saved</>
+              }
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">

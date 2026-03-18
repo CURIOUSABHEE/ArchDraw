@@ -4,6 +4,14 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 
+function formatRelative(ts: number): string {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 export function CanvasTabBar() {
   const { canvases, activeCanvasId, addCanvas, removeCanvas, switchCanvas, renameCanvas } = useDiagramStore();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -88,7 +96,7 @@ export function CanvasTabBar() {
                   <span
                     className="truncate flex-1"
                     onDoubleClick={(e) => startRename(canvas.id, canvas.name, e)}
-                    title={canvas.name}
+                    title={canvas.updatedAt ? `Last edited ${formatRelative(canvas.updatedAt)}` : canvas.name}
                   >
                     {canvas.name}
                   </span>

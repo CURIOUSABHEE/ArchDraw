@@ -20,6 +20,8 @@ import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu';
 import { useSnapping } from '@/hooks/useSnapping';
 import { useCallback, useEffect, useRef, DragEvent, useState } from 'react';
 import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
+import { LayoutGrid } from 'lucide-react';
+import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -49,6 +51,7 @@ function CanvasInner() {
   const [labelDraft, setLabelDraft] = useState('');
   const labelInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Keep module ref in sync so store.fitView() can call it directly
   useEffect(() => {
@@ -62,6 +65,11 @@ function CanvasInner() {
   // Cmd+D / Ctrl+D — duplicate selected nodes
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // ? key — toggle shortcuts modal
+      if (e.key === '?' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        setShowShortcuts((v) => !v);
+        return;
+      }
       if (!(e.metaKey || e.ctrlKey) || e.key !== 'd') return;
       const active = document.activeElement;
       if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return;
@@ -310,15 +318,23 @@ function CanvasInner() {
       )}
 
       {nodes.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center space-y-1">
-            <p className="text-muted-foreground/70 text-sm font-medium">
-              Drag a component from the sidebar to start
-            </p>
-            <p className="text-muted-foreground/40 text-xs">or press ⌘K to search</p>
-          </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
+          <LayoutGrid className="w-12 h-12 text-slate-600 mb-3" />
+          <p className="text-slate-500 text-sm font-medium">Start building your architecture</p>
+          <p className="text-slate-600 text-xs mt-1">Drag components from the sidebar or load a template</p>
         </div>
       )}
+
+      {/* Keyboard shortcuts button */}
+      <button
+        onClick={() => setShowShortcuts(true)}
+        className="absolute bottom-4 right-4 z-10 w-7 h-7 rounded-full bg-card/80 border border-border/60 text-muted-foreground hover:text-foreground hover:bg-card transition-colors flex items-center justify-center text-xs font-semibold shadow-sm"
+        title="Keyboard shortcuts (?)"
+      >
+        ?
+      </button>
+
+      {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
     </div>
   );
 }

@@ -31,6 +31,8 @@ import servicesData from '@/data/services-components.json';
 import { useDiagramStore } from '@/store/diagramStore';
 import { NodeIcon } from '@/components/NodeIcon';
 import { iconRegistry } from '@/lib/iconRegistry';
+import { UserAvatar } from '@/components/UserAvatar';
+import { useAuthStore } from '@/store/authStore';
 
 function getViewportCenter(): { x: number; y: number } {
   const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
@@ -367,11 +369,15 @@ function SearchBar({ value, onChange }: { value: string; onChange: (v: string) =
 }
 
 function SidebarFooter() {
+  const { user } = useAuthStore();
   return (
-    <div className="px-3 py-2 border-t border-border/50">
-      <p className="text-[9px] text-muted-foreground/60 text-center">
-        Click or drag to add
-      </p>
+    <div className="border-t border-border/50">
+      {user && <UserAvatar />}
+      {!user && (
+        <div className="px-3 py-2">
+          <p className="text-[9px] text-muted-foreground/60 text-center">Click or drag to add</p>
+        </div>
+      )}
     </div>
   );
 }
