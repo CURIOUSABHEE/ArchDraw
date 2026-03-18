@@ -1,16 +1,19 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { Navbar } from '@/components/landing/Navbar';
 import { Hero } from '@/components/landing/Hero';
 import { SocialProof } from '@/components/landing/SocialProof';
 import { Features } from '@/components/landing/Features';
-import { HowItWorks } from '@/components/landing/HowItWorks';
-import { Templates } from '@/components/landing/Templates';
-import { ComponentsShowcase } from '@/components/landing/ComponentsShowcase';
-import { UseCases } from '@/components/landing/UseCases';
-import { FAQ } from '@/components/landing/FAQ';
-import { CTASection } from '@/components/landing/CTASection';
-import { Footer } from '@/components/landing/Footer';
+
+// Below-fold sections — lazy loaded
+const HowItWorks        = dynamic(() => import('@/components/landing/HowItWorks').then(m => ({ default: m.HowItWorks })));
+const Templates         = dynamic(() => import('@/components/landing/Templates').then(m => ({ default: m.Templates })));
+const ComponentsShowcase = dynamic(() => import('@/components/landing/ComponentsShowcase').then(m => ({ default: m.ComponentsShowcase })));
+const UseCases          = dynamic(() => import('@/components/landing/UseCases').then(m => ({ default: m.UseCases })));
+const FAQ               = dynamic(() => import('@/components/landing/FAQ').then(m => ({ default: m.FAQ })));
+const CTASection        = dynamic(() => import('@/components/landing/CTASection').then(m => ({ default: m.CTASection })));
+const Footer            = dynamic(() => import('@/components/landing/Footer').then(m => ({ default: m.Footer })));
 
 const jsonLd = {
   '@context': 'https://schema.org',

@@ -88,6 +88,12 @@ export function CTASection() {
         >
           Open the canvas →
         </button>
+        <p className="text-slate-600 text-sm mt-4">
+          New to system design?{' '}
+          <a href="/tutorials" className="text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-2">
+            Start with an interactive tutorial →
+          </a>
+        </p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
           {['Next.js', 'Supabase', 'Vercel', 'React'].map((t) => (
             <span key={t} className="px-3 py-1.5 text-xs font-medium rounded-full" style={{ color: '#475569', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>

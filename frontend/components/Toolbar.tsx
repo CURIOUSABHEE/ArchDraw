@@ -5,7 +5,9 @@ import {
   Download, Trash2, Upload, ChevronDown, FileJson,
   Undo2, Redo2, Grid3X3, Zap, Moon, Sun,
   Type, StickyNote, Group, Maximize2, LayoutTemplate, Share2, Loader2, Check, HelpCircle,
+  GraduationCap,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
 import { toPng } from 'html-to-image';
@@ -21,6 +23,7 @@ import { useOnboardingStore } from '@/store/onboardingStore';
 type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf';
 
 export function Toolbar() {
+  const router = useRouter();
   const {
     clearDiagram, nodes, edges, importDiagram,
     undo, redo, past, future,
@@ -265,6 +268,16 @@ export function Toolbar() {
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          <TooltipWrapper label="Interactive Tutorials">
+            <button
+              onClick={() => router.push('/tutorials')}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Learn</span>
+            </button>
+          </TooltipWrapper>
+
           <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
 
           <TooltipWrapper label="Quick Guide">

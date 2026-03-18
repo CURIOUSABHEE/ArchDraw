@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Bot, Camera, Film, Car, Layers, Brain } from 'lucide-react';
+import { Bot, Camera, Film, Car, Layers, Brain, GraduationCap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
@@ -99,7 +99,7 @@ export function Templates() {
           ))}
         </div>
 
-        <div className="mt-14 text-center">
+        <div className="mt-14 text-center flex flex-wrap items-center justify-center gap-4">
           <button
             onClick={() => router.push('/editor')}
             className="inline-flex items-center px-6 py-3 rounded-xl font-semibold text-sm transition-all"
@@ -109,6 +109,16 @@ export function Templates() {
           >
             Browse all templates →
           </button>
+          <a
+            href="/tutorials"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-slate-300 hover:text-white text-sm transition-colors"
+            style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+            onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.2)')}
+            onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.1)')}
+          >
+            <GraduationCap className="w-4 h-4" />
+            Try interactive tutorials
+          </a>
         </div>
       </div>
     </section>

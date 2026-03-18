@@ -8,6 +8,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
 const NAV_LINKS = ['Features', 'Templates', 'Use Cases'];
+const NAV_TUTORIALS_HREF = '/tutorials';
 
 export function Navbar() {
   const router = useRouter();
@@ -69,6 +70,13 @@ export function Navbar() {
                 <span className="nav-underline absolute -bottom-0.5 left-0 right-0 h-px bg-indigo-400 scale-x-0 origin-left transition-transform duration-300" />
               </a>
             ))}
+            <a
+              href={NAV_TUTORIALS_HREF}
+              className="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            >
+              Tutorials
+              <span className="nav-underline absolute -bottom-0.5 left-0 right-0 h-px bg-indigo-400 scale-x-0 origin-left transition-transform duration-300" />
+            </a>
           </nav>
 
           {/* Desktop actions */}
@@ -115,6 +123,13 @@ export function Navbar() {
                 {item}
               </a>
             ))}
+            <a
+              href={NAV_TUTORIALS_HREF}
+              className="block px-3 py-3 text-base font-medium text-slate-400 hover:text-white rounded-lg"
+              onClick={() => setMobileOpen(false)}
+            >
+              Tutorials
+            </a>
             <div className="pt-4 flex flex-col gap-3">
               <button onClick={() => router.push('/editor')} className="w-full px-4 py-2.5 text-center font-medium text-slate-300 border border-white/10 rounded-lg">Sign in</button>
               <button onClick={() => router.push('/editor')} className="w-full px-4 py-2.5 text-center font-medium text-white bg-indigo-600 rounded-lg">Start designing</button>

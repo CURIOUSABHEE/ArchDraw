@@ -167,3 +167,19 @@ body {
 .animate-float          { animation: float 4s ease-in-out infinite; will-change: transform; }
 .animate-float-delay-1  { animation-delay: 0.7s; }
 .animate-float-delay-2  { animation-delay: 1.4s; }
+
+/* ── Ghost background node float animations ── */
+@keyframes bgFloat1 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  33%       { transform: translateY(-8px) translateX(3px); }
+  66%       { transform: translateY(-4px) translateX(-2px); }
+}
+@keyframes bgFloat2 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50%       { transform: translateY(-10px) translateX(-4px); }
+}
+@keyframes bgFloat3 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  40%       { transform: translateY(-6px) translateX(5px); }
+  80%       { transform: translateY(-12px) translateX(2px); }
+}
