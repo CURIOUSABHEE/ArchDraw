@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import ReactFlow, {
   Background,
   BackgroundVariant,
+  useNodesState,
+  useEdgesState,
   type NodeTypes,
   type NodeProps,
   Handle,
@@ -78,8 +80,8 @@ const HERO_EDGES = [
 
 export function Hero() {
   const router = useRouter();
-
-  const onNodeClick = useCallback(() => {}, []);
+  const [nodes, , onNodesChange] = useNodesState(HERO_NODES);
+  const [edges, , onEdgesChange] = useEdgesState(HERO_EDGES);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-20 lg:py-0 bg-white">
@@ -161,14 +163,16 @@ export function Hero() {
               {/* ReactFlow canvas */}
               <div className="flex-1 relative">
                 <ReactFlow
-                  nodes={HERO_NODES}
-                  edges={HERO_EDGES}
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
                   nodeTypes={nodeTypes}
                   fitView
                   fitViewOptions={{ padding: 0.2 }}
                   nodesDraggable={true}
                   nodesConnectable={false}
-                  elementsSelectable={false}
+                  elementsSelectable={true}
                   deleteKeyCode={null}
                   panOnDrag={true}
                   zoomOnScroll={true}
@@ -181,7 +185,6 @@ export function Hero() {
                   connectionLineType={ConnectionLineType.SmoothStep}
                   defaultEdgeOptions={{ type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } }}
                   proOptions={{ hideAttribution: true }}
-                  onNodeClick={onNodeClick}
                   style={{ background: 'transparent' }}
                 >
                   <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#334155" />
