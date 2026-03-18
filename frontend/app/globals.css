@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* ── Landing page dark theme tokens ── */
+:root {
+  --land-bg: #080c14;
+  --land-bg-alt: #0d1117;
+  --land-card: rgba(255,255,255,0.03);
+  --land-border: rgba(255,255,255,0.06);
+  --land-border-hover: rgba(255,255,255,0.12);
+  --land-text: #f1f5f9;
+  --land-muted: #64748b;
+  --land-accent: #6366f1;
+  --land-accent-glow: rgba(99,102,241,0.15);
+}
+
 @layer base {
   :root {
     /* Neutral light palette */

@@ -1,71 +1,112 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
 const templates = [
-  { emoji: '🤖', name: 'ChatGPT Architecture', desc: 'LLM RAG pipeline, vector DB, streaming', nodes: '14', tags: [['AI', 'bg-indigo-50 text-indigo-700'], ['LLM', 'bg-sky-50 text-sky-700'], ['RAG', 'bg-purple-50 text-purple-700']] },
-  { emoji: '📸', name: 'Instagram', desc: 'Feed service, media pipeline, Kafka, CDN', nodes: '22', tags: [['Social Media', 'bg-pink-50 text-pink-700'], ['Kafka', 'bg-slate-50 text-slate-700']] },
-  { emoji: '🎞️', name: 'Netflix', desc: 'Video transcoding, CDN, recommendation ML', nodes: '18', tags: [['Streaming', 'bg-red-50 text-red-700'], ['CDN', 'bg-blue-50 text-blue-700'], ['ML', 'bg-emerald-50 text-emerald-700']] },
-  { emoji: '🚗', name: 'Uber', desc: 'Real-time matching, maps API, location tracking', nodes: '26', tags: [['Real-time', 'bg-orange-50 text-orange-700'], ['Maps', 'bg-green-50 text-green-700']] },
-  { emoji: '🏗️', name: 'ArchFlow itself', desc: 'The architecture of this very tool', nodes: '23', tags: [['Next.js', 'bg-zinc-100 text-zinc-900'], ['Supabase', 'bg-emerald-50 text-emerald-700'], ['Vercel', 'bg-slate-100 text-slate-900']] },
-  { emoji: '🧠', name: 'RAG Application', desc: 'Vector DB, embeddings, LLM, retrieval pipeline', nodes: '10', tags: [['AI', 'bg-indigo-50 text-indigo-700'], ['Vector', 'bg-cyan-50 text-cyan-700'], ['RAG', 'bg-purple-50 text-purple-700']] },
+  { emoji: '🤖', name: 'ChatGPT Architecture', desc: 'LLM RAG pipeline, vector DB, streaming', nodes: '14', tags: ['AI', 'LLM', 'RAG'], accent: '#6366f1' },
+  { emoji: '📸', name: 'Instagram', desc: 'Feed service, media pipeline, Kafka, CDN', nodes: '22', tags: ['Social', 'Kafka'], accent: '#ec4899' },
+  { emoji: '🎞️', name: 'Netflix', desc: 'Video transcoding, CDN, recommendation ML', nodes: '18', tags: ['Streaming', 'CDN', 'ML'], accent: '#ef4444' },
+  { emoji: '🚗', name: 'Uber', desc: 'Real-time matching, maps API, location tracking', nodes: '26', tags: ['Real-time', 'Maps'], accent: '#f59e0b' },
+  { emoji: '🏗️', name: 'ArchFlow itself', desc: 'The architecture of this very tool', nodes: '23', tags: ['Next.js', 'Supabase'], accent: '#10b981' },
+  { emoji: '🧠', name: 'RAG Application', desc: 'Vector DB, embeddings, LLM, retrieval pipeline', nodes: '10', tags: ['AI', 'Vector', 'RAG'], accent: '#8b5cf6' },
 ];
 
 export function Templates() {
   const router = useRouter();
 
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    gsap.fromTo('.templates-headline',
+      { opacity: 0, y: 50, filter: 'blur(8px)' },
+      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out',
+        scrollTrigger: { trigger: '.templates-headline', start: 'top 85%', toggleActions: 'play none none none' } }
+    );
+
+    gsap.fromTo('.template-card',
+      { opacity: 0, y: 40, filter: 'blur(4px)' },
+      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7, stagger: 0.1, ease: 'power2.out',
+        scrollTrigger: { trigger: '.templates-grid', start: 'top 80%', toggleActions: 'play none none none' } }
+    );
+
+    document.querySelectorAll<HTMLElement>('.template-card').forEach(card => {
+      card.addEventListener('mouseenter', () => {
+        gsap.to(card, { y: -4, duration: 0.3, ease: 'power2.out' });
+      });
+      card.addEventListener('mouseleave', () => {
+        gsap.to(card, { y: 0, duration: 0.4, ease: 'power2.inOut' });
+      });
+    });
+
+    return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };
+  }, []);
+
   return (
-    <section className="py-20 px-6 sm:px-12 lg:px-24 max-w-7xl mx-auto" id="templates">
-      <header className="text-center mb-16">
-        <h2 className="text-[2.5rem] font-bold text-slate-900 leading-tight mb-4">
-          Start from real-world architectures
-        </h2>
-        <p className="text-slate-600 text-lg max-w-[600px] mx-auto">
-          Learn system design by exploring how the world&apos;s biggest products are built.
-        </p>
-      </header>
+    <section className="py-28 px-6 sm:px-12 lg:px-24" style={{ backgroundColor: '#080c14' }} id="templates">
+      {/* Section divider */}
+      <div className="max-w-6xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {templates.map((t) => (
-          <article
-            key={t.name}
-            className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:border-indigo-500 hover:-translate-y-0.5 transition-all duration-200"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl" role="img">{t.emoji}</span>
-                  <h3 className="font-bold text-slate-900">{t.name}</h3>
-                </div>
-                <span className="bg-slate-100 text-slate-600 text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-wider">{t.nodes} Nodes</span>
-              </div>
-              <p className="text-slate-600 text-sm mb-4 leading-relaxed">{t.desc}</p>
-              <div className="flex flex-wrap gap-2 mb-6">
-                {t.tags.map(([label, cls]) => (
-                  <span key={label} className={`px-2.5 py-0.5 text-xs font-medium rounded-full ${cls}`}>{label}</span>
-                ))}
-              </div>
-            </div>
-            <button
+      <div className="max-w-6xl mx-auto">
+        <header className="templates-headline text-center mb-16 opacity-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>Templates</p>
+          <h2 className="text-4xl font-bold text-white tracking-tight mb-4">
+            Start from real-world architectures
+          </h2>
+          <p className="text-lg max-w-xl mx-auto" style={{ color: '#64748b' }}>
+            Learn system design by exploring how the world&apos;s biggest products are built.
+          </p>
+        </header>
+
+        <div className="templates-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {templates.map((t) => (
+            <article
+              key={t.name}
+              className="template-card will-change-transform p-5 rounded-2xl flex flex-col justify-between opacity-0 cursor-pointer"
+              style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
               onClick={() => router.push('/editor')}
-              className="text-indigo-600 font-semibold text-sm flex items-center gap-1 group hover:underline"
             >
-              Load template
-              <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-              </svg>
-            </button>
-          </article>
-        ))}
-      </div>
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{t.emoji}</span>
+                    <h3 className="font-semibold text-white">{t.name}</h3>
+                  </div>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-wider" style={{ color: '#475569', backgroundColor: 'rgba(255,255,255,0.04)' }}>{t.nodes} Nodes</span>
+                </div>
+                <p className="text-sm mb-4 leading-relaxed" style={{ color: '#64748b' }}>{t.desc}</p>
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {t.tags.map((tag) => (
+                    <span key={tag} className="px-2.5 py-0.5 text-xs font-medium rounded-full" style={{ color: t.accent, backgroundColor: t.accent + '15', border: `1px solid ${t.accent}25` }}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+              <button className="text-sm flex items-center gap-1 font-semibold transition-colors" style={{ color: '#6366f1' }}>
+                Load template
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                </svg>
+              </button>
+            </article>
+          ))}
+        </div>
 
-      <div className="mt-16 text-center">
-        <button
-          onClick={() => router.push('/editor')}
-          className="inline-flex items-center px-6 py-3 border border-slate-300 rounded-lg text-slate-700 font-semibold hover:bg-white hover:border-slate-400 transition-colors shadow-sm"
-        >
-          Browse all templates →
-        </button>
+        <div className="mt-14 text-center">
+          <button
+            onClick={() => router.push('/editor')}
+            className="inline-flex items-center px-6 py-3 rounded-xl font-semibold text-sm transition-all"
+            style={{ color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+          >
+            Browse all templates →
+          </button>
+        </div>
       </div>
     </section>
   );

@@ -1,58 +1,87 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
+
+const NAV_LINKS = ['Features', 'Templates', 'Use Cases'];
 
 export function Navbar() {
   const router = useRouter();
-  const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handler);
-    return () => window.removeEventListener('scroll', handler);
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    gsap.fromTo(navRef.current,
+      { y: -80, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out', delay: 0.1 }
+    );
+
+    ScrollTrigger.create({
+      start: 'top -60',
+      onEnter: () => gsap.to(navRef.current, {
+        backgroundColor: 'rgba(8,12,20,0.92)',
+        backdropFilter: 'blur(20px)',
+        borderBottomColor: 'rgba(255,255,255,0.06)',
+        duration: 0.3,
+      }),
+      onLeaveBack: () => gsap.to(navRef.current, {
+        backgroundColor: 'transparent',
+        borderBottomColor: 'transparent',
+        duration: 0.3,
+      }),
+    });
+
+    return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };
   }, []);
 
   return (
     <header
-      className="sticky top-0 z-50 w-full bg-white border-b border-slate-200 transition-all duration-300"
-      style={scrolled ? { backgroundColor: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' } : {}}
+      ref={navRef}
+      className="navbar fixed top-0 z-50 w-full border-b border-transparent transition-colors duration-300"
+      style={{ backgroundColor: 'transparent' }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <a href="/" className="flex items-center space-x-2 group">
-            <svg className="h-8 w-8 text-indigo-600 transition-transform group-hover:scale-105" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+          <a href="/" className="flex items-center gap-2 group">
+            <svg className="h-7 w-7 text-indigo-400 transition-transform group-hover:scale-105" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
             </svg>
-            <span className="text-xl font-semibold text-slate-900 tracking-tight">Archflow</span>
+            <span className="text-lg font-semibold text-white tracking-tight">Archflow</span>
           </a>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex space-x-8">
-            {['Features', 'Templates', 'Use Cases'].map((item) => (
+          <nav className="hidden md:flex gap-8">
+            {NAV_LINKS.map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase().replace(' ', '-')}`}
-                className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors"
+                className="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors"
               >
                 {item}
+                <span className="nav-underline absolute -bottom-0.5 left-0 right-0 h-px bg-indigo-400 scale-x-0 origin-left transition-transform duration-300" />
               </a>
             ))}
           </nav>
 
           {/* Desktop actions */}
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden md:flex items-center gap-3">
             <button
               onClick={() => router.push('/editor')}
-              className="px-4 py-2 text-sm font-medium text-slate-700 border border-slate-200 rounded-md hover:bg-slate-50 transition-all"
+              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white border border-white/10 hover:border-white/20 rounded-lg transition-all"
             >
               Sign in
             </button>
             <button
               onClick={() => router.push('/editor')}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 shadow-sm transition-all"
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-lg shadow-indigo-500/20 transition-all"
             >
               Start designing
             </button>
@@ -60,15 +89,13 @@ export function Navbar() {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden text-slate-600 hover:text-slate-900 p-2"
+            className="md:hidden text-slate-400 hover:text-white p-2"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                d={mobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
-              />
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                d={mobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
             </svg>
           </button>
         </div>
@@ -76,21 +103,21 @@ export function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-slate-100 bg-white">
+        <div className="md:hidden border-t border-white/06" style={{ backgroundColor: '#080c14' }}>
           <div className="px-4 pt-2 pb-6 space-y-1">
-            {['Features', 'Templates', 'Use Cases'].map((item) => (
+            {NAV_LINKS.map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase().replace(' ', '-')}`}
-                className="block px-3 py-3 text-base font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-md"
+                className="block px-3 py-3 text-base font-medium text-slate-400 hover:text-white rounded-lg"
                 onClick={() => setMobileOpen(false)}
               >
                 {item}
               </a>
             ))}
-            <div className="pt-4 flex flex-col space-y-3">
-              <button onClick={() => router.push('/editor')} className="w-full px-4 py-2.5 text-center font-medium text-slate-700 border border-slate-200 rounded-md">Sign in</button>
-              <button onClick={() => router.push('/editor')} className="w-full px-4 py-2.5 text-center font-medium text-white bg-indigo-600 rounded-md">Start designing</button>
+            <div className="pt-4 flex flex-col gap-3">
+              <button onClick={() => router.push('/editor')} className="w-full px-4 py-2.5 text-center font-medium text-slate-300 border border-white/10 rounded-lg">Sign in</button>
+              <button onClick={() => router.push('/editor')} className="w-full px-4 py-2.5 text-center font-medium text-white bg-indigo-600 rounded-lg">Start designing</button>
             </div>
           </div>
         </div>

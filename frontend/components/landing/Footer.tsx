@@ -1,6 +1,6 @@
 export function Footer() {
   return (
-    <footer className="bg-slate-900 text-slate-400">
+    <footer style={{ backgroundColor: '#080c14', borderTop: '1px solid rgba(255,255,255,0.06)', color: '#475569' }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}
@@ -28,7 +28,7 @@ export function Footer() {
 
           {/* Product */}
           <div>
-            <h4 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-4">Product</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#334155' }}>Product</h4>
             <ul className="space-y-3 text-sm">
               {['Canvas', 'Templates', 'Components', 'Export'].map((item) => (
                 <li key={item}><a href="/editor" className="hover:text-white transition-colors">{item}</a></li>
@@ -38,11 +38,11 @@ export function Footer() {
 
           {/* Resources */}
           <div>
-            <h4 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-4">Resources</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#334155' }}>Resources</h4>
             <ul className="space-y-3 text-sm">
               {['Documentation', 'System Design Guide', 'Blog', 'Changelog'].map((item) => (
                 <li key={item}>
-                  <span className="text-slate-600 cursor-default">{item} <span className="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">soon</span></span>
+                  <span style={{ color: '#334155' }}>{item} <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: '#334155' }}>soon</span></span>
                 </li>
               ))}
             </ul>
@@ -50,7 +50,7 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-4">Legal</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#334155' }}>Legal</h4>
             <ul className="space-y-3 text-sm">
               <li><a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a></li>
               <li><a href="/terms" className="hover:text-white transition-colors">Terms of Service</a></li>
@@ -60,9 +60,9 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-slate-800">
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
-          <p className="text-sm text-slate-500 text-center">
+          <p className="text-sm text-center" style={{ color: '#334155' }}>
             © 2026 ArchFlow. Built for engineers who think in systems.
           </p>
         </div>

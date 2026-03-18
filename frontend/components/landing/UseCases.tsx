@@ -1,65 +1,72 @@
+'use client';
+
+import { useEffect } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
+
 const cases = [
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
-      </svg>
-    ),
-    iconBg: 'bg-indigo-100 text-indigo-600',
-    title: 'System Design Interviews',
-    desc: 'Practice drawing architectures for FAANG interviews. Use real templates as study guides.',
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    ),
-    iconBg: 'bg-blue-100 text-blue-600',
-    title: 'Engineering Documentation',
-    desc: 'Replace Confluence diagrams with interactive, shareable architecture docs.',
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-      </svg>
-    ),
-    iconBg: 'bg-purple-100 text-purple-600',
-    title: 'Technical Presentations',
-    desc: 'Export clean diagrams for pitch decks, RFCs, and engineering all-hands.',
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-    iconBg: 'bg-green-100 text-green-600',
-    title: 'Team Onboarding',
-    desc: 'Help new engineers understand your system architecture from day one.',
-  },
+  { icon: '🎓', color: '#6366f1', title: 'System Design Interviews', desc: 'Practice drawing architectures for FAANG interviews. Use real templates as study guides.' },
+  { icon: '📄', color: '#3b82f6', title: 'Engineering Documentation', desc: 'Replace Confluence diagrams with interactive, shareable architecture docs.' },
+  { icon: '📊', color: '#8b5cf6', title: 'Technical Presentations', desc: 'Export clean diagrams for pitch decks, RFCs, and engineering all-hands.' },
+  { icon: '👥', color: '#10b981', title: 'Team Onboarding', desc: 'Help new engineers understand your system architecture from day one.' },
 ];
 
 export function UseCases() {
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    gsap.fromTo('.usecases-headline',
+      { opacity: 0, y: 50, filter: 'blur(8px)' },
+      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out',
+        scrollTrigger: { trigger: '.usecases-headline', start: 'top 85%', toggleActions: 'play none none none' } }
+    );
+
+    gsap.fromTo('.usecase-card',
+      { opacity: 0, y: 40, filter: 'blur(4px)' },
+      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7, stagger: 0.1, ease: 'power2.out',
+        scrollTrigger: { trigger: '.usecases-grid', start: 'top 80%', toggleActions: 'play none none none' } }
+    );
+
+    document.querySelectorAll<HTMLElement>('.usecase-card').forEach(card => {
+      const icon = card.querySelector<HTMLElement>('.card-icon');
+      card.addEventListener('mouseenter', () => {
+        gsap.to(card, { y: -4, duration: 0.3, ease: 'power2.out', boxShadow: '0 20px 40px rgba(99,102,241,0.1)' });
+        if (icon) gsap.to(icon, { scale: 1.15, rotate: 5, duration: 0.3, ease: 'back.out(2)' });
+      });
+      card.addEventListener('mouseleave', () => {
+        gsap.to(card, { y: 0, duration: 0.4, ease: 'power2.inOut', boxShadow: 'none' });
+        if (icon) gsap.to(icon, { scale: 1, rotate: 0, duration: 0.3, ease: 'power2.inOut' });
+      });
+    });
+
+    return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };
+  }, []);
+
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-50" id="use-cases">
+    <section className="py-28 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#080c14' }} id="use-cases">
+      {/* Section divider */}
+      <div className="max-w-5xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
+
       <div className="max-w-5xl mx-auto">
-        <header className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-slate-900 tracking-tight">
+        <header className="usecases-headline text-center mb-16 opacity-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>Use Cases</p>
+          <h2 className="text-4xl font-bold text-white tracking-tight">
             Built for every kind of systems thinker
           </h2>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="usecases-grid grid grid-cols-1 md:grid-cols-2 gap-5">
           {cases.map((c) => (
-            <article key={c.title} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col items-start gap-4">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${c.iconBg}`}>
+            <article key={c.title} className="usecase-card will-change-transform p-6 rounded-2xl flex flex-col gap-4 opacity-0" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="card-icon will-change-transform w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: c.color + '15', border: `1px solid ${c.color}25` }}>
                 {c.icon}
               </div>
-              <div className="space-y-2">
-                <h3 className="font-bold text-lg text-slate-900">{c.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{c.desc}</p>
+              <div className="space-y-1.5">
+                <h3 className="font-semibold text-white">{c.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#64748b' }}>{c.desc}</p>
               </div>
             </article>
           ))}

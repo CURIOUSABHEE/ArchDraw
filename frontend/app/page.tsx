@@ -29,7 +29,7 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="min-h-screen bg-white font-sans" style={{ scrollBehavior: 'smooth' }}>
+      <div className="min-h-screen font-sans" style={{ backgroundColor: '#080c14', color: '#f1f5f9' }}>
         <Navbar />
         <main>
           <Hero />
