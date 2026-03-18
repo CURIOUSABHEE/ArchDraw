@@ -11,11 +11,16 @@ import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
+import { OnboardingOverlay } from '@/components/onboarding/OnboardingOverlay';
+import { useOnboarding } from '@/components/onboarding/useOnboarding';
 
 export default function EditorPage() {
   const { darkMode, selectedNodeId, selectedEdgeId, nodes } = useDiagramStore();
   const { user } = useAuthStore();
   const initRef = useRef(false);
+
+  // Initialize onboarding (auto-open + drag detection)
+  useOnboarding();
 
   // Sync dark mode class on mount
   useEffect(() => {
@@ -128,6 +133,7 @@ export default function EditorPage() {
         </div>
         <CommandPalette />
       </div>
+      <OnboardingOverlay />
     </ErrorBoundary>
   );
 }

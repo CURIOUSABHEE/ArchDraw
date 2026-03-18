@@ -211,6 +211,7 @@ function SidebarSection({ title, items, sectionKey, collapsed, onToggle, onAdd }
                         <button
                           key={comp.id}
                           draggable
+                          data-onboarding="component-item"
                           onDragStart={(e) => {
                             e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
                             e.dataTransfer.effectAllowed = 'move';
@@ -288,15 +289,16 @@ export function ComponentSidebar() {
           {filtered.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-8">No components found</p>
           ) : (
-            filtered.map((comp) => {
+            filtered.map((comp, i) => {
               const FallbackIcon: LucideIcon = (comp.icon ? ICON_MAP[comp.icon] : undefined) ?? Server;
               const displayColor = comp.technology
                 ? (iconRegistry[comp.technology]?.color ?? comp.color)
                 : comp.color;
               return (
                 <button
-                  key={comp.id}
+                  key={`search-${i}-${comp.id}`}
                   draggable
+                  data-onboarding="component-item"
                   onDragStart={(e) => {
                     e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
                     e.dataTransfer.effectAllowed = 'move';
