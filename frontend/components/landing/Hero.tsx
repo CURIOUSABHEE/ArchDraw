@@ -66,14 +66,14 @@ const HERO_NODES = [
 ];
 
 const HERO_EDGES = [
-  { id: 'he1', source: 'h_client', target: 'h_apigw',  type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he2', source: 'h_apigw',  target: 'h_auth',   type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he3', source: 'h_apigw',  target: 'h_chat',   type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he4', source: 'h_chat',   target: 'h_llm',    type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he5', source: 'h_chat',   target: 'h_rag',    type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he6', source: 'h_rag',    target: 'h_llm',    type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he7', source: 'h_rag',    target: 'h_vector', type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
-  { id: 'he8', source: 'h_chat',   target: 'h_nosql',  type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he1', source: 'h_client', target: 'h_apigw',  type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he2', source: 'h_apigw',  target: 'h_auth',   type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he3', source: 'h_apigw',  target: 'h_chat',   type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he4', source: 'h_chat',   target: 'h_llm',    type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he5', source: 'h_chat',   target: 'h_rag',    type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he6', source: 'h_rag',    target: 'h_llm',    type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he7', source: 'h_rag',    target: 'h_vector', type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
+  { id: 'he8', source: 'h_chat',   target: 'h_nosql',  type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } },
 ];
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
@@ -182,8 +182,8 @@ export function Hero() {
                   maxZoom={1.5}
                   snapToGrid={true}
                   snapGrid={[20, 20]}
-                  connectionLineType={ConnectionLineType.SmoothStep}
-                  defaultEdgeOptions={{ type: 'smoothstep', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } }}
+                  connectionLineType={ConnectionLineType.Bezier}
+                  defaultEdgeOptions={{ type: 'default', animated: true, style: { strokeWidth: 1.5, stroke: '#94a3b8' } }}
                   proOptions={{ hideAttribution: true }}
                   style={{ background: 'transparent' }}
                 >
