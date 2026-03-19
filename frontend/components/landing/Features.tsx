@@ -2,11 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Boxes, Zap, LayoutTemplate, Link2, Download, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-
-if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
 const features: { Icon: LucideIcon; color: string; title: string; desc: string }[] = [
   { Icon: Boxes,          color: '#6366f1', title: '150+ Components',    desc: 'Pre-built nodes for every layer — auth, databases, queues, AI services, cloud infra and more.' },
@@ -20,25 +17,31 @@ const features: { Icon: LucideIcon; color: string; title: string; desc: string }
 export function Features() {
   const sectionRef = useRef<HTMLElement>(null);
 
+  // CSS IntersectionObserver reveal — no GSAP opacity
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    gsap.fromTo('.features-headline',
-      { opacity: 0.01, y: 50 },
-      { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.features-headline', start: 'top 90%', toggleActions: 'play none none none' } }
+    const section = sectionRef.current;
+    if (!section) return;
+    const els = section.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
     );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
-    gsap.fromTo('.feature-card',
-      { opacity: 0.01, y: 50, scale: 0.95 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.6,
-        stagger: { amount: 0.5, grid: [2, 3], from: 'start' },
-        ease: 'power2.out',
-        scrollTrigger: { trigger: '.features-grid', start: 'top 90%', toggleActions: 'play none none none' } }
-    );
-
-    document.querySelectorAll<HTMLElement>('.feature-card').forEach(card => {
+  // GSAP hover-only (no opacity, no ScrollTrigger)
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    section.querySelectorAll<HTMLElement>('.feature-card').forEach((card) => {
       const icon = card.querySelector<HTMLElement>('.card-icon');
       card.addEventListener('mouseenter', () => {
         gsap.to(card, { y: -4, duration: 0.3, ease: 'power2.out', boxShadow: '0 20px 40px rgba(99,102,241,0.12)' });
@@ -49,28 +52,26 @@ export function Features() {
         if (icon) gsap.to(icon, { scale: 1, rotate: 0, duration: 0.3, ease: 'power2.inOut' });
       });
     });
-
-    return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#080c14' }} id="features">
-      <div className="section-divider max-w-5xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
+    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#080c14', opacity: 1 }} id="features">
+      <div className="max-w-5xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-5xl mx-auto">
-        <header className="features-headline text-center mb-16">
+        <header className="reveal text-center mb-16" style={{ opacity: 1 }}>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>Features</p>
           <h2 className="text-4xl font-bold tracking-tight text-white">
             Everything you need to diagram faster
           </h2>
         </header>
 
-        <div className="features-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {features.map((f) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {features.map((f, i) => (
             <article
               key={f.title}
-              className="feature-card will-change-transform p-6 rounded-2xl flex flex-col gap-4 cursor-default"
-              style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+              className={`feature-card reveal reveal-delay-${Math.min(i + 1, 5)} will-change-transform p-6 rounded-2xl flex flex-col gap-4 cursor-default`}
+              style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', opacity: 1 }}
             >
               <div
                 className="card-icon will-change-transform w-11 h-11 rounded-xl flex items-center justify-center"

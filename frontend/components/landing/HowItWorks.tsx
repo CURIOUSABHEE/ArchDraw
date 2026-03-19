@@ -229,14 +229,12 @@ export function HowItWorks() {
   const stickyRef   = useRef<HTMLDivElement>(null); // sticky inner panel
   const prevStep    = useRef(0);
 
-  // Animate mockup whenever step changes
+  // Subtle mockup transition on step change — translate only, no opacity
   const animateMockup = useCallback(() => {
     if (!mockupRef.current) return;
-    // Ensure visible first, then animate from slightly offset
-    gsap.set(mockupRef.current, { opacity: 1, y: 0, scale: 1 });
     gsap.fromTo(mockupRef.current,
-      { opacity: 0.3, y: 8, scale: 0.99 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
+      { y: 8, scale: 0.99 },
+      { y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
     );
   }, []);
 
@@ -244,24 +242,11 @@ export function HowItWorks() {
     animateMockup();
   }, [activeStep, animateMockup]);
 
-  // Scroll-driven step progression
+  // Scroll-driven step progression — NO opacity manipulation
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!scrollRef.current || !stickyRef.current) return;
 
-    // Always ensure the sticky panel is visible — GSAP animation is purely additive
-    gsap.set(stickyRef.current, { opacity: 1, y: 0 });
-
-    if (!prefersReducedMotion) {
-      // Subtle entrance — animate FROM near-visible so fallback is always visible
-      gsap.fromTo(stickyRef.current,
-        { opacity: 0.2, y: 20 },
-        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out',
-          scrollTrigger: { trigger: scrollRef.current, start: 'top 95%', toggleActions: 'play none none none' } }
-      );
-    }
-
-    // Pin the sticky panel and drive step from scroll progress
+    // Scroll-driven step change only
     const st = ScrollTrigger.create({
       trigger: scrollRef.current,
       start: 'top top',

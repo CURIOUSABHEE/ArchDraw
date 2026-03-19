@@ -19,9 +19,10 @@ export function Navbar() {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
+    // Subtle slide-in only — no opacity manipulation
     gsap.fromTo(navRef.current,
-      { y: -20, opacity: 0.01 },
-      { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out', delay: 0.1 }
+      { y: -20 },
+      { y: 0, duration: 0.5, ease: 'power2.out', delay: 0.1 }
     );
 
     ScrollTrigger.create({

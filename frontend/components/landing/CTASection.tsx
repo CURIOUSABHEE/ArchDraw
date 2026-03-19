@@ -3,37 +3,34 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
 export function CTASection() {
   const router = useRouter();
+  const sectionRef = useRef<HTMLElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
+  // CSS IntersectionObserver reveal
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    gsap.fromTo('.cta-headline',
-      { opacity: 0.01, y: 80, scale: 0.9 },
-      { opacity: 1, y: 0, scale: 1, duration: 1, ease: 'power4.out',
-        scrollTrigger: { trigger: '.cta-headline', start: 'top 90%', toggleActions: 'play none none none' } }
+    const section = sectionRef.current;
+    if (!section) return;
+    const els = section.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
     );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
-    gsap.fromTo('.cta-sub',
-      { opacity: 0.01, y: 30 },
-      { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out',
-        scrollTrigger: { trigger: '.cta-sub', start: 'top 90%', toggleActions: 'play none none none' } }
-    );
-
-    gsap.fromTo('.cta-btn',
-      { opacity: 0.01, scale: 0.9 },
-      { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.4)',
-        scrollTrigger: { trigger: '.cta-btn', start: 'top 95%', toggleActions: 'play none none none' } }
-    );
-
-    // Magnetic button
+  // GSAP magnetic button only — no opacity
+  useEffect(() => {
     const btn = btnRef.current;
     if (!btn) return;
     const handleMouseMove = (e: MouseEvent) => {
@@ -47,17 +44,14 @@ export function CTASection() {
     };
     btn.addEventListener('mousemove', handleMouseMove);
     btn.addEventListener('mouseleave', handleMouseLeave);
-
     return () => {
-      ScrollTrigger.getAll().forEach(t => t.kill());
       btn.removeEventListener('mousemove', handleMouseMove);
       btn.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, []);
 
   return (
-    <section className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden" style={{ backgroundColor: '#080c14' }}>
-      {/* Section divider */}
+    <section ref={sectionRef} className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden" style={{ backgroundColor: '#080c14', opacity: 1 }}>
       <div className="max-w-3xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       {/* Glow */}
@@ -66,7 +60,7 @@ export function CTASection() {
       </div>
 
       <div className="max-w-3xl mx-auto text-center relative">
-        <h2 className="cta-headline text-5xl sm:text-6xl font-extrabold tracking-tight mb-6">
+        <h2 className="reveal text-5xl sm:text-6xl font-extrabold tracking-tight mb-6" style={{ opacity: 1 }}>
           <span className="bg-gradient-to-br from-white via-white/90 to-white/40 bg-clip-text text-transparent">
             Start building your
           </span>
@@ -75,14 +69,14 @@ export function CTASection() {
             architecture today.
           </span>
         </h2>
-        <p className="cta-sub text-xl mb-10" style={{ color: '#64748b' }}>
+        <p className="reveal reveal-delay-1 text-xl mb-10" style={{ color: '#64748b', opacity: 1 }}>
           No account needed. No credit card. Just your ideas.
         </p>
         <button
           ref={btnRef}
           onClick={() => router.push('/editor')}
-          className="cta-btn will-change-transform inline-flex items-center px-10 py-4 text-white font-bold text-lg rounded-2xl transition-colors"
-          style={{ backgroundColor: '#6366f1', boxShadow: '0 0 40px rgba(99,102,241,0.4)' }}
+          className="reveal reveal-delay-2 will-change-transform inline-flex items-center px-10 py-4 text-white font-bold text-lg rounded-2xl transition-colors"
+          style={{ backgroundColor: '#6366f1', boxShadow: '0 0 40px rgba(99,102,241,0.4)', opacity: 1 }}
           onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#4f46e5')}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#6366f1')}
         >

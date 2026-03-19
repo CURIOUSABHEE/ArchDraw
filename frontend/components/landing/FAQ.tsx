@@ -1,10 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
+import { useEffect, useRef, useState } from 'react';
 
 const faqs = [
   { q: 'Is ArchFlow really free?', a: 'Yes. ArchFlow is completely free during beta. You can create unlimited diagrams, use all templates, and export without any limits.' },
@@ -17,40 +13,44 @@ const faqs = [
 
 export function FAQ() {
   const [open, setOpen] = useState<number | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    gsap.fromTo('.faq-headline',
-      { opacity: 0.01, y: 50, filter: 'blur(8px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.faq-headline', start: 'top 90%', toggleActions: 'play none none none' } }
+    const section = sectionRef.current;
+    if (!section) return;
+    const els = section.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
     );
-
-    gsap.fromTo('.faq-item',
-      { opacity: 0.01, y: 30 },
-      { opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: 'power2.out',
-        scrollTrigger: { trigger: '.faq-list', start: 'top 90%', toggleActions: 'play none none none' } }
-    );
-
-    return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
   return (
-    <section className="py-28 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#0d1117' }} id="faq">
-      {/* Section divider */}
+    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#0d1117', opacity: 1 }} id="faq">
       <div className="max-w-2xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-2xl mx-auto">
-        <header className="faq-headline text-center mb-16">
+        <header className="reveal text-center mb-16" style={{ opacity: 1 }}>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>FAQ</p>
           <h2 className="text-4xl font-bold text-white tracking-tight">Frequently asked questions</h2>
         </header>
 
-        <div className="faq-list space-y-3">
+        <div className="space-y-3">
           {faqs.map((faq, i) => (
-            <div key={i} className="faq-item rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div
+              key={i}
+              className={`reveal reveal-delay-${Math.min(i + 1, 5)} rounded-2xl overflow-hidden`}
+              style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', opacity: 1 }}
+            >
               <button
                 className="w-full flex items-center justify-between px-6 py-4 text-left"
                 onClick={() => setOpen(open === i ? null : i)}

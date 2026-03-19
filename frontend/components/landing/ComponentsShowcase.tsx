@@ -1,10 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
+import { useEffect, useRef } from 'react';
 
 const categories = [
   { label: 'Client & Entry', chips: ['Client', 'DNS', 'CDN', 'API Gateway', 'Load Balancer', 'Reverse Proxy'], color: '#6366f1' },
@@ -16,41 +12,46 @@ const categories = [
 ];
 
 export function ComponentsShowcase() {
+  const sectionRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    gsap.fromTo('.components-headline',
-      { opacity: 0.01, y: 50, filter: 'blur(8px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.components-headline', start: 'top 90%', toggleActions: 'play none none none' } }
+    const section = sectionRef.current;
+    if (!section) return;
+    const els = section.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
     );
-
-    gsap.fromTo('.component-row',
-      { opacity: 0.01, x: -30 },
-      { opacity: 1, x: 0, duration: 0.6, stagger: 0.08, ease: 'power2.out',
-        scrollTrigger: { trigger: '.components-list', start: 'top 90%', toggleActions: 'play none none none' } }
-    );
-
-    return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
   return (
-    <section className="py-28 px-6 lg:px-8" style={{ backgroundColor: '#0d1117' }} id="components">
-      {/* Section divider */}
+    <section ref={sectionRef} className="py-28 px-6 lg:px-8" style={{ backgroundColor: '#0d1117', opacity: 1 }} id="components">
       <div className="max-w-5xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-5xl mx-auto">
-        <header className="components-headline text-center mb-16">
+        <header className="reveal text-center mb-16" style={{ opacity: 1 }}>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>Components</p>
           <h2 className="text-4xl font-bold text-white tracking-tight">
             150+ components. Every layer covered.
           </h2>
         </header>
 
-        <div className="components-list space-y-5">
-          {categories.map((cat) => (
-            <div key={cat.label} className="component-row flex items-start gap-6">
+        <div className="space-y-5">
+          {categories.map((cat, i) => (
+            <div
+              key={cat.label}
+              className={`reveal reveal-delay-${Math.min(i + 1, 5)} flex items-start gap-6`}
+              style={{ opacity: 1 }}
+            >
               <span className="text-xs font-semibold uppercase tracking-wider w-28 shrink-0 pt-2" style={{ color: '#334155' }}>{cat.label}</span>
               <div className="flex flex-wrap gap-2">
                 {cat.chips.map((chip) => (
