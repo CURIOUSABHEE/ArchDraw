@@ -1,12 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { GraduationCap, FileText, BarChart2, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-
-if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
 const cases: { Icon: LucideIcon; color: string; title: string; desc: string }[] = [
   { Icon: GraduationCap, color: '#6366f1', title: 'System Design Interviews',  desc: 'Practice drawing architectures for FAANG interviews. Use real templates as study guides.' },
@@ -16,23 +13,33 @@ const cases: { Icon: LucideIcon; color: string; title: string; desc: string }[] 
 ];
 
 export function UseCases() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // CSS IntersectionObserver reveal
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    gsap.fromTo('.usecases-headline',
-      { opacity: 0, y: 50 },
-      { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.usecases-headline', start: 'top 85%', toggleActions: 'play none none none' } }
+    const section = sectionRef.current;
+    if (!section) return;
+    const els = section.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
     );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
-    gsap.fromTo('.usecase-card',
-      { opacity: 0, y: 40 },
-      { opacity: 1, y: 0, duration: 0.7, stagger: 0.1, ease: 'power2.out',
-        scrollTrigger: { trigger: '.usecases-grid', start: 'top 80%', toggleActions: 'play none none none' } }
-    );
-
-    document.querySelectorAll<HTMLElement>('.usecase-card').forEach(card => {
+  // GSAP hover-only
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    section.querySelectorAll<HTMLElement>('.usecase-card').forEach((card) => {
       const icon = card.querySelector<HTMLElement>('.card-icon');
       card.addEventListener('mouseenter', () => {
         gsap.to(card, { y: -4, duration: 0.3, ease: 'power2.out', boxShadow: '0 20px 40px rgba(99,102,241,0.1)' });
@@ -43,25 +50,27 @@ export function UseCases() {
         if (icon) gsap.to(icon, { scale: 1, rotate: 0, duration: 0.3, ease: 'power2.inOut' });
       });
     });
-
-    return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };
   }, []);
 
   return (
-    <section className="py-28 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#080c14' }} id="use-cases">
+    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#080c14', opacity: 1 }} id="use-cases">
       <div className="max-w-5xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-5xl mx-auto">
-        <header className="usecases-headline text-center mb-16 opacity-0">
+        <header className="reveal text-center mb-16" style={{ opacity: 1 }}>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>Use Cases</p>
           <h2 className="text-4xl font-bold text-white tracking-tight">
             Built for every kind of systems thinker
           </h2>
         </header>
 
-        <div className="usecases-grid grid grid-cols-1 md:grid-cols-2 gap-5">
-          {cases.map((c) => (
-            <article key={c.title} className="usecase-card will-change-transform p-6 rounded-2xl flex flex-col gap-4 opacity-0" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {cases.map((c, i) => (
+            <article
+              key={c.title}
+              className={`usecase-card reveal reveal-delay-${i + 1} will-change-transform p-6 rounded-2xl flex flex-col gap-4`}
+              style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', opacity: 1 }}
+            >
               <div
                 className="card-icon will-change-transform w-11 h-11 rounded-xl flex items-center justify-center"
                 style={{ backgroundColor: c.color + '15', border: `1px solid ${c.color}25` }}

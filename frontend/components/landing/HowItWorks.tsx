@@ -229,12 +229,12 @@ export function HowItWorks() {
   const stickyRef   = useRef<HTMLDivElement>(null); // sticky inner panel
   const prevStep    = useRef(0);
 
-  // Animate mockup whenever step changes
+  // Subtle mockup transition on step change — translate only, no opacity
   const animateMockup = useCallback(() => {
     if (!mockupRef.current) return;
     gsap.fromTo(mockupRef.current,
-      { opacity: 0, y: 14, scale: 0.98 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+      { y: 8, scale: 0.99 },
+      { y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
     );
   }, []);
 
@@ -242,27 +242,16 @@ export function HowItWorks() {
     animateMockup();
   }, [activeStep, animateMockup]);
 
-  // Scroll-driven step progression
+  // Scroll-driven step progression — NO opacity manipulation
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!scrollRef.current) return;
+    if (!scrollRef.current || !stickyRef.current) return;
 
-    // Entrance fade for the sticky panel
-    gsap.fromTo(stickyRef.current,
-      { opacity: 0, y: 40 },
-      { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
-        scrollTrigger: { trigger: scrollRef.current, start: 'top 80%', toggleActions: 'play none none none' } }
-    );
-
-    if (prefersReducedMotion) return;
-
-    // Pin the sticky panel and drive step from scroll progress
+    // Scroll-driven step change only
     const st = ScrollTrigger.create({
       trigger: scrollRef.current,
       start: 'top top',
       end: 'bottom bottom',
       onUpdate(self) {
-        // progress 0–1 across the full scroll container → map to step 0/1/2
         const step = Math.min(2, Math.floor(self.progress * 3));
         if (step !== prevStep.current) {
           prevStep.current = step;
@@ -305,7 +294,6 @@ export function HowItWorks() {
       <div ref={scrollRef} style={{ height: '300vh', position: 'relative' }}>
         <div
           ref={stickyRef}
-          className="opacity-0"
           style={{ position: 'sticky', top: 0, height: '100vh', display: 'flex', alignItems: 'center' }}
         >
           <div className="w-full max-w-6xl mx-auto px-6 lg:px-8">

@@ -167,3 +167,41 @@ body {
 .animate-float          { animation: float 4s ease-in-out infinite; will-change: transform; }
 .animate-float-delay-1  { animation-delay: 0.7s; }
 .animate-float-delay-2  { animation-delay: 1.4s; }
+
+/* ── Ghost background node float animations ── */
+@keyframes bgFloat1 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  33%       { transform: translateY(-8px) translateX(3px); }
+  66%       { transform: translateY(-4px) translateX(-2px); }
+}
+@keyframes bgFloat2 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50%       { transform: translateY(-10px) translateX(-4px); }
+}
+@keyframes bgFloat3 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  40%       { transform: translateY(-6px) translateX(5px); }
+  80%       { transform: translateY(-12px) translateX(2px); }
+}
+
+/* ── Scroll reveal — CSS-only, JS-independent fallback ── */
+.reveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+  .reveal-delay-5 { transition-delay: 0.5s; }
+}

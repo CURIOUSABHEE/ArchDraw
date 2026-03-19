@@ -17,12 +17,19 @@ import {
   UserCheck, Flame, Users, ShieldCheck,
   Wallet, ShoppingCart,
   Phone,
-  Sparkles, Wind, Image, Mic, AudioLines,
-  Container, AlertTriangle, TrendingUp,
+  Sparkles, Wind, Image, Mic, AudioLines, AudioWaveform,
+  Container, AlertTriangle, TrendingUp, TrendingDown,
   FileText, BookOpen,
   Flag, Clock,
   Chrome, Github, Twitter, Linkedin,
   Upload, Video,
+  MessageSquareWarning, ListTodo, Wrench, Play,
+  FileCode, FileInput, ScanSearch, ScanText, ImagePlus, Eye,
+  ArrowUpDown, ArrowLeftRight, Expand, Share2,
+  Braces, Hash, DollarSign, ThumbsUp, Lightbulb,
+  FlaskConical, Dumbbell, Table, Minimize, Split, Copy,
+  LayoutList, GraduationCap, Tag, Download, Wand2, Code,
+  Link, Volume2, CheckCheck, Sliders,
 } from 'lucide-react';
 import componentsData from '@/data/components.json';
 import awsData from '@/data/aws-components.json';
@@ -67,12 +74,19 @@ const ICON_MAP: Record<string, LucideIcon> = {
   UserCheck, Flame, Users, ShieldCheck,
   Wallet, ShoppingCart,
   Phone,
-  Sparkles, Wind, Image, Mic, AudioLines,
-  Container, AlertTriangle, TrendingUp,
+  Sparkles, Wind, Image, Mic, AudioLines, AudioWaveform,
+  Container, AlertTriangle, TrendingUp, TrendingDown,
   FileText, BookOpen,
   Flag, Clock,
   Chrome, Github, Twitter, Linkedin,
   Upload, Video,
+  MessageSquareWarning, ListTodo, Wrench, Play,
+  FileCode, FileInput, ScanSearch, ScanText, ImagePlus, Eye,
+  ArrowUpDown, ArrowLeftRight, Expand, Share2,
+  Braces, Hash, DollarSign, ThumbsUp, Lightbulb,
+  FlaskConical, Dumbbell, Table, Minimize, Split, Copy,
+  LayoutList, GraduationCap, Tag, Download, Wand2, Code,
+  Link, Volume2, CheckCheck, Sliders,
 };
 
 interface ComponentEntry {
@@ -249,13 +263,20 @@ function SidebarSection({ title, items, sectionKey, collapsed, onToggle, onAdd }
   );
 }
 
+const AI_CATEGORIES = [
+  'AI Agents', 'LLM Models', 'RAG', 'Vector Databases',
+  'ML Infrastructure', 'ML Serving', 'MLOps', 'LLM Ops',
+  'AI Frameworks', 'AI Data Pipeline', 'Speech & Audio', 'Vision AI',
+];
+
 // Top-level sections config
 const TOP_SECTIONS = [
-  { key: 'general',   title: 'General',               data: componentsData as ComponentEntry[] },
+  { key: 'general',   title: 'General',               data: (componentsData as ComponentEntry[]).filter(c => !AI_CATEGORIES.includes(c.category)) },
   { key: 'aws',       title: 'AWS Services',           data: awsData as ComponentEntry[] },
   { key: 'databases', title: 'Databases & Storage',    data: (dbData as ComponentEntry[]).filter(c => ['Databases','ORMs & Tools','Search'].includes(c.category)) },
   { key: 'devtools',  title: 'Developer Tools',        data: (dbData as ComponentEntry[]).filter(c => !['Databases','ORMs & Tools','Search'].includes(c.category)) },
   { key: 'services',  title: 'Services & Integrations', data: servicesData as ComponentEntry[] },
+  { key: 'ai',        title: 'AI & Machine Learning',  data: (componentsData as ComponentEntry[]).filter(c => AI_CATEGORIES.includes(c.category)) },
 ];
 
 export function ComponentSidebar() {
