@@ -27,10 +27,10 @@ export const instagramTutorial: TutorialData = {
         { type: 'guide', content: 'Add a Client (Web/Mobile) node using ⌘K.' },
       ],
       validation: {
-        requiredNodes: ['client'],
+        requiredNodes: ['client_web', 'client_mobile'],
         requiredEdges: [],
         successMessage: "Client added. Let's build the entry layer.",
-        errorMessage: 'Add a Client (Web/Mobile) node to the canvas first.',
+        errorMessage: 'Add a Web or Mobile client node to the canvas first.',
       },
       openingMessage: "Instagram serves 500M+ daily users across iOS, Android, and web. What challenges does that create?",
       defaultSuggestions: ["What does Instagram's client do?", "How does Instagram handle mobile vs web?", "What comes after the client?"],

@@ -11,7 +11,7 @@ import { Node, Edge } from 'reactflow';
 
 export const chatgptNodes: Node[] = [
   // Col 0 — 1 node, centered at y=400
-  { id: 'cg_client',    type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Client (Web / Mobile)', category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
+  { id: 'cg_client',    type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Web',                   category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
   // Col 1 — 2 nodes, centered at y=400, spacing 180 → y=310, 490
   { id: 'cg_cdn',       type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#6366f1', icon: 'RadioTower'    } },
   { id: 'cg_apigw',     type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#6366f1', icon: 'Webhook'       } },

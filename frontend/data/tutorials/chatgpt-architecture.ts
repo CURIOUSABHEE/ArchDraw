@@ -65,10 +65,10 @@ export const chatgptTutorial: TutorialData = {
         { type: 'guide', content: 'Press ⌘K, search for "Client", and add it to the canvas.' },
       ],
       validation: {
-        requiredNodes: ['client'],
+        requiredNodes: ['client_web', 'client_mobile'],
         requiredEdges: [],
         successMessage: "Great start! The client is on the canvas. Now let's add the next layer.",
-        errorMessage: 'Add a Client (Web/Mobile) node to the canvas first.',
+        errorMessage: 'Add a Web or Mobile client node to the canvas first.',
       },
       openingMessage: "Let's start with the user-facing layer. Why do you think every architecture diagram begins with the client?",
       defaultSuggestions: ["Why start with the client?", "What does the client do in ChatGPT?", "What comes after the client?"],

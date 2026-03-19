@@ -27,10 +27,10 @@ export const openclawTutorial: TutorialData = {
         { type: 'guide', content: 'Add a Client (Web / Mobile) node using ⌘K.' },
       ],
       validation: {
-        requiredNodes: ['client'],
+        requiredNodes: ['client_web', 'client_mobile'],
         requiredEdges: [],
         successMessage: "Client dashboard added. Now let's secure access to it.",
-        errorMessage: 'Add a Client (Web / Mobile) node to the canvas first.',
+        errorMessage: 'Add a Web or Mobile client node to the canvas first.',
       },
       openingMessage: "OpenClaw is an AI-powered analytics platform. What makes analytics dashboards different from regular web apps?",
       defaultSuggestions: ["What is subscription analytics?", "What metrics does OpenClaw track?", "What is MRR and churn?"],

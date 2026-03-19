@@ -1,11 +1,19 @@
 [
   {
-    "id": "client_web_mobile",
-    "label": "Client (Web / Mobile)",
+    "id": "client_web",
+    "label": "Web Client",
     "category": "Client & Entry",
     "color": "#6366f1",
     "icon": "Monitor",
-    "description": "The user-facing app — browser or mobile — that initiates all requests into the system."
+    "description": "The browser-based frontend that users interact with to send requests and receive responses."
+  },
+  {
+    "id": "client_mobile",
+    "label": "Mobile Client",
+    "category": "Client & Entry",
+    "color": "#6366f1",
+    "icon": "Smartphone",
+    "description": "The native iOS or Android app that connects to the backend over mobile networks."
   },
   {
     "id": "dns",

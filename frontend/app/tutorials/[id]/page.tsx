@@ -4,8 +4,8 @@ import { useEffect, useCallback, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowLeft, PenSquare, RotateCcw } from 'lucide-react';
-import { getTutorialById } from '@/data/tutorials';
+import { ArrowLeft, PenSquare, RotateCcw, Moon, Sun } from 'lucide-react';
+import { getTutorialById, isLiveTutorial } from '@/data/tutorials';
 import { useTutorialStore } from '@/store/tutorialStore';
 import { validateStep } from '@/lib/tutorialValidation';
 import { GuidePanel } from '@/components/tutorial/GuidePanel';
@@ -36,6 +36,9 @@ export default function TutorialPage() {
   const hasStarted = useRef(false);
   const [headerRestartConfirm, setHeaderRestartConfirm] = useState(false);
   const headerRestartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Panel width ratio: '3:7' | '4:6'
+  const [panelRatio, setPanelRatio] = useState<'3:7' | '4:6'>('3:7');
+  const [canvasTheme, setCanvasTheme] = useState<'dark' | 'light'>('dark');
 
   // Start tutorial on mount
   useEffect(() => {
@@ -166,6 +169,18 @@ export default function TutorialPage() {
               />
             </div>
           </div>
+          <button
+              onClick={() => setCanvasTheme((t) => t === 'dark' ? 'light' : 'dark')}
+              className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-white transition-colors flex-shrink-0"
+              style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+              title={canvasTheme === 'dark' ? 'Switch to light canvas' : 'Switch to dark canvas'}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)')}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}
+            >
+              {canvasTheme === 'dark'
+                ? <Sun className="w-3.5 h-3.5" />
+                : <Moon className="w-3.5 h-3.5" />}
+            </button>
           {headerRestartConfirm ? (
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-slate-400">Are you sure?</span>
@@ -213,14 +228,18 @@ export default function TutorialPage() {
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Guide panel — 20% */}
-        <div className="w-72 shrink-0 overflow-hidden flex flex-col h-full">
+        {/* Guide panel */}
+        <div
+          className="shrink-0 overflow-hidden flex flex-col h-full transition-all duration-300"
+          style={{ width: panelRatio === '3:7' ? '30%' : '40%' }}
+        >
           {step && (
             <GuidePanel
               step={step}
               currentStep={currentStep}
               totalSteps={totalSteps}
               tutorial={tutorial}
+              isLive={isLiveTutorial(tutorial.id)}
               messages={messages}
               isTyping={isTyping}
               validationStatus={validationStatus}
@@ -232,9 +251,23 @@ export default function TutorialPage() {
           )}
         </div>
 
-        {/* Canvas area — 80% */}
+        {/* Resize handle */}
+        <div
+          className="shrink-0 flex items-center justify-center cursor-pointer group z-10"
+          style={{ width: 20, background: '#0d1117', borderLeft: '1px solid rgba(255,255,255,0.06)', borderRight: '1px solid rgba(255,255,255,0.06)' }}
+          onClick={() => setPanelRatio((r) => r === '3:7' ? '4:6' : '3:7')}
+          title={panelRatio === '3:7' ? 'Expand chat (4:6)' : 'Shrink chat (3:7)'}
+        >
+          <div className="flex flex-col gap-1 opacity-30 group-hover:opacity-80 transition-opacity">
+            <div className="w-0.5 h-3 rounded-full bg-slate-400" />
+            <div className="w-0.5 h-3 rounded-full bg-slate-400" />
+            <div className="w-0.5 h-3 rounded-full bg-slate-400" />
+          </div>
+        </div>
+
+        {/* Canvas area */}
         <div className="flex flex-1 overflow-hidden">
-          <TutorialCanvas />
+          <TutorialCanvas theme={canvasTheme} />
         </div>
       </div>
 

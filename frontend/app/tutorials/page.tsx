@@ -6,9 +6,9 @@ import { useState } from 'react';
 import {
   ArrowLeft, Clock, Layers, Brain, Image, BarChart2, Video, ArrowRight,
   CheckCircle, Share2, Check, Car, MessageCircle, Twitter, CreditCard,
-  Github, Link as LinkIcon, Bot,
+  Github, Link as LinkIcon, Bot, Sparkles,
 } from 'lucide-react';
-import { TUTORIALS } from '@/data/tutorials';
+import { TUTORIALS, isLiveTutorial } from '@/data/tutorials';
 import { useTutorialStore } from '@/store/tutorialStore';
 import type { TutorialData } from '@/data/tutorials';
 
@@ -214,6 +214,20 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
                 {tutorial.difficulty}
               </span>
               <span className="text-xs text-slate-500">{tutorial.category}</span>
+              {isLiveTutorial(tutorial.id) && (
+                <span
+                  className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                  style={{
+                    background: 'rgba(99,102,241,0.15)',
+                    color: '#a5b4fc',
+                    border: '1px solid rgba(99,102,241,0.3)',
+                    boxShadow: '0 0 8px rgba(99,102,241,0.2)',
+                  }}
+                >
+                  <Sparkles className="w-2.5 h-2.5" />
+                  AI Mentor
+                </span>
+              )}
             </div>
           </div>
         </div>

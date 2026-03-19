@@ -62,7 +62,20 @@ const NODE_TYPES = {
   annotationNode: AnnotationNode,
 };
 
-function TutorialCanvasInner() {
+function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
+  const isDark = theme === 'dark';
+  const canvasBg = isDark ? '#0f172a' : '#f8fafc';
+  const dotColor = isDark ? '#334155' : '#cbd5e1';
+  const emptyIconBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
+  const emptyIconBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  const emptyTextPrimary = isDark ? 'text-slate-400' : 'text-slate-500';
+  const emptyTextSecondary = isDark ? 'text-slate-600' : 'text-slate-400';
+  const kbdStyle = isDark
+    ? 'bg-white/[0.08] text-slate-400 border-white/10'
+    : 'bg-black/[0.06] text-slate-500 border-black/10';
+  const controlsClass = isDark
+    ? '!bg-[#0d1117]/90 !backdrop-blur-sm !border !border-white/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-white/10 [&>button:hover]:!bg-white/5'
+    : '!bg-white/90 !backdrop-blur-sm !border !border-black/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-black/10 [&>button:hover]:!bg-black/5';
   const { nodes, edges, setNodes, setEdges } = useTutorialStore();
   const reactFlowInstance = useReactFlow();
   const [isMac, setIsMac] = useState(false);
@@ -178,7 +191,7 @@ function TutorialCanvasInner() {
   }, [openPaletteWithQuery]);
 
   return (
-    <div className="flex-1 relative" style={{ background: '#0f172a' }}>
+    <div className="flex-1 relative">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -195,6 +208,7 @@ function TutorialCanvasInner() {
         fitView
         proOptions={{ hideAttribution: true }}
         connectionLineType={ConnectionLineType.SmoothStep}
+        style={{ background: canvasBg }}
         defaultEdgeOptions={{
           type: 'smoothstep',
           animated: true,
@@ -202,28 +216,31 @@ function TutorialCanvasInner() {
         }}
         deleteKeyCode={null}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#334155" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color={dotColor} style={{ backgroundColor: canvasBg }} />
         <Controls
           showInteractive={false}
-          className="!bg-[#0d1117]/90 !backdrop-blur-sm !border !border-white/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-white/10 [&>button:hover]:!bg-white/5"
+          className={controlsClass}
         />
       </ReactFlow>
 
       {nodes.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-10">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-              <Search className="w-5 h-5 text-slate-500" />
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              style={{ background: emptyIconBg, border: `1px solid ${emptyIconBorder}` }}
+            >
+              <Search className={`w-5 h-5 ${emptyTextSecondary}`} />
             </div>
             <div className="text-center">
-              <p className="text-slate-400 text-sm font-medium mb-1">Follow the guide on the left</p>
-              <p className="text-slate-600 text-xs">
+              <p className={`${emptyTextPrimary} text-sm font-medium mb-1`}>Follow the guide on the left</p>
+              <p className={`${emptyTextSecondary} text-xs`}>
                 Press{' '}
-                <kbd className="px-1.5 py-0.5 rounded bg-white/[0.08] text-slate-400 text-[10px] font-mono border border-white/10">
+                <kbd className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${kbdStyle}`}>
                   {isMac ? '⌘' : 'Ctrl'}
                 </kbd>
                 {' + '}
-                <kbd className="px-1.5 py-0.5 rounded bg-white/[0.08] text-slate-400 text-[10px] font-mono border border-white/10">
+                <kbd className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${kbdStyle}`}>
                   K
                 </kbd>
                 {' '}to search and add components
@@ -243,10 +260,10 @@ function TutorialCanvasInner() {
   );
 }
 
-export function TutorialCanvas() {
+export function TutorialCanvas({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
   return (
     <ReactFlowProvider>
-      <TutorialCanvasInner />
+      <TutorialCanvasInner theme={theme} />
     </ReactFlowProvider>
   );
 }

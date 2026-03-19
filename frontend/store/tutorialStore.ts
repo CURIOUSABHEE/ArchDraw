@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Node, Edge } from 'reactflow';
 
 export interface TutorialMessage {
@@ -9,6 +9,10 @@ export interface TutorialMessage {
 }
 
 interface TutorialState {
+  // Hydration flag
+  hasHydrated: boolean;
+  setHasHydrated: (v: boolean) => void;
+
   // Current session (not persisted)
   tutorialId: string | null;
   currentStep: number;
@@ -23,7 +27,9 @@ interface TutorialState {
 
   // Persisted progress
   completedTutorials: string[];
-  tutorialProgress: Record<string, number>; // tutorialId -> highest step reached
+  tutorialProgress: Record<string, number>;
+  // Fix 6: persist phase so refresh restores correct state
+  tutorialPhase: Record<string, string>; // tutorialId:step -> phase
 
   // Actions
   startTutorial: (id: string, totalSteps: number) => void;
@@ -37,11 +43,19 @@ interface TutorialState {
   skipStep: () => void;
   completeTutorial: () => void;
   resetTutorial: (id: string) => void;
+  savePhase: (tutorialId: string, step: number, phase: string) => void;
+  getPersistedPhase: (tutorialId: string, step: number) => string | null;
 }
 
 export const useTutorialStore = create<TutorialState>()(
   persist(
     (set, get) => ({
+      // Start as true — if there's nothing in localStorage, rehydration is
+      // skipped entirely and the callback never fires, leaving this false forever.
+      // We only need it false briefly to prevent double-fire on rehydration.
+      hasHydrated: false,
+      setHasHydrated: (v) => set({ hasHydrated: v }),
+
       tutorialId: null,
       currentStep: 1,
       totalSteps: 0,
@@ -55,6 +69,7 @@ export const useTutorialStore = create<TutorialState>()(
 
       completedTutorials: [],
       tutorialProgress: {},
+      tutorialPhase: {},
 
       startTutorial: (id, totalSteps) => {
         const { tutorialProgress } = get();
@@ -124,9 +139,13 @@ export const useTutorialStore = create<TutorialState>()(
       },
 
       resetTutorial: (id) => {
-        const { tutorialProgress, completedTutorials } = get();
+        const { tutorialProgress, completedTutorials, tutorialPhase } = get();
         const newProgress = { ...tutorialProgress };
         delete newProgress[id];
+        // Clear all phase entries for this tutorial
+        const newPhase = Object.fromEntries(
+          Object.entries(tutorialPhase).filter(([k]) => !k.startsWith(`${id}:`))
+        );
         set({
           tutorialId: id,
           currentStep: 1,
@@ -137,16 +156,37 @@ export const useTutorialStore = create<TutorialState>()(
           validationError: '',
           isComplete: false,
           tutorialProgress: newProgress,
+          tutorialPhase: newPhase,
           completedTutorials: completedTutorials.filter((t) => t !== id),
         });
+      },
+
+      savePhase: (tutorialId, step, phase) => {
+        set((s) => ({
+          tutorialPhase: { ...s.tutorialPhase, [`${tutorialId}:${step}`]: phase },
+        }));
+      },
+
+      getPersistedPhase: (tutorialId, step) => {
+        return get().tutorialPhase[`${tutorialId}:${step}`] ?? null;
       },
     }),
     {
       name: 'archflow-tutorials',
+      storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         completedTutorials: s.completedTutorials,
         tutorialProgress: s.tutorialProgress,
+        tutorialPhase: s.tutorialPhase,
       }),
+      onRehydrateStorage: () => (state) => {
+        // state is null when there's nothing in localStorage — still mark hydrated
+        if (state) {
+          state.setHasHydrated(true);
+        } else {
+          useTutorialStore.getState().setHasHydrated(true);
+        }
+      },
     }
   )
 );

@@ -27,10 +27,10 @@ export const netflixTutorial: TutorialData = {
         { type: 'guide', content: 'Add a Client (Web / Mobile) node using ⌘K.' },
       ],
       validation: {
-        requiredNodes: ['client_web_mobile'],
+        requiredNodes: ['client_web', 'client_mobile'],
         requiredEdges: [],
         successMessage: "Client added. Now let's handle DNS and content delivery.",
-        errorMessage: 'Add a Client (Web / Mobile) node to the canvas first.',
+        errorMessage: 'Add a Web or Mobile client node to the canvas first.',
       },
       openingMessage: "Netflix runs on every device imaginable. How does that affect the architecture decisions?",
       defaultSuggestions: ["How does Netflix handle different devices?", "What protocols does Netflix use?", "Why is Netflix so fast to load?"],
