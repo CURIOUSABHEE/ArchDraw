@@ -14,7 +14,7 @@ import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { EdgeType, DEFAULT_EDGE_TYPE } from '@/data/edgeTypes';
 
 // Module-level fitView callback — set by Canvas on mount, avoids circular imports
-type FitViewOptions = { padding?: number; duration?: number };
+type FitViewOptions = { padding?: number; duration?: number; maxZoom?: number };
 let fitViewCallback: ((opts?: FitViewOptions) => void) | null = null;
 export function registerFitViewCallback(fn: (opts?: FitViewOptions) => void) {
   fitViewCallback = fn;
@@ -42,6 +42,7 @@ export interface NodeData {
   icon?: string;
   description?: string;
   tech?: string;
+  sublabel?: string;
   hasError?: boolean;
   accentColor?: string;
   technology?: string;
@@ -129,7 +130,7 @@ interface DiagramState {
   loadTemplate: (nodes: Node[], edges: Edge[]) => void;
 
   // ── Fit view ──────────────────────────────────────────────────────────────
-  fitView: () => void;
+  fitView: (options?: FitViewOptions) => void;
 
   // ── Edge editing ──────────────────────────────────────────────────────────
   editingEdgeId: string | null;
@@ -452,8 +453,8 @@ export const useDiagramStore = create<DiagramState>()(
       },
 
       // ── Fit view ───────────────────────────────────────────────────────────
-      fitView: () => {
-        fitViewCallback?.({ padding: 0.1, duration: 400 });
+      fitView: (opts) => {
+        fitViewCallback?.(opts ?? { padding: 0.1, duration: 400 });
       },
 
       // ── Edge editing ───────────────────────────────────────────────────────

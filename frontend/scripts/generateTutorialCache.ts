@@ -11,10 +11,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Groq from 'groq-sdk';
 
-// Manually load .env.local (no dotenv dependency needed)
-const envPath = path.resolve(__dirname, '../.env.local');
-if (fs.existsSync(envPath)) {
-  const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
+// Manually load .env.local or .env (no dotenv dependency needed)
+const envLocalPath = path.resolve(__dirname, '../.env.local');
+const envRegularPath = path.resolve(__dirname, '../.env');
+const targetEnv = fs.existsSync(envLocalPath) ? envLocalPath : (fs.existsSync(envRegularPath) ? envRegularPath : null);
+
+if (targetEnv) {
+  const lines = fs.readFileSync(targetEnv, 'utf-8').split('\n');
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
@@ -143,9 +146,9 @@ async function generate(groq: Groq, prompt: string): Promise<string> {
 }
 
 async function main() {
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY || process.env.GROQ_API_KEY_FOR_DESC_1;
   if (!apiKey) {
-    console.error('GROQ_API_KEY not found. Make sure frontend/.env.local is set.');
+    console.error('GROQ_API_KEY not found. Make sure frontend/.env.local or frontend/.env is set and contains GROQ_API_KEY or GROQ_API_KEY_FOR_DESC_1.');
     process.exit(1);
   }
 

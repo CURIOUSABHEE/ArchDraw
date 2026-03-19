@@ -50,7 +50,7 @@ export function validateAndRepair(
 
   // Step 7: For each orphaned node, CREATE a synthetic edge rather than removing the node
   orphanedNodes.forEach((orphan) => {
-    const orphanLayer = (orphan.data?.layer as string) ?? orphan.layer ?? 'B';
+    const orphanLayer = ((orphan as any).data?.layer as string) ?? (orphan as any).layer ?? 'B';
 
     // Find the best anchor node to connect to
     let anchorNode: SynthesisNode | undefined;
@@ -58,26 +58,26 @@ export function validateAndRepair(
     if (orphanLayer === 'A') {
       // Layer A orphan → connect TO the first Layer B node
       anchorNode = nodes.find((n) =>
-        ((n.data?.layer as string) ?? n.layer) === 'B' && connectedIds.has(n.id)
+        (((n as any).data?.layer as string) ?? (n as any).layer) === 'B' && connectedIds.has(n.id)
       );
     } else if (orphanLayer === 'B') {
       // Layer B orphan → connect FROM API Gateway or first Layer A node
       anchorNode = nodes.find((n) =>
         n.componentKey?.includes('api_gateway') ||
-        ((n.data?.layer as string) ?? n.layer) === 'A'
+        (((n as any).data?.layer as string) ?? (n as any).layer) === 'A'
       );
     } else if (orphanLayer === 'C') {
       // Layer C orphan → connect FROM most connected Layer B node
       const layerBNodes = nodes.filter((n) =>
-        ((n.data?.layer as string) ?? n.layer) === 'B' && connectedIds.has(n.id)
+        (((n as any).data?.layer as string) ?? (n as any).layer) === 'B' && connectedIds.has(n.id)
       );
       anchorNode = layerBNodes[0];
     } else if (orphanLayer === 'D') {
       // Layer D orphan → connect FROM most relevant Layer B node
-      const layerBNodes = nodes.filter((n) =>
-        ((n.data?.layer as string) ?? n.layer) === 'B' && connectedIds.has(n.id)
+      const layerBNodes2 = nodes.filter((n) =>
+        (((n as any).data?.layer as string) ?? (n as any).layer) === 'B' && connectedIds.has(n.id)
       );
-      anchorNode = layerBNodes[0];
+      anchorNode = layerBNodes2[0];
     }
 
     if (anchorNode) {
