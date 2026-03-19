@@ -43,7 +43,7 @@ export default async function SharedCanvasPage({ params }: { params: Promise<{ i
             </div>
             <div>
               <p className="text-white font-semibold text-lg">Diagram not found</p>
-              <p className="text-white/50 text-sm mt-1">This link may have expired or doesn't exist.</p>
+              <p className="text-white/50 text-sm mt-1">This link may have expired or doesn&apos;t exist.</p>
             </div>
             <a
               href="/"

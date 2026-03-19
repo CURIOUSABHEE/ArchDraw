@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import gsap from 'gsap';
 import { Bot, Camera, Film, Car, Layers, Brain, GraduationCap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -109,7 +110,7 @@ export function Templates() {
           >
             Browse all templates →
           </button>
-          <a
+          <Link
             href="/tutorials"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-slate-300 hover:text-white text-sm transition-colors"
             style={{ border: '1px solid rgba(255,255,255,0.1)' }}
@@ -118,7 +119,7 @@ export function Templates() {
           >
             <GraduationCap className="w-4 h-4" />
             Try interactive tutorials
-          </a>
+          </Link>
         </div>
       </div>
     </section>

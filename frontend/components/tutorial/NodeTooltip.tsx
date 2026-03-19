@@ -25,6 +25,7 @@ export function NodeTooltip({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true); }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -45,6 +46,7 @@ export function NodeTooltip({
   useEffect(() => {
     if (isDragging) {
       if (timerRef.current) clearTimeout(timerRef.current);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisible(false);
     }
   }, [isDragging]);

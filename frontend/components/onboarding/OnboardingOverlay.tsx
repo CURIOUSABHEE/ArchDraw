@@ -67,7 +67,11 @@ function useTargetRect(selector: string | null) {
   const [rect, setRect] = useState<Rect | null>(null);
 
   useEffect(() => {
-    if (!selector) { setRect(null); return; }
+    if (!selector) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRect(null);
+      return;
+    }
 
     const update = () => {
       const el = document.querySelector(selector);
@@ -192,6 +196,7 @@ function OnboardingOverlayInner() {
 
 export function OnboardingOverlay() {
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
   if (!mounted || typeof document === 'undefined') return null;
   return ReactDOM.createPortal(<OnboardingOverlayInner />, document.body);

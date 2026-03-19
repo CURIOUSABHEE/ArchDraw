@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -52,32 +53,32 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group">
             <svg className="h-7 w-7 text-indigo-400 transition-transform group-hover:scale-105" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
             </svg>
             <span className="text-lg font-semibold text-white tracking-tight">Archflow</span>
-          </a>
+          </Link>
 
           {/* Desktop nav */}
           <nav className="hidden md:flex gap-8">
             {NAV_LINKS.map((item) => (
-              <a
+              <Link
                 key={item}
                 href={`#${item.toLowerCase().replace(' ', '-')}`}
                 className="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors"
               >
                 {item}
                 <span className="nav-underline absolute -bottom-0.5 left-0 right-0 h-px bg-indigo-400 scale-x-0 origin-left transition-transform duration-300" />
-              </a>
+              </Link>
             ))}
-            <a
+            <Link
               href={NAV_TUTORIALS_HREF}
               className="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors"
             >
               Tutorials
               <span className="nav-underline absolute -bottom-0.5 left-0 right-0 h-px bg-indigo-400 scale-x-0 origin-left transition-transform duration-300" />
-            </a>
+            </Link>
           </nav>
 
           {/* Desktop actions */}
@@ -115,22 +116,22 @@ export function Navbar() {
         <div className="md:hidden border-t border-white/06" style={{ backgroundColor: '#080c14' }}>
           <div className="px-4 pt-2 pb-6 space-y-1">
             {NAV_LINKS.map((item) => (
-              <a
+              <Link
                 key={item}
                 href={`#${item.toLowerCase().replace(' ', '-')}`}
                 className="block px-3 py-3 text-base font-medium text-slate-400 hover:text-white rounded-lg"
                 onClick={() => setMobileOpen(false)}
               >
                 {item}
-              </a>
+              </Link>
             ))}
-            <a
+            <Link
               href={NAV_TUTORIALS_HREF}
               className="block px-3 py-3 text-base font-medium text-slate-400 hover:text-white rounded-lg"
               onClick={() => setMobileOpen(false)}
             >
               Tutorials
-            </a>
+            </Link>
             <div className="pt-4 flex flex-col gap-3">
               <button onClick={() => router.push('/editor')} className="w-full px-4 py-2.5 text-center font-medium text-slate-300 border border-white/10 rounded-lg">Sign in</button>
               <button onClick={() => router.push('/editor')} className="w-full px-4 py-2.5 text-center font-medium text-white bg-indigo-600 rounded-lg">Start designing</button>

@@ -106,6 +106,7 @@ function CanvasInner() {
   // Focus label input when a new edge is drawn
   useEffect(() => {
     if (pendingLabelEdgeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLabelDraft('');
       requestAnimationFrame(() => labelInputRef.current?.focus());
     }

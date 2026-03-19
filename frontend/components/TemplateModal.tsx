@@ -96,7 +96,7 @@ export function TemplateModal({ onClose }: Props) {
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
                 <Search className="w-6 h-6 mb-2 opacity-30" />
-                <p className="text-xs">No templates match "{query}"</p>
+                <p className="text-xs">No templates match &quot;{query}&quot;</p>
               </div>
             ) : (
               filtered.map((t) => (

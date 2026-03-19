@@ -11,11 +11,6 @@ export function UserAvatar() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const profile = userProfile ?? (user ? { id: user.id, email: user.email ?? undefined } : null);
-  if (!profile) return null;
-
-  const initials = (profile.name?.[0] ?? profile.email?.[0] ?? '?').toUpperCase();
-
   // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -24,6 +19,11 @@ export function UserAvatar() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const profile = userProfile ?? (user ? { id: user.id, email: user.email ?? undefined } : null);
+  if (!profile) return null;
+
+  const initials = (profile.name?.[0] ?? profile.email?.[0] ?? '?').toUpperCase();
 
   const handleSignOut = async () => {
     setOpen(false);

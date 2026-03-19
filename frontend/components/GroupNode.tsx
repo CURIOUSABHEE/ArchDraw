@@ -1,14 +1,15 @@
 'use client';
 
 import { memo, useCallback, useRef, useState } from 'react';
-import { Handle, Position, NodeProps, NodeResizer } from 'reactflow';
+import { Handle, Position, NodeProps, NodeResizer, useReactFlow } from 'reactflow';
 
 export interface GroupNodeData {
   label: string;
   color?: string;
 }
 
-function GroupNodeComponent({ data, selected }: NodeProps<GroupNodeData>) {
+function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
+  const { setNodes } = useReactFlow();
   const color = data.color ?? '#6366f1';
   const [label, setLabel] = useState(data.label);
   const [editing, setEditing] = useState(false);
@@ -21,9 +22,8 @@ function GroupNodeComponent({ data, selected }: NodeProps<GroupNodeData>) {
 
   const commitEdit = useCallback(() => {
     setEditing(false);
-    // Persist label back into node data via direct mutation — GroupNode owns its label
-    data.label = label;
-  }, [data, label]);
+    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, label } } : n));
+  }, [id, label, setNodes]);
 
   return (
     <>

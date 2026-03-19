@@ -230,7 +230,7 @@ export function getSmartOrthogonalPath(
     
     // We prefer horizontal segments for labels
     const isHorizontal = Math.abs(p1.y - p2.y) < 1;
-    let weight = len * (isHorizontal ? 1.5 : 1);
+    const weight = len * (isHorizontal ? 1.5 : 1);
 
     if (weight > maxLen) {
       maxLen = weight;

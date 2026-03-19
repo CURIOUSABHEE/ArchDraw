@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position, NodeProps, useReactFlow } from 'reactflow';
 
 export interface TextLabelNodeData {
   text: string;
@@ -11,7 +11,8 @@ export interface TextLabelNodeData {
 
 const FONT_SIZE_MAP = { small: 12, medium: 16, large: 22 };
 
-function TextLabelNodeComponent({ data }: NodeProps<TextLabelNodeData>) {
+function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
+  const { setNodes } = useReactFlow();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(data.text);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -28,8 +29,8 @@ function TextLabelNodeComponent({ data }: NodeProps<TextLabelNodeData>) {
 
   const commitEdit = useCallback(() => {
     setEditing(false);
-    data.text = text;
-  }, [data, text]);
+    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, text } } : n));
+  }, [id, text, setNodes]);
 
   // Auto-resize textarea
   useEffect(() => {

@@ -1,14 +1,15 @@
 'use client';
 
 import { memo, useCallback, useRef, useState } from 'react';
-import { Handle, Position, NodeProps, NodeResizer } from 'reactflow';
+import { Handle, Position, NodeProps, NodeResizer, useReactFlow } from 'reactflow';
 
 export interface AnnotationNodeData {
   title?: string;
   body?: string;
 }
 
-function AnnotationNodeComponent({ data, selected }: NodeProps<AnnotationNodeData>) {
+function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNodeData>) {
+  const { setNodes } = useReactFlow();
   const [title, setTitle] = useState(data.title ?? '');
   const [body, setBody] = useState(data.body ?? '');
   const [editingTitle, setEditingTitle] = useState(false);
@@ -18,13 +19,13 @@ function AnnotationNodeComponent({ data, selected }: NodeProps<AnnotationNodeDat
 
   const commitTitle = useCallback(() => {
     setEditingTitle(false);
-    data.title = title;
-  }, [data, title]);
+    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, title } } : n));
+  }, [id, title, setNodes]);
 
   const commitBody = useCallback(() => {
     setEditingBody(false);
-    data.body = body;
-  }, [data, body]);
+    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, body } } : n));
+  }, [id, body, setNodes]);
 
   const handleStyle = { opacity: 0, width: 6, height: 6, pointerEvents: 'none' as const };
 

@@ -4,10 +4,11 @@ import {
   EdgeProps,
   EdgeLabelRenderer,
   useStore,
+  ReactFlowState,
 } from 'reactflow';
 import { getSmartOrthogonalPath } from '@/lib/edgeRouting';
 
-const nodesSelector = (state: any) => state.getNodes();
+const nodesSelector = (state: ReactFlowState) => state.getNodes();
 import { EDGE_TYPE_CONFIGS, DEFAULT_EDGE_TYPE, EdgeType } from '@/data/edgeTypes';
 import { EdgeContextMenu } from './EdgeContextMenu';
 import { EdgeToolbar } from './EdgeToolbar';

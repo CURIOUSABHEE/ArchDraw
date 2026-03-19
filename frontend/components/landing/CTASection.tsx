@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import gsap from 'gsap';
 
 export function CTASection() {
@@ -84,9 +85,9 @@ export function CTASection() {
         </button>
         <p className="text-slate-600 text-sm mt-4">
           New to system design?{' '}
-          <a href="/tutorials" className="text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-2">
+          <Link href="/tutorials" className="text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-2">
             Start with an interactive tutorial →
-          </a>
+          </Link>
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
           {['Next.js', 'Supabase', 'Vercel', 'React'].map((t) => (
