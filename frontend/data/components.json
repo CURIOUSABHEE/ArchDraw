@@ -1,7 +1,7 @@
 [
   {
     "id": "client_web",
-    "label": "Web Client",
+    "label": "Web",
     "category": "Client & Entry",
     "color": "#6366f1",
     "icon": "Monitor",
@@ -9,7 +9,7 @@
   },
   {
     "id": "client_mobile",
-    "label": "Mobile Client",
+    "label": "Mobile",
     "category": "Client & Entry",
     "color": "#6366f1",
     "icon": "Smartphone",
@@ -502,5 +502,50 @@
   { "id": "vision_llm", "label": "Vision LLM (GPT-4V)", "category": "Vision AI", "color": "#f97316", "icon": "Eye", "description": "Understands and reasons about image content alongside text in a single model." },
   { "id": "ocr_ai", "label": "AI OCR", "category": "Vision AI", "color": "#f97316", "icon": "ScanText", "description": "Uses deep learning to extract text from complex layouts, handwriting, and low-quality scans." },
   { "id": "video_analyzer", "label": "Video Analyzer", "category": "Vision AI", "color": "#f97316", "icon": "Video", "description": "Processes video frames to detect events, classify content, or extract metadata." },
-  { "id": "diffusion_model", "label": "Diffusion Model", "category": "Vision AI", "color": "#f97316", "icon": "Sparkles", "description": "Generates high-quality images by iteratively denoising random noise guided by a prompt." }
+  { "id": "diffusion_model", "label": "Diffusion Model", "category": "Vision AI", "color": "#f97316", "icon": "Sparkles", "description": "Generates high-quality images by iteratively denoising random noise guided by a prompt." },
+
+  { "id": "webrtc_server", "label": "WebRTC Server", "category": "Real-time", "color": "#f59e0b", "icon": "Video", "description": "Handles peer-to-peer audio and video connections using the WebRTC protocol." },
+  { "id": "turn_server", "label": "TURN Server", "category": "Real-time", "color": "#f59e0b", "icon": "Radio", "description": "Relays media traffic when direct peer-to-peer connection fails due to NAT or firewall." },
+  { "id": "stun_server", "label": "STUN Server", "category": "Real-time", "color": "#f59e0b", "icon": "Wifi", "description": "Discovers the public IP address of a client behind NAT for WebRTC connection setup." },
+  { "id": "media_server", "label": "Media Server", "category": "Real-time", "color": "#f59e0b", "icon": "Monitor", "description": "Processes, mixes, and distributes audio and video streams in real-time." },
+  { "id": "signaling_server", "label": "Signaling Server", "category": "Real-time", "color": "#f59e0b", "icon": "ArrowLeftRight", "description": "Coordinates WebRTC connection setup by exchanging session descriptions between peers." },
+
+  { "id": "graph_database", "label": "Graph Database", "category": "Data Storage", "color": "#334155", "icon": "Network", "description": "Stores and queries relationships between entities using graph structures optimized for social connections." },
+  { "id": "feed_ranker", "label": "Feed Ranker", "category": "AI / ML", "color": "#ec4899", "icon": "BarChart2", "description": "ML model that scores and ranks content for personalized feed generation." },
+  { "id": "fanout_service", "label": "Fan-out Service", "category": "Messaging & Events", "color": "#f59e0b", "icon": "Share2", "description": "Distributes a single event to many recipients — used in social feed delivery at scale." },
+  { "id": "timeline_service", "label": "Timeline Service", "category": "Compute", "color": "#3b82f6", "icon": "Clock", "description": "Assembles and serves personalized user timelines by merging followed accounts' content." },
+  { "id": "trending_service", "label": "Trending Service", "category": "Compute", "color": "#3b82f6", "icon": "TrendingUp", "description": "Computes trending topics in real-time using sliding window counters across geographic regions." },
+
+  { "id": "crdt_engine", "label": "CRDT Engine", "category": "Compute", "color": "#3b82f6", "icon": "GitMerge", "description": "Conflict-free Replicated Data Type engine that merges concurrent edits without conflicts." },
+  { "id": "presence_service", "label": "Presence Service", "category": "Compute", "color": "#3b82f6", "icon": "Users", "description": "Tracks which users are online, their cursor positions, and active document sections." },
+  { "id": "canvas_renderer", "label": "Canvas Renderer", "category": "Compute", "color": "#3b82f6", "icon": "PenTool", "description": "Renders vector graphics and design elements on an infinite canvas with GPU acceleration." },
+  { "id": "version_history", "label": "Version History", "category": "Data Storage", "color": "#334155", "icon": "History", "description": "Stores immutable snapshots of document state for time-travel and version restoration." },
+
+  { "id": "inventory_service", "label": "Inventory Service", "category": "Compute", "color": "#3b82f6", "icon": "Package", "description": "Manages real-time stock levels with pessimistic locking to prevent overselling." },
+  { "id": "cart_service", "label": "Cart Service", "category": "Compute", "color": "#3b82f6", "icon": "ShoppingCart", "description": "Manages user shopping cart state with session persistence and price recalculation." },
+  { "id": "checkout_service", "label": "Checkout Service", "category": "Compute", "color": "#3b82f6", "icon": "CreditCard", "description": "Orchestrates the checkout flow including cart validation, payment, and order creation." },
+  { "id": "order_service", "label": "Order Service", "category": "Compute", "color": "#3b82f6", "icon": "ClipboardList", "description": "Manages order lifecycle from creation through fulfillment, returns, and refunds." },
+  { "id": "tax_service", "label": "Tax Service", "category": "External Services", "color": "#10b981", "icon": "Calculator", "description": "Calculates applicable taxes based on buyer location, product type, and merchant nexus." },
+  { "id": "fulfillment_service", "label": "Fulfillment Service", "category": "Compute", "color": "#3b82f6", "icon": "Truck", "description": "Routes orders to warehouses and third-party logistics providers for physical delivery." },
+
+  { "id": "dasher_service", "label": "Dasher Service", "category": "Compute", "color": "#3b82f6", "icon": "Bike", "description": "Manages delivery driver state, availability zones, and assignment optimization." },
+  { "id": "eta_service", "label": "ETA Service", "category": "Compute", "color": "#3b82f6", "icon": "Timer", "description": "Predicts delivery arrival times using ML models trained on historical delivery data." },
+  { "id": "routing_engine", "label": "Routing Engine", "category": "Compute", "color": "#3b82f6", "icon": "Navigation", "description": "Calculates optimal delivery routes considering traffic, distance, and multiple stops." },
+  { "id": "geofence_service", "label": "Geofence Service", "category": "Compute", "color": "#3b82f6", "icon": "MapPin", "description": "Detects when drivers enter or exit defined geographic boundaries to trigger events." },
+
+  { "id": "git_storage", "label": "Git Object Storage", "category": "Data Storage", "color": "#334155", "icon": "GitBranch", "description": "Content-addressable storage for Git objects — blobs, trees, commits, and tags." },
+  { "id": "ci_runner", "label": "CI Runner", "category": "DevOps / Infra", "color": "#64748b", "icon": "Play", "description": "Executes build, test, and lint jobs in isolated containers for continuous integration." },
+  { "id": "code_review_service", "label": "Code Review Service", "category": "Compute", "color": "#3b82f6", "icon": "Code", "description": "Manages pull request workflows including diff rendering, review assignments, and merge checks." },
+  { "id": "webhook_dispatcher", "label": "Webhook Dispatcher", "category": "Messaging & Events", "color": "#f59e0b", "icon": "Send", "description": "Delivers HTTP webhook events to external services with retry logic and delivery guarantees." },
+  { "id": "registry_service", "label": "Package Registry", "category": "DevOps / Infra", "color": "#64748b", "icon": "Archive", "description": "Stores and serves versioned software packages — npm, Maven, PyPI, Docker images." },
+
+  { "id": "audio_transcoder", "label": "Audio Transcoder", "category": "Compute", "color": "#3b82f6", "icon": "Music", "description": "Converts audio files between formats and bitrates for different device capabilities." },
+  { "id": "audio_cdn", "label": "Audio CDN", "category": "Client & Entry", "color": "#6366f1", "icon": "Volume2", "description": "Delivers audio streams from edge locations close to listeners for low-latency playback." },
+  { "id": "offline_sync", "label": "Offline Sync Service", "category": "Compute", "color": "#3b82f6", "icon": "RefreshCw", "description": "Syncs locally cached content with server state when device reconnects to network." },
+  { "id": "playlist_service", "label": "Playlist Service", "category": "Compute", "color": "#3b82f6", "icon": "ListMusic", "description": "Manages user playlists, collaborative playlists, and algorithmic playlist generation." },
+
+  { "id": "trust_service", "label": "Trust & Safety Service", "category": "Auth & Security", "color": "#8b5cf6", "icon": "ShieldCheck", "description": "Detects and prevents fraud, abuse, and policy violations using ML and rule engines." },
+  { "id": "review_service", "label": "Review Service", "category": "Compute", "color": "#3b82f6", "icon": "Star", "description": "Manages user reviews and ratings with fraud detection and sentiment analysis." },
+  { "id": "pricing_engine", "label": "Pricing Engine", "category": "Compute", "color": "#3b82f6", "icon": "DollarSign", "description": "Calculates dynamic prices based on demand, supply, time, and market conditions." },
+  { "id": "availability_service", "label": "Availability Service", "category": "Compute", "color": "#3b82f6", "icon": "Calendar", "description": "Manages listing calendars, booking windows, and real-time availability for rentals." }
 ]

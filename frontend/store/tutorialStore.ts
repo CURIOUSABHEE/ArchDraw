@@ -8,6 +8,30 @@ export interface TutorialMessage {
   timestamp: number;
 }
 
+// Strip non-serializable React Flow internals before persisting
+function sanitizeNode(node: Node): Node {
+  return {
+    id: node.id,
+    type: node.type,
+    position: node.position,
+    data: node.data,
+  } as Node;
+}
+
+function sanitizeEdge(edge: Edge): Edge {
+  return {
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    type: edge.type,
+    animated: edge.animated,
+    style: edge.style,
+    label: edge.label,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
+  } as Edge;
+}
+
 interface TutorialState {
   // Hydration flag
   hasHydrated: boolean;
@@ -28,13 +52,20 @@ interface TutorialState {
   // Persisted progress
   completedTutorials: string[];
   tutorialProgress: Record<string, number>;
-  // Fix 6: persist phase so refresh restores correct state
   tutorialPhase: Record<string, string>; // tutorialId:step -> phase
+
+  // Persisted canvas state
+  activeTutorialId: string | null;
+  tutorialNodes: Node[];
+  tutorialEdges: Edge[];
 
   // Actions
   startTutorial: (id: string, totalSteps: number) => void;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
+  setTutorialNodes: (nodes: Node[]) => void;
+  setTutorialEdges: (edges: Edge[]) => void;
+  clearTutorialCanvas: () => void;
   setValidationStatus: (status: 'idle' | 'success' | 'error', error?: string) => void;
   setIsTyping: (v: boolean) => void;
   addMessage: (type: TutorialMessage['type'], content: string) => void;
@@ -50,9 +81,6 @@ interface TutorialState {
 export const useTutorialStore = create<TutorialState>()(
   persist(
     (set, get) => ({
-      // Start as true — if there's nothing in localStorage, rehydration is
-      // skipped entirely and the callback never fires, leaving this false forever.
-      // We only need it false briefly to prevent double-fire on rehydration.
       hasHydrated: false,
       setHasHydrated: (v) => set({ hasHydrated: v }),
 
@@ -70,6 +98,10 @@ export const useTutorialStore = create<TutorialState>()(
       completedTutorials: [],
       tutorialProgress: {},
       tutorialPhase: {},
+
+      activeTutorialId: null,
+      tutorialNodes: [],
+      tutorialEdges: [],
 
       startTutorial: (id, totalSteps) => {
         const { tutorialProgress } = get();
@@ -90,6 +122,15 @@ export const useTutorialStore = create<TutorialState>()(
 
       setNodes: (nodes) => set({ nodes }),
       setEdges: (edges) => set({ edges }),
+
+      setTutorialNodes: (nodes) =>
+        set({ tutorialNodes: nodes.map(sanitizeNode) }),
+
+      setTutorialEdges: (edges) =>
+        set({ tutorialEdges: edges.map(sanitizeEdge) }),
+
+      clearTutorialCanvas: () =>
+        set({ tutorialNodes: [], tutorialEdges: [] }),
 
       setValidationStatus: (status, error = '') =>
         set({ validationStatus: status, validationError: error }),
@@ -142,7 +183,6 @@ export const useTutorialStore = create<TutorialState>()(
         const { tutorialProgress, completedTutorials, tutorialPhase } = get();
         const newProgress = { ...tutorialProgress };
         delete newProgress[id];
-        // Clear all phase entries for this tutorial
         const newPhase = Object.fromEntries(
           Object.entries(tutorialPhase).filter(([k]) => !k.startsWith(`${id}:`))
         );
@@ -158,6 +198,8 @@ export const useTutorialStore = create<TutorialState>()(
           tutorialProgress: newProgress,
           tutorialPhase: newPhase,
           completedTutorials: completedTutorials.filter((t) => t !== id),
+          tutorialNodes: [],
+          tutorialEdges: [],
         });
       },
 
@@ -178,9 +220,11 @@ export const useTutorialStore = create<TutorialState>()(
         completedTutorials: s.completedTutorials,
         tutorialProgress: s.tutorialProgress,
         tutorialPhase: s.tutorialPhase,
+        activeTutorialId: s.activeTutorialId,
+        tutorialNodes: s.tutorialNodes,
+        tutorialEdges: s.tutorialEdges,
       }),
       onRehydrateStorage: () => (state) => {
-        // state is null when there's nothing in localStorage — still mark hydrated
         if (state) {
           state.setHasHydrated(true);
         } else {

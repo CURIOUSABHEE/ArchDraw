@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, DragEvent, useState, useEffect } from 'react';
+import { useCallback, DragEvent, useState, useEffect, useRef } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, Controls,
   ReactFlowProvider, useReactFlow,
@@ -76,29 +76,46 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
   const controlsClass = isDark
     ? '!bg-[#0d1117]/90 !backdrop-blur-sm !border !border-white/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-white/10 [&>button:hover]:!bg-white/5'
     : '!bg-white/90 !backdrop-blur-sm !border !border-black/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-black/10 [&>button:hover]:!bg-black/5';
-  const { nodes, edges, setNodes, setEdges } = useTutorialStore();
+  const { nodes, edges, setNodes, setEdges, tutorialNodes, tutorialEdges, setTutorialNodes, setTutorialEdges } = useTutorialStore();
   const reactFlowInstance = useReactFlow();
   const [isMac, setIsMac] = useState(false);
   const [paletteForceOpen, setPaletteForceOpen] = useState(false);
   const [paletteInitialQuery, setPaletteInitialQuery] = useState('');
+  const restoredRef = useRef(false);
 
   useEffect(() => {
     setIsMac(navigator.platform.toUpperCase().includes('MAC'));
   }, []);
 
+  // Restore canvas from persisted store on mount
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    if (tutorialNodes.length > 0) {
+      setNodes(tutorialNodes);
+      setEdges(tutorialEdges);
+      toast.success('Canvas restored', { duration: 2000, position: 'bottom-center' });
+      setTimeout(() => reactFlowInstance.fitView({ maxZoom: 0.7 }), 100);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      const filtered = changes.filter((c) => c.type !== 'remove');
-      setNodes(applyNodeChanges(filtered, nodes));
+      const updated = applyNodeChanges(changes, nodes);
+      setNodes(updated);
+      setTutorialNodes(updated);
     },
-    [nodes, setNodes]
+    [nodes, setNodes, setTutorialNodes]
   );
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
-      setEdges(applyEdgeChanges(changes, edges));
+      const updated = applyEdgeChanges(changes, edges);
+      setEdges(updated);
+      setTutorialEdges(updated);
     },
-    [edges, setEdges]
+    [edges, setEdges, setTutorialEdges]
   );
 
   const onConnect = useCallback(
@@ -114,8 +131,9 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
         edges
       );
       setEdges(newEdges);
+      setTutorialEdges(newEdges);
     },
-    [edges, setEdges]
+    [edges, setEdges, setTutorialEdges]
   );
 
   const onDragOver = useCallback((e: DragEvent) => {
@@ -131,7 +149,7 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
       const comp = JSON.parse(raw);
       const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
       const id = `${comp.id}-${Date.now()}`;
-      setNodes([
+      const updated = [
         ...nodes,
         {
           id,
@@ -145,9 +163,11 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
             technology: comp.technology,
           },
         },
-      ]);
+      ];
+      setNodes(updated);
+      setTutorialNodes(updated);
     },
-    [nodes, setNodes, reactFlowInstance]
+    [nodes, setNodes, setTutorialNodes, reactFlowInstance]
   );
 
   const handleAddComponent = useCallback(
@@ -172,10 +192,12 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
         },
       };
 
-      setNodes([...nodes, newNode]);
+      const updated = [...nodes, newNode];
+      setNodes(updated);
+      setTutorialNodes(updated);
       toast.success(`Added ${component.label}`, { duration: 1500, position: 'bottom-center' });
     },
-    [nodes, setNodes, reactFlowInstance]
+    [nodes, setNodes, setTutorialNodes, reactFlowInstance]
   );
 
   // Exposed so GuidePanel search hint can open palette with a pre-filled query
@@ -205,7 +227,9 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
         snapGrid={[20, 20]}
         minZoom={0.1}
         maxZoom={2}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
         fitView
+        fitViewOptions={{ maxZoom: 0.7 }}
         proOptions={{ hideAttribution: true }}
         connectionLineType={ConnectionLineType.SmoothStep}
         style={{ background: canvasBg }}
@@ -214,7 +238,7 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
           animated: true,
           style: { stroke: '#94a3b8', strokeWidth: 1.5 },
         }}
-        deleteKeyCode={null}
+        deleteKeyCode={['Backspace', 'Meta+Backspace']}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color={dotColor} style={{ backgroundColor: canvasBg }} />
         <Controls

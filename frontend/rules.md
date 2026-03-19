@@ -267,3 +267,7 @@ When given a task:
   index.ts — all TypeScript types
 /store
   index.ts — Zustand store
+
+ - Never use emoji anywhere on the landing page or in the app UI
+- Replace all emoji with Lucide React icons or styled HTML elements
+- Legal pages (Privacy, Terms) use plain text only — no icons, no emoji
