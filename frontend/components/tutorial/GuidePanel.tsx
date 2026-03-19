@@ -16,7 +16,111 @@ interface Chip {
   nextPhase: Phase | 'next_step' | 'reteach' | 'context_more';
 }
 
-// ── Fix 1: Fuzzy node matching ───────────────────────────────────────────────
+// ── Speed constants ──────────────────────────────────────────────────────────
+const SPEED: Record<string, number> = {
+  context: 14,
+  normal: 18,
+  celebration: 20,
+  fallback: 12,
+};
+
+// ── useTypewriter ────────────────────────────────────────────────────────────
+// Handles both static strings and live streaming buffers.
+// For static: types the full string char by char.
+// For streaming: advances a display pointer through a growing buffer.
+function useTypewriter(
+  text: string,
+  speed: number,
+  onComplete?: () => void,
+) {
+  const [displayed, setDisplayed] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+
+  // Internal refs — avoid stale closures in interval
+  const bufferRef = useRef('');       // full target text (grows for streaming)
+  const posRef = useRef(0);           // how many chars we've shown
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
+
+  // Advance the display pointer one char at a time
+  const startInterval = useCallback(() => {
+    if (intervalRef.current) return; // already running
+    intervalRef.current = setInterval(() => {
+      const buf = bufferRef.current;
+      if (posRef.current >= buf.length) {
+        // Buffer exhausted — stop and wait for more text or completion signal
+        clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        return;
+      }
+      posRef.current += 1;
+      setDisplayed(buf.slice(0, posRef.current));
+    }, speedRef.current);
+  }, []);
+
+  // When text changes: if it's a brand-new message (not an extension of current buffer),
+  // reset everything. If it extends the buffer (streaming), just update buffer and
+  // restart the interval if it stopped.
+  useEffect(() => {
+    if (!text) {
+      // Clear
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+      bufferRef.current = '';
+      posRef.current = 0;
+      setDisplayed('');
+      setIsTyping(false);
+      return;
+    }
+
+    const isExtension = text.startsWith(bufferRef.current) && bufferRef.current.length > 0;
+
+    if (!isExtension) {
+      // New message — full reset
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+      bufferRef.current = text;
+      posRef.current = 0;
+      setDisplayed('');
+      setIsTyping(true);
+      startInterval();
+    } else {
+      // Streaming extension — update buffer, restart interval if it paused
+      bufferRef.current = text;
+      if (!intervalRef.current && posRef.current < text.length) {
+        setIsTyping(true);
+        startInterval();
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
+
+  // Poll for completion: when not streaming and display caught up
+  useEffect(() => {
+    if (!isTyping) return;
+    const check = setInterval(() => {
+      if (posRef.current >= bufferRef.current.length && bufferRef.current.length > 0) {
+        clearInterval(check);
+        if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+        setIsTyping(false);
+        onCompleteRef.current?.();
+      }
+    }, 50);
+    return () => clearInterval(check);
+  }, [isTyping]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  return { displayed, isTyping };
+}
+
+// ── Fuzzy node matching ──────────────────────────────────────────────────────
 function nodeMatchesRequired(nodeLabel: string, requiredRaw: string): boolean {
   const label = nodeLabel.toLowerCase().replace(/[^a-z0-9]/g, '');
   const required = requiredRaw.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -28,7 +132,7 @@ function nodeMatchesRequired(nodeLabel: string, requiredRaw: string): boolean {
   return false;
 }
 
-// ── Pure chip logic ──────────────────────────────────────────────────────────
+// ── Chip logic ───────────────────────────────────────────────────────────────
 function getChips(
   phase: Phase,
   isLastStep: boolean,
@@ -47,9 +151,7 @@ function getChips(
         { label: 'No, explain it', nextPhase: 'teaching' },
       ];
     case 'teaching':
-      if (explainCount >= 3) {
-        return [{ label: "Let's just build it", nextPhase: 'action' }];
-      }
+      if (explainCount >= 3) return [{ label: "Let's just build it", nextPhase: 'action' }];
       return [
         { label: "Got it, let's add it", nextPhase: 'action' },
         { label: 'Explain more', nextPhase: 'reteach' },
@@ -62,58 +164,6 @@ function getChips(
     default:
       return [];
   }
-}
-
-// ── Word-by-word stream hook ─────────────────────────────────────────────────
-const WORD_DELAY_MS = 48;
-
-function useWordByWordStream(fullText: string, isStreaming: boolean) {
-  const [displayed, setDisplayed] = useState('');
-  const wordIdxRef = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const targetRef = useRef('');
-
-  useEffect(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-
-    if (!fullText) {
-      setDisplayed('');
-      targetRef.current = '';
-      wordIdxRef.current = 0;
-      return;
-    }
-
-    const isNewMessage = targetRef.current !== '' && !fullText.startsWith(targetRef.current);
-    if (isNewMessage || targetRef.current === '') {
-      wordIdxRef.current = 0;
-    }
-    targetRef.current = fullText;
-
-    const words = fullText.trim().split(/\s+/);
-
-    if (!isStreaming) {
-      setDisplayed(fullText);
-      wordIdxRef.current = words.length;
-      return;
-    }
-
-    const tick = () => {
-      if (wordIdxRef.current >= words.length) return;
-      wordIdxRef.current += 1;
-      setDisplayed(words.slice(0, wordIdxRef.current).join(' '));
-      if (wordIdxRef.current < words.length) {
-        timerRef.current = setTimeout(tick, WORD_DELAY_MS);
-      }
-    };
-
-    if (wordIdxRef.current < words.length) {
-      timerRef.current = setTimeout(tick, WORD_DELAY_MS);
-    }
-
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [fullText, isStreaming]);
-
-  return displayed;
 }
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -145,21 +195,27 @@ export function GuidePanel({
   const [showInput, setShowInput] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [explainCount, setExplainCount] = useState(0);
-  const [reminderText, setReminderText] = useState<string | null>(null);
 
-  // Context phase state
+  // Single source of truth for the message being displayed
+  const [activeMessage, setActiveMessage] = useState('');
+  // Speed for current message
+  const [typeSpeed, setTypeSpeed] = useState(SPEED.normal);
+  // Chips only appear after typewriter completes
+  const [showChips, setShowChips] = useState(false);
+
+  // Context phase
   const [hasShownContext, setHasShownContext] = useState(false);
   const [contextTellMoreCount, setContextTellMoreCount] = useState(0);
 
-  // Dead-end fix refs
+  // Dead-end fix
   const stepCompletedRef = useRef(false);
   const pendingCelebration = useRef(false);
 
-  // Escape hatch state
+  // Escape hatch
   const [showEscapeHatch, setShowEscapeHatch] = useState(false);
   const escapeHatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Detection flash state
+  // Detection flash
   const [detectionFlash, setDetectionFlash] = useState(false);
 
   const {
@@ -175,20 +231,38 @@ export function GuidePanel({
   });
 
   // Stable refs
-  const stepRef = useRef(step);
-  stepRef.current = step;
-  const tutorialRef = useRef(tutorial);
-  tutorialRef.current = tutorial;
-  const currentStepRef = useRef(currentStep);
-  currentStepRef.current = currentStep;
-  const totalStepsRef = useRef(totalSteps);
-  totalStepsRef.current = totalSteps;
-  const committedPhaseRef = useRef(committedPhase);
-  committedPhaseRef.current = committedPhase;
-  const nodesRef = useRef(nodes);
-  nodesRef.current = nodes;
-
+  const stepRef = useRef(step); stepRef.current = step;
+  const tutorialRef = useRef(tutorial); tutorialRef.current = tutorial;
+  const currentStepRef = useRef(currentStep); currentStepRef.current = currentStep;
+  const totalStepsRef = useRef(totalSteps); totalStepsRef.current = totalSteps;
+  const committedPhaseRef = useRef(committedPhase); committedPhaseRef.current = committedPhase;
+  const nodesRef = useRef(nodes); nodesRef.current = nodes;
   const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Helper: set a new message with appropriate speed ────────────────────
+  const showMessage = useCallback((text: string, phase: Phase) => {
+    let speed = SPEED.normal;
+    if (phase === 'context') speed = SPEED.context;
+    else if (phase === 'celebration') speed = SPEED.celebration;
+    setTypeSpeed(speed);
+    setShowChips(false);
+    setActiveMessage(text);
+  }, []);
+
+  // ── Typewriter: feeds on activeMessage, extends with streamingContent ────
+  // For live AI: streamingContent grows as chunks arrive — we feed it as buffer extension
+  const typewriterInput = (() => {
+    if (!isLive || !streamingContent) return activeMessage;
+    // If streaming is active and content is longer than activeMessage, use it as the buffer
+    if (streamingContent.length > activeMessage.length) return streamingContent;
+    return activeMessage;
+  })();
+
+  const { displayed, isTyping: typewriterRunning } = useTypewriter(
+    typewriterInput,
+    typeSpeed,
+    () => setShowChips(true),
+  );
 
   // ── Build phase prompt ───────────────────────────────────────────────────
   const buildPrompt = useCallback((p: Phase, extra?: string): string => {
@@ -198,51 +272,48 @@ export function GuidePanel({
     const ts = totalStepsRef.current;
     const base = `TUTORIAL:${t.id} STEP:${cs}/${ts} COMPONENT:"${s.title}"`;
     switch (p) {
-      case 'context':
-        return `TUTORIAL:${t.id} PHASE:CONTEXT`;
-      case 'intro':
-        return `${base} PHASE:INTRO`;
+      case 'context': return `TUTORIAL:${t.id} PHASE:CONTEXT`;
+      case 'intro': return `${base} PHASE:INTRO`;
       case 'teaching':
         return extra === 'reteach'
           ? `${base} PHASE:TEACHING RETEACH:true EXPLANATION:"${s.explanation}" WHY:"${s.why}"`
           : `${base} PHASE:TEACHING EXPLANATION:"${s.explanation}" WHY:"${s.why}"`;
       case 'action':
-        if (extra === 'force') {
-          return `${base} PHASE:ACTION INSTRUCTION:"${s.action}" NOTE:"User has seen enough explanation — keep this very short and direct."`;
-        }
-        return `${base} PHASE:ACTION INSTRUCTION:"${s.action}"`;
-      case 'celebration':
-        return `${base} PHASE:CELEBRATION`;
+        return extra === 'force'
+          ? `${base} PHASE:ACTION INSTRUCTION:"${s.action}" NOTE:"Keep this very short and direct."`
+          : `${base} PHASE:ACTION INSTRUCTION:"${s.action}"`;
+      case 'celebration': return `${base} PHASE:CELEBRATION`;
     }
   }, []);
 
-  // ── Commit phase + persist ───────────────────────────────────────────────
+  // ── Commit phase ─────────────────────────────────────────────────────────
   const commitPhase = useCallback((p: Phase) => {
     setCommittedPhase(p);
-    if (p !== 'context') {
-      savePhase(tutorialRef.current.id, currentStepRef.current, p);
-    }
+    if (p !== 'context') savePhase(tutorialRef.current.id, currentStepRef.current, p);
   }, [savePhase]);
 
-  // ── Trigger AI ───────────────────────────────────────────────────────────
+  // ── Trigger AI phase ─────────────────────────────────────────────────────
   const triggerPhase = useCallback(async (p: Phase, extra?: string) => {
     pendingPhaseRef.current = p;
-    setReminderText(null);
+    // Clear active message so typewriter resets; streaming will fill it
+    setShowChips(false);
+    setActiveMessage('');
+    setTypeSpeed(p === 'context' ? SPEED.context : p === 'celebration' ? SPEED.celebration : SPEED.normal);
 
     if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
     streamTimeoutRef.current = setTimeout(() => {
-      console.warn('[GuidePanel] stream timeout — aborting and force committing phase', p);
       abort();
-      if (!streamingContent) {
-        setReminderText(stepRef.current.explanation || 'Let\'s continue building.');
-      }
+      const fallback = stepRef.current.explanation || 'Let\'s continue building.';
+      showMessage(fallback, 'action');
       commitPhase(p);
     }, 10_000);
 
     try {
       await sendMessage(buildPrompt(p, extra));
     } catch {
-      setReminderText(stepRef.current.explanation || 'Something went wrong. Try adding the component to continue.');
+      const fallback = stepRef.current.explanation || 'Something went wrong. Try adding the component to continue.';
+      setTypeSpeed(SPEED.fallback);
+      setActiveMessage(fallback);
       commitPhase('action');
       return;
     } finally {
@@ -250,9 +321,9 @@ export function GuidePanel({
     }
 
     commitPhase(p);
-  }, [sendMessage, buildPrompt, commitPhase, abort, streamingContent]);
+  }, [sendMessage, buildPrompt, commitPhase, abort, showMessage]);
 
-  // ── Step/tutorial change: reset and fire CONTEXT or INTRO ────────────────
+  // ── Step/tutorial change ─────────────────────────────────────────────────
   const lastFiredRef = useRef<string>('');
 
   useEffect(() => {
@@ -269,54 +340,50 @@ export function GuidePanel({
     setShowInput(false);
     setInputValue('');
     setExplainCount(0);
-    setReminderText(null);
+    setActiveMessage('');
+    setShowChips(false);
     setShowEscapeHatch(false);
     setDetectionFlash(false);
-
-    // Reset dead-end refs on every step change
     stepCompletedRef.current = false;
     pendingCelebration.current = false;
-
-    // Clear escape hatch timer
     if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current);
 
-    // First step of tutorial: show context phase (once per tutorial session)
+    // Context phase on first step (once per session)
     if (currentStep === 1 && !hasShownContext) {
       const contextKey = `${tutorial.id}:context`;
       const contextText = (staticCacheData as Record<string, string>)[contextKey];
       if (contextText) {
-        setReminderText(contextText);
         pendingPhaseRef.current = 'context';
-        setTimeout(() => commitPhase('context'), 0);
+        setTimeout(() => {
+          commitPhase('context');
+          showMessage(contextText, 'context');
+        }, 0);
         return;
       }
-      // Netflix live AI: call Groq for context
       if (isLive) {
         const t = setTimeout(() => triggerPhase('context'), 50);
         return () => clearTimeout(t);
       }
-      // No context entry — fall through to intro
     }
 
     // Normal step flow
     const persisted = getPersistedPhase(tutorial.id, currentStep);
     const startPhase: Phase = (persisted === 'action' || persisted === 'celebration')
-      ? (persisted as Phase)
-      : 'intro';
+      ? (persisted as Phase) : 'intro';
 
     if (!isLive) {
-      const resolveStaticText = (): string => {
+      const resolveText = (): string => {
         if (currentStep <= 3) {
-          const cacheKey = `${tutorial.id}:${currentStep}:intro:0`;
-          const cached = (staticCacheData as Record<string, string>)[cacheKey];
+          const cached = (staticCacheData as Record<string, string>)[`${tutorial.id}:${currentStep}:intro:0`];
           if (cached) return cached;
         }
         return step.openingMessage ?? step.explanation ?? step.action;
       };
-      const text = resolveStaticText();
       pendingPhaseRef.current = startPhase;
-      setReminderText(text);
-      setTimeout(() => commitPhase(startPhase), 0);
+      setTimeout(() => {
+        commitPhase(startPhase);
+        showMessage(resolveText(), startPhase);
+      }, 0);
       return;
     }
 
@@ -325,31 +392,35 @@ export function GuidePanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, tutorial.id, step?.title]);
 
-  // ── Chunk-level stall timeout ────────────────────────────────────────────
+  // ── Chunk stall timeout ──────────────────────────────────────────────────
   const prevContentRef = useRef('');
   useEffect(() => {
-    if (!isLoading) {
-      prevContentRef.current = '';
-      return;
-    }
+    if (!isLoading) { prevContentRef.current = ''; return; }
     if (streamingContent !== prevContentRef.current) {
       prevContentRef.current = streamingContent;
       if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
       streamTimeoutRef.current = setTimeout(() => {
-        console.warn('[GuidePanel] chunk stall — force committing phase', pendingPhaseRef.current);
         commitPhase(pendingPhaseRef.current);
       }, 3_000);
     }
   }, [streamingContent, isLoading, commitPhase]);
 
-  // ── Pending celebration trigger (separate from canvas watcher) ───────────
+  // ── When streaming completes, sync activeMessage so typewriter can finish ─
+  useEffect(() => {
+    if (!isLoading && streamingContent && streamingContent !== activeMessage) {
+      // Stream done — make sure typewriter has the full text as its target
+      setActiveMessage(streamingContent);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, streamingContent]);
+
+  // ── Pending celebration ──────────────────────────────────────────────────
   useEffect(() => {
     if (committedPhase === 'celebration' && pendingCelebration.current) {
       pendingCelebration.current = false;
       if (!isLive) {
         const s = stepRef.current;
-        const celebText = s.validation?.successMessage ?? `Great job adding the ${s.title}!`;
-        setReminderText(celebText);
+        showMessage(s.validation?.successMessage ?? `Great job adding the ${s.title}!`, 'celebration');
       } else {
         triggerPhase('celebration');
       }
@@ -357,20 +428,15 @@ export function GuidePanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [committedPhase]);
 
-  // ── Escape hatch timer (action phase > 30s) ──────────────────────────────
+  // ── Escape hatch timer ───────────────────────────────────────────────────
   useEffect(() => {
     if (committedPhase !== 'action') {
       setShowEscapeHatch(false);
       if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current);
       return;
     }
-    if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current);
-    escapeHatchTimerRef.current = setTimeout(() => {
-      setShowEscapeHatch(true);
-    }, 30_000);
-    return () => {
-      if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current);
-    };
+    escapeHatchTimerRef.current = setTimeout(() => setShowEscapeHatch(true), 30_000);
+    return () => { if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current); };
   }, [committedPhase]);
 
   // ── Canvas watcher ───────────────────────────────────────────────────────
@@ -382,17 +448,13 @@ export function GuidePanel({
       prevNodeIdsRef.current = new Set(nodes.map((n: Node) => n.id));
       return;
     }
-
     const requiredNodes = step.validation?.requiredNodes;
     if (currentStep > totalSteps || !requiredNodes?.length) return;
-
-    // Guard: step already completed
     if (stepCompletedRef.current) return;
 
     const newNodes = nodes.filter((n: Node) => !prevNodeIdsRef.current.has(n.id));
     if (newNodes.length === 0) return;
 
-    // Update snapshot
     prevNodeIdsRef.current = new Set(nodes.map((n: Node) => n.id));
 
     // Reset escape hatch timer on any node addition
@@ -405,30 +467,30 @@ export function GuidePanel({
     );
 
     if (correctNode) {
-      // Mark step completed immediately to prevent double-fire
       stepCompletedRef.current = true;
       if (wrongNodeTimerRef.current) clearTimeout(wrongNodeTimerRef.current);
 
-      // Show detection flash for 500ms
+      // Detection flash — fast fallback speed, chips hidden
       setDetectionFlash(true);
-      setReminderText('Component detected — great work! Loading next step...');
+      setTypeSpeed(SPEED.fallback);
+      setShowChips(false);
+      setActiveMessage('Component detected — great work! Loading next step...');
 
       setTimeout(() => {
         setDetectionFlash(false);
-        setReminderText(null);
-        // Set pending flag THEN update phase — separate useEffect handles the message
         pendingCelebration.current = true;
         commitPhase('celebration');
       }, 500);
     } else {
-      // Wrong component
       if (wrongNodeTimerRef.current) clearTimeout(wrongNodeTimerRef.current);
       wrongNodeTimerRef.current = setTimeout(() => {
         const addedLabel = newNodes[0]?.data?.label ?? 'that component';
         const neededRaw = requiredNodes[0];
         if (!isLive) {
           const s = stepRef.current;
-          setReminderText(`That's not quite right — search for "${s.title}" in ⌘K to find the right component.`);
+          setTypeSpeed(SPEED.fallback);
+          setShowChips(false);
+          setActiveMessage(`That's not quite right — search for "${s.title}" in ⌘K to find the right component.`);
           commitPhase('action');
         } else {
           sendMessage(
@@ -456,7 +518,9 @@ export function GuidePanel({
           setTimeout(() => {
             if (committedPhaseRef.current === 'action') {
               const s = stepRef.current;
-              setReminderText(`Still need the ${s.title} — press ⌘K to find it.`);
+              setTypeSpeed(SPEED.fallback);
+              setShowChips(false);
+              setActiveMessage(`Still need the ${s.title} — press ⌘K to find it.`);
             }
           }, 1_000);
         }
@@ -471,45 +535,36 @@ export function GuidePanel({
   // ── Chip click ───────────────────────────────────────────────────────────
   const handleChipClick = useCallback((chip: Chip) => {
     if (chip.nextPhase === 'next_step') {
-      if (currentStepRef.current >= totalStepsRef.current) {
-        completeTutorial();
-        return;
-      }
+      if (currentStepRef.current >= totalStepsRef.current) { completeTutorial(); return; }
       advanceStep();
       return;
     }
 
-    // Context phase: "Let's build it →"
+    // Context: "Let's build it →"
     if (chip.nextPhase === 'intro' && committedPhaseRef.current === 'context') {
       setHasShownContext(true);
-      setReminderText(null);
       if (!isLive) {
         const cacheKey = `${tutorialRef.current.id}:1:intro:0`;
         const text = (staticCacheData as Record<string, string>)[cacheKey]
-          ?? stepRef.current.openingMessage
-          ?? stepRef.current.explanation
-          ?? stepRef.current.action;
-        setReminderText(text);
+          ?? stepRef.current.openingMessage ?? stepRef.current.explanation ?? stepRef.current.action;
         commitPhase('intro');
+        showMessage(text, 'intro');
       } else {
         triggerPhase('intro');
       }
       return;
     }
 
-    // Context phase: "Tell me more"
+    // Context: "Tell me more"
     if (chip.nextPhase === 'context_more') {
-      const newCount = contextTellMoreCount + 1;
-      setContextTellMoreCount(newCount);
-      const moreKey = `${tutorialRef.current.id}:context:more`;
-      const moreText = (staticCacheData as Record<string, string>)[moreKey];
+      setContextTellMoreCount(c => c + 1);
+      const moreText = (staticCacheData as Record<string, string>)[`${tutorialRef.current.id}:context:more`];
       if (moreText) {
-        setReminderText(moreText);
         commitPhase('context');
+        showMessage(moreText, 'context');
       } else if (isLive) {
         triggerPhase('context', 'more');
       }
-      // If maxed out (count was already 1, now 2), chips will hide "Tell me more"
       return;
     }
 
@@ -528,22 +583,15 @@ export function GuidePanel({
       } else {
         text = s.explanation ?? s.action;
       }
-      setReminderText(text);
       commitPhase(chip.nextPhase as Phase);
+      showMessage(text, chip.nextPhase as Phase);
       return;
     }
 
-    if (chip.nextPhase === 'reteach') {
-      setExplainCount(c => c + 1);
-      triggerPhase('teaching', 'reteach');
-      return;
-    }
-    if (chip.nextPhase === 'action' && explainCount >= 3) {
-      triggerPhase('action', 'force');
-      return;
-    }
+    if (chip.nextPhase === 'reteach') { setExplainCount(c => c + 1); triggerPhase('teaching', 'reteach'); return; }
+    if (chip.nextPhase === 'action' && explainCount >= 3) { triggerPhase('action', 'force'); return; }
     triggerPhase(chip.nextPhase as Phase);
-  }, [advanceStep, completeTutorial, triggerPhase, commitPhase, explainCount, isLive, contextTellMoreCount]);
+  }, [advanceStep, completeTutorial, triggerPhase, commitPhase, showMessage, explainCount, isLive, contextTellMoreCount]);
 
   // ── Escape hatch click ───────────────────────────────────────────────────
   const handleEscapeHatch = useCallback(() => {
@@ -552,60 +600,57 @@ export function GuidePanel({
     if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current);
     const s = stepRef.current;
     const celebText = s.validation?.successMessage ?? `Great job adding the ${s.title}!`;
-    setReminderText(celebText);
     commitPhase('celebration');
-  }, [commitPhase]);
+    showMessage(celebText, 'celebration');
+  }, [commitPhase, showMessage]);
 
   // ── Free-text send ───────────────────────────────────────────────────────
   const handleSend = useCallback(async () => {
     const q = inputValue.trim();
     if (!q || isLoading) return;
     setInputValue('');
-    setReminderText(null);
     if (!isLive) {
-      setReminderText(stepRef.current.explanation ?? stepRef.current.action);
-      commitPhase(committedPhaseRef.current);
+      showMessage(stepRef.current.explanation ?? stepRef.current.action, committedPhaseRef.current);
       return;
     }
+    setShowChips(false);
+    setActiveMessage('');
     await sendMessage(q);
     commitPhase(committedPhaseRef.current);
-  }, [inputValue, isLoading, sendMessage, commitPhase, isLive]);
+  }, [inputValue, isLoading, sendMessage, commitPhase, showMessage, isLive]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault();
-      handleSend();
-    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleSend(); }
   };
 
-  // ── Derived display ──────────────────────────────────────────────────────
-  const effectivelyLoading = isLive ? isLoading : false;
-  const showLoadingDots = effectivelyLoading && streamingContent === '' && !reminderText;
-  const bubbleText = reminderText ?? (isLive ? streamingContent : '');
-  const displayedText = useWordByWordStream(bubbleText, effectivelyLoading && !reminderText);
+  // ── Derived ──────────────────────────────────────────────────────────────
+  const showLoadingDots = isLive && isLoading && !streamingContent && !activeMessage;
   const isLastStep = currentStep >= totalSteps;
   const chips = getChips(committedPhase, isLastStep, explainCount, contextTellMoreCount);
+  // Chips gate: show only when typewriter done AND phase has chips
+  const chipsVisible = showChips && chips.length > 0;
 
   return (
     <div className="h-full flex flex-col" style={{ background: '#0d1117', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+
+      {/* Blink keyframe injected inline */}
+      <style>{`
+        @keyframes tw-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        .tw-cursor { display:inline-block; width:2px; height:1em; background:#818cf8; margin-left:2px; vertical-align:middle; animation:tw-blink 1.06s step-end infinite; }
+      `}</style>
 
       {/* Progress bar */}
       <div className="p-4 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-slate-500">Step {currentStep} of {totalSteps}</span>
-          <span className="text-xs text-indigo-400 font-medium">
-            {Math.round((currentStep / totalSteps) * 100)}%
-          </span>
+          <span className="text-xs text-indigo-400 font-medium">{Math.round((currentStep / totalSteps) * 100)}%</span>
         </div>
         <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-          <div
-            className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-out"
-            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-          />
+          <div className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
         </div>
       </div>
 
-      {/* AI message bubble */}
+      {/* Message bubble */}
       <div className="flex-1 p-4 overflow-y-auto flex flex-col justify-end min-h-0">
         <div
           className="rounded-2xl p-4"
@@ -624,44 +669,35 @@ export function GuidePanel({
           ) : (
             <>
               <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-                {displayedText}
-                {(effectivelyLoading && !reminderText) && (
-                  <span className="inline-block w-0.5 h-4 bg-indigo-400 ml-0.5 align-middle animate-pulse" />
-                )}
+                {displayed}
+                {typewriterRunning && <span className="tw-cursor" />}
               </p>
-              {!effectivelyLoading && displayedText && committedPhase !== 'context' && (
-                <p className="text-[10px] text-slate-600 mt-3 uppercase tracking-wider">
-                  {step.title}
-                </p>
+              {!typewriterRunning && displayed && committedPhase !== 'context' && (
+                <p className="text-[10px] text-slate-600 mt-3 uppercase tracking-wider">{step.title}</p>
               )}
             </>
           )}
         </div>
       </div>
 
-      {/* Action phase hint */}
-      {committedPhase === 'action' && !effectivelyLoading && (
+      {/* Action hint */}
+      {committedPhase === 'action' && !typewriterRunning && (
         <div className="px-4 pb-2 shrink-0">
-          <p className="text-[11px] text-slate-500 text-center animate-pulse">
-            ↑ Add the component to the canvas
-          </p>
+          <p className="text-[11px] text-slate-500 text-center animate-pulse">↑ Add the component to the canvas</p>
         </div>
       )}
 
       {/* Escape hatch */}
       {showEscapeHatch && committedPhase === 'action' && (
         <div className="px-4 pb-2 shrink-0">
-          <button
-            onClick={handleEscapeHatch}
-            className="w-full text-center text-[11px] text-slate-500 hover:text-indigo-400 transition-colors py-1"
-          >
+          <button onClick={handleEscapeHatch} className="w-full text-center text-[11px] text-slate-500 hover:text-indigo-400 transition-colors py-1">
             Added it already? →
           </button>
         </div>
       )}
 
-      {/* Chips */}
-      {!effectivelyLoading && chips.length > 0 && (
+      {/* Chips — only after typewriter completes */}
+      {chipsVisible && (
         <div className="px-4 pb-3 flex flex-col gap-2 shrink-0">
           {chips.map((chip, i) => {
             const isNext = chip.nextPhase === 'next_step' || chip.nextPhase === 'intro';
@@ -675,12 +711,8 @@ export function GuidePanel({
                   background: isNext ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)',
                   color: isNext ? '#a5b4fc' : '#cbd5e1',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = isNext ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.07)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = isNext ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)';
-                }}
+                onMouseEnter={e => { e.currentTarget.style.background = isNext ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.07)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = isNext ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)'; }}
               >
                 {chip.label}
               </button>
@@ -692,28 +724,22 @@ export function GuidePanel({
       {/* Ask something else */}
       <div className="px-4 pb-3 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         {!showInput ? (
-          <button
-            onClick={() => setShowInput(true)}
-            className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors pt-3 block w-full text-center"
-          >
+          <button onClick={() => setShowInput(true)} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors pt-3 block w-full text-center">
             ask something else ↓
           </button>
         ) : (
           <div className="flex items-center gap-2 pt-3">
             <input
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={e => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask anything..."
               disabled={isLoading}
               autoFocus
               className="flex-1 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 outline-none transition-colors disabled:opacity-40"
-              style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
             />
             <button
               onClick={handleSend}
