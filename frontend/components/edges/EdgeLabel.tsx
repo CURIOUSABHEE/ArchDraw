@@ -108,14 +108,14 @@ export function EdgeLabel({ edgeId, edgeType, label, labelX, labelY }: EdgeLabel
           exit={{ opacity: 0, scale: 0.92 }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
           onDoubleClick={(e) => {
-            e.stopPropagation(); // don't trigger canvas double-click
+            e.stopPropagation();
             enterEdit();
           }}
           title="Double-click to edit label"
           style={{
             display: 'inline-block',
             background: cfg.badgeColor,
-            color: cfg.color,          // ← text color matches edge color
+            color: cfg.color,
             border: `1px solid ${cfg.color}44`,
             borderRadius: 999,
             fontSize: 11,
@@ -123,10 +123,13 @@ export function EdgeLabel({ edgeId, edgeType, label, labelX, labelY }: EdgeLabel
             fontFamily: 'system-ui, sans-serif',
             padding: '2px 8px',
             letterSpacing: '0.04em',
-            cursor: 'text',            // show text cursor on hover so user knows it's editable
+            cursor: 'text',
             userSelect: 'none',
             whiteSpace: 'nowrap',
             transition: 'opacity 0.1s',
+            opacity: 1,
+            // Dark halo masks the edge line behind the label
+            boxShadow: '0 0 0 3px #0d0f1a',
           }}
         >
           {displayText}

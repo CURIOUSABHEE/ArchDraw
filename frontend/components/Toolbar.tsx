@@ -5,7 +5,7 @@ import {
   Download, Trash2, Upload, ChevronDown, FileJson,
   Undo2, Redo2, Grid3X3, Zap, Moon, Sun,
   Type, StickyNote, Group, Maximize2, LayoutTemplate, Share2, Loader2, Check, HelpCircle,
-  GraduationCap,
+  GraduationCap, Sparkles,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
@@ -19,6 +19,8 @@ import { ShareModal } from '@/components/ShareModal';
 import { EmailCaptureModal, type EmailCaptureReason } from '@/components/EmailCaptureModal';
 import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { GenerateDiagramPanel } from '@/components/ai/GenerateDiagramPanel';
+import { AnimatePresence } from 'framer-motion';
 
 type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf';
 
@@ -47,6 +49,7 @@ export function Toolbar() {
   const [shareUrl, setShareUrl] = useState('');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [emailCapture, setEmailCapture] = useState<EmailCaptureReason | null>(null);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   const openGuide = useOnboardingStore((s) => s.open);
 
@@ -268,6 +271,16 @@ export function Toolbar() {
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          <TooltipWrapper label="Generate with AI">
+            <button
+              onClick={() => setAiPanelOpen(!aiPanelOpen)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-medium rounded-md transition-all shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">AI Generate</span>
+            </button>
+          </TooltipWrapper>
+
           <TooltipWrapper label="Interactive Tutorials">
             <button
               onClick={() => router.push('/tutorials')}
@@ -393,6 +406,9 @@ export function Toolbar() {
           onClose={() => setEmailCapture(null)}
         />
       )}
+      <AnimatePresence>
+        {aiPanelOpen && <GenerateDiagramPanel onClose={() => setAiPanelOpen(false)} />}
+      </AnimatePresence>
     </>
   );
 }

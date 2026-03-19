@@ -209,8 +209,9 @@ function CanvasInner() {
         minZoom={0.1}
         maxZoom={2}
         fitView
+        elevateEdgesOnSelect={true}
         proOptions={{ hideAttribution: true }}
-        connectionLineType={ConnectionLineType.Bezier}
+        connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
           type: 'custom',
           data: { edgeType: 'sync' },
