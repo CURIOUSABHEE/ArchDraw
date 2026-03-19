@@ -11,6 +11,7 @@ import {
   applyEdgeChanges,
 } from 'reactflow';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
+import { EdgeType, DEFAULT_EDGE_TYPE } from '@/data/edgeTypes';
 
 // Module-level fitView callback — set by Canvas on mount, avoids circular imports
 type FitViewOptions = { padding?: number; duration?: number };
@@ -136,6 +137,10 @@ interface DiagramState {
   setPendingEditEdgeId: (id: string | null) => void;
   pendingLabelEdgeId: string | null;
   setPendingLabelEdgeId: (id: string | null) => void;
+  
+  // ── Edge Types ────────────────────────────────────────────────────────────
+  updateEdgeType: (edgeId: string, edgeType: EdgeType) => void;
+  updateEdgeLabel: (edgeId: string, label: string) => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -338,7 +343,12 @@ export const useDiagramStore = create<DiagramState>()(
         get().pushHistory();
         const edgeId = `edge-${Date.now()}`;
         const edges = addEdge(
-          { ...connection, id: edgeId, type: 'default', animated: get().edgeAnimations, style: { stroke: '#94a3b8', strokeWidth: 1.5 } },
+          { 
+            ...connection, 
+            id: edgeId, 
+            type: 'custom', 
+            data: { edgeType: DEFAULT_EDGE_TYPE }
+          },
           get().edges
         );
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
@@ -446,6 +456,22 @@ export const useDiagramStore = create<DiagramState>()(
       setPendingEditEdgeId: (id) => set({ pendingEditEdgeId: id }),
       pendingLabelEdgeId: null,
       setPendingLabelEdgeId: (id) => set({ pendingLabelEdgeId: id }),
+      
+      // ── Edge Types ────────────────────────────────────────────────────────────
+      updateEdgeType: (edgeId, edgeType) => {
+        const edges = get().edges.map((e) =>
+          e.id === edgeId ? { ...e, type: 'custom', data: { ...e.data, edgeType } } : e
+        );
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
+        set({ edges, canvases });
+      },
+      updateEdgeLabel: (edgeId, label) => {
+        const edges = get().edges.map((e) =>
+          e.id === edgeId ? { ...e, data: { ...e.data, label: label.trim() } } : e
+        );
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
+        set({ edges, canvases });
+      },
     }),
     {
       name: 'archdraw-storage',
@@ -466,7 +492,26 @@ export const useDiagramStore = create<DiagramState>()(
           const active = state.canvases.find((c: CanvasTab) => c.id === state.activeCanvasId);
           if (active) {
             state.nodes = active.nodes;
-            state.edges = active.edges;
+            
+            // Migrate legacy edges to custom type
+            state.edges = active.edges.map(e => ({
+              ...e,
+              type: 'custom',
+              data: {
+                edgeType: e.data?.edgeType ?? 'sync',
+                ...e.data
+              }
+            }));
+            
+            // Also update the canvas representations directly
+            state.canvases = state.canvases.map(c => ({
+              ...c,
+              edges: c.edges.map(e => ({
+                ...e,
+                type: 'custom',
+                data: { edgeType: e.data?.edgeType ?? 'sync', ...e.data }
+              }))
+            }));
           }
         }
       },

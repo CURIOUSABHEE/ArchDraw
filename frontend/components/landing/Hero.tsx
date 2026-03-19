@@ -282,8 +282,12 @@ export function Hero() {
         </div>
 
         <h1 className="font-bold tracking-tight leading-[0.95] mb-6" style={{ fontSize: 'clamp(3rem, 8vw, 5.5rem)' }}>
-          <span className="hero-word block bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Design Systems,</span>
-          <span className="hero-word block bg-gradient-to-r from-indigo-300 to-indigo-500 bg-clip-text text-transparent">Not Documents.</span>
+          <span className="hero-word block bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent opacity-0 uppercase">
+            Canva for
+          </span>
+          <span className="hero-word block bg-gradient-to-r from-indigo-300 to-indigo-500 bg-clip-text text-transparent opacity-0 uppercase">
+            Architecture Diagram
+          </span>
         </h1>
 
         <p className="hero-sub text-lg max-w-xl mx-auto mb-10 leading-relaxed" style={{ color: '#64748b' }}>

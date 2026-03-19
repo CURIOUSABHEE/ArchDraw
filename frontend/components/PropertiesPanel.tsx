@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Trash2, RotateCcw } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
-import type { EdgeStyleType, EdgeConnectionType } from '@/components/CustomEdge';
+import { EDGE_TYPE_CONFIGS, EdgeType } from '@/data/edgeTypes';
 
 const TECH_OPTIONS: Record<string, string[]> = {
   'Data Storage': ['PostgreSQL', 'MySQL', 'SQLite', 'MongoDB', 'DynamoDB', 'Cassandra', 'Elasticsearch', 'S3', 'GCS'],
@@ -45,9 +45,11 @@ export function PropertiesPanel() {
 
   // ── Edge panel ──────────────────────────────────────────────────────────────
   if (edge && !node) {
-    const ed = (edge.data ?? {}) as { label?: string; edgeStyle?: EdgeStyleType; connectionType?: EdgeConnectionType; bidirectional?: boolean; color?: string };
+    const edgeType: EdgeType = edge.data?.edgeType ?? 'sync';
+    const updateEdgeType = useDiagramStore.getState().updateEdgeType;
     return (
       <aside
+        key={`${edge.id}-${edge.data?.edgeType}`}
         className="w-64 border-l border-border bg-card flex flex-col h-full shrink-0 animate-in slide-in-from-right-4 duration-200"
         style={{ boxShadow: '-4px 0 16px rgba(0,0,0,0.06)' }}
       >
@@ -58,41 +60,70 @@ export function PropertiesPanel() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <p className="text-[10px] text-muted-foreground leading-relaxed">
+          <p className="text-[10px] text-muted-foreground leading-relaxed mb-4">
             Double-click the edge to add a label. Drag the blue handles to reshape the curve.
           </p>
+          
+          <div style={{ marginBottom: 16 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              color: '#6b7280',
+              textTransform: 'uppercase',
+              marginBottom: 6,
+            }}>
+              Edge label
+            </label>
+            <input
+              type="text"
+              defaultValue={edge.data?.label ?? ''}
+              placeholder={`e.g. ${EDGE_TYPE_CONFIGS[edgeType].id} or "calls user API"`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  useDiagramStore.getState().updateEdgeLabel(edge.id, (e.target as HTMLInputElement).value);
+                  (e.target as HTMLInputElement).blur();
+                }
+                e.stopPropagation(); // prevent Delete key from deleting the edge while typing
+              }}
+              onBlur={(e) => {
+                useDiagramStore.getState().updateEdgeLabel(edge.id, e.target.value);
+              }}
+              style={{
+                width: '100%',
+                background: '#0f172a',
+                border: `1px solid ${EDGE_TYPE_CONFIGS[edgeType].color}66`,
+                borderRadius: 7,
+                color: EDGE_TYPE_CONFIGS[edgeType].color,
+                fontSize: 13,
+                padding: '7px 10px',
+                outline: 'none',
+                fontFamily: 'system-ui, sans-serif',
+                caretColor: EDGE_TYPE_CONFIGS[edgeType].color,
+                transition: 'border-color 0.15s, box-shadow 0.15s',
+              }}
+              onFocus={(e) => {
+                (e.target as HTMLInputElement).style.borderColor = EDGE_TYPE_CONFIGS[edgeType].color;
+                (e.target as HTMLInputElement).style.boxShadow = `0 0 0 3px ${EDGE_TYPE_CONFIGS[edgeType].color}22`;
+              }}
+            />
+            <p style={{ fontSize: 10, color: '#4b5563', marginTop: 4 }}>
+              Press Enter or click away to save. Leave blank to show type name.
+            </p>
+          </div>
           <Field label="Connection Type">
             <select
-              value={ed.connectionType ?? 'smoothstep'}
-              onChange={(e) => updateEdgeData(edge.id, { connectionType: e.target.value })}
-              className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-md outline-none"
+              value={edgeType}
+              onChange={(e) => updateEdgeType(edge.id, e.target.value as EdgeType)}
+              className="w-full px-2.5 py-1.5 text-xs bg-[#1e293b] text-[#f8fafc] border border-border rounded-md outline-none focus:ring-1 focus:ring-indigo-500"
             >
-              <option value="smoothstep">Bezier (smooth)</option>
-              <option value="straight">Straight</option>
-              <option value="orthogonal">Orthogonal</option>
+              {Object.values(EDGE_TYPE_CONFIGS).map(cfg => (
+                <option key={cfg.id} value={cfg.id} className="bg-[#0f172a] text-[#f8fafc] py-1">
+                  {cfg.label}
+                </option>
+              ))}
             </select>
-          </Field>
-          <Field label="Line Style">
-            <select
-              value={ed.edgeStyle ?? 'solid'}
-              onChange={(e) => updateEdgeData(edge.id, { edgeStyle: e.target.value })}
-              className="w-full px-2.5 py-1.5 text-xs bg-muted border border-border rounded-md outline-none"
-            >
-              <option value="solid">Solid (sync)</option>
-              <option value="dashed">Dashed (async)</option>
-              <option value="dotted">Dotted (optional)</option>
-            </select>
-          </Field>
-          <Field label="Direction">
-            <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-              <input
-                type="checkbox"
-                checked={ed.bidirectional ?? false}
-                onChange={(e) => updateEdgeData(edge.id, { bidirectional: e.target.checked })}
-                className="rounded"
-              />
-              Bidirectional
-            </label>
           </Field>
         </div>
       </aside>

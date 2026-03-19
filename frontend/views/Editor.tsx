@@ -13,11 +13,11 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { OnboardingOverlay } from '@/components/onboarding/OnboardingOverlay';
 import { useOnboarding } from '@/components/onboarding/useOnboarding';
+import { EdgeType } from '@/data/edgeTypes';
 
 export default function EditorPage() {
   const { darkMode, selectedNodeId, selectedEdgeId, nodes } = useDiagramStore();
   const { user } = useAuthStore();
-  const initRef = useRef(false);
 
   // Initialize onboarding (auto-open + drag detection)
   useOnboarding();
@@ -91,14 +91,36 @@ export default function EditorPage() {
 
   // Keyboard shortcuts
   useEffect(() => {
-    if (initRef.current) return;
-    initRef.current = true;
     const handler = (e: KeyboardEvent) => {
+      // Prevent all global shortcuts if user is typing in an input
+      const activeTag = (document.activeElement as HTMLElement)?.tagName?.toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea') return;
+
       const { undo, redo, deleteSelected } = useDiagramStore.getState();
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
       if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
         deleteSelected();
+      }
+
+      // Edge type cycling (e key)
+      if (e.key === 'e' || e.key === 'E') {
+        const store = useDiagramStore.getState();
+        const selectedEdgeIds = store.edges
+          .filter((edge) => edge.selected)
+          .map((edge) => edge.id);
+
+        if (selectedEdgeIds.length > 0) {
+          e.preventDefault();
+          const EDGE_TYPE_ORDER: EdgeType[] = ['sync', 'async', 'stream', 'event', 'dep'];
+          selectedEdgeIds.forEach((edgeId) => {
+            const edge = store.edges.find((e) => e.id === edgeId);
+            const currentType: EdgeType = edge?.data?.edgeType ?? 'sync';
+            const currentIndex = EDGE_TYPE_ORDER.indexOf(currentType);
+            const nextType = EDGE_TYPE_ORDER[(currentIndex + 1) % EDGE_TYPE_ORDER.length];
+            store.updateEdgeType(edgeId, nextType);
+          });
+        }
       }
     };
     window.addEventListener('keydown', handler);
