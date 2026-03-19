@@ -22,8 +22,9 @@ export const netflixTutorial: TutorialData = {
       searchHint: 'Client',
       messages: [
         { type: 'guide', content: "Welcome to the Netflix Architecture tutorial! 🎬 We're designing one of the most complex distributed systems ever built." },
-        { type: 'guide', content: "Netflix streams to 300M+ subscribers across 190 countries, on every device imaginable. Let's understand how." },
-        { type: 'guide', content: 'Start by adding the Client node — this represents every TV, phone, and browser that connects to Netflix.' },
+        { type: 'guide', content: "Netflix streams to 300M+ subscribers across 190 countries, on every device imaginable — TVs, phones, tablets, browsers. All connecting to the same backend." },
+        { type: 'guide', content: "Starting from the client reminds us that every design decision ultimately affects playback quality. A bad CDN choice means buffering. A slow recommendation service means users can't find what to watch." },
+        { type: 'guide', content: 'Add a Client (Web / Mobile) node using ⌘K.' },
       ],
       validation: {
         requiredNodes: ['client_web_mobile'],
@@ -41,8 +42,9 @@ export const netflixTutorial: TutorialData = {
       searchHint: 'DNS',
       messages: [
         { type: 'guide', content: 'Before a single frame of video plays, DNS routes your request to the nearest server.' },
+        { type: 'guide', content: "Netflix's CDN (Open Connect) has servers in ISP data centers worldwide. Your video might come from a server in the same building as your router — that's why it loads so fast." },
+        { type: 'guide', content: "Without a CDN, every video stream would travel from a central server. At 300M concurrent streams, that's physically impossible. The CDN is what makes Netflix work at global scale." },
         { type: 'guide', content: 'Add a DNS node and a CDN node. Connect: Client → DNS → CDN.' },
-        { type: 'guide', content: "Netflix's CDN (Open Connect) has servers in ISP data centers worldwide. Your video comes from a server that might be in the same building as your router." },
       ],
       validation: {
         requiredNodes: ['dns', 'cdn'],
@@ -63,8 +65,9 @@ export const netflixTutorial: TutorialData = {
       searchHint: 'API Gateway',
       messages: [
         { type: 'guide', content: 'Video goes through the CDN, but everything else — login, search, your watchlist — goes through the API.' },
-        { type: 'guide', content: 'Add an API Gateway and a Load Balancer. Connect: Client → API Gateway → Load Balancer.' },
         { type: 'guide', content: 'Netflix uses Zuul as their API gateway. It handles routing, authentication, and rate limiting for billions of API calls per day.' },
+        { type: 'guide', content: 'The Load Balancer distributes requests across hundreds of microservice instances. Netflix has hundreds of services — the load balancer ensures no single instance is overwhelmed.' },
+        { type: 'guide', content: 'Add an API Gateway and a Load Balancer. Connect: Client → API Gateway → Load Balancer.' },
       ],
       validation: {
         requiredNodes: ['api_gateway', 'load_balancer'],
@@ -85,8 +88,9 @@ export const netflixTutorial: TutorialData = {
       searchHint: 'Auth',
       messages: [
         { type: 'guide', content: 'Every request must be authenticated — Netflix needs to know who you are, what plan you have, and how many streams are active.' },
-        { type: 'guide', content: 'Add an Auth Service node. Connect: Load Balancer → Auth Service.' },
-        { type: 'guide', content: 'Netflix uses OAuth 2.0. The auth service also enforces concurrent stream limits — a key part of their subscription model.' },
+        { type: 'guide', content: 'Netflix uses OAuth 2.0. The Auth Service validates tokens, manages device sessions, and enforces concurrent stream limits — a key part of their subscription model.' },
+        { type: 'guide', content: 'If you try to stream on a 6th device on a 2-stream plan, auth blocks it in real time. This is also how Netflix enforces their password-sharing crackdown.' },
+        { type: 'guide', content: 'Add an Auth Service and connect: Load Balancer → Auth Service.' },
       ],
       validation: {
         requiredNodes: ['auth_service'],
@@ -104,8 +108,9 @@ export const netflixTutorial: TutorialData = {
       searchHint: 'Microservice',
       messages: [
         { type: 'guide', content: 'User accounts, profiles, and billing plans need reliable, consistent storage.' },
+        { type: 'guide', content: 'The User Service manages account data, profiles, and subscription plans. It uses a SQL database because this data is structured and requires ACID guarantees.' },
+        { type: 'guide', content: "You cannot double-charge a customer or lose a subscription record. SQL with ACID transactions is the right tool here — consistency matters more than scale for billing data." },
         { type: 'guide', content: 'Add a Microservice (User Service) and a SQL Database. Connect: Load Balancer → User Service → SQL Database.' },
-        { type: 'guide', content: 'Netflix uses MySQL (via their own distributed MySQL solution called MySQL Cluster) for account data. Consistency matters more than scale here.' },
       ],
       validation: {
         requiredNodes: ['microservice', 'sql_db'],
@@ -120,14 +125,15 @@ export const netflixTutorial: TutorialData = {
     {
       id: 6,
       title: 'Add Streaming Service + Object Storage',
-      explanation: 'The Streaming Service handles video playback requests — it generates signed URLs for the CDN to serve video chunks. The actual video files live in Object Storage (like S3), organized by title, quality, and codec.',
+      explanation: 'The Streaming Service handles video playback requests — it generates signed URLs for the CDN to serve video chunks. The actual video files live in Object Storage, organized by title, quality, and codec.',
       action: 'Add another "Microservice" node (Streaming Service) and an "Object Storage" node. Connect: Load Balancer → Streaming Service → Object Storage.',
       why: 'Video files are binary blobs that can be terabytes in size. Object storage is infinitely scalable and cheap for this use case. The streaming service generates time-limited URLs so only authenticated users can access files.',
       searchHint: 'Object Storage',
       messages: [
         { type: 'guide', content: "Now for the core of Netflix — actually serving video." },
-        { type: 'guide', content: 'Add a Microservice (Streaming Service) and an Object Storage node. Connect: Load Balancer → Streaming Service → Object Storage.' },
-        { type: 'guide', content: 'Netflix stores petabytes of video in S3-compatible object storage. The streaming service generates pre-signed URLs that the CDN uses to fetch and cache video chunks.' },
+        { type: 'guide', content: 'The Streaming Service generates pre-signed URLs that the CDN uses to fetch and cache video chunks. The actual video files live in Object Storage (S3-compatible) — petabytes of content organized by title, quality, and codec.' },
+        { type: 'guide', content: 'The signed URLs are time-limited — only authenticated users can access them, and they expire after a short window. This prevents unauthorized sharing of direct video links.' },
+        { type: 'guide', content: 'Add a Microservice (Streaming Service) and Object Storage. Connect: Load Balancer → Streaming Service → Object Storage.' },
       ],
       validation: {
         requiredNodes: ['object_storage'],
@@ -145,8 +151,9 @@ export const netflixTutorial: TutorialData = {
       searchHint: 'Worker',
       messages: [
         { type: 'guide', content: 'How does Netflix serve 4K on a TV and 480p on a slow mobile connection from the same title?' },
-        { type: 'guide', content: 'Add a Worker / Background Job node. Connect it to Object Storage.' },
-        { type: 'guide', content: "Netflix's encoding pipeline (called Archer) creates 1,200+ versions of every title. The streaming service picks the right version based on your device and network speed." },
+        { type: 'guide', content: "Netflix's encoding pipeline (called Archer) creates 1,200+ versions of every title — different resolutions, codecs (H.264, H.265, AV1), and bitrates. The streaming service picks the right version based on your device and network speed." },
+        { type: 'guide', content: 'A 4K stream needs 15-25 Mbps. The same content on 3G needs 0.5 Mbps. Without transcoding, you could only serve one quality level — either everyone buffers or 4K is impossible.' },
+        { type: 'guide', content: 'Add a Worker / Background Job node and connect it to Object Storage.' },
       ],
       validation: {
         requiredNodes: ['worker_job'],
@@ -164,8 +171,9 @@ export const netflixTutorial: TutorialData = {
       searchHint: 'Model Server',
       messages: [
         { type: 'guide', content: "80% of what people watch on Netflix comes from recommendations, not search." },
+        { type: 'guide', content: 'The Model Server runs trained collaborative filtering and deep learning models. It scores thousands of titles per user in milliseconds — figuring out what you are most likely to watch next.' },
+        { type: 'guide', content: "Without recommendations, users spend 90 seconds searching before giving up and leaving. The algorithm is not just a nice feature — it's core to Netflix's retention." },
         { type: 'guide', content: 'Add a Microservice (Recommendation Service) and a Model Server. Connect: Load Balancer → Recommendation Service → Model Server.' },
-        { type: 'guide', content: 'The model server runs trained collaborative filtering and deep learning models. It scores thousands of titles per user in milliseconds.' },
       ],
       validation: {
         requiredNodes: ['model_server'],
@@ -183,8 +191,9 @@ export const netflixTutorial: TutorialData = {
       searchHint: 'Kafka',
       messages: [
         { type: 'guide', content: 'Every time you play, pause, or skip, Netflix records it. These events are the fuel for the recommendation engine.' },
-        { type: 'guide', content: 'Add a Kafka / Streaming node. Connect: Streaming Service → Kafka.' },
         { type: 'guide', content: 'Netflix processes billions of viewing events per day through Kafka. These events feed the recommendation models, analytics dashboards, and content acquisition decisions.' },
+        { type: 'guide', content: "Viewing events are the training data for the recommendation algorithm. Without capturing every interaction, Netflix couldn't improve its models or decide which shows to produce next." },
+        { type: 'guide', content: 'Add a Kafka / Streaming node and connect: Streaming Service → Kafka.' },
       ],
       validation: {
         requiredNodes: ['kafka_streaming'],
@@ -202,8 +211,9 @@ export const netflixTutorial: TutorialData = {
       searchHint: 'Data Warehouse',
       messages: [
         { type: 'guide', content: 'Kafka events need to be stored in two places — individual history and aggregated analytics.' },
+        { type: 'guide', content: 'Netflix uses Cassandra for viewing history (NoSQL) — billions of records like "user X watched show Y for Z minutes at timestamp T". Variable schema, massive scale, fast writes.' },
+        { type: 'guide', content: 'The Data Warehouse (Hive/Spark on S3) handles analytical aggregations — "what percentage of users who started Stranger Things finished it?" — the queries that feed model training and business decisions.' },
         { type: 'guide', content: 'Add a Data Warehouse and a NoSQL Database. Connect both from Kafka.' },
-        { type: 'guide', content: 'Netflix uses Cassandra for viewing history (NoSQL) and Hive/Spark on S3 for analytics (data warehouse). Different tools for different query patterns.' },
       ],
       validation: {
         requiredNodes: ['data_warehouse', 'nosql_db'],
@@ -224,8 +234,9 @@ export const netflixTutorial: TutorialData = {
       searchHint: 'Metrics Collector',
       messages: [
         { type: 'guide', content: 'At Netflix scale, something is always broken somewhere. Observability is what separates a 5-minute outage from a 5-hour one.' },
-        { type: 'guide', content: 'Add a Metrics Collector and a Logger. Connect both from the Load Balancer.' },
-        { type: 'guide', content: "🎉 Congratulations — you've designed the Netflix architecture! From CDN routing to ML recommendations to chaos engineering observability." },
+        { type: 'guide', content: 'The Metrics Collector tracks service health, stream quality (rebuffering rate, startup time), and error rates. The Logger captures detailed traces for debugging specific failures.' },
+        { type: 'guide', content: "Netflix intentionally kills random services in production (Chaos Monkey) to test resilience. Without comprehensive metrics and logging, they couldn't detect failures or understand their blast radius." },
+        { type: 'guide', content: "Add a Metrics Collector and a Logger. Connect both from the Load Balancer. �� You've designed the Netflix architecture — from CDN routing to ML recommendations to chaos engineering observability!" },
       ],
       validation: {
         requiredNodes: ['metrics_collector', 'logger'],
@@ -233,7 +244,7 @@ export const netflixTutorial: TutorialData = {
           { from: 'Load Balancer', to: 'Metrics' },
           { from: 'Load Balancer', to: 'Logger' },
         ],
-        successMessage: "�� Tutorial complete! You've designed the Netflix streaming architecture from scratch.",
+        successMessage: "🎉 Tutorial complete! You've designed the Netflix streaming architecture from scratch.",
         errorMessage: 'Add Metrics Collector and Logger connected from the Load Balancer.',
       },
     },

@@ -8,21 +8,54 @@ import ReactFlow, {
   type NodeChange,
   type EdgeChange,
   type Connection,
+  type NodeProps,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
 import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { SystemNode } from '@/components/SystemNode';
+import type { NodeData } from '@/store/diagramStore';
 import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
 import { useTutorialStore } from '@/store/tutorialStore';
 import { ComponentPalette } from '@/components/tutorial/ComponentPalette';
+import { NodeTooltip } from '@/components/tutorial/NodeTooltip';
+import components from '@/data/components.json';
+
+type ComponentEntry = { id: string; label: string; category: string; color: string; description?: string };
+const componentMap = new Map<string, ComponentEntry>(
+  (components as ComponentEntry[]).map((c) => [c.label.toLowerCase(), c])
+);
+
+function findComponentMeta(label: string): ComponentEntry | undefined {
+  const key = label.toLowerCase();
+  if (componentMap.has(key)) return componentMap.get(key);
+  // fuzzy: find first entry whose label contains the node label or vice versa
+  for (const [k, v] of componentMap) {
+    if (k.includes(key) || key.includes(k)) return v;
+  }
+  return undefined;
+}
+
+function TutorialSystemNodeWrapper(props: NodeProps<NodeData>) {
+  const meta = findComponentMeta(props.data.label ?? '');
+  return (
+    <NodeTooltip
+      label={props.data.label ?? ''}
+      description={meta?.description}
+      category={props.data.category}
+      color={props.data.color ?? meta?.color}
+    >
+      <SystemNode {...props} />
+    </NodeTooltip>
+  );
+}
 
 const NODE_TYPES = {
-  systemNode: SystemNode,
+  systemNode: TutorialSystemNodeWrapper,
   shapeNode: ShapeNode,
   groupNode: GroupNode,
   textLabelNode: TextLabelNode,

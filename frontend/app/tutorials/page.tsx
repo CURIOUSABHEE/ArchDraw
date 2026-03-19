@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Clock, Layers, Brain, Image, BarChart2, Video, ArrowRight, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Clock, Layers, Brain, Image, BarChart2, Video, ArrowRight, CheckCircle, Share2, Check } from 'lucide-react';
 import { TUTORIALS } from '@/data/tutorials';
 import { useTutorialStore } from '@/store/tutorialStore';
 import type { TutorialData } from '@/data/tutorials';
@@ -23,12 +24,22 @@ const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: stri
 function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
   const router = useRouter();
   const { tutorialProgress, completedTutorials } = useTutorialStore();
+  const [copied, setCopied] = useState(false);
 
   const progress = tutorialProgress[tutorial.id] ?? 0;
   const isCompleted = completedTutorials.includes(tutorial.id);
   const isInProgress = progress > 0 && !isCompleted;
   const diffStyle = DIFFICULTY_STYLES[tutorial.difficulty] ?? DIFFICULTY_STYLES.Intermediate;
   const IconComp = ICON_MAP[tutorial.icon];
+
+  function handleShare(e: React.MouseEvent) {
+    e.stopPropagation();
+    const url = `${window.location.origin}/tutorials/${tutorial.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   return (
     <div
@@ -71,6 +82,16 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
         {isCompleted && (
           <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
         )}
+        <button
+          onClick={handleShare}
+          className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+          style={{ background: 'rgba(255,255,255,0.05)', color: copied ? '#4ade80' : '#64748b' }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+          title="Copy link"
+        >
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+        </button>
       </div>
 
       {/* Title + description */}

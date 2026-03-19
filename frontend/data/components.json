@@ -4,448 +4,495 @@
     "label": "Client (Web / Mobile)",
     "category": "Client & Entry",
     "color": "#6366f1",
-    "icon": "Monitor"
+    "icon": "Monitor",
+    "description": "The user-facing app — browser or mobile — that initiates all requests into the system."
   },
   {
     "id": "dns",
     "label": "DNS",
     "category": "Client & Entry",
     "color": "#6366f1",
-    "icon": "Globe"
+    "icon": "Globe",
+    "description": "Translates human-readable domain names into IP addresses so clients can reach your servers."
   },
   {
     "id": "cdn",
     "label": "CDN",
     "category": "Client & Entry",
     "color": "#6366f1",
-    "icon": "RadioTower"
+    "icon": "RadioTower",
+    "description": "Caches static assets at edge locations worldwide to reduce latency for global users."
   },
   {
     "id": "api_gateway",
     "label": "API Gateway",
     "category": "Client & Entry",
     "color": "#6366f1",
-    "icon": "Webhook"
+    "icon": "Webhook",
+    "description": "Routes all client requests to the correct backend service while enforcing auth and rate limits."
   },
   {
     "id": "load_balancer",
     "label": "Load Balancer",
     "category": "Client & Entry",
     "color": "#6366f1",
-    "icon": "Scale"
+    "icon": "Scale",
+    "description": "Distributes incoming traffic across multiple servers to prevent any single point of failure."
   },
   {
     "id": "reverse_proxy",
     "label": "Reverse Proxy",
     "category": "Client & Entry",
     "color": "#6366f1",
-    "icon": "Shuffle"
+    "icon": "Shuffle",
+    "description": "Sits in front of servers to handle SSL termination, caching, and request forwarding."
   },
   {
     "id": "server_monolith",
     "label": "Server (Monolith)",
     "category": "Compute",
     "color": "#3b82f6",
-    "icon": "Server"
+    "icon": "Server",
+    "description": "A single deployable unit containing all application logic — simple to start, harder to scale."
   },
   {
     "id": "microservice",
     "label": "Microservice",
     "category": "Compute",
     "color": "#3b82f6",
-    "icon": "Boxes"
+    "icon": "Boxes",
+    "description": "An independently deployable service responsible for a single business capability."
   },
   {
     "id": "serverless_fn",
     "label": "Serverless Function",
     "category": "Compute",
     "color": "#3b82f6",
-    "icon": "Zap"
+    "icon": "Zap",
+    "description": "Event-driven compute that scales to zero — you only pay when code is actually running."
   },
   {
     "id": "worker_job",
     "label": "Worker / Background Job",
     "category": "Compute",
     "color": "#3b82f6",
-    "icon": "Timer"
+    "icon": "Timer",
+    "description": "Processes tasks asynchronously in the background without blocking the main request flow."
   },
   {
     "id": "container",
     "label": "Container (Docker / K8s)",
     "category": "Compute",
     "color": "#3b82f6",
-    "icon": "Box"
+    "icon": "Box",
+    "description": "Packages code and dependencies together for consistent, portable deployment across environments."
   },
   {
     "id": "sql_db",
     "label": "SQL Database",
     "category": "Data Storage",
     "color": "#334155",
-    "icon": "Database"
+    "icon": "Database",
+    "description": "Stores structured relational data with ACID guarantees — ideal for transactions and complex queries."
   },
   {
     "id": "nosql_db",
     "label": "NoSQL Database",
     "category": "Data Storage",
     "color": "#334155",
-    "icon": "Leaf"
+    "icon": "Leaf",
+    "description": "Flexible schema database optimized for high-throughput reads and writes at massive scale."
   },
   {
     "id": "object_storage",
     "label": "Object Storage (S3-like)",
     "category": "Data Storage",
     "color": "#334155",
-    "icon": "HardDrive"
+    "icon": "HardDrive",
+    "description": "Infinitely scalable storage for binary files like images, videos, and backups."
   },
   {
     "id": "file_system",
     "label": "File System",
     "category": "Data Storage",
     "color": "#334155",
-    "icon": "FolderOpen"
+    "icon": "FolderOpen",
+    "description": "Hierarchical file storage for structured data that needs direct filesystem access."
   },
   {
     "id": "search_engine",
     "label": "Search Engine",
     "category": "Data Storage",
     "color": "#334155",
-    "icon": "Search"
+    "icon": "Search",
+    "description": "Full-text search index that enables fast, relevance-ranked queries across large datasets."
   },
   {
     "id": "data_warehouse",
     "label": "Data Warehouse",
     "category": "Data Storage",
     "color": "#334155",
-    "icon": "Building2"
+    "icon": "Building2",
+    "description": "Columnar storage optimized for analytical queries across billions of historical records."
   },
   {
     "id": "in_memory_cache",
     "label": "In-Memory Cache",
     "category": "Caching",
     "color": "#ef4444",
-    "icon": "Layers"
+    "icon": "Layers",
+    "description": "Stores frequently accessed data in RAM for sub-millisecond read latency."
   },
   {
     "id": "cdn_cache",
     "label": "CDN Cache",
     "category": "Caching",
     "color": "#ef4444",
-    "icon": "Globe"
+    "icon": "Globe",
+    "description": "Caches responses at edge nodes so repeat requests never reach the origin server."
   },
   {
     "id": "app_cache",
     "label": "Application Cache",
     "category": "Caching",
     "color": "#ef4444",
-    "icon": "AppWindow"
+    "icon": "AppWindow",
+    "description": "In-process cache that stores computed results to avoid redundant work within a service."
   },
   {
     "id": "message_queue",
     "label": "Message Queue",
     "category": "Messaging & Events",
     "color": "#f59e0b",
-    "icon": "MessageSquare"
+    "icon": "MessageSquare",
+    "description": "Buffers messages between services so producers and consumers can operate at different speeds."
   },
   {
     "id": "event_bus",
     "label": "Event Bus / Pub-Sub",
     "category": "Messaging & Events",
     "color": "#f59e0b",
-    "icon": "Radio"
+    "icon": "Radio",
+    "description": "Broadcasts events to multiple subscribers so services react independently without tight coupling."
   },
   {
     "id": "kafka_streaming",
     "label": "Kafka / Streaming",
     "category": "Messaging & Events",
     "color": "#f59e0b",
-    "icon": "Activity"
+    "icon": "Activity",
+    "description": "Processes millions of real-time events per second with durable, replayable log storage."
   },
   {
     "id": "webhook",
     "label": "Webhook",
     "category": "Messaging & Events",
     "color": "#f59e0b",
-    "icon": "Webhook"
+    "icon": "Webhook",
+    "description": "Sends HTTP callbacks to external systems when specific events occur in your application."
   },
   {
     "id": "auth_service",
     "label": "Auth Service (JWT)",
     "category": "Auth & Security",
     "color": "#8b5cf6",
-    "icon": "Shield"
+    "icon": "Shield",
+    "description": "Validates user identity and manages access tokens to protect every secured endpoint."
   },
   {
     "id": "oauth_provider",
     "label": "OAuth / Identity Provider",
     "category": "Auth & Security",
     "color": "#8b5cf6",
-    "icon": "KeyRound"
+    "icon": "KeyRound",
+    "description": "Delegates authentication to a trusted third party like Google, GitHub, or Auth0."
   },
   {
     "id": "api_key_manager",
     "label": "API Key Manager",
     "category": "Auth & Security",
     "color": "#8b5cf6",
-    "icon": "Key"
+    "icon": "Key",
+    "description": "Issues and validates API keys to authenticate machine-to-machine service requests."
   },
   {
     "id": "firewall_waf",
     "label": "Firewall / WAF",
     "category": "Auth & Security",
     "color": "#8b5cf6",
-    "icon": "ShieldAlert"
+    "icon": "ShieldAlert",
+    "description": "Filters malicious traffic and blocks common web attacks before they reach your application."
   },
   {
     "id": "logger",
     "label": "Logger",
     "category": "Observability",
     "color": "#06b6d4",
-    "icon": "ScrollText"
+    "icon": "ScrollText",
+    "description": "Captures structured request traces and error details for debugging production issues."
   },
   {
     "id": "metrics_collector",
     "label": "Metrics Collector",
     "category": "Observability",
     "color": "#06b6d4",
-    "icon": "BarChart2"
+    "icon": "BarChart2",
+    "description": "Aggregates system health data like latency, error rate, and throughput in real time."
   },
   {
     "id": "tracing_service",
     "label": "Tracing Service",
     "category": "Observability",
     "color": "#06b6d4",
-    "icon": "GitBranch"
+    "icon": "GitBranch",
+    "description": "Tracks a request's full journey across microservices to pinpoint latency bottlenecks."
   },
   {
     "id": "alert_manager",
     "label": "Alert Manager",
     "category": "Observability",
     "color": "#06b6d4",
-    "icon": "Bell"
+    "icon": "Bell",
+    "description": "Fires notifications to on-call engineers when metrics breach defined thresholds."
   },
   {
     "id": "dashboard",
     "label": "Dashboard (Grafana)",
     "category": "Observability",
     "color": "#06b6d4",
-    "icon": "LayoutDashboard"
+    "icon": "LayoutDashboard",
+    "description": "Visualizes metrics and logs in real-time panels so teams can monitor system health at a glance."
   },
   {
     "id": "llm_api",
     "label": "LLM API (GPT / Claude)",
     "category": "AI / ML",
     "color": "#ec4899",
-    "icon": "Brain"
+    "icon": "Brain",
+    "description": "Generates AI responses by sending conversation context to a large language model."
   },
   {
     "id": "vector_db",
     "label": "Vector Database",
     "category": "AI / ML",
     "color": "#ec4899",
-    "icon": "Cpu"
+    "icon": "Cpu",
+    "description": "Stores embeddings for AI-powered similarity search and long-term memory retrieval."
   },
   {
     "id": "embedding_service",
     "label": "Embedding Service",
     "category": "AI / ML",
     "color": "#ec4899",
-    "icon": "Network"
+    "icon": "Network",
+    "description": "Converts text or images into dense vector representations for semantic search."
   },
   {
     "id": "rag_pipeline",
     "label": "RAG Pipeline",
     "category": "AI / ML",
     "color": "#ec4899",
-    "icon": "GitMerge"
+    "icon": "GitMerge",
+    "description": "Retrieves relevant context from a knowledge base and injects it into LLM prompts."
   },
   {
     "id": "model_server",
     "label": "Model Server",
     "category": "AI / ML",
     "color": "#ec4899",
-    "icon": "Bot"
+    "icon": "Bot",
+    "description": "Hosts and serves ML models as an API endpoint with batching and GPU optimization."
   },
   {
     "id": "email_service",
     "label": "Email Service (SendGrid)",
     "category": "External Services",
     "color": "#10b981",
-    "icon": "Mail"
+    "icon": "Mail",
+    "description": "Sends transactional and marketing emails reliably at scale via a managed provider."
   },
   {
     "id": "payment_gateway",
     "label": "Payment Gateway (Stripe)",
     "category": "External Services",
     "color": "#10b981",
-    "icon": "CreditCard"
+    "icon": "CreditCard",
+    "description": "Handles payment processing, subscriptions, and fraud detection through a third-party provider."
   },
   {
     "id": "sms_push",
     "label": "SMS / Push Notification",
     "category": "External Services",
     "color": "#10b981",
-    "icon": "Smartphone"
+    "icon": "Smartphone",
+    "description": "Delivers real-time alerts to users via SMS or mobile push through APNs and FCM."
   },
   {
     "id": "maps_api",
     "label": "Maps API",
     "category": "External Services",
     "color": "#10b981",
-    "icon": "Map"
+    "icon": "Map",
+    "description": "Provides geolocation, routing, and map rendering capabilities from an external provider."
   },
   {
     "id": "third_party_api",
     "label": "Generic 3rd Party API",
     "category": "External Services",
     "color": "#10b981",
-    "icon": "Plug"
+    "icon": "Plug",
+    "description": "Represents any external service your system integrates with via HTTP API."
   },
   {
     "id": "cicd_pipeline",
     "label": "CI/CD Pipeline",
     "category": "DevOps / Infra",
     "color": "#64748b",
-    "icon": "GitPullRequest"
+    "icon": "GitPullRequest",
+    "description": "Automates building, testing, and deploying code changes on every commit."
   },
   {
     "id": "container_registry",
     "label": "Container Registry",
     "category": "DevOps / Infra",
     "color": "#64748b",
-    "icon": "Package"
+    "icon": "Package",
+    "description": "Stores and versions Docker images so they can be pulled and deployed consistently."
   },
   {
     "id": "secret_manager",
     "label": "Secret Manager",
     "category": "DevOps / Infra",
     "color": "#64748b",
-    "icon": "Lock"
+    "icon": "Lock",
+    "description": "Securely stores and rotates API keys, passwords, and certificates used by services."
   },
   {
     "id": "config_service",
     "label": "Config Service",
     "category": "DevOps / Infra",
     "color": "#64748b",
-    "icon": "Settings"
+    "icon": "Settings",
+    "description": "Centralizes application configuration so settings can be changed without redeploying."
   },
-  { "id": "ai_agent", "label": "AI Agent", "category": "AI Agents", "color": "#ec4899", "icon": "Bot" },
-  { "id": "agent_orchestrator", "label": "Agent Orchestrator", "category": "AI Agents", "color": "#ec4899", "icon": "GitMerge" },
-  { "id": "multi_agent_system", "label": "Multi-Agent System", "category": "AI Agents", "color": "#ec4899", "icon": "Users" },
-  { "id": "agent_memory", "label": "Agent Memory", "category": "AI Agents", "color": "#ec4899", "icon": "Brain" },
-  { "id": "agent_planner", "label": "Agent Planner", "category": "AI Agents", "color": "#ec4899", "icon": "ListTodo" },
-  { "id": "agent_executor", "label": "Agent Executor", "category": "AI Agents", "color": "#ec4899", "icon": "Play" },
-  { "id": "tool_registry", "label": "Tool Registry", "category": "AI Agents", "color": "#ec4899", "icon": "Wrench" },
-  { "id": "agent_supervisor", "label": "Agent Supervisor", "category": "AI Agents", "color": "#ec4899", "icon": "Shield" },
-  { "id": "reflection_module", "label": "Reflection Module", "category": "AI Agents", "color": "#ec4899", "icon": "RefreshCw" },
-  { "id": "task_decomposer", "label": "Task Decomposer", "category": "AI Agents", "color": "#ec4899", "icon": "Scissors" },
-  { "id": "agent_router", "label": "Agent Router", "category": "AI Agents", "color": "#ec4899", "icon": "Shuffle" },
-  { "id": "critic_agent", "label": "Critic Agent", "category": "AI Agents", "color": "#ec4899", "icon": "MessageSquareWarning" },
-  { "id": "llm_openai", "label": "OpenAI GPT-4", "category": "LLM Models", "color": "#10a37f", "icon": "Brain" },
-  { "id": "llm_claude", "label": "Anthropic Claude", "category": "LLM Models", "color": "#d97757", "icon": "Brain" },
-  { "id": "llm_gemini", "label": "Google Gemini", "category": "LLM Models", "color": "#4285f4", "icon": "Brain" },
-  { "id": "llm_mistral", "label": "Mistral", "category": "LLM Models", "color": "#ff7000", "icon": "Brain" },
-  { "id": "llm_llama", "label": "Meta LLaMA", "category": "LLM Models", "color": "#0082fb", "icon": "Brain" },
-  { "id": "llm_local", "label": "Local LLM (Ollama)", "category": "LLM Models", "color": "#64748b", "icon": "Server" },
-  { "id": "llm_gateway", "label": "LLM Gateway", "category": "LLM Models", "color": "#10a37f", "icon": "Webhook" },
-  { "id": "llm_router", "label": "LLM Router", "category": "LLM Models", "color": "#10a37f", "icon": "Shuffle" },
-  { "id": "llm_load_balancer", "label": "LLM Load Balancer", "category": "LLM Models", "color": "#10a37f", "icon": "Scale" },
-  { "id": "model_registry", "label": "Model Registry", "category": "LLM Models", "color": "#10a37f", "icon": "Package" },
-  { "id": "fine_tuned_model", "label": "Fine-tuned Model", "category": "LLM Models", "color": "#10a37f", "icon": "Sliders" },
-  { "id": "multimodal_model", "label": "Multimodal Model", "category": "LLM Models", "color": "#10a37f", "icon": "Layers" },
-  { "id": "rag_pipeline_new", "label": "RAG Pipeline", "category": "RAG", "color": "#8b5cf6", "icon": "GitMerge" },
-  { "id": "document_loader", "label": "Document Loader", "category": "RAG", "color": "#8b5cf6", "icon": "FileInput" },
-  { "id": "text_splitter", "label": "Text Splitter / Chunker", "category": "RAG", "color": "#8b5cf6", "icon": "Scissors" },
-  { "id": "embedding_model", "label": "Embedding Model", "category": "RAG", "color": "#8b5cf6", "icon": "Network" },
-  { "id": "vector_store", "label": "Vector Store", "category": "RAG", "color": "#8b5cf6", "icon": "Database" },
-  { "id": "retriever", "label": "Retriever", "category": "RAG", "color": "#8b5cf6", "icon": "Search" },
-  { "id": "reranker", "label": "Reranker", "category": "RAG", "color": "#8b5cf6", "icon": "ArrowUpDown" },
-  { "id": "context_builder", "label": "Context Builder", "category": "RAG", "color": "#8b5cf6", "icon": "LayoutList" },
-  { "id": "query_expander", "label": "Query Expander", "category": "RAG", "color": "#8b5cf6", "icon": "Expand" },
-  { "id": "hybrid_search", "label": "Hybrid Search", "category": "RAG", "color": "#8b5cf6", "icon": "Search" },
-  { "id": "knowledge_graph", "label": "Knowledge Graph", "category": "RAG", "color": "#8b5cf6", "icon": "Share2" },
-  { "id": "document_parser", "label": "Document Parser", "category": "RAG", "color": "#8b5cf6", "icon": "FileText" },
-  { "id": "semantic_cache", "label": "Semantic Cache", "category": "RAG", "color": "#8b5cf6", "icon": "Layers" },
-  { "id": "pinecone", "label": "Pinecone", "category": "Vector Databases", "color": "#00b47e", "icon": "Database" },
-  { "id": "weaviate", "label": "Weaviate", "category": "Vector Databases", "color": "#fa0050", "icon": "Database" },
-  { "id": "qdrant", "label": "Qdrant", "category": "Vector Databases", "color": "#ff4081", "icon": "Database" },
-  { "id": "chroma_db", "label": "ChromaDB", "category": "Vector Databases", "color": "#f97316", "icon": "Database" },
-  { "id": "milvus", "label": "Milvus", "category": "Vector Databases", "color": "#00b4d8", "icon": "Database" },
-  { "id": "pgvector", "label": "pgvector (Postgres)", "category": "Vector Databases", "color": "#336791", "icon": "Database" },
-  { "id": "faiss", "label": "FAISS (Local)", "category": "Vector Databases", "color": "#4267b2", "icon": "Database" },
-  { "id": "training_pipeline", "label": "Training Pipeline", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "GitBranch" },
-  { "id": "data_preprocessing", "label": "Data Preprocessing", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Filter" },
-  { "id": "feature_store", "label": "Feature Store", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Table" },
-  { "id": "model_trainer", "label": "Model Trainer", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Dumbbell" },
-  { "id": "hyperparameter_tuner", "label": "Hyperparameter Tuner", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Sliders" },
-  { "id": "experiment_tracker", "label": "Experiment Tracker", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "FlaskConical" },
-  { "id": "model_evaluator", "label": "Model Evaluator", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "BarChart2" },
-  { "id": "dataset_store", "label": "Dataset Store", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "HardDrive" },
-  { "id": "data_versioning", "label": "Data Versioning (DVC)", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "GitBranch" },
-  { "id": "gpu_cluster", "label": "GPU Cluster", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Cpu" },
-  { "id": "distributed_training", "label": "Distributed Training", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Network" },
-  { "id": "fine_tuning_pipeline", "label": "Fine-tuning Pipeline", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Settings" },
-  { "id": "model_server_ml", "label": "Model Server", "category": "ML Serving", "color": "#06b6d4", "icon": "Server" },
-  { "id": "inference_engine", "label": "Inference Engine", "category": "ML Serving", "color": "#06b6d4", "icon": "Zap" },
-  { "id": "triton_server", "label": "Triton Inference Server", "category": "ML Serving", "color": "#06b6d4", "icon": "Server" },
-  { "id": "torchserve", "label": "TorchServe", "category": "ML Serving", "color": "#06b6d4", "icon": "Server" },
-  { "id": "model_cache", "label": "Model Cache", "category": "ML Serving", "color": "#06b6d4", "icon": "Layers" },
-  { "id": "batch_inference", "label": "Batch Inference", "category": "ML Serving", "color": "#06b6d4", "icon": "Timer" },
-  { "id": "streaming_inference", "label": "Streaming Inference", "category": "ML Serving", "color": "#06b6d4", "icon": "Activity" },
-  { "id": "model_quantizer", "label": "Model Quantizer", "category": "ML Serving", "color": "#06b6d4", "icon": "Minimize" },
-  { "id": "ab_testing_ml", "label": "A/B Testing (ML)", "category": "ML Serving", "color": "#06b6d4", "icon": "Split" },
-  { "id": "shadow_deployment", "label": "Shadow Deployment", "category": "ML Serving", "color": "#06b6d4", "icon": "Copy" },
-  { "id": "mlflow", "label": "MLflow", "category": "MLOps", "color": "#0194e2", "icon": "FlaskConical" },
-  { "id": "weights_biases", "label": "Weights & Biases", "category": "MLOps", "color": "#ffbe00", "icon": "Activity" },
-  { "id": "model_monitor", "label": "Model Monitor", "category": "MLOps", "color": "#3b82f6", "icon": "Activity" },
-  { "id": "data_drift_detector", "label": "Data Drift Detector", "category": "MLOps", "color": "#3b82f6", "icon": "AlertTriangle" },
-  { "id": "model_drift_detector", "label": "Model Drift Detector", "category": "MLOps", "color": "#3b82f6", "icon": "TrendingDown" },
-  { "id": "prediction_logger", "label": "Prediction Logger", "category": "MLOps", "color": "#3b82f6", "icon": "ScrollText" },
-  { "id": "feedback_collector", "label": "Feedback Collector", "category": "MLOps", "color": "#3b82f6", "icon": "ThumbsUp" },
-  { "id": "retraining_trigger", "label": "Retraining Trigger", "category": "MLOps", "color": "#3b82f6", "icon": "RefreshCw" },
-  { "id": "model_versioning", "label": "Model Versioning", "category": "MLOps", "color": "#3b82f6", "icon": "GitBranch" },
-  { "id": "explainability_service", "label": "Explainability Service", "category": "MLOps", "color": "#3b82f6", "icon": "Lightbulb" },
-  { "id": "prompt_template", "label": "Prompt Template", "category": "LLM Ops", "color": "#10b981", "icon": "FileCode" },
-  { "id": "prompt_registry", "label": "Prompt Registry", "category": "LLM Ops", "color": "#10b981", "icon": "BookOpen" },
-  { "id": "prompt_optimizer", "label": "Prompt Optimizer", "category": "LLM Ops", "color": "#10b981", "icon": "Wand2" },
-  { "id": "output_parser", "label": "Output Parser", "category": "LLM Ops", "color": "#10b981", "icon": "Code" },
-  { "id": "structured_output", "label": "Structured Output", "category": "LLM Ops", "color": "#10b981", "icon": "Braces" },
-  { "id": "guardrails", "label": "Guardrails / Safety", "category": "LLM Ops", "color": "#10b981", "icon": "ShieldCheck" },
-  { "id": "content_filter", "label": "Content Filter", "category": "LLM Ops", "color": "#10b981", "icon": "Filter" },
-  { "id": "hallucination_detector", "label": "Hallucination Detector", "category": "LLM Ops", "color": "#10b981", "icon": "AlertCircle" },
-  { "id": "token_counter", "label": "Token Counter", "category": "LLM Ops", "color": "#10b981", "icon": "Hash" },
-  { "id": "context_window_manager", "label": "Context Window Manager", "category": "LLM Ops", "color": "#10b981", "icon": "LayoutList" },
-  { "id": "llm_cache", "label": "LLM Response Cache", "category": "LLM Ops", "color": "#10b981", "icon": "Layers" },
-  { "id": "cost_tracker", "label": "Cost Tracker", "category": "LLM Ops", "color": "#10b981", "icon": "DollarSign" },
-  { "id": "langchain", "label": "LangChain", "category": "AI Frameworks", "color": "#1c3c54", "icon": "Link" },
-  { "id": "langgraph", "label": "LangGraph", "category": "AI Frameworks", "color": "#1c3c54", "icon": "GitBranch" },
-  { "id": "llamaindex", "label": "LlamaIndex", "category": "AI Frameworks", "color": "#fbba14", "icon": "BookOpen" },
-  { "id": "autogen", "label": "AutoGen", "category": "AI Frameworks", "color": "#0078d4", "icon": "Users" },
-  { "id": "crewai", "label": "CrewAI", "category": "AI Frameworks", "color": "#ef4444", "icon": "Users" },
-  { "id": "dspy", "label": "DSPy", "category": "AI Frameworks", "color": "#6366f1", "icon": "Code" },
-  { "id": "haystack", "label": "Haystack", "category": "AI Frameworks", "color": "#ffd14f", "icon": "Search" },
-  { "id": "semantic_kernel", "label": "Semantic Kernel", "category": "AI Frameworks", "color": "#0078d4", "icon": "Cpu" },
-  { "id": "instructor", "label": "Instructor", "category": "AI Frameworks", "color": "#6366f1", "icon": "GraduationCap" },
-  { "id": "data_ingestion", "label": "Data Ingestion", "category": "AI Data Pipeline", "color": "#64748b", "icon": "Download" },
-  { "id": "etl_pipeline", "label": "ETL Pipeline", "category": "AI Data Pipeline", "color": "#64748b", "icon": "ArrowLeftRight" },
-  { "id": "data_labeling", "label": "Data Labeling Service", "category": "AI Data Pipeline", "color": "#64748b", "icon": "Tag" },
-  { "id": "data_validation", "label": "Data Validation", "category": "AI Data Pipeline", "color": "#64748b", "icon": "CheckCheck" },
-  { "id": "synthetic_data", "label": "Synthetic Data Generator", "category": "AI Data Pipeline", "color": "#64748b", "icon": "Wand2" },
-  { "id": "data_catalog", "label": "Data Catalog", "category": "AI Data Pipeline", "color": "#64748b", "icon": "BookOpen" },
-  { "id": "web_scraper", "label": "Web Scraper", "category": "AI Data Pipeline", "color": "#64748b", "icon": "Globe" },
-  { "id": "pdf_extractor", "label": "PDF Extractor", "category": "AI Data Pipeline", "color": "#64748b", "icon": "FileText" },
-  { "id": "ocr_service", "label": "OCR Service", "category": "AI Data Pipeline", "color": "#64748b", "icon": "ScanText" },
-  { "id": "stt_service", "label": "Speech-to-Text (STT)", "category": "Speech & Audio", "color": "#a855f7", "icon": "Mic" },
-  { "id": "tts_service", "label": "Text-to-Speech (TTS)", "category": "Speech & Audio", "color": "#a855f7", "icon": "Volume2" },
-  { "id": "whisper", "label": "Whisper (OpenAI)", "category": "Speech & Audio", "color": "#10a37f", "icon": "Mic" },
-  { "id": "elevenlabs_tts", "label": "ElevenLabs TTS", "category": "Speech & Audio", "color": "#2563eb", "icon": "AudioLines" },
-  { "id": "audio_processor", "label": "Audio Processor", "category": "Speech & Audio", "color": "#a855f7", "icon": "AudioWaveform" },
-  { "id": "voice_activity_detector", "label": "Voice Activity Detector", "category": "Speech & Audio", "color": "#a855f7", "icon": "Activity" },
-  { "id": "image_classifier", "label": "Image Classifier", "category": "Vision AI", "color": "#f97316", "icon": "Image" },
-  { "id": "object_detector", "label": "Object Detector", "category": "Vision AI", "color": "#f97316", "icon": "ScanSearch" },
-  { "id": "image_embedder", "label": "Image Embedder", "category": "Vision AI", "color": "#f97316", "icon": "Network" },
-  { "id": "image_generator", "label": "Image Generator", "category": "Vision AI", "color": "#f97316", "icon": "ImagePlus" },
-  { "id": "vision_llm", "label": "Vision LLM (GPT-4V)", "category": "Vision AI", "color": "#f97316", "icon": "Eye" },
-  { "id": "ocr_ai", "label": "AI OCR", "category": "Vision AI", "color": "#f97316", "icon": "ScanText" },
-  { "id": "video_analyzer", "label": "Video Analyzer", "category": "Vision AI", "color": "#f97316", "icon": "Video" },
-  { "id": "diffusion_model", "label": "Diffusion Model", "category": "Vision AI", "color": "#f97316", "icon": "Sparkles" }
+  { "id": "ai_agent", "label": "AI Agent", "category": "AI Agents", "color": "#ec4899", "icon": "Bot", "description": "An autonomous AI that perceives its environment and takes actions to achieve a goal." },
+  { "id": "agent_orchestrator", "label": "Agent Orchestrator", "category": "AI Agents", "color": "#ec4899", "icon": "GitMerge", "description": "Coordinates multiple agents, routing tasks and aggregating their outputs." },
+  { "id": "multi_agent_system", "label": "Multi-Agent System", "category": "AI Agents", "color": "#ec4899", "icon": "Users", "description": "A network of specialized agents that collaborate to solve complex tasks." },
+  { "id": "agent_memory", "label": "Agent Memory", "category": "AI Agents", "color": "#ec4899", "icon": "Brain", "description": "Persists an agent's past interactions and learned context across sessions." },
+  { "id": "agent_planner", "label": "Agent Planner", "category": "AI Agents", "color": "#ec4899", "icon": "ListTodo", "description": "Breaks down high-level goals into ordered subtasks for the agent to execute." },
+  { "id": "agent_executor", "label": "Agent Executor", "category": "AI Agents", "color": "#ec4899", "icon": "Play", "description": "Runs the planned steps by calling tools and services on behalf of the agent." },
+  { "id": "tool_registry", "label": "Tool Registry", "category": "AI Agents", "color": "#ec4899", "icon": "Wrench", "description": "Catalogs available tools and APIs that agents can discover and invoke." },
+  { "id": "agent_supervisor", "label": "Agent Supervisor", "category": "AI Agents", "color": "#ec4899", "icon": "Shield", "description": "Monitors agent behavior and intervenes when outputs violate safety constraints." },
+  { "id": "reflection_module", "label": "Reflection Module", "category": "AI Agents", "color": "#ec4899", "icon": "RefreshCw", "description": "Lets an agent critique and revise its own outputs before returning a final answer." },
+  { "id": "task_decomposer", "label": "Task Decomposer", "category": "AI Agents", "color": "#ec4899", "icon": "Scissors", "description": "Splits a complex task into smaller, parallelizable subtasks for efficient execution." },
+  { "id": "agent_router", "label": "Agent Router", "category": "AI Agents", "color": "#ec4899", "icon": "Shuffle", "description": "Directs incoming requests to the most appropriate specialized agent." },
+  { "id": "critic_agent", "label": "Critic Agent", "category": "AI Agents", "color": "#ec4899", "icon": "MessageSquareWarning", "description": "Evaluates another agent's output and provides structured feedback for improvement." },
+  { "id": "llm_openai", "label": "OpenAI GPT-4", "category": "LLM Models", "color": "#10a37f", "icon": "Brain", "description": "OpenAI's flagship model for complex reasoning, coding, and instruction following." },
+  { "id": "llm_claude", "label": "Anthropic Claude", "category": "LLM Models", "color": "#d97757", "icon": "Brain", "description": "Anthropic's safety-focused LLM with a large context window and strong reasoning." },
+  { "id": "llm_gemini", "label": "Google Gemini", "category": "LLM Models", "color": "#4285f4", "icon": "Brain", "description": "Google's multimodal LLM capable of processing text, images, audio, and video." },
+  { "id": "llm_mistral", "label": "Mistral", "category": "LLM Models", "color": "#ff7000", "icon": "Brain", "description": "Efficient open-weight LLM optimized for speed and performance on limited hardware." },
+  { "id": "llm_llama", "label": "Meta LLaMA", "category": "LLM Models", "color": "#0082fb", "icon": "Brain", "description": "Meta's open-source LLM family that can be self-hosted for full data privacy." },
+  { "id": "llm_local", "label": "Local LLM (Ollama)", "category": "LLM Models", "color": "#64748b", "icon": "Server", "description": "Runs open-source LLMs locally on your own hardware with no external API calls." },
+  { "id": "llm_gateway", "label": "LLM Gateway", "category": "LLM Models", "color": "#10a37f", "icon": "Webhook", "description": "Unified API layer that routes requests across multiple LLM providers with fallback." },
+  { "id": "llm_router", "label": "LLM Router", "category": "LLM Models", "color": "#10a37f", "icon": "Shuffle", "description": "Selects the best LLM for each request based on cost, latency, or capability." },
+  { "id": "llm_load_balancer", "label": "LLM Load Balancer", "category": "LLM Models", "color": "#10a37f", "icon": "Scale", "description": "Distributes LLM requests across multiple model instances to maximize throughput." },
+  { "id": "model_registry", "label": "Model Registry", "category": "LLM Models", "color": "#10a37f", "icon": "Package", "description": "Catalogs versioned model artifacts with metadata for reproducible deployments." },
+  { "id": "fine_tuned_model", "label": "Fine-tuned Model", "category": "LLM Models", "color": "#10a37f", "icon": "Sliders", "description": "A base LLM further trained on domain-specific data to improve task performance." },
+  { "id": "multimodal_model", "label": "Multimodal Model", "category": "LLM Models", "color": "#10a37f", "icon": "Layers", "description": "Processes and generates across multiple modalities like text, images, and audio." },
+  { "id": "rag_pipeline_new", "label": "RAG Pipeline", "category": "RAG", "color": "#8b5cf6", "icon": "GitMerge", "description": "Retrieves relevant documents and injects them as context into LLM prompts." },
+  { "id": "document_loader", "label": "Document Loader", "category": "RAG", "color": "#8b5cf6", "icon": "FileInput", "description": "Ingests documents from various sources like PDFs, URLs, and databases into the pipeline." },
+  { "id": "text_splitter", "label": "Text Splitter / Chunker", "category": "RAG", "color": "#8b5cf6", "icon": "Scissors", "description": "Divides long documents into smaller chunks that fit within the model's context window." },
+  { "id": "embedding_model", "label": "Embedding Model", "category": "RAG", "color": "#8b5cf6", "icon": "Network", "description": "Converts text chunks into dense vectors that capture semantic meaning for similarity search." },
+  { "id": "vector_store", "label": "Vector Store", "category": "RAG", "color": "#8b5cf6", "icon": "Database", "description": "Persists and indexes vector embeddings for fast approximate nearest-neighbor retrieval." },
+  { "id": "retriever", "label": "Retriever", "category": "RAG", "color": "#8b5cf6", "icon": "Search", "description": "Queries the vector store to find the most semantically relevant chunks for a given input." },
+  { "id": "reranker", "label": "Reranker", "category": "RAG", "color": "#8b5cf6", "icon": "ArrowUpDown", "description": "Re-scores retrieved chunks by relevance to improve the quality of context passed to the LLM." },
+  { "id": "context_builder", "label": "Context Builder", "category": "RAG", "color": "#8b5cf6", "icon": "LayoutList", "description": "Assembles retrieved chunks into a coherent context block for the LLM prompt." },
+  { "id": "query_expander", "label": "Query Expander", "category": "RAG", "color": "#8b5cf6", "icon": "Expand", "description": "Generates multiple query variants to improve recall from the vector store." },
+  { "id": "hybrid_search", "label": "Hybrid Search", "category": "RAG", "color": "#8b5cf6", "icon": "Search", "description": "Combines keyword and semantic search to maximize retrieval precision and recall." },
+  { "id": "knowledge_graph", "label": "Knowledge Graph", "category": "RAG", "color": "#8b5cf6", "icon": "Share2", "description": "Stores entities and relationships as a graph for structured knowledge retrieval." },
+  { "id": "document_parser", "label": "Document Parser", "category": "RAG", "color": "#8b5cf6", "icon": "FileText", "description": "Extracts clean text and structure from raw documents like PDFs and HTML pages." },
+  { "id": "semantic_cache", "label": "Semantic Cache", "category": "RAG", "color": "#8b5cf6", "icon": "Layers", "description": "Caches LLM responses for semantically similar queries to reduce cost and latency." },
+  { "id": "pinecone", "label": "Pinecone", "category": "Vector Databases", "color": "#00b47e", "icon": "Database", "description": "Managed vector database optimized for low-latency similarity search at scale." },
+  { "id": "weaviate", "label": "Weaviate", "category": "Vector Databases", "color": "#fa0050", "icon": "Database", "description": "Open-source vector database with built-in ML model integrations and GraphQL API." },
+  { "id": "qdrant", "label": "Qdrant", "category": "Vector Databases", "color": "#ff4081", "icon": "Database", "description": "High-performance vector search engine with rich filtering and payload support." },
+  { "id": "chroma_db", "label": "ChromaDB", "category": "Vector Databases", "color": "#f97316", "icon": "Database", "description": "Lightweight open-source embedding database designed for AI application prototyping." },
+  { "id": "milvus", "label": "Milvus", "category": "Vector Databases", "color": "#00b4d8", "icon": "Database", "description": "Cloud-native vector database built for billion-scale similarity search workloads." },
+  { "id": "pgvector", "label": "pgvector (Postgres)", "category": "Vector Databases", "color": "#336791", "icon": "Database", "description": "Adds vector similarity search directly to PostgreSQL without a separate database." },
+  { "id": "faiss", "label": "FAISS (Local)", "category": "Vector Databases", "color": "#4267b2", "icon": "Database", "description": "Facebook's in-memory library for fast approximate nearest-neighbor search on CPU/GPU." },
+  { "id": "training_pipeline", "label": "Training Pipeline", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "GitBranch", "description": "Orchestrates the end-to-end workflow of preparing data, training, and evaluating a model." },
+  { "id": "data_preprocessing", "label": "Data Preprocessing", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Filter", "description": "Cleans, normalizes, and transforms raw data into a format suitable for model training." },
+  { "id": "feature_store", "label": "Feature Store", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Table", "description": "Centralizes computed features so they can be reused consistently across training and serving." },
+  { "id": "model_trainer", "label": "Model Trainer", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Dumbbell", "description": "Executes the training loop, updating model weights using the prepared dataset." },
+  { "id": "hyperparameter_tuner", "label": "Hyperparameter Tuner", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Sliders", "description": "Searches for the optimal model configuration through automated experimentation." },
+  { "id": "experiment_tracker", "label": "Experiment Tracker", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "FlaskConical", "description": "Records metrics, parameters, and artifacts for every training run to enable comparison." },
+  { "id": "model_evaluator", "label": "Model Evaluator", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "BarChart2", "description": "Measures model performance on held-out data using task-specific metrics." },
+  { "id": "dataset_store", "label": "Dataset Store", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "HardDrive", "description": "Stores versioned training datasets for reproducible model training runs." },
+  { "id": "data_versioning", "label": "Data Versioning (DVC)", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "GitBranch", "description": "Tracks changes to datasets and model files alongside code in version control." },
+  { "id": "gpu_cluster", "label": "GPU Cluster", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Cpu", "description": "Pool of GPU-accelerated machines for distributed model training at scale." },
+  { "id": "distributed_training", "label": "Distributed Training", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Network", "description": "Splits training across multiple GPUs or machines to handle large models and datasets." },
+  { "id": "fine_tuning_pipeline", "label": "Fine-tuning Pipeline", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Settings", "description": "Adapts a pre-trained model to a specific domain using a smaller labeled dataset." },
+  { "id": "model_server_ml", "label": "Model Server", "category": "ML Serving", "color": "#06b6d4", "icon": "Server", "description": "Exposes trained ML models as REST or gRPC endpoints for real-time inference." },
+  { "id": "inference_engine", "label": "Inference Engine", "category": "ML Serving", "color": "#06b6d4", "icon": "Zap", "description": "Optimized runtime that executes model predictions with minimal latency." },
+  { "id": "triton_server", "label": "Triton Inference Server", "category": "ML Serving", "color": "#06b6d4", "icon": "Server", "description": "NVIDIA's high-performance inference server supporting multiple ML frameworks." },
+  { "id": "torchserve", "label": "TorchServe", "category": "ML Serving", "color": "#06b6d4", "icon": "Server", "description": "PyTorch's official model serving framework for deploying models in production." },
+  { "id": "model_cache", "label": "Model Cache", "category": "ML Serving", "color": "#06b6d4", "icon": "Layers", "description": "Keeps loaded model weights in memory to eliminate cold-start latency on requests." },
+  { "id": "batch_inference", "label": "Batch Inference", "category": "ML Serving", "color": "#06b6d4", "icon": "Timer", "description": "Processes large volumes of predictions offline in batches for cost efficiency." },
+  { "id": "streaming_inference", "label": "Streaming Inference", "category": "ML Serving", "color": "#06b6d4", "icon": "Activity", "description": "Runs model predictions on continuous data streams in near real time." },
+  { "id": "model_quantizer", "label": "Model Quantizer", "category": "ML Serving", "color": "#06b6d4", "icon": "Minimize", "description": "Reduces model precision to lower memory usage and speed up inference." },
+  { "id": "ab_testing_ml", "label": "A/B Testing (ML)", "category": "ML Serving", "color": "#06b6d4", "icon": "Split", "description": "Routes traffic between model versions to compare performance on live users." },
+  { "id": "shadow_deployment", "label": "Shadow Deployment", "category": "ML Serving", "color": "#06b6d4", "icon": "Copy", "description": "Runs a new model in parallel with production to validate it without user impact." },
+  { "id": "mlflow", "label": "MLflow", "category": "MLOps", "color": "#0194e2", "icon": "FlaskConical", "description": "Open-source platform for tracking experiments, packaging models, and managing deployments." },
+  { "id": "weights_biases", "label": "Weights & Biases", "category": "MLOps", "color": "#ffbe00", "icon": "Activity", "description": "Experiment tracking and visualization platform for monitoring ML training runs." },
+  { "id": "model_monitor", "label": "Model Monitor", "category": "MLOps", "color": "#3b82f6", "icon": "Activity", "description": "Continuously checks live model predictions for quality degradation over time." },
+  { "id": "data_drift_detector", "label": "Data Drift Detector", "category": "MLOps", "color": "#3b82f6", "icon": "AlertTriangle", "description": "Detects when incoming data distribution shifts away from the training distribution." },
+  { "id": "model_drift_detector", "label": "Model Drift Detector", "category": "MLOps", "color": "#3b82f6", "icon": "TrendingDown", "description": "Alerts when model accuracy degrades due to changes in real-world patterns." },
+  { "id": "prediction_logger", "label": "Prediction Logger", "category": "MLOps", "color": "#3b82f6", "icon": "ScrollText", "description": "Records every model input and output for auditing, debugging, and retraining." },
+  { "id": "feedback_collector", "label": "Feedback Collector", "category": "MLOps", "color": "#3b82f6", "icon": "ThumbsUp", "description": "Gathers user feedback on model outputs to build labeled datasets for retraining." },
+  { "id": "retraining_trigger", "label": "Retraining Trigger", "category": "MLOps", "color": "#3b82f6", "icon": "RefreshCw", "description": "Automatically kicks off a new training run when drift or performance thresholds are breached." },
+  { "id": "model_versioning", "label": "Model Versioning", "category": "MLOps", "color": "#3b82f6", "icon": "GitBranch", "description": "Tracks model versions with metadata so any previous version can be rolled back." },
+  { "id": "explainability_service", "label": "Explainability Service", "category": "MLOps", "color": "#3b82f6", "icon": "Lightbulb", "description": "Generates human-readable explanations for why a model made a specific prediction." },
+  { "id": "prompt_template", "label": "Prompt Template", "category": "LLM Ops", "color": "#10b981", "icon": "FileCode", "description": "Defines reusable prompt structures with variables for consistent LLM interactions." },
+  { "id": "prompt_registry", "label": "Prompt Registry", "category": "LLM Ops", "color": "#10b981", "icon": "BookOpen", "description": "Stores and versions prompt templates so teams can manage and iterate on them." },
+  { "id": "prompt_optimizer", "label": "Prompt Optimizer", "category": "LLM Ops", "color": "#10b981", "icon": "Wand2", "description": "Automatically improves prompt wording to maximize model output quality." },
+  { "id": "output_parser", "label": "Output Parser", "category": "LLM Ops", "color": "#10b981", "icon": "Code", "description": "Extracts structured data from raw LLM text responses reliably." },
+  { "id": "structured_output", "label": "Structured Output", "category": "LLM Ops", "color": "#10b981", "icon": "Braces", "description": "Forces the LLM to return responses in a defined JSON or typed schema." },
+  { "id": "guardrails", "label": "Guardrails / Safety", "category": "LLM Ops", "color": "#10b981", "icon": "ShieldCheck", "description": "Validates and filters LLM outputs to prevent harmful or off-policy responses." },
+  { "id": "content_filter", "label": "Content Filter", "category": "LLM Ops", "color": "#10b981", "icon": "Filter", "description": "Screens inputs and outputs for prohibited content before they reach users." },
+  { "id": "hallucination_detector", "label": "Hallucination Detector", "category": "LLM Ops", "color": "#10b981", "icon": "AlertCircle", "description": "Identifies factually incorrect or unsupported claims in LLM-generated text." },
+  { "id": "token_counter", "label": "Token Counter", "category": "LLM Ops", "color": "#10b981", "icon": "Hash", "description": "Measures token usage per request to manage costs and stay within context limits." },
+  { "id": "context_window_manager", "label": "Context Window Manager", "category": "LLM Ops", "color": "#10b981", "icon": "LayoutList", "description": "Trims or summarizes conversation history to keep prompts within the model's token limit." },
+  { "id": "llm_cache", "label": "LLM Response Cache", "category": "LLM Ops", "color": "#10b981", "icon": "Layers", "description": "Caches identical LLM requests to avoid redundant API calls and reduce cost." },
+  { "id": "cost_tracker", "label": "Cost Tracker", "category": "LLM Ops", "color": "#10b981", "icon": "DollarSign", "description": "Monitors and attributes LLM API spending across teams, features, and users." },
+  { "id": "langchain", "label": "LangChain", "category": "AI Frameworks", "color": "#1c3c54", "icon": "Link", "description": "Framework for building LLM-powered apps with chains, agents, and memory." },
+  { "id": "langgraph", "label": "LangGraph", "category": "AI Frameworks", "color": "#1c3c54", "icon": "GitBranch", "description": "Builds stateful multi-agent workflows as directed graphs with LangChain." },
+  { "id": "llamaindex", "label": "LlamaIndex", "category": "AI Frameworks", "color": "#fbba14", "icon": "BookOpen", "description": "Data framework for connecting LLMs to external knowledge sources via RAG." },
+  { "id": "autogen", "label": "AutoGen", "category": "AI Frameworks", "color": "#0078d4", "icon": "Users", "description": "Microsoft's framework for building conversational multi-agent AI systems." },
+  { "id": "crewai", "label": "CrewAI", "category": "AI Frameworks", "color": "#ef4444", "icon": "Users", "description": "Orchestrates role-based AI agent crews that collaborate on complex tasks." },
+  { "id": "dspy", "label": "DSPy", "category": "AI Frameworks", "color": "#6366f1", "icon": "Code", "description": "Programmatic framework for optimizing LLM pipelines through automatic prompt tuning." },
+  { "id": "haystack", "label": "Haystack", "category": "AI Frameworks", "color": "#ffd14f", "icon": "Search", "description": "Open-source NLP framework for building search and question-answering pipelines." },
+  { "id": "semantic_kernel", "label": "Semantic Kernel", "category": "AI Frameworks", "color": "#0078d4", "icon": "Cpu", "description": "Microsoft's SDK for integrating LLMs into applications with plugins and planners." },
+  { "id": "instructor", "label": "Instructor", "category": "AI Frameworks", "color": "#6366f1", "icon": "GraduationCap", "description": "Enforces structured Pydantic outputs from LLM calls with automatic validation and retry." },
+  { "id": "data_ingestion", "label": "Data Ingestion", "category": "AI Data Pipeline", "color": "#64748b", "icon": "Download", "description": "Pulls raw data from various sources into the pipeline for processing." },
+  { "id": "etl_pipeline", "label": "ETL Pipeline", "category": "AI Data Pipeline", "color": "#64748b", "icon": "ArrowLeftRight", "description": "Extracts, transforms, and loads data between systems in a structured workflow." },
+  { "id": "data_labeling", "label": "Data Labeling Service", "category": "AI Data Pipeline", "color": "#64748b", "icon": "Tag", "description": "Annotates raw data with ground-truth labels for supervised model training." },
+  { "id": "data_validation", "label": "Data Validation", "category": "AI Data Pipeline", "color": "#64748b", "icon": "CheckCheck", "description": "Checks data quality and schema conformance before it enters the training pipeline." },
+  { "id": "synthetic_data", "label": "Synthetic Data Generator", "category": "AI Data Pipeline", "color": "#64748b", "icon": "Wand2", "description": "Creates artificial training data to augment real datasets or protect privacy." },
+  { "id": "data_catalog", "label": "Data Catalog", "category": "AI Data Pipeline", "color": "#64748b", "icon": "BookOpen", "description": "Indexes and documents available datasets so teams can discover and reuse them." },
+  { "id": "web_scraper", "label": "Web Scraper", "category": "AI Data Pipeline", "color": "#64748b", "icon": "Globe", "description": "Automatically extracts structured data from web pages for training or enrichment." },
+  { "id": "pdf_extractor", "label": "PDF Extractor", "category": "AI Data Pipeline", "color": "#64748b", "icon": "FileText", "description": "Parses text, tables, and metadata from PDF documents for downstream processing." },
+  { "id": "ocr_service", "label": "OCR Service", "category": "AI Data Pipeline", "color": "#64748b", "icon": "ScanText", "description": "Converts scanned images and documents into machine-readable text." },
+  { "id": "stt_service", "label": "Speech-to-Text (STT)", "category": "Speech & Audio", "color": "#a855f7", "icon": "Mic", "description": "Transcribes spoken audio into text for voice-driven applications." },
+  { "id": "tts_service", "label": "Text-to-Speech (TTS)", "category": "Speech & Audio", "color": "#a855f7", "icon": "Volume2", "description": "Converts written text into natural-sounding spoken audio." },
+  { "id": "whisper", "label": "Whisper (OpenAI)", "category": "Speech & Audio", "color": "#10a37f", "icon": "Mic", "description": "OpenAI's open-source speech recognition model with multilingual transcription support." },
+  { "id": "elevenlabs_tts", "label": "ElevenLabs TTS", "category": "Speech & Audio", "color": "#2563eb", "icon": "AudioLines", "description": "High-quality AI voice synthesis with cloning and emotional tone control." },
+  { "id": "audio_processor", "label": "Audio Processor", "category": "Speech & Audio", "color": "#a855f7", "icon": "AudioWaveform", "description": "Applies noise reduction, normalization, and feature extraction to audio signals." },
+  { "id": "voice_activity_detector", "label": "Voice Activity Detector", "category": "Speech & Audio", "color": "#a855f7", "icon": "Activity", "description": "Identifies segments of audio that contain speech versus silence or noise." },
+  { "id": "image_classifier", "label": "Image Classifier", "category": "Vision AI", "color": "#f97316", "icon": "Image", "description": "Assigns category labels to images using a trained convolutional or transformer model." },
+  { "id": "object_detector", "label": "Object Detector", "category": "Vision AI", "color": "#f97316", "icon": "ScanSearch", "description": "Locates and identifies multiple objects within an image with bounding boxes." },
+  { "id": "image_embedder", "label": "Image Embedder", "category": "Vision AI", "color": "#f97316", "icon": "Network", "description": "Converts images into dense vector representations for similarity search." },
+  { "id": "image_generator", "label": "Image Generator", "category": "Vision AI", "color": "#f97316", "icon": "ImagePlus", "description": "Creates new images from text prompts using diffusion or GAN models." },
+  { "id": "vision_llm", "label": "Vision LLM (GPT-4V)", "category": "Vision AI", "color": "#f97316", "icon": "Eye", "description": "Understands and reasons about image content alongside text in a single model." },
+  { "id": "ocr_ai", "label": "AI OCR", "category": "Vision AI", "color": "#f97316", "icon": "ScanText", "description": "Uses deep learning to extract text from complex layouts, handwriting, and low-quality scans." },
+  { "id": "video_analyzer", "label": "Video Analyzer", "category": "Vision AI", "color": "#f97316", "icon": "Video", "description": "Processes video frames to detect events, classify content, or extract metadata." },
+  { "id": "diffusion_model", "label": "Diffusion Model", "category": "Vision AI", "color": "#f97316", "icon": "Sparkles", "description": "Generates high-quality images by iteratively denoising random noise guided by a prompt." }
 ]

@@ -27,7 +27,7 @@ export function Features() {
     gsap.fromTo('.features-headline',
       { opacity: 0, y: 50 },
       { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.features-headline', start: 'top 85%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.features-headline', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     gsap.fromTo('.feature-card',
@@ -35,7 +35,7 @@ export function Features() {
       { opacity: 1, y: 0, scale: 1, duration: 0.6,
         stagger: { amount: 0.5, grid: [2, 3], from: 'start' },
         ease: 'power2.out',
-        scrollTrigger: { trigger: '.features-grid', start: 'top 75%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.features-grid', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     document.querySelectorAll<HTMLElement>('.feature-card').forEach(card => {
@@ -58,7 +58,7 @@ export function Features() {
       <div className="section-divider max-w-5xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-5xl mx-auto">
-        <header className="features-headline text-center mb-16 opacity-0">
+        <header className="features-headline text-center mb-16">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>Features</p>
           <h2 className="text-4xl font-bold tracking-tight text-white">
             Everything you need to diagram faster
@@ -69,7 +69,7 @@ export function Features() {
           {features.map((f) => (
             <article
               key={f.title}
-              className="feature-card will-change-transform p-6 rounded-2xl flex flex-col gap-4 opacity-0 cursor-default"
+              className="feature-card will-change-transform p-6 rounded-2xl flex flex-col gap-4 cursor-default"
               style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
             >
               <div

@@ -52,7 +52,7 @@ export function UseCases() {
       <div className="max-w-5xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-5xl mx-auto">
-        <header className="usecases-headline text-center mb-16 opacity-0">
+        <header className="usecases-headline text-center mb-16">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>Use Cases</p>
           <h2 className="text-4xl font-bold text-white tracking-tight">
             Built for every kind of systems thinker
@@ -61,7 +61,7 @@ export function UseCases() {
 
         <div className="usecases-grid grid grid-cols-1 md:grid-cols-2 gap-5">
           {cases.map((c) => (
-            <article key={c.title} className="usecase-card will-change-transform p-6 rounded-2xl flex flex-col gap-4 opacity-0" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <article key={c.title} className="usecase-card will-change-transform p-6 rounded-2xl flex flex-col gap-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <div
                 className="card-icon will-change-transform w-11 h-11 rounded-xl flex items-center justify-center"
                 style={{ backgroundColor: c.color + '15', border: `1px solid ${c.color}25` }}

@@ -124,18 +124,20 @@ export const useTutorialStore = create<TutorialState>()(
       },
 
       resetTutorial: (id) => {
-        const { tutorialProgress } = get();
+        const { tutorialProgress, completedTutorials } = get();
         const newProgress = { ...tutorialProgress };
         delete newProgress[id];
         set({
-          tutorialId: null,
+          tutorialId: id,
           currentStep: 1,
           nodes: [],
           edges: [],
           messages: [],
           validationStatus: 'idle',
+          validationError: '',
           isComplete: false,
           tutorialProgress: newProgress,
+          completedTutorials: completedTutorials.filter((t) => t !== id),
         });
       },
     }),

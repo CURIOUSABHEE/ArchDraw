@@ -66,7 +66,7 @@ export function CTASection() {
       </div>
 
       <div className="max-w-3xl mx-auto text-center relative">
-        <h2 className="cta-headline text-5xl sm:text-6xl font-extrabold tracking-tight mb-6 opacity-0">
+        <h2 className="cta-headline text-5xl sm:text-6xl font-extrabold tracking-tight mb-6">
           <span className="bg-gradient-to-br from-white via-white/90 to-white/40 bg-clip-text text-transparent">
             Start building your
           </span>
@@ -75,13 +75,13 @@ export function CTASection() {
             architecture today.
           </span>
         </h2>
-        <p className="cta-sub text-xl mb-10 opacity-0" style={{ color: '#64748b' }}>
+        <p className="cta-sub text-xl mb-10" style={{ color: '#64748b' }}>
           No account needed. No credit card. Just your ideas.
         </p>
         <button
           ref={btnRef}
           onClick={() => router.push('/editor')}
-          className="cta-btn will-change-transform inline-flex items-center px-10 py-4 text-white font-bold text-lg rounded-2xl opacity-0 transition-colors"
+          className="cta-btn will-change-transform inline-flex items-center px-10 py-4 text-white font-bold text-lg rounded-2xl transition-colors"
           style={{ backgroundColor: '#6366f1', boxShadow: '0 0 40px rgba(99,102,241,0.4)' }}
           onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#4f46e5')}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#6366f1')}

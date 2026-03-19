@@ -54,7 +54,7 @@ export function Templates() {
       <div className="max-w-6xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-6xl mx-auto">
-        <header className="templates-headline text-center mb-16 opacity-0">
+        <header className="templates-headline text-center mb-16">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>Templates</p>
           <h2 className="text-4xl font-bold text-white tracking-tight mb-4">
             Start from real-world architectures
@@ -68,7 +68,7 @@ export function Templates() {
           {templates.map((t) => (
             <article
               key={t.name}
-              className="template-card will-change-transform p-5 rounded-2xl flex flex-col justify-between opacity-0 cursor-pointer"
+              className="template-card will-change-transform p-5 rounded-2xl flex flex-col justify-between cursor-pointer"
               style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
               onClick={() => router.push('/editor')}
             >

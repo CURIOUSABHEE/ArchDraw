@@ -305,7 +305,6 @@ export function HowItWorks() {
       <div ref={scrollRef} style={{ height: '300vh', position: 'relative' }}>
         <div
           ref={stickyRef}
-          className="opacity-0"
           style={{ position: 'sticky', top: 0, height: '100vh', display: 'flex', alignItems: 'center' }}
         >
           <div className="w-full max-w-6xl mx-auto px-6 lg:px-8">

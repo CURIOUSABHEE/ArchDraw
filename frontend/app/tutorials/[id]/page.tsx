@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowLeft, PenSquare } from 'lucide-react';
+import { ArrowLeft, PenSquare, RotateCcw } from 'lucide-react';
 import { getTutorialById } from '@/data/tutorials';
 import { useTutorialStore } from '@/store/tutorialStore';
 import { validateStep } from '@/lib/tutorialValidation';
@@ -34,6 +34,8 @@ export default function TutorialPage() {
   } = useTutorialStore();
 
   const hasStarted = useRef(false);
+  const [headerRestartConfirm, setHeaderRestartConfirm] = useState(false);
+  const headerRestartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Start tutorial on mount
   useEffect(() => {
@@ -76,8 +78,21 @@ export default function TutorialPage() {
     if (!tutorial) return;
     resetTutorial(tutorial.id);
     hasStarted.current = false;
-    router.refresh();
-  }, [tutorial, resetTutorial, router]);
+  }, [tutorial, resetTutorial]);
+
+  const handleRestart = useCallback(() => {
+    if (!tutorial) return;
+    resetTutorial(tutorial.id);
+    hasStarted.current = false;
+    setHeaderRestartConfirm(false);
+    if (headerRestartTimer.current) clearTimeout(headerRestartTimer.current);
+  }, [tutorial, resetTutorial]);
+
+  const showHeaderConfirm = useCallback(() => {
+    setHeaderRestartConfirm(true);
+    if (headerRestartTimer.current) clearTimeout(headerRestartTimer.current);
+    headerRestartTimer.current = setTimeout(() => setHeaderRestartConfirm(false), 3000);
+  }, []);
 
   const handleGoToCanvas = useCallback(() => {
     router.push('/editor');
@@ -151,6 +166,38 @@ export default function TutorialPage() {
               />
             </div>
           </div>
+          {headerRestartConfirm ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-400">Are you sure?</span>
+              <button
+                onClick={handleRestart}
+                className="px-2.5 py-1 rounded-lg text-xs font-medium text-white transition-colors"
+                style={{ background: '#ef4444' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f87171')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}
+              >
+                Yes, restart
+              </button>
+              <button
+                onClick={() => { setHeaderRestartConfirm(false); if (headerRestartTimer.current) clearTimeout(headerRestartTimer.current); }}
+                className="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-colors"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={showHeaderConfirm}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 hover:text-white text-xs font-medium transition-colors flex-shrink-0"
+              style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)')}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Restart
+            </button>
+          )}
           <a
             href="/editor"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-colors flex-shrink-0"
@@ -180,6 +227,7 @@ export default function TutorialPage() {
               validationError={validationError}
               onValidate={handleValidate}
               onSkip={handleSkip}
+              onRestart={handleRestart}
             />
           )}
         </div>

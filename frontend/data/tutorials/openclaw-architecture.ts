@@ -16,14 +16,15 @@ export const openclawTutorial: TutorialData = {
     {
       id: 1,
       title: 'Start with the Client Dashboard',
-      explanation: 'The client is the web dashboard that analysts use to view subscription metrics, churn rates, and AI-generated insights. Every analytics platform starts from the consumer of the data.',
+      explanation: 'The client is the web dashboard that analysts use to view subscription metrics, churn rates, and AI-generated insights.',
       action: 'Add a "Client (Web / Mobile)" node to the canvas.',
       why: 'The dashboard defines what the system needs to produce — charts, reports, and AI insights. Starting here keeps the architecture user-focused.',
       searchHint: 'Client',
       messages: [
         { type: 'guide', content: "Welcome to the OpenClaw Architecture tutorial! 📊 We're building an AI-powered subscription analytics platform." },
-        { type: 'guide', content: "OpenClaw ingests subscription events in real time, stores them in a data warehouse, and uses an LLM to generate business insights automatically." },
-        { type: 'guide', content: 'Start by adding the Client (Web / Mobile) node — this is the analyst dashboard where insights are consumed.' },
+        { type: 'guide', content: "OpenClaw ingests subscription events in real time, stores them in a data warehouse, and uses an LLM to generate business insights automatically — things like 'churn increased 12% after the price change'." },
+        { type: 'guide', content: "The client is the analyst dashboard where all these insights are consumed. Starting here keeps the architecture user-focused — it defines what the system needs to produce." },
+        { type: 'guide', content: 'Add a Client (Web / Mobile) node using ⌘K.' },
       ],
       validation: {
         requiredNodes: ['client'],
@@ -41,8 +42,9 @@ export const openclawTutorial: TutorialData = {
       searchHint: 'API Gateway',
       messages: [
         { type: 'guide', content: 'Before any data reaches the dashboard, requests must be authenticated.' },
-        { type: 'guide', content: 'Add an API Gateway and an Auth Service. Connect Client → API Gateway, then API Gateway → Auth Service.' },
-        { type: 'guide', content: 'The API Gateway is the single entry point — it routes requests and enforces rate limits before they hit your services.' },
+        { type: 'guide', content: 'The API Gateway is the single entry point — it routes requests and enforces rate limits. The Auth Service validates JWT tokens and ensures only authorized analysts can access sensitive subscription data.' },
+        { type: 'guide', content: 'Subscription revenue data is sensitive business information. Auth ensures only the right people see MRR, churn rates, and customer records.' },
+        { type: 'guide', content: 'Add an API Gateway and an Auth Service. Connect: Client → API Gateway → Auth Service.' },
       ],
       validation: {
         requiredNodes: ['client', 'api_gateway', 'auth_service'],
@@ -63,8 +65,9 @@ export const openclawTutorial: TutorialData = {
       searchHint: 'Microservice',
       messages: [
         { type: 'guide', content: 'Subscription events come from many sources — payment processors, billing systems, CRMs.' },
-        { type: 'guide', content: 'Add a Microservice node to represent the Data Ingestion Service. Connect: API Gateway → Data Ingestion Service.' },
-        { type: 'guide', content: 'This service normalizes all incoming events into a consistent schema before they enter the pipeline.' },
+        { type: 'guide', content: 'The Data Ingestion Service is the funnel for all of them. It receives events (new subscriptions, cancellations, upgrades, payment failures), validates them, and normalizes them into a consistent schema.' },
+        { type: 'guide', content: 'Centralizing ingestion means you can add new event sources without changing downstream systems. It also handles deduplication — so a retry from Stripe does not create a duplicate event.' },
+        { type: 'guide', content: 'Add a Microservice node and connect: API Gateway → Data Ingestion Service.' },
       ],
       validation: {
         requiredNodes: ['api_gateway', 'microservice'],
@@ -82,8 +85,9 @@ export const openclawTutorial: TutorialData = {
       searchHint: 'Kafka',
       messages: [
         { type: 'guide', content: 'During a billing cycle, thousands of subscription events fire simultaneously. A single service cannot handle this synchronously.' },
-        { type: 'guide', content: 'Add a Kafka / Streaming node. Connect: Data Ingestion Service → Kafka.' },
         { type: 'guide', content: 'Kafka acts as a durable buffer — events are stored and replayed if any consumer goes down. Multiple services can consume the same event stream independently.' },
+        { type: 'guide', content: 'Without Kafka, the ingestion service would need to write to every downstream system synchronously. If the data warehouse is slow, events back up. Kafka decouples all of this.' },
+        { type: 'guide', content: 'Add a Kafka / Streaming node and connect: Data Ingestion Service → Kafka.' },
       ],
       validation: {
         requiredNodes: ['microservice', 'kafka_streaming'],
@@ -101,8 +105,9 @@ export const openclawTutorial: TutorialData = {
       searchHint: 'Data Warehouse',
       messages: [
         { type: 'guide', content: 'Where does all this event data actually live long-term?' },
-        { type: 'guide', content: 'Add a Data Warehouse node. Connect: Kafka → Data Warehouse.' },
-        { type: 'guide', content: 'The data warehouse is the source of truth for all historical analytics. Think BigQuery, Snowflake, or Redshift — columnar storage optimized for analytical queries.' },
+        { type: 'guide', content: 'In a Data Warehouse — think BigQuery, Snowflake, or Redshift. These are columnar databases optimized for analytical queries, not individual record lookups.' },
+        { type: 'guide', content: 'An operational database is fast at finding one record. A data warehouse is fast at scanning billions of rows to compute "what was our MRR last quarter by plan type?" — a completely different query pattern.' },
+        { type: 'guide', content: 'Add a Data Warehouse and connect: Kafka → Data Warehouse.' },
       ],
       validation: {
         requiredNodes: ['kafka_streaming', 'data_warehouse'],
@@ -120,8 +125,9 @@ export const openclawTutorial: TutorialData = {
       searchHint: 'SQL Database',
       messages: [
         { type: 'guide', content: "The data warehouse handles analytics, but you also need to store each customer's current subscription state." },
-        { type: 'guide', content: 'Add a SQL Database. Connect: Data Ingestion Service → SQL Database.' },
-        { type: 'guide', content: 'This stores the live subscription records — who is subscribed, to what plan, and when they renew. Fast point lookups, not aggregations.' },
+        { type: 'guide', content: 'The SQL Database stores live subscription records — who is subscribed, to what plan, and when they renew. Fast point lookups, not aggregations.' },
+        { type: 'guide', content: 'This is the operational/analytical split: SQL for "what is this customer\'s current plan?" and the data warehouse for "what was our churn rate last month?" — different tools for different query patterns.' },
+        { type: 'guide', content: 'Add a SQL Database and connect: Data Ingestion Service → SQL Database.' },
       ],
       validation: {
         requiredNodes: ['microservice', 'sql_db'],
@@ -139,8 +145,9 @@ export const openclawTutorial: TutorialData = {
       searchHint: 'Microservice',
       messages: [
         { type: 'guide', content: 'Raw events in the data warehouse need to be transformed into meaningful metrics.' },
-        { type: 'guide', content: 'Add another Microservice node for the Analytics Engine. Connect: Data Warehouse → Analytics Engine.' },
-        { type: 'guide', content: 'This service runs scheduled aggregation jobs — computing daily MRR, weekly churn, and monthly cohort retention curves.' },
+        { type: 'guide', content: 'The Analytics Engine runs scheduled aggregation jobs — computing daily MRR, weekly churn, and monthly cohort retention curves. It queries the data warehouse and caches results for the dashboard.' },
+        { type: 'guide', content: 'Separating analytics computation from ingestion means heavy queries do not compete with real-time event processing. You can scale each independently.' },
+        { type: 'guide', content: 'Add another Microservice node (Analytics Engine) and connect: Data Warehouse → Analytics Engine.' },
       ],
       validation: {
         requiredNodes: ['data_warehouse', 'microservice'],
@@ -152,14 +159,15 @@ export const openclawTutorial: TutorialData = {
     {
       id: 8,
       title: 'Add LLM API + RAG Pipeline',
-      explanation: 'The LLM API generates natural language insights from the computed metrics — "Churn increased 12% this week, primarily in the Pro tier after the price change." The RAG Pipeline retrieves relevant historical context to ground the LLM responses.',
+      explanation: 'The LLM API generates natural language insights from the computed metrics. The RAG Pipeline retrieves relevant historical context to ground the LLM responses in real data.',
       action: 'Add an "LLM API" node and a "RAG Pipeline" node. Connect: Analytics Engine → RAG Pipeline → LLM API.',
       why: 'Raw metrics require interpretation. An LLM can surface non-obvious patterns and generate executive summaries automatically, saving analysts hours of manual reporting.',
       searchHint: 'LLM API',
       messages: [
         { type: 'guide', content: "Here's where OpenClaw gets interesting — AI-generated insights." },
+        { type: 'guide', content: 'The RAG Pipeline retrieves relevant historical metrics and business context, then passes them to the LLM to generate actionable insights in plain English — things like "Churn increased 12% this week, primarily in the Pro tier after the price change."' },
+        { type: 'guide', content: 'Raw metrics require interpretation. An LLM can surface non-obvious patterns and generate executive summaries automatically, saving analysts hours of manual reporting.' },
         { type: 'guide', content: 'Add an LLM API node and a RAG Pipeline node. Connect: Analytics Engine → RAG Pipeline → LLM API.' },
-        { type: 'guide', content: 'The RAG Pipeline retrieves relevant historical metrics and business context, then passes them to the LLM to generate actionable insights in plain English.' },
       ],
       validation: {
         requiredNodes: ['llm_api', 'rag_pipeline'],
@@ -180,8 +188,9 @@ export const openclawTutorial: TutorialData = {
       searchHint: 'Dashboard',
       messages: [
         { type: 'guide', content: 'Final step — wire up the dashboard and add observability.' },
-        { type: 'guide', content: 'Add a Dashboard node and a Metrics Collector node. Connect: Analytics Engine → Dashboard, and Microservice → Metrics Collector.' },
-        { type: 'guide', content: "Congratulations — you've designed the OpenClaw analytics platform! 🎉 From raw subscription events to AI-generated business insights." },
+        { type: 'guide', content: 'The Dashboard Service aggregates data from the Analytics Engine and LLM API and serves it to the frontend. It decouples the UI from backend complexity.' },
+        { type: 'guide', content: 'The Metrics Collector monitors system health — ingestion lag, query latency, LLM response times. You want to know when the pipeline is slow before your customers notice their dashboards are stale.' },
+        { type: 'guide', content: "Add a Dashboard node and a Metrics Collector. Connect: Analytics Engine → Dashboard, Microservice → Metrics Collector. You've designed the OpenClaw analytics platform! 🎉" },
       ],
       validation: {
         requiredNodes: ['dashboard', 'metrics_collector'],

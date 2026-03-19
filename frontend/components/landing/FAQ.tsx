@@ -43,14 +43,14 @@ export function FAQ() {
       <div className="max-w-2xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-2xl mx-auto">
-        <header className="faq-headline text-center mb-16 opacity-0">
+        <header className="faq-headline text-center mb-16">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>FAQ</p>
           <h2 className="text-4xl font-bold text-white tracking-tight">Frequently asked questions</h2>
         </header>
 
         <div className="faq-list space-y-3">
           {faqs.map((faq, i) => (
-            <div key={i} className="faq-item opacity-0 rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div key={i} className="faq-item rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <button
                 className="w-full flex items-center justify-between px-6 py-4 text-left"
                 onClick={() => setOpen(open === i ? null : i)}

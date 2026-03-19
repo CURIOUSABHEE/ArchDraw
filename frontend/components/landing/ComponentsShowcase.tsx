@@ -41,7 +41,7 @@ export function ComponentsShowcase() {
       <div className="max-w-5xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
 
       <div className="max-w-5xl mx-auto">
-        <header className="components-headline text-center mb-16 opacity-0">
+        <header className="components-headline text-center mb-16">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>Components</p>
           <h2 className="text-4xl font-bold text-white tracking-tight">
             150+ components. Every layer covered.
@@ -50,7 +50,7 @@ export function ComponentsShowcase() {
 
         <div className="components-list space-y-5">
           {categories.map((cat) => (
-            <div key={cat.label} className="component-row opacity-0 flex items-start gap-6">
+            <div key={cat.label} className="component-row flex items-start gap-6">
               <span className="text-xs font-semibold uppercase tracking-wider w-28 shrink-0 pt-2" style={{ color: '#334155' }}>{cat.label}</span>
               <div className="flex flex-wrap gap-2">
                 {cat.chips.map((chip) => (

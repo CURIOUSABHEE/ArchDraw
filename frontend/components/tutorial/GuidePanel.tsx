@@ -19,6 +19,7 @@ interface GuidePanelProps {
   validationError: string;
   onValidate: () => void;
   onSkip: () => void;
+  onRestart: () => void;
 }
 
 export function GuidePanel({
@@ -32,9 +33,12 @@ export function GuidePanel({
   validationError,
   onValidate,
   onSkip,
+  onRestart,
 }: GuidePanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMac, setIsMac] = useState(false);
+  const [restartConfirm, setRestartConfirm] = useState(false);
+  const restartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { addMessage, clearMessages } = useTutorialStore();
 
   useEffect(() => {
@@ -79,18 +83,9 @@ export function GuidePanel({
       </div>
 
       {/* Current step */}
-      <div className="p-4 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs text-white font-bold shrink-0">
-            {currentStep}
-          </div>
-          <span className="text-xs text-indigo-400 font-medium uppercase tracking-wide">
-            Current Step
-          </span>
-        </div>
-
-        <h3 className="text-sm font-semibold text-white mb-2">{step.title}</h3>
-        <p className="text-xs text-slate-400 leading-relaxed">{step.explanation}</p>
+      <div className="px-4 py-1.5 shrink-0 flex items-center gap-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <span className="text-[10px] text-slate-600 font-mono shrink-0">Step {currentStep}</span>
+        <span className="text-[10px] text-slate-500 truncate">{step.title}</span>
       </div>
 
       {/* Cmd+K hint bar */}
@@ -227,6 +222,36 @@ export function GuidePanel({
         >
           Skip this step →
         </button>
+
+        {restartConfirm ? (
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <span className="text-[11px] text-slate-500">Are you sure?</span>
+            <button
+              onClick={() => { onRestart(); setRestartConfirm(false); }}
+              className="text-[11px] text-red-400 hover:text-red-300 transition-colors font-medium"
+            >
+              Yes, restart
+            </button>
+            <span className="text-slate-700 text-[11px]">·</span>
+            <button
+              onClick={() => { setRestartConfirm(false); if (restartTimer.current) clearTimeout(restartTimer.current); }}
+              className="text-[11px] text-slate-500 hover:text-slate-400 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              setRestartConfirm(true);
+              if (restartTimer.current) clearTimeout(restartTimer.current);
+              restartTimer.current = setTimeout(() => setRestartConfirm(false), 3000);
+            }}
+            className="w-full py-1 text-[11px] text-slate-600 hover:text-slate-500 transition-colors"
+          >
+            ↺ Start over
+          </button>
+        )}
       </div>
     </div>
   );

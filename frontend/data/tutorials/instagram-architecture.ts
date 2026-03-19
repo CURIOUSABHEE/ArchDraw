@@ -19,11 +19,12 @@ export const instagramTutorial: TutorialData = {
       explanation: "Instagram's client is the mobile app (iOS/Android) and web interface. Users upload photos, scroll their feed, and interact with content through this layer.",
       action: 'Add a "Client (Web / Mobile)" node to the canvas.',
       searchHint: 'Client',
-      why: "Every architecture starts from the user's perspective. The client defines what the system needs to support — in Instagram's case, media uploads, feed reads, and real-time interactions.",
+      why: "Every architecture starts from the user's perspective. The client defines what the system needs to support.",
       messages: [
         { type: 'guide', content: "Welcome to the Instagram Architecture tutorial! 📸 We're building a scalable social media platform from scratch." },
-        { type: 'guide', content: "Instagram serves 500M+ daily active users. Let's understand how it works by building the architecture step by step." },
-        { type: 'guide', content: 'Start by adding a Client (Web/Mobile) node from the sidebar.' },
+        { type: 'guide', content: "Instagram serves 500M+ daily active users across iOS, Android, and web. The client is the entry point for every photo upload, feed scroll, and interaction." },
+        { type: 'guide', content: "Starting from the client keeps the architecture user-focused — it defines what the system needs to support: media uploads, feed reads, and real-time interactions." },
+        { type: 'guide', content: 'Add a Client (Web/Mobile) node using ⌘K.' },
       ],
       validation: {
         requiredNodes: ['client'],
@@ -35,14 +36,15 @@ export const instagramTutorial: TutorialData = {
     {
       id: 2,
       title: 'Add CDN for Static Assets',
-      explanation: "Instagram serves billions of images and videos globally. A CDN (Content Delivery Network) caches media at edge locations close to users, dramatically reducing load times. When you open Instagram, photos load from a CDN node near you, not from a server in California.",
+      explanation: "Instagram serves billions of images and videos globally. A CDN caches media at edge locations close to users, dramatically reducing load times.",
       action: 'Add a "CDN" node and connect it from the Client.',
       searchHint: 'CDN',
-      why: "Without a CDN, every image request would travel to the origin server. At Instagram's scale, this would be impossibly slow and expensive. CDNs reduce latency from ~200ms to ~10ms for cached content.",
+      why: "Without a CDN, every image request would travel to the origin server. CDNs reduce latency from ~200ms to ~10ms for cached content.",
       messages: [
         { type: 'guide', content: "Instagram serves billions of images daily. How do they load so fast for users in Tokyo, London, and São Paulo?" },
-        { type: 'guide', content: "The answer is a CDN — Content Delivery Network. Add one and connect it from the Client." },
-        { type: 'guide', content: "The CDN caches photos and videos at edge servers worldwide. Most media requests never reach Instagram's origin servers." },
+        { type: 'guide', content: "The answer is a CDN — Content Delivery Network. It caches photos and videos at edge servers worldwide. Most media requests never reach Instagram's origin servers." },
+        { type: 'guide', content: "Without a CDN, every image would travel from a server in California. At Instagram's scale, that would be impossibly slow and expensive — CDNs cut latency from ~200ms to ~10ms." },
+        { type: 'guide', content: 'Add a CDN node and connect: Client → CDN.' },
       ],
       validation: {
         requiredNodes: ['client', 'cdn'],
@@ -59,9 +61,9 @@ export const instagramTutorial: TutorialData = {
       searchHint: 'API Gateway',
       why: "Instagram has dozens of microservices. The API Gateway is the single entry point that abstracts this complexity from clients and enforces security policies consistently.",
       messages: [
-        { type: 'guide', content: "Not everything is a static asset. When you like a photo or post a comment, that's an API call." },
-        { type: 'guide', content: 'Add an API Gateway and connect it from the Client (alongside the CDN).' },
-        { type: 'guide', content: 'The API Gateway routes requests to the right service — user service, feed service, media service, etc.' },
+        { type: 'guide', content: "Not everything is a static asset. When you like a photo or post a comment, that's an API call — not a CDN request." },
+        { type: 'guide', content: 'Add an API Gateway and connect it from the Client (alongside the CDN). The gateway routes requests to the right service — user service, feed service, media service, etc.' },
+        { type: 'guide', content: 'Instagram has dozens of microservices. The API Gateway is the single entry point that abstracts all that complexity from clients and enforces security policies consistently.' },
       ],
       validation: {
         requiredNodes: ['cdn', 'api gateway'],
@@ -73,14 +75,15 @@ export const instagramTutorial: TutorialData = {
     {
       id: 4,
       title: 'Add Load Balancer',
-      explanation: "Instagram's API Gateway routes to a Load Balancer that distributes requests across hundreds of application servers. This enables horizontal scaling — adding more servers as traffic grows.",
+      explanation: "Instagram's API Gateway routes to a Load Balancer that distributes requests across hundreds of application servers.",
       action: 'Add a "Load Balancer" and connect it from the API Gateway.',
       searchHint: 'Load Balancer',
       why: "Instagram sees massive traffic spikes (e.g., when a celebrity posts). The load balancer ensures no single server is overwhelmed and enables zero-downtime deployments.",
       messages: [
         { type: 'guide', content: "Instagram gets 95M+ photos uploaded per day. The API Gateway alone can't handle all that traffic." },
-        { type: 'guide', content: 'Add a Load Balancer after the API Gateway.' },
-        { type: 'guide', content: 'Connect: API Gateway → Load Balancer' },
+        { type: 'guide', content: 'A Load Balancer distributes requests across hundreds of application servers. When Kylie Jenner posts and 10M people refresh their feed simultaneously, the load balancer spreads that across the fleet.' },
+        { type: 'guide', content: 'It also enables zero-downtime deployments — servers can be updated one at a time while the load balancer routes around them.' },
+        { type: 'guide', content: 'Add a Load Balancer and connect: API Gateway → Load Balancer.' },
       ],
       validation: {
         requiredNodes: ['api gateway', 'load balancer'],
@@ -95,11 +98,12 @@ export const instagramTutorial: TutorialData = {
       explanation: "The User Service manages profiles, authentication, follower/following relationships, and account settings. It's one of the most critical services — almost every other service depends on it.",
       action: 'Add a "Microservice" node (User Service) and connect it from the Load Balancer.',
       searchHint: 'Microservice',
-      why: "Separating user management into its own service means it can be scaled independently. When Instagram adds a new feature (like Stories), the User Service doesn't need to change.",
+      why: "Separating user management into its own service means it can be scaled independently. When Instagram adds a new feature, the User Service doesn't need to change.",
       messages: [
         { type: 'guide', content: "Now let's add the core microservices. Start with the User Service." },
-        { type: 'guide', content: 'Add a Microservice node — this represents the User Service that handles profiles, auth, and social graph.' },
-        { type: 'guide', content: 'Connect: Load Balancer → User Service' },
+        { type: 'guide', content: 'The User Service handles profiles, authentication, and the social graph (who follows whom). Almost every other service depends on it — feed, notifications, search all need to know who you are.' },
+        { type: 'guide', content: 'Separating it into its own microservice means it can be scaled independently. When Instagram adds Stories or Reels, the User Service stays unchanged.' },
+        { type: 'guide', content: 'Add a Microservice node and connect: Load Balancer → User Service.' },
       ],
       validation: {
         requiredNodes: ['load balancer', 'microservice'],
@@ -114,12 +118,12 @@ export const instagramTutorial: TutorialData = {
       explanation: "Every photo and video uploaded to Instagram is stored in object storage (like Amazon S3). Object storage is infinitely scalable, durable, and cheap — perfect for binary media files.",
       action: 'Add an "Object Storage" node and connect it from the Microservice.',
       searchHint: 'Object Storage',
-      why: "You can't store billions of images in a relational database. Object storage is designed for exactly this — unstructured binary data at massive scale, with 99.999999999% durability.",
+      why: "You can't store billions of images in a relational database. Object storage is designed for unstructured binary data at massive scale, with 99.999999999% durability.",
       messages: [
         { type: 'guide', content: "When you upload a photo to Instagram, where does it actually go?" },
-        { type: 'guide', content: "Into object storage — think Amazon S3. Add an Object Storage node." },
-        { type: 'guide', content: 'Connect: User Service (Microservice) → Object Storage' },
-        { type: 'guide', content: "The uploaded photo gets stored here, then the CDN pulls from it to serve it globally." },
+        { type: 'guide', content: "Into object storage — think Amazon S3. It's infinitely scalable, extremely durable (99.999999999%), and cheap per GB. Perfect for binary media files." },
+        { type: 'guide', content: "You can't store billions of images in a relational database — they're not designed for binary blobs at that scale. Object storage is built exactly for this." },
+        { type: 'guide', content: 'The uploaded photo gets stored here, then the CDN pulls from it to serve it globally. Add Object Storage and connect: User Service → Object Storage.' },
       ],
       validation: {
         requiredNodes: ['object storage'],
@@ -131,14 +135,15 @@ export const instagramTutorial: TutorialData = {
     {
       id: 7,
       title: 'Add NoSQL Database',
-      explanation: "Instagram stores user profiles, posts metadata, likes, comments, and follower relationships in NoSQL databases (Cassandra for social graph, Redis for caching). NoSQL handles the massive read/write throughput Instagram requires.",
+      explanation: "Instagram stores user profiles, posts metadata, likes, comments, and follower relationships in NoSQL databases. NoSQL handles the massive read/write throughput Instagram requires.",
       action: 'Add a "NoSQL Database" node and connect it from the Microservice.',
       searchHint: 'NoSQL',
       why: "Instagram has billions of follow relationships. A SQL JOIN across that data would be impossibly slow. Cassandra's wide-column model is optimized for exactly this kind of social graph data.",
       messages: [
         { type: 'guide', content: "Instagram needs to store billions of posts, likes, and follow relationships. SQL can't scale to this." },
-        { type: 'guide', content: 'Add a NoSQL Database (think Cassandra or DynamoDB) and connect it from the Microservice.' },
-        { type: 'guide', content: 'This stores post metadata, user relationships, and activity data.' },
+        { type: 'guide', content: 'Add a NoSQL Database (think Cassandra or DynamoDB). This stores post metadata, user relationships, and activity data.' },
+        { type: 'guide', content: "Instagram has billions of follow relationships. A SQL JOIN across that data would be impossibly slow. Cassandra's wide-column model is optimized for exactly this kind of social graph." },
+        { type: 'guide', content: 'Connect: Microservice → NoSQL Database.' },
       ],
       validation: {
         requiredNodes: ['nosql'],
@@ -150,15 +155,15 @@ export const instagramTutorial: TutorialData = {
     {
       id: 8,
       title: 'Add Kafka for Event Streaming',
-      explanation: "When you post a photo, Instagram needs to: update your followers' feeds, send push notifications, update analytics, run spam detection, and more. Kafka decouples these actions — the upload service just publishes an event, and all other services react independently.",
+      explanation: "When you post a photo, Instagram needs to update followers' feeds, send push notifications, update analytics, and run spam detection. Kafka decouples these actions — the upload service just publishes an event, and all other services react independently.",
       action: 'Add a "Kafka Streaming" node and connect it from the Microservice.',
       searchHint: 'Kafka',
-      why: "Without Kafka, the upload service would need to call every downstream service synchronously. If any one fails, the upload fails. Kafka makes the system resilient — services can process events at their own pace.",
+      why: "Without Kafka, the upload service would need to call every downstream service synchronously. If any one fails, the upload fails. Kafka makes the system resilient.",
       messages: [
         { type: 'guide', content: "When you post a photo, 10 different things need to happen: feed updates, notifications, analytics, spam detection..." },
-        { type: 'guide', content: "Kafka handles this with event streaming. Add a Kafka Streaming node." },
-        { type: 'guide', content: 'Connect: Microservice → Kafka' },
-        { type: 'guide', content: "The upload service publishes a 'photo_uploaded' event. Every interested service subscribes and reacts independently." },
+        { type: 'guide', content: "Kafka handles this with event streaming. The upload service publishes a 'photo_uploaded' event. Every interested service subscribes and reacts independently." },
+        { type: 'guide', content: "Without Kafka, the upload service would need to call every downstream service synchronously. If notifications are slow, your upload is slow. Kafka decouples all of this." },
+        { type: 'guide', content: 'Add a Kafka Streaming node and connect: Microservice → Kafka.' },
       ],
       validation: {
         requiredNodes: ['kafka'],
@@ -170,14 +175,15 @@ export const instagramTutorial: TutorialData = {
     {
       id: 9,
       title: 'Add Feed Service',
-      explanation: "The Feed Service generates your personalized Instagram feed. It reads from Kafka (new posts from people you follow), ranks them using ML models, and caches the result. This is one of the most complex parts of Instagram's architecture.",
+      explanation: "The Feed Service generates your personalized Instagram feed. It reads from Kafka (new posts from people you follow), ranks them using ML models, and caches the result.",
       action: 'Add another "Microservice" node (Feed Service) and connect it from Kafka.',
       searchHint: 'Microservice',
-      why: "Feed generation is computationally expensive — it involves ranking hundreds of posts using ML. By consuming from Kafka asynchronously, the Feed Service can pre-compute feeds in the background rather than on every request.",
+      why: "Feed generation is computationally expensive. By consuming from Kafka asynchronously, the Feed Service can pre-compute feeds in the background rather than on every request.",
       messages: [
         { type: 'guide', content: "How does Instagram decide which posts to show you? That's the Feed Service." },
-        { type: 'guide', content: 'Add another Microservice node (Feed Service) and connect it from Kafka.' },
-        { type: 'guide', content: 'The Feed Service consumes upload events from Kafka, ranks posts using ML, and pre-computes your feed.' },
+        { type: 'guide', content: 'The Feed Service consumes upload events from Kafka, ranks posts using ML models, and pre-computes your personalized feed in the background.' },
+        { type: 'guide', content: 'By consuming from Kafka asynchronously, feed generation happens in the background — not when you open the app. This is why your feed loads instantly.' },
+        { type: 'guide', content: 'Add another Microservice node (Feed Service) and connect: Kafka → Feed Service.' },
       ],
       validation: {
         requiredNodes: ['kafka'],
@@ -189,14 +195,15 @@ export const instagramTutorial: TutorialData = {
     {
       id: 10,
       title: 'Add Redis Cache',
-      explanation: "Instagram caches pre-computed feeds, session data, and hot content in Redis. When you open Instagram, your feed is served from Redis (sub-millisecond) rather than being computed from scratch (seconds).",
+      explanation: "Instagram caches pre-computed feeds, session data, and hot content in Redis. When you open Instagram, your feed is served from Redis (sub-millisecond) rather than being computed from scratch.",
       action: 'Add an "In-Memory Cache" (Redis) node and connect it from the Feed Service Microservice.',
       searchHint: 'In-Memory Cache',
       why: "Computing a personalized feed from scratch on every request would require reading millions of records. Redis caches the pre-computed result so feed loads take <50ms instead of seconds.",
       messages: [
-        { type: 'guide', content: "Instagram's feed loads almost instantly. How? The feed is pre-computed and cached." },
-        { type: 'guide', content: 'Add an In-Memory Cache (Redis) node and connect it from the Feed Service.' },
-        { type: 'guide', content: 'When you open Instagram, your feed is served from Redis — not computed on the fly.' },
+        { type: 'guide', content: "Instagram's feed loads almost instantly. How? The feed is pre-computed and cached in Redis." },
+        { type: 'guide', content: 'Redis is an in-memory cache — reads are sub-millisecond. When you open Instagram, your feed is served from Redis, not computed on the fly.' },
+        { type: 'guide', content: 'Computing a personalized feed from scratch would require reading millions of records and running ML ranking. Caching the result means feed loads take <50ms instead of seconds.' },
+        { type: 'guide', content: 'Add an In-Memory Cache (Redis) and connect: Feed Service → Cache.' },
       ],
       validation: {
         requiredNodes: ['cache'],
@@ -211,12 +218,12 @@ export const instagramTutorial: TutorialData = {
       explanation: "When someone likes your photo or follows you, Instagram sends a push notification. The Notification Service subscribes to Kafka events and sends push notifications via APNs (Apple) and FCM (Google).",
       action: 'Add a "Microservice" node (Notification Service) and connect it from Kafka.',
       searchHint: 'Microservice',
-      why: "Notifications are a core engagement driver for Instagram. By consuming from Kafka, the Notification Service is completely decoupled — it can be updated, scaled, or replaced without touching the upload flow.",
+      why: "Notifications are a core engagement driver for Instagram. By consuming from Kafka, the Notification Service is completely decoupled — it can be updated or scaled without touching the upload flow.",
       messages: [
         { type: 'guide', content: "Last step — notifications! When someone likes your photo, how do you get that push notification?" },
-        { type: 'guide', content: 'Add a Microservice (Notification Service) and connect it from Kafka.' },
-        { type: 'guide', content: "It subscribes to 'like', 'follow', and 'comment' events from Kafka and sends push notifications." },
-        { type: 'guide', content: "🎉 Congratulations! You've just designed Instagram's core architecture!" },
+        { type: 'guide', content: "The Notification Service subscribes to 'like', 'follow', and 'comment' events from Kafka and sends push notifications via APNs (Apple) and FCM (Google)." },
+        { type: 'guide', content: "Because it consumes from Kafka, it's completely decoupled from the upload flow. You can update, scale, or replace the notification service without touching anything else." },
+        { type: 'guide', content: "Add a Microservice (Notification Service) and connect: Kafka → Notification Service. 🎉 You've just designed Instagram's core architecture!" },
       ],
       validation: {
         requiredNodes: ['kafka'],
