@@ -276,24 +276,24 @@ export function Hero() {
 
       {/* ── LAYER 3: Text content ── */}
       <div className="text-center max-w-4xl mx-auto px-6 mb-16 pt-40 md:pt-48" style={{ position: 'relative', zIndex: 10 }}>
-        <div className="hero-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs mb-8 opacity-0" style={{ border: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
+        <div className="hero-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs mb-8" style={{ border: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
           Now in Beta — Free to use
         </div>
 
         <h1 className="font-bold tracking-tight leading-[0.95] mb-6" style={{ fontSize: 'clamp(3rem, 8vw, 5.5rem)' }}>
-          <span className="hero-word block bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent opacity-0">Design Systems,</span>
-          <span className="hero-word block bg-gradient-to-r from-indigo-300 to-indigo-500 bg-clip-text text-transparent opacity-0">Not Documents.</span>
+          <span className="hero-word block bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Design Systems,</span>
+          <span className="hero-word block bg-gradient-to-r from-indigo-300 to-indigo-500 bg-clip-text text-transparent">Not Documents.</span>
         </h1>
 
-        <p className="hero-sub text-lg max-w-xl mx-auto mb-10 leading-relaxed opacity-0" style={{ color: '#64748b' }}>
+        <p className="hero-sub text-lg max-w-xl mx-auto mb-10 leading-relaxed" style={{ color: '#64748b' }}>
           A visual canvas for building production-ready system architecture diagrams. Drag, connect, and think in systems.
         </p>
 
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <button
             onClick={() => router.push('/editor')}
-            className="hero-cta will-change-transform inline-flex items-center gap-2 px-6 py-3 text-white font-medium rounded-full text-sm transition-colors opacity-0"
+            className="hero-cta will-change-transform inline-flex items-center gap-2 px-6 py-3 text-white font-medium rounded-full text-sm transition-colors"
             style={{ backgroundColor: '#6366f1', boxShadow: '0 0 30px rgba(99,102,241,0.35)' }}
             onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#4f46e5')}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#6366f1')}
@@ -302,7 +302,7 @@ export function Hero() {
           </button>
           <button
             onClick={() => document.getElementById('templates')?.scrollIntoView({ behavior: 'smooth' })}
-            className="hero-cta will-change-transform inline-flex items-center gap-2 px-6 py-3 font-medium rounded-full text-sm transition-colors opacity-0"
+            className="hero-cta will-change-transform inline-flex items-center gap-2 px-6 py-3 font-medium rounded-full text-sm transition-colors"
             style={{ color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'transparent' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = '#f1f5f9'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#94a3b8'; }}
@@ -311,16 +311,16 @@ export function Hero() {
           </button>
         </div>
 
-        <p className="hero-sub mt-5 text-xs opacity-0" style={{ color: '#334155' }}>
+        <p className="hero-sub mt-5 text-xs" style={{ color: '#334155' }}>
           No account needed · 150+ components · Free forever
         </p>
       </div>
 
       {/* ── LAYER 3: 3D Canvas Mockup ── */}
       <div className="w-full max-w-6xl mx-auto px-6" style={{ position: 'relative', zIndex: 10 }}>
-        <div ref={mockupRef} className="hero-mockup relative opacity-0" style={{ perspective: '1200px', perspectiveOrigin: '50% 40%' }}>
+        <div ref={mockupRef} className="hero-mockup relative" style={{ perspective: '1200px', perspectiveOrigin: '50% 40%' }}>
           {/* Floating cards */}
-          <div className="float-card animate-float absolute -left-4 top-12 z-20 opacity-0 hidden lg:flex items-center gap-2 p-3 rounded-xl" style={{ backgroundColor: '#0d1117', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', willChange: 'transform' }}>
+          <div className="float-card animate-float absolute -left-4 top-12 z-20 hidden lg:flex items-center gap-2 p-3 rounded-xl" style={{ backgroundColor: '#0d1117', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', willChange: 'transform' }}>
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(99,102,241,0.15)' }}>
               <Brain className="w-4 h-4 text-indigo-400" />
             </div>
@@ -330,7 +330,7 @@ export function Hero() {
             </div>
           </div>
 
-          <div className="float-card animate-float animate-float-delay-1 absolute -right-4 top-20 z-20 opacity-0 hidden lg:block p-3 rounded-xl" style={{ backgroundColor: '#0d1117', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', willChange: 'transform' }}>
+          <div className="float-card animate-float animate-float-delay-1 absolute -right-4 top-20 z-20 hidden lg:block p-3 rounded-xl" style={{ backgroundColor: '#0d1117', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', willChange: 'transform' }}>
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               <span className="text-xs text-slate-300">Auto Layout</span>
@@ -338,7 +338,7 @@ export function Hero() {
             <p className="text-[10px]" style={{ color: '#475569' }}>8 nodes arranged</p>
           </div>
 
-          <div className="float-card animate-float animate-float-delay-2 absolute -left-2 bottom-20 z-20 opacity-0 hidden lg:flex items-center gap-2 p-3 rounded-xl" style={{ backgroundColor: '#0d1117', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', willChange: 'transform' }}>
+          <div className="float-card animate-float animate-float-delay-2 absolute -left-2 bottom-20 z-20 hidden lg:flex items-center gap-2 p-3 rounded-xl" style={{ backgroundColor: '#0d1117', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', willChange: 'transform' }}>
             <Download className="w-4 h-4 text-indigo-400" />
             <div>
               <p className="text-xs text-white font-medium">Exported</p>

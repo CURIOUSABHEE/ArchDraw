@@ -26,15 +26,15 @@ export function Templates() {
     if (prefersReducedMotion) return;
 
     gsap.fromTo('.templates-headline',
-      { opacity: 0, y: 50 },
+      { opacity: 0.01, y: 50 },
       { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.templates-headline', start: 'top 85%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.templates-headline', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     gsap.fromTo('.template-card',
-      { opacity: 0, y: 40 },
+      { opacity: 0.01, y: 40 },
       { opacity: 1, y: 0, duration: 0.7, stagger: 0.1, ease: 'power2.out',
-        scrollTrigger: { trigger: '.templates-grid', start: 'top 80%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.templates-grid', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     document.querySelectorAll<HTMLElement>('.template-card').forEach(card => {

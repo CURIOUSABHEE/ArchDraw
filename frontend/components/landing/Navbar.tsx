@@ -20,7 +20,7 @@ export function Navbar() {
     if (prefersReducedMotion) return;
 
     gsap.fromTo(navRef.current,
-      { y: -80, opacity: 0 },
+      { y: -20, opacity: 0.01 },
       { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out', delay: 0.1 }
     );
 

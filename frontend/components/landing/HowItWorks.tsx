@@ -232,9 +232,11 @@ export function HowItWorks() {
   // Animate mockup whenever step changes
   const animateMockup = useCallback(() => {
     if (!mockupRef.current) return;
+    // Ensure visible first, then animate from slightly offset
+    gsap.set(mockupRef.current, { opacity: 1, y: 0, scale: 1 });
     gsap.fromTo(mockupRef.current,
-      { opacity: 0, y: 14, scale: 0.98 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power2.out' }
+      { opacity: 0.3, y: 8, scale: 0.99 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' }
     );
   }, []);
 
@@ -245,16 +247,19 @@ export function HowItWorks() {
   // Scroll-driven step progression
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!scrollRef.current) return;
+    if (!scrollRef.current || !stickyRef.current) return;
 
-    // Entrance fade for the sticky panel
-    gsap.fromTo(stickyRef.current,
-      { opacity: 0, y: 40 },
-      { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
-        scrollTrigger: { trigger: scrollRef.current, start: 'top 80%', toggleActions: 'play none none none' } }
-    );
+    // Always ensure the sticky panel is visible — GSAP animation is purely additive
+    gsap.set(stickyRef.current, { opacity: 1, y: 0 });
 
-    if (prefersReducedMotion) return;
+    if (!prefersReducedMotion) {
+      // Subtle entrance — animate FROM near-visible so fallback is always visible
+      gsap.fromTo(stickyRef.current,
+        { opacity: 0.2, y: 20 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out',
+          scrollTrigger: { trigger: scrollRef.current, start: 'top 95%', toggleActions: 'play none none none' } }
+      );
+    }
 
     // Pin the sticky panel and drive step from scroll progress
     const st = ScrollTrigger.create({
@@ -262,7 +267,6 @@ export function HowItWorks() {
       start: 'top top',
       end: 'bottom bottom',
       onUpdate(self) {
-        // progress 0–1 across the full scroll container → map to step 0/1/2
         const step = Math.min(2, Math.floor(self.progress * 3));
         if (step !== prevStep.current) {
           prevStep.current = step;

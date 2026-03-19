@@ -21,15 +21,15 @@ export function ComponentsShowcase() {
     if (prefersReducedMotion) return;
 
     gsap.fromTo('.components-headline',
-      { opacity: 0, y: 50, filter: 'blur(8px)' },
+      { opacity: 0.01, y: 50, filter: 'blur(8px)' },
       { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.components-headline', start: 'top 85%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.components-headline', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     gsap.fromTo('.component-row',
-      { opacity: 0, x: -30 },
+      { opacity: 0.01, x: -30 },
       { opacity: 1, x: 0, duration: 0.6, stagger: 0.08, ease: 'power2.out',
-        scrollTrigger: { trigger: '.components-list', start: 'top 80%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.components-list', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };

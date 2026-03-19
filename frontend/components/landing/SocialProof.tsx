@@ -13,10 +13,11 @@ export function SocialProof() {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
+    // Animate from near-visible so the label is never permanently hidden
     gsap.fromTo('.social-label',
-      { opacity: 0, y: 20 },
+      { opacity: 0.2, y: 12 },
       { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out',
-        scrollTrigger: { trigger: '.social-label', start: 'top 85%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.social-label', start: 'top 95%', toggleActions: 'play none none none' } }
     );
 
     return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };

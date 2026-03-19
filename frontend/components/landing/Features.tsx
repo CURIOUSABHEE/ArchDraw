@@ -25,13 +25,13 @@ export function Features() {
     if (prefersReducedMotion) return;
 
     gsap.fromTo('.features-headline',
-      { opacity: 0, y: 50 },
+      { opacity: 0.01, y: 50 },
       { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
         scrollTrigger: { trigger: '.features-headline', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     gsap.fromTo('.feature-card',
-      { opacity: 0, y: 50, scale: 0.95 },
+      { opacity: 0.01, y: 50, scale: 0.95 },
       { opacity: 1, y: 0, scale: 1, duration: 0.6,
         stagger: { amount: 0.5, grid: [2, 3], from: 'start' },
         ease: 'power2.out',

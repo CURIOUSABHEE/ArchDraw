@@ -16,21 +16,21 @@ export function CTASection() {
     if (prefersReducedMotion) return;
 
     gsap.fromTo('.cta-headline',
-      { opacity: 0, y: 80, scale: 0.9 },
+      { opacity: 0.01, y: 80, scale: 0.9 },
       { opacity: 1, y: 0, scale: 1, duration: 1, ease: 'power4.out',
-        scrollTrigger: { trigger: '.cta-headline', start: 'top 85%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.cta-headline', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     gsap.fromTo('.cta-sub',
-      { opacity: 0, y: 30 },
+      { opacity: 0.01, y: 30 },
       { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out',
-        scrollTrigger: { trigger: '.cta-sub', start: 'top 85%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.cta-sub', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     gsap.fromTo('.cta-btn',
-      { opacity: 0, scale: 0.9 },
+      { opacity: 0.01, scale: 0.9 },
       { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.4)',
-        scrollTrigger: { trigger: '.cta-btn', start: 'top 90%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.cta-btn', start: 'top 95%', toggleActions: 'play none none none' } }
     );
 
     // Magnetic button

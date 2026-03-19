@@ -23,15 +23,15 @@ export function FAQ() {
     if (prefersReducedMotion) return;
 
     gsap.fromTo('.faq-headline',
-      { opacity: 0, y: 50, filter: 'blur(8px)' },
+      { opacity: 0.01, y: 50, filter: 'blur(8px)' },
       { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.faq-headline', start: 'top 85%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.faq-headline', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     gsap.fromTo('.faq-item',
-      { opacity: 0, y: 30 },
+      { opacity: 0.01, y: 30 },
       { opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: 'power2.out',
-        scrollTrigger: { trigger: '.faq-list', start: 'top 80%', toggleActions: 'play none none none' } }
+        scrollTrigger: { trigger: '.faq-list', start: 'top 90%', toggleActions: 'play none none none' } }
     );
 
     return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };

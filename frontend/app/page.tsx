@@ -7,13 +7,13 @@ import { SocialProof } from '@/components/landing/SocialProof';
 import { Features } from '@/components/landing/Features';
 
 // Below-fold sections — lazy loaded
-const HowItWorks        = dynamic(() => import('@/components/landing/HowItWorks').then(m => ({ default: m.HowItWorks })));
-const Templates         = dynamic(() => import('@/components/landing/Templates').then(m => ({ default: m.Templates })));
-const ComponentsShowcase = dynamic(() => import('@/components/landing/ComponentsShowcase').then(m => ({ default: m.ComponentsShowcase })));
-const UseCases          = dynamic(() => import('@/components/landing/UseCases').then(m => ({ default: m.UseCases })));
-const FAQ               = dynamic(() => import('@/components/landing/FAQ').then(m => ({ default: m.FAQ })));
-const CTASection        = dynamic(() => import('@/components/landing/CTASection').then(m => ({ default: m.CTASection })));
-const Footer            = dynamic(() => import('@/components/landing/Footer').then(m => ({ default: m.Footer })));
+const HowItWorks        = dynamic(() => import('@/components/landing/HowItWorks').then(m => ({ default: m.HowItWorks })), { loading: () => <div className="min-h-[400px]" /> });
+const Templates         = dynamic(() => import('@/components/landing/Templates').then(m => ({ default: m.Templates })), { loading: () => <div className="min-h-[400px]" /> });
+const ComponentsShowcase = dynamic(() => import('@/components/landing/ComponentsShowcase').then(m => ({ default: m.ComponentsShowcase })), { loading: () => <div className="min-h-[400px]" /> });
+const UseCases          = dynamic(() => import('@/components/landing/UseCases').then(m => ({ default: m.UseCases })), { loading: () => <div className="min-h-[400px]" /> });
+const FAQ               = dynamic(() => import('@/components/landing/FAQ').then(m => ({ default: m.FAQ })), { loading: () => <div className="min-h-[400px]" /> });
+const CTASection        = dynamic(() => import('@/components/landing/CTASection').then(m => ({ default: m.CTASection })), { loading: () => <div className="min-h-[200px]" /> });
+const Footer            = dynamic(() => import('@/components/landing/Footer').then(m => ({ default: m.Footer })), { loading: () => <div className="min-h-[100px]" /> });
 
 const jsonLd = {
   '@context': 'https://schema.org',
