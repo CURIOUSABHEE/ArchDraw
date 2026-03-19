@@ -99,7 +99,8 @@ interface ComponentEntry {
 }
 
 const COMPONENT_DESCRIPTIONS: Record<string, string> = {
-  client_web_mobile: 'Browser or mobile app that initiates requests',
+  client_web: 'Browser-based web app that initiates requests',
+  client_mobile: 'iOS or Android app that initiates requests',
   dns: 'Resolves domain names to IP addresses',
   cdn: 'Distributes static assets globally for low latency',
   api_gateway: 'Single entry point that routes and authenticates API calls',

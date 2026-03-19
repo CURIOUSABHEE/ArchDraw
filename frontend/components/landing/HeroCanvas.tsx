@@ -11,7 +11,7 @@ const nodeTypes: NodeTypes = { heroNode: HeroNode };
 const ES = { stroke: '#6366f1', strokeWidth: 1.5, strokeOpacity: 0.7 };
 
 const HERO_NODES = [
-  { id: 'client',       type: 'heroNode', position: { x: 0,   y: 220 }, draggable: false, data: { label: 'Client',       category: 'Entry',    icon: 'Monitor',  color: '#6366f1' } },
+  { id: 'client_web',   type: 'heroNode', position: { x: 0,   y: 220 }, draggable: false, data: { label: 'Web',          category: 'Entry',    icon: 'Monitor',  color: '#6366f1' } },
   { id: 'api-gateway',  type: 'heroNode', position: { x: 200, y: 220 }, draggable: false, data: { label: 'API Gateway',  category: 'Gateway',  icon: 'Webhook',  color: '#6366f1' } },
   { id: 'auth-service', type: 'heroNode', position: { x: 420, y: 80  }, draggable: false, data: { label: 'Auth Service', category: 'Security', icon: 'Shield',   color: '#6366f1' } },
   { id: 'chat-service', type: 'heroNode', position: { x: 420, y: 280 }, draggable: false, data: { label: 'Chat Service', category: 'Compute',  icon: 'Boxes',    color: '#3b82f6' } },
@@ -22,7 +22,7 @@ const HERO_NODES = [
 ];
 
 const HERO_EDGES = [
-  { id: 'e1', source: 'client',       target: 'api-gateway',  sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
+  { id: 'e1', source: 'client_web',    target: 'api-gateway',  sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
   { id: 'e2', source: 'api-gateway',  target: 'auth-service', sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
   { id: 'e3', source: 'api-gateway',  target: 'chat-service', sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
   { id: 'e4', source: 'chat-service', target: 'llm-api',      sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },

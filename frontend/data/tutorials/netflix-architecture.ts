@@ -27,11 +27,13 @@ export const netflixTutorial: TutorialData = {
         { type: 'guide', content: 'Add a Client (Web / Mobile) node using ⌘K.' },
       ],
       validation: {
-        requiredNodes: ['client_web_mobile'],
+        requiredNodes: ['client_web', 'client_mobile'],
         requiredEdges: [],
         successMessage: "Client added. Now let's handle DNS and content delivery.",
-        errorMessage: 'Add a Client (Web / Mobile) node to the canvas first.',
+        errorMessage: 'Add a Web or Mobile client node to the canvas first.',
       },
+      openingMessage: "Netflix runs on every device imaginable. How does that affect the architecture decisions?",
+      defaultSuggestions: ["How does Netflix handle different devices?", "What protocols does Netflix use?", "Why is Netflix so fast to load?"],
     },
     {
       id: 2,
@@ -55,6 +57,8 @@ export const netflixTutorial: TutorialData = {
         successMessage: 'Content delivery layer added. Now add the API routing layer.',
         errorMessage: 'Add DNS and CDN nodes, then connect Client → DNS → CDN.',
       },
+      openingMessage: "Netflix's Open Connect CDN is one of the largest in the world. How does DNS routing get you to the nearest server?",
+      defaultSuggestions: ["How does DNS routing work?", "What is Open Connect?", "How does CDN caching work?"],
     },
     {
       id: 3,
@@ -78,6 +82,8 @@ export const netflixTutorial: TutorialData = {
         successMessage: 'API routing layer added. Now secure it with auth.',
         errorMessage: 'Add API Gateway and Load Balancer, then connect Client → API Gateway → Load Balancer.',
       },
+      openingMessage: "Netflix uses Zuul as their API gateway. What makes a good API gateway at this scale?",
+      defaultSuggestions: ["What is Zuul?", "How does Netflix handle billions of API calls?", "What is circuit breaking?"],
     },
     {
       id: 4,
@@ -98,6 +104,8 @@ export const netflixTutorial: TutorialData = {
         successMessage: 'Auth layer added. Now add user management.',
         errorMessage: 'Add an Auth Service connected from the Load Balancer.',
       },
+      openingMessage: "Netflix enforces concurrent stream limits per plan. How does auth handle that in real time?",
+      defaultSuggestions: ["How does Netflix enforce stream limits?", "What is OAuth 2.0?", "How did Netflix crack down on password sharing?"],
     },
     {
       id: 5,
@@ -121,6 +129,8 @@ export const netflixTutorial: TutorialData = {
         successMessage: 'User management added. Now handle actual video streaming.',
         errorMessage: 'Add a Microservice (User Service) and SQL Database with the correct connections.',
       },
+      openingMessage: "Billing data needs ACID guarantees. Why is SQL the right choice here over NoSQL?",
+      defaultSuggestions: ["What are ACID transactions?", "What SQL database does Netflix use?", "How does Netflix handle billing at scale?"],
     },
     {
       id: 6,
@@ -141,6 +151,8 @@ export const netflixTutorial: TutorialData = {
         successMessage: 'Video delivery layer added. Now add the transcoding pipeline.',
         errorMessage: 'Add Object Storage connected from a Microservice (Streaming Service).',
       },
+      openingMessage: "Netflix stores petabytes of video in object storage. How do pre-signed URLs keep content secure?",
+      defaultSuggestions: ["What are pre-signed URLs?", "How much storage does Netflix use?", "What video formats does Netflix support?"],
     },
     {
       id: 7,
@@ -161,6 +173,8 @@ export const netflixTutorial: TutorialData = {
         successMessage: 'Transcoding pipeline added. Now build the recommendation engine.',
         errorMessage: 'Add a Worker / Background Job connected to Object Storage.',
       },
+      openingMessage: "Netflix creates 1,200+ versions of every title. Why so many, and how does the player pick the right one?",
+      defaultSuggestions: ["What is adaptive bitrate streaming?", "What codecs does Netflix use?", "How long does transcoding take?"],
     },
     {
       id: 8,
@@ -181,6 +195,8 @@ export const netflixTutorial: TutorialData = {
         successMessage: 'Recommendation engine added. Now capture viewing events with Kafka.',
         errorMessage: 'Add a Model Server connected from a Microservice (Recommendation Service).',
       },
+      openingMessage: "80% of Netflix views come from recommendations. What ML techniques power this?",
+      defaultSuggestions: ["What is collaborative filtering?", "How does Netflix personalize thumbnails?", "How fast must recommendations be?"],
     },
     {
       id: 9,
@@ -201,6 +217,8 @@ export const netflixTutorial: TutorialData = {
         successMessage: 'Event streaming added. Now store viewing history.',
         errorMessage: 'Add a Kafka / Streaming node connected from the Streaming Service Microservice.',
       },
+      openingMessage: "Netflix processes billions of viewing events daily through Kafka. What makes Kafka reliable at this scale?",
+      defaultSuggestions: ["How does Kafka guarantee delivery?", "What is a Kafka consumer group?", "How does Netflix use Kafka for recommendations?"],
     },
     {
       id: 10,
@@ -224,6 +242,8 @@ export const netflixTutorial: TutorialData = {
         successMessage: 'Data storage layer complete. Now add observability.',
         errorMessage: 'Add Data Warehouse and NoSQL Database, both connected from Kafka.',
       },
+      openingMessage: "Netflix uses Cassandra for viewing history and Hive for analytics. Why two different databases?",
+      defaultSuggestions: ["What is Cassandra good at?", "What is a data warehouse vs database?", "How does Netflix use viewing data?"],
     },
     {
       id: 11,
@@ -247,6 +267,8 @@ export const netflixTutorial: TutorialData = {
         successMessage: "🎉 Tutorial complete! You've designed the Netflix streaming architecture from scratch.",
         errorMessage: 'Add Metrics Collector and Logger connected from the Load Balancer.',
       },
+      openingMessage: "Netflix uses Chaos Monkey to intentionally break things in production. How does observability make that possible?",
+      defaultSuggestions: ["What is Chaos Monkey?", "What metrics does Netflix track?", "What is the Netflix tech stack?"],
     },
   ],
 };

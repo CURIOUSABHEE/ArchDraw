@@ -11,8 +11,9 @@ import { Node, Edge } from 'reactflow';
 // Col 7: x=2450 — Logger, Metrics, Dashboard, Data Warehouse
 
 export const instagramNodes: Node[] = [
-  // Col 0 — 1 node, centered at y=600
-  { id: 'ig_client',    type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Client (Web / Mobile)', category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
+  // Col 0 — 2 nodes stacked (mobile primary, web secondary)
+  { id: 'ig_client_mobile', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Mobile',                category: 'Client & Entry',    color: '#6366f1', icon: 'Smartphone'    } },
+  { id: 'ig_client_web',    type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Web',                   category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
   // Col 1 — 2 nodes, centered at y=600, spacing 180 → y=510, 690
   { id: 'ig_dns',       type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'DNS',                   category: 'Client & Entry',    color: '#6366f1', icon: 'Globe'         } },
   { id: 'ig_cdn',       type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#6366f1', icon: 'RadioTower'    } },
@@ -54,9 +55,10 @@ const E = (id: string, source: string, target: string, label: string): Edge => (
 });
 
 export const instagramEdges: Edge[] = [
-  E('ig_e1',  'ig_client',    'ig_dns',       'resolve domain'),
-  E('ig_e2',  'ig_dns',       'ig_cdn',       'static content'),
-  E('ig_e3',  'ig_client',    'ig_apigw',     'API calls'),
+  E('ig_e1',  'ig_client_mobile', 'ig_dns',       'resolve domain'),
+  E('ig_e2',  'ig_dns',          'ig_cdn',       'static content'),
+  E('ig_e3',  'ig_client_mobile','ig_apigw',     'API calls'),
+  E('ig_e3b', 'ig_client_web',   'ig_apigw',     'API calls'),
   E('ig_e4',  'ig_apigw',     'ig_lb',        'distribute'),
   E('ig_e5',  'ig_lb',        'ig_user_svc',  'user ops'),
   E('ig_e6',  'ig_lb',        'ig_feed_svc',  'feed requests'),

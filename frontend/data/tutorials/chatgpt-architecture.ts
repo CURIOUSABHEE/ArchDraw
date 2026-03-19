@@ -19,6 +19,8 @@ export interface TutorialStep {
   searchHint?: string;
   messages: TutorialMessage[];
   validation: StepValidation;
+  openingMessage?: string;
+  defaultSuggestions?: string[];
 }
 
 export interface TutorialData {
@@ -63,11 +65,13 @@ export const chatgptTutorial: TutorialData = {
         { type: 'guide', content: 'Press ⌘K, search for "Client", and add it to the canvas.' },
       ],
       validation: {
-        requiredNodes: ['client'],
+        requiredNodes: ['client_web', 'client_mobile'],
         requiredEdges: [],
         successMessage: "Great start! The client is on the canvas. Now let's add the next layer.",
-        errorMessage: 'Add a Client (Web/Mobile) node to the canvas first.',
+        errorMessage: 'Add a Web or Mobile client node to the canvas first.',
       },
+      openingMessage: "Let's start with the user-facing layer. Why do you think every architecture diagram begins with the client?",
+      defaultSuggestions: ["Why start with the client?", "What does the client do in ChatGPT?", "What comes after the client?"],
     },
     {
       id: 2,
@@ -88,6 +92,8 @@ export const chatgptTutorial: TutorialData = {
         successMessage: 'Excellent! The client is now talking to your API Gateway.',
         errorMessage: 'Make sure both nodes are on the canvas AND connected with an edge.',
       },
+      openingMessage: "The API Gateway is the front door to your backend. What problems does it solve at scale?",
+      defaultSuggestions: ["What is rate limiting?", "How does the API Gateway handle auth?", "Why not connect directly to services?"],
     },
     {
       id: 3,
@@ -108,6 +114,8 @@ export const chatgptTutorial: TutorialData = {
         successMessage: 'Your system can now scale horizontally.',
         errorMessage: 'Add a Load Balancer and connect it from the API Gateway.',
       },
+      openingMessage: "Load balancers enable horizontal scaling. What strategies do they use to distribute traffic?",
+      defaultSuggestions: ["What is round-robin load balancing?", "How does sticky sessions work?", "What happens if a server goes down?"],
     },
     {
       id: 4,
@@ -128,6 +136,8 @@ export const chatgptTutorial: TutorialData = {
         successMessage: "Core service added. Now let's connect it to the AI model.",
         errorMessage: 'Add a Microservice (Chat Service) connected from the Load Balancer.',
       },
+      openingMessage: "The Chat Service is the brain of the operation. What responsibilities does it have?",
+      defaultSuggestions: ["What does the Chat Service do?", "How does it manage conversation context?", "Why make it a microservice?"],
     },
     {
       id: 5,
@@ -148,6 +158,8 @@ export const chatgptTutorial: TutorialData = {
         successMessage: 'The AI brain is connected. Now we need memory.',
         errorMessage: 'Add an LLM API node and connect it from the Microservice.',
       },
+      openingMessage: "The LLM is stateless — it doesn't remember anything between calls. How does the Chat Service handle that?",
+      defaultSuggestions: ["What is a context window?", "How does token pricing work?", "What model does ChatGPT use?"],
     },
     {
       id: 6,
@@ -171,6 +183,8 @@ export const chatgptTutorial: TutorialData = {
         successMessage: "ChatGPT now has memory. Let's add the conversation store.",
         errorMessage: 'Add both Vector Database and Embedding Service with the correct connections.',
       },
+      openingMessage: "Vector databases power semantic memory. How are embeddings different from regular text storage?",
+      defaultSuggestions: ["What is an embedding?", "How does RAG work?", "What vector DB does OpenAI use?"],
     },
     {
       id: 7,
@@ -191,6 +205,8 @@ export const chatgptTutorial: TutorialData = {
         successMessage: 'Conversation history is now persisted.',
         errorMessage: 'Add a NoSQL Database connected from the Microservice.',
       },
+      openingMessage: "NoSQL vs SQL — why is NoSQL the right choice for storing chat messages?",
+      defaultSuggestions: ["What NoSQL DB does ChatGPT use?", "When should I use SQL instead?", "How is chat data structured?"],
     },
     {
       id: 8,
@@ -211,6 +227,8 @@ export const chatgptTutorial: TutorialData = {
         successMessage: 'Security layer added.',
         errorMessage: 'Add an Auth Service connected from the Load Balancer.',
       },
+      openingMessage: "Auth is critical for both security and monetization. How does ChatGPT enforce plan-based rate limits?",
+      defaultSuggestions: ["What is a JWT token?", "How does rate limiting work?", "How does ChatGPT handle free vs paid users?"],
     },
     {
       id: 9,
@@ -234,6 +252,8 @@ export const chatgptTutorial: TutorialData = {
         successMessage: "🎉 Tutorial complete! You've designed the ChatGPT architecture from scratch.",
         errorMessage: 'Add both Logger and Metrics Collector connected from the Microservice.',
       },
+      openingMessage: "Observability is what separates a 5-minute outage from a 5-hour one. What's the difference between logs and metrics?",
+      defaultSuggestions: ["What is p99 latency?", "What tools does OpenAI use for monitoring?", "What is distributed tracing?"],
     },
   ],
 };

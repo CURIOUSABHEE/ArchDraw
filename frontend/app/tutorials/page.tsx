@@ -3,16 +3,27 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ArrowLeft, Clock, Layers, Brain, Image, BarChart2, Video, ArrowRight, CheckCircle, Share2, Check } from 'lucide-react';
-import { TUTORIALS } from '@/data/tutorials';
+import {
+  ArrowLeft, Clock, Layers, Brain, Image, BarChart2, Video, ArrowRight,
+  CheckCircle, Share2, Check, Car, MessageCircle, Twitter, CreditCard,
+  Github, Link as LinkIcon, Bot, Sparkles,
+} from 'lucide-react';
+import { TUTORIALS, isLiveTutorial } from '@/data/tutorials';
 import { useTutorialStore } from '@/store/tutorialStore';
 import type { TutorialData } from '@/data/tutorials';
 
-const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
-  Brain:     ({ className }) => <Brain className={className} />,
-  Image:     ({ className }) => <Image className={className} />,
-  BarChart2: ({ className }) => <BarChart2 className={className} />,
-  Video:     ({ className }) => <Video className={className} />,
+const ICON_MAP: Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>> = {
+  Brain:         ({ className, style }) => <Brain className={className} style={style} />,
+  Image:         ({ className, style }) => <Image className={className} style={style} />,
+  BarChart2:     ({ className, style }) => <BarChart2 className={className} style={style} />,
+  Video:         ({ className, style }) => <Video className={className} style={style} />,
+  Car:           ({ className, style }) => <Car className={className} style={style} />,
+  MessageCircle: ({ className, style }) => <MessageCircle className={className} style={style} />,
+  Twitter:       ({ className, style }) => <Twitter className={className} style={style} />,
+  CreditCard:    ({ className, style }) => <CreditCard className={className} style={style} />,
+  Github:        ({ className, style }) => <Github className={className} style={style} />,
+  Link:          ({ className, style }) => <LinkIcon className={className} style={style} />,
+  Bot:           ({ className, style }) => <Bot className={className} style={style} />,
 };
 
 const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: string }> = {
@@ -20,6 +31,137 @@ const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: stri
   Intermediate: { bg: 'rgba(245,158,11,0.1)',  text: '#fbbf24', border: 'rgba(245,158,11,0.2)'  },
   Advanced:     { bg: 'rgba(239,68,68,0.1)',   text: '#f87171', border: 'rgba(239,68,68,0.2)'   },
 };
+
+const DIFFICULTY_STYLES_MUTED: Record<string, { bg: string; text: string; border: string }> = {
+  Beginner:     { bg: 'rgba(34,197,94,0.05)',  text: '#4ade8066', border: 'rgba(34,197,94,0.1)'  },
+  Intermediate: { bg: 'rgba(245,158,11,0.05)', text: '#fbbf2466', border: 'rgba(245,158,11,0.1)' },
+  Advanced:     { bg: 'rgba(239,68,68,0.05)',  text: '#f8717166', border: 'rgba(239,68,68,0.1)'  },
+};
+
+interface ComingSoonTutorial {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  icon: string;
+  color: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  estimatedTime: string;
+  tags: string[];
+}
+
+const COMING_SOON: ComingSoonTutorial[] = [
+  {
+    id: 'uber-architecture',
+    title: 'Uber Architecture',
+    description: 'Real-time ride matching, location tracking, surge pricing engine, and driver-rider coordination at scale.',
+    category: 'Real-time Systems',
+    icon: 'Car',
+    color: '#000000',
+    difficulty: 'Advanced',
+    estimatedTime: '~35 mins',
+    tags: ['WebSockets', 'Maps API', 'Real-time', 'Matching'],
+  },
+  {
+    id: 'whatsapp-architecture',
+    title: 'WhatsApp Architecture',
+    description: 'End-to-end encrypted messaging, presence detection, message queues, and offline delivery at 2B users.',
+    category: 'Messaging',
+    icon: 'MessageCircle',
+    color: '#25d366',
+    difficulty: 'Advanced',
+    estimatedTime: '~30 mins',
+    tags: ['E2E Encryption', 'WebSockets', 'Queue', 'Scale'],
+  },
+  {
+    id: 'twitter-architecture',
+    title: 'Twitter / X Architecture',
+    description: 'Fan-out problem, real-time feed generation, trending topics, and handling celebrity accounts differently.',
+    category: 'Social Media',
+    icon: 'Twitter',
+    color: '#1da1f2',
+    difficulty: 'Advanced',
+    estimatedTime: '~30 mins',
+    tags: ['Fan-out', 'Feed', 'Trending', 'Cache'],
+  },
+  {
+    id: 'stripe-payment-system',
+    title: 'Stripe Payment System',
+    description: 'Idempotent payments, webhook delivery, fraud detection, and distributed ledger architecture.',
+    category: 'Payments',
+    icon: 'CreditCard',
+    color: '#635bff',
+    difficulty: 'Intermediate',
+    estimatedTime: '~25 mins',
+    tags: ['Idempotency', 'Webhooks', 'Fraud', 'Ledger'],
+  },
+  {
+    id: 'youtube-architecture',
+    title: 'YouTube Architecture',
+    description: 'Video upload pipeline, transcoding at scale, CDN distribution, and recommendation engine.',
+    category: 'Streaming',
+    icon: 'Video',
+    color: '#ff0000',
+    difficulty: 'Advanced',
+    estimatedTime: '~35 mins',
+    tags: ['Transcoding', 'CDN', 'ML', 'Pipeline'],
+  },
+  {
+    id: 'github-architecture',
+    title: 'GitHub Architecture',
+    description: 'Git object storage, pull request workflows, CI/CD pipeline, and code search at massive scale.',
+    category: 'Developer Tools',
+    icon: 'Github',
+    color: '#333333',
+    difficulty: 'Advanced',
+    estimatedTime: '~30 mins',
+    tags: ['Git', 'CI/CD', 'Search', 'Storage'],
+  },
+  {
+    id: 'rag-application',
+    title: 'RAG Application',
+    description: 'Build a production RAG system with vector search, chunking strategies, reranking, and LLM integration.',
+    category: 'AI Systems',
+    icon: 'Brain',
+    color: '#ec4899',
+    difficulty: 'Intermediate',
+    estimatedTime: '~25 mins',
+    tags: ['Vector DB', 'Embeddings', 'LLM', 'Retrieval'],
+  },
+  {
+    id: 'url-shortener',
+    title: 'URL Shortener',
+    description: 'The classic system design interview question. Hash generation, redirect service, analytics, and scale.',
+    category: 'Interview Prep',
+    icon: 'Link',
+    color: '#6366f1',
+    difficulty: 'Beginner',
+    estimatedTime: '~15 mins',
+    tags: ['Hashing', 'Redirect', 'Analytics', 'Cache'],
+  },
+  {
+    id: 'zoom-architecture',
+    title: 'Zoom Architecture',
+    description: 'WebRTC peer connections, TURN/STUN servers, media relay, recording pipeline, and breakout rooms.',
+    category: 'Video Streaming',
+    icon: 'Video',
+    color: '#2d8cff',
+    difficulty: 'Advanced',
+    estimatedTime: '~35 mins',
+    tags: ['WebRTC', 'TURN/STUN', 'Media', 'Recording'],
+  },
+  {
+    id: 'ai-agent-system',
+    title: 'AI Agent System',
+    description: 'Multi-agent orchestration, tool calling, memory systems, LangGraph workflows, and agent supervision.',
+    category: 'AI Systems',
+    icon: 'Bot',
+    color: '#10b981',
+    difficulty: 'Advanced',
+    estimatedTime: '~30 mins',
+    tags: ['LangGraph', 'Tool Use', 'Memory', 'Agents'],
+  },
+];
 
 function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
   const router = useRouter();
@@ -44,10 +186,7 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
   return (
     <div
       className="rounded-2xl p-6 flex flex-col gap-4 transition-all duration-200 cursor-pointer group"
-      style={{
-        background: '#0d1117',
-        border: '1px solid rgba(255,255,255,0.08)',
-      }}
+      style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.08)' }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(99,102,241,0.4)';
         (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(99,102,241,0.1)';
@@ -58,14 +197,13 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
       }}
       onClick={() => router.push(`/tutorials/${tutorial.id}`)}
     >
-      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: `${tutorial.color}15`, border: `1px solid ${tutorial.color}25` }}
           >
-            {IconComp && <IconComp className="w-5 h-5" />}
+            {IconComp && <IconComp className="w-5 h-5" style={{ color: tutorial.color }} />}
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -76,12 +214,24 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
                 {tutorial.difficulty}
               </span>
               <span className="text-xs text-slate-500">{tutorial.category}</span>
+              {isLiveTutorial(tutorial.id) && (
+                <span
+                  className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                  style={{
+                    background: 'rgba(99,102,241,0.15)',
+                    color: '#a5b4fc',
+                    border: '1px solid rgba(99,102,241,0.3)',
+                    boxShadow: '0 0 8px rgba(99,102,241,0.2)',
+                  }}
+                >
+                  <Sparkles className="w-2.5 h-2.5" />
+                  AI Mentor
+                </span>
+              )}
             </div>
           </div>
         </div>
-        {isCompleted && (
-          <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
-        )}
+        {isCompleted && <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />}
         <button
           onClick={handleShare}
           className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
@@ -94,7 +244,6 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
         </button>
       </div>
 
-      {/* Title + description */}
       <div>
         <h3 className="text-base font-semibold text-white mb-1.5 group-hover:text-indigo-300 transition-colors">
           {tutorial.title}
@@ -102,7 +251,6 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
         <p className="text-sm text-slate-400 leading-relaxed line-clamp-2">{tutorial.description}</p>
       </div>
 
-      {/* Tags */}
       <div className="flex flex-wrap gap-1.5">
         {tutorial.tags.map((tag) => (
           <span
@@ -115,7 +263,6 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
         ))}
       </div>
 
-      {/* Stats */}
       <div className="flex items-center gap-4 text-xs text-slate-500">
         <span className="flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5" />
@@ -128,13 +275,10 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
         <span>{tutorial.stepCount} steps</span>
       </div>
 
-      {/* Progress bar if in progress */}
       {isInProgress && (
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-slate-500">
-              {progress}/{tutorial.stepCount} steps completed
-            </span>
+            <span className="text-xs text-slate-500">{progress}/{tutorial.stepCount} steps completed</span>
             <span className="text-xs text-indigo-400">Resume →</span>
           </div>
           <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
@@ -146,20 +290,101 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
         </div>
       )}
 
-      {/* CTA */}
       <button
         className="w-full py-2.5 rounded-lg text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors mt-auto"
         style={{ background: '#4f46e5' }}
         onMouseEnter={(e) => (e.currentTarget.style.background = '#6366f1')}
         onMouseLeave={(e) => (e.currentTarget.style.background = '#4f46e5')}
-        onClick={(e) => {
-          e.stopPropagation();
-          router.push(`/tutorials/${tutorial.id}`);
-        }}
+        onClick={(e) => { e.stopPropagation(); router.push(`/tutorials/${tutorial.id}`); }}
       >
         {isInProgress ? 'Resume Tutorial' : isCompleted ? 'Redo Tutorial' : 'Start Tutorial'}
         <ArrowRight className="w-4 h-4" />
       </button>
+    </div>
+  );
+}
+
+function ComingSoonCard({ tutorial }: { tutorial: ComingSoonTutorial }) {
+  const diffStyle = DIFFICULTY_STYLES_MUTED[tutorial.difficulty] ?? DIFFICULTY_STYLES_MUTED.Intermediate;
+  const IconComp = ICON_MAP[tutorial.icon];
+
+  return (
+    <div
+      className="relative rounded-2xl p-6 flex flex-col gap-4"
+      style={{
+        background: '#0d1117',
+        border: '1px solid rgba(255,255,255,0.06)',
+        opacity: 0.7,
+        cursor: 'default',
+      }}
+    >
+      {/* Coming Soon badge */}
+      <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/6 border border-white/10 text-slate-500">
+        Coming Soon
+      </div>
+
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: `${tutorial.color}10`, border: `1px solid ${tutorial.color}18` }}
+        >
+          {IconComp && <IconComp className="w-5 h-5" style={{ color: `${tutorial.color}99` }} />}
+        </div>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className="text-xs font-medium px-2 py-0.5 rounded-full"
+              style={{ background: diffStyle.bg, color: diffStyle.text, border: `1px solid ${diffStyle.border}` }}
+            >
+              {tutorial.difficulty}
+            </span>
+            <span className="text-xs text-slate-600">{tutorial.category}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Title + description */}
+      <div>
+        <h3 className="text-base font-semibold text-slate-400 mb-1.5">{tutorial.title}</h3>
+        <p className="text-sm text-slate-600 leading-relaxed line-clamp-2">{tutorial.description}</p>
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-1.5">
+        {tutorial.tags.map((tag) => (
+          <span
+            key={tag}
+            className="text-[10px] px-2 py-0.5 rounded-full"
+            style={{ background: 'rgba(255,255,255,0.03)', color: '#475569', border: '1px solid rgba(255,255,255,0.04)' }}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      {/* Stats */}
+      <div className="flex items-center gap-4 text-xs text-slate-600">
+        <span className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5" />
+          {tutorial.estimatedTime}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Layers className="w-3.5 h-3.5" />
+          — components
+        </span>
+        <span>— steps</span>
+      </div>
+
+      {/* Notify me */}
+      <div className="mt-auto pt-1">
+        <span className="text-xs text-slate-600 cursor-default select-none">
+          Notify me when available →
+        </span>
+      </div>
+
+      {/* Bottom overlay anchor */}
+      <div className="absolute inset-0 rounded-xl flex items-end justify-center pb-4 pointer-events-none" />
     </div>
   );
 }
@@ -209,10 +434,22 @@ export default function TutorialsPage() {
           </p>
         </div>
 
-        {/* Cards grid */}
+        {/* Available tutorials grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {TUTORIALS.map((tutorial) => (
             <TutorialCard key={tutorial.id} tutorial={tutorial} />
+          ))}
+        </div>
+
+        {/* Coming Soon section */}
+        <div className="mt-16 mb-8">
+          <h2 className="text-lg font-semibold text-white mb-1">Coming Soon</h2>
+          <p className="text-sm text-slate-500">More architectures being built. New tutorials drop every week.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {COMING_SOON.map((tutorial) => (
+            <ComingSoonCard key={tutorial.id} tutorial={tutorial} />
           ))}
         </div>
       </div>

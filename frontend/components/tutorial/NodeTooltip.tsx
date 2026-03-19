@@ -21,48 +21,43 @@ export function NodeTooltip({
   children,
 }: NodeTooltipProps) {
   const [visible, setVisible] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0, above: true });
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
-  const show = useCallback(() => {
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    setPos({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleMouseEnter = useCallback((e: React.MouseEvent) => {
     if (isDragging || !description) return;
-    timerRef.current = setTimeout(() => {
-      const el = containerRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const above = rect.top > 120;
-      setPos({
-        x: rect.left + rect.width / 2,
-        y: above ? rect.top - 8 : rect.bottom + 8,
-        above,
-      });
-      setVisible(true);
-    }, 400);
+    setPos({ x: e.clientX, y: e.clientY });
+    timerRef.current = setTimeout(() => setVisible(true), 400);
   }, [isDragging, description]);
 
-  const hide = useCallback(() => {
+  const handleMouseLeave = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     setVisible(false);
   }, []);
 
-  // Hide immediately when dragging starts
   useEffect(() => {
-    if (isDragging) hide();
-  }, [isDragging, hide]);
+    if (isDragging) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setVisible(false);
+    }
+  }, [isDragging]);
+
+  const flipLeft = pos.x > window.innerWidth - 220;
 
   const tooltip = visible && mounted && description ? createPortal(
     <div
       style={{
         position: 'fixed',
-        left: pos.x,
-        top: pos.y,
-        transform: pos.above
-          ? 'translate(-50%, -100%)'
-          : 'translate(-50%, 0)',
+        left: pos.x + 12,
+        top: pos.y - 80,
+        transform: flipLeft ? 'translateX(-110%)' : 'translateX(0)',
         zIndex: 9999,
         pointerEvents: 'none',
         animation: 'nodeTooltipIn 0.15s ease forwards',
@@ -74,7 +69,7 @@ export function NodeTooltip({
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 10,
           padding: '8px 12px',
-          maxWidth: 220,
+          width: 192,
           boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
         }}
       >
@@ -83,30 +78,13 @@ export function NodeTooltip({
           {category && (
             <span
               className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-              style={{
-                background: `${color}18`,
-                color,
-                border: `1px solid ${color}30`,
-              }}
+              style={{ background: `${color}18`, color, border: `1px solid ${color}30` }}
             >
               {category}
             </span>
           )}
         </div>
         <p className="text-[11px] text-slate-400 leading-relaxed">{description}</p>
-        {/* Arrow */}
-        <div
-          style={{
-            position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            ...(pos.above
-              ? { bottom: -5, borderTop: '5px solid rgba(255,255,255,0.1)', borderLeft: '5px solid transparent', borderRight: '5px solid transparent' }
-              : { top: -5, borderBottom: '5px solid rgba(255,255,255,0.1)', borderLeft: '5px solid transparent', borderRight: '5px solid transparent' }),
-            width: 0,
-            height: 0,
-          }}
-        />
       </div>
     </div>,
     document.body
@@ -116,11 +94,16 @@ export function NodeTooltip({
     <>
       <style>{`
         @keyframes nodeTooltipIn {
-          from { opacity: 0; transform: translate(-50%, calc(${pos.above ? '-100%' : '0%'} + ${pos.above ? '4px' : '-4px'})); }
-          to   { opacity: 1; transform: translate(-50%, ${pos.above ? '-100%' : '0%'}); }
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      <div ref={containerRef} onMouseEnter={show} onMouseLeave={hide} style={{ display: 'contents' }}>
+      <div
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseMove={handleMouseMove}
+        style={{ display: 'contents' }}
+      >
         {children}
       </div>
       {tooltip}

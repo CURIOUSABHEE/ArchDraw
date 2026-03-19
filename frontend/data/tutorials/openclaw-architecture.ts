@@ -27,11 +27,13 @@ export const openclawTutorial: TutorialData = {
         { type: 'guide', content: 'Add a Client (Web / Mobile) node using ⌘K.' },
       ],
       validation: {
-        requiredNodes: ['client'],
+        requiredNodes: ['client_web', 'client_mobile'],
         requiredEdges: [],
         successMessage: "Client dashboard added. Now let's secure access to it.",
-        errorMessage: 'Add a Client (Web / Mobile) node to the canvas first.',
+        errorMessage: 'Add a Web or Mobile client node to the canvas first.',
       },
+      openingMessage: "OpenClaw is an AI-powered analytics platform. What makes analytics dashboards different from regular web apps?",
+      defaultSuggestions: ["What is subscription analytics?", "What metrics does OpenClaw track?", "What is MRR and churn?"],
     },
     {
       id: 2,
@@ -55,6 +57,8 @@ export const openclawTutorial: TutorialData = {
         successMessage: 'Access layer secured. Now add the data ingestion service.',
         errorMessage: 'Add API Gateway and Auth Service, then connect Client → API Gateway → Auth Service.',
       },
+      openingMessage: "Subscription revenue data is sensitive. What does the Auth Service need to check beyond just identity?",
+      defaultSuggestions: ["What is role-based access control?", "How do JWTs work?", "What data should be protected in analytics?"],
     },
     {
       id: 3,
@@ -75,6 +79,8 @@ export const openclawTutorial: TutorialData = {
         successMessage: 'Data ingestion layer added. Now handle high-volume event streaming.',
         errorMessage: 'Add a Microservice (Data Ingestion) connected from the API Gateway.',
       },
+      openingMessage: "The ingestion service normalizes events from many sources. Why is deduplication critical here?",
+      defaultSuggestions: ["What is event deduplication?", "What events does a subscription platform generate?", "How does schema validation work?"],
     },
     {
       id: 4,
@@ -95,6 +101,8 @@ export const openclawTutorial: TutorialData = {
         successMessage: 'Event streaming layer added. Now store historical data.',
         errorMessage: 'Add a Kafka / Streaming node connected from the Microservice.',
       },
+      openingMessage: "Kafka decouples producers from consumers. How does that help when the data warehouse is temporarily slow?",
+      defaultSuggestions: ["What is Kafka's durability guarantee?", "What is a consumer lag?", "How does Kafka handle backpressure?"],
     },
     {
       id: 5,
@@ -115,6 +123,8 @@ export const openclawTutorial: TutorialData = {
         successMessage: 'Historical data storage added. Now add the operational database.',
         errorMessage: 'Add a Data Warehouse connected from Kafka.',
       },
+      openingMessage: "Data warehouses use columnar storage for analytics. Why is that faster than row-based storage for aggregations?",
+      defaultSuggestions: ["What is columnar storage?", "What is BigQuery vs Snowflake?", "How does a data warehouse differ from a database?"],
     },
     {
       id: 6,
@@ -135,6 +145,8 @@ export const openclawTutorial: TutorialData = {
         successMessage: 'Operational database added. Now build the analytics engine.',
         errorMessage: 'Add a SQL Database connected from the Microservice.',
       },
+      openingMessage: "You have both a SQL database and a data warehouse. What queries go to each one?",
+      defaultSuggestions: ["What is the operational vs analytical split?", "When should I use SQL vs a data warehouse?", "What is OLTP vs OLAP?"],
     },
     {
       id: 7,
@@ -155,6 +167,8 @@ export const openclawTutorial: TutorialData = {
         successMessage: 'Analytics engine added. Now add AI-powered insights.',
         errorMessage: 'Add a Microservice (Analytics Engine) connected from the Data Warehouse.',
       },
+      openingMessage: "The analytics engine runs scheduled aggregation jobs. What metrics are most important for a subscription business?",
+      defaultSuggestions: ["What is MRR?", "How is churn rate calculated?", "What is customer LTV?"],
     },
     {
       id: 8,
@@ -178,6 +192,8 @@ export const openclawTutorial: TutorialData = {
         successMessage: 'AI insights layer added. Now wire up the dashboard.',
         errorMessage: 'Add LLM API and RAG Pipeline with the correct connections.',
       },
+      openingMessage: "The RAG pipeline grounds the LLM in real data. Why can't you just send all the metrics directly to the LLM?",
+      defaultSuggestions: ["What is RAG?", "What is a context window limit?", "How does the LLM generate business insights?"],
     },
     {
       id: 9,
@@ -200,6 +216,8 @@ export const openclawTutorial: TutorialData = {
         successMessage: "🎉 Tutorial complete! You've designed the OpenClaw AI analytics architecture.",
         errorMessage: 'Add Dashboard and Metrics Collector with the correct connections.',
       },
+      openingMessage: "The metrics collector monitors the pipeline itself. What would you alert on in an analytics platform?",
+      defaultSuggestions: ["What is ingestion lag?", "How do you monitor a data pipeline?", "What is an SLA for analytics?"],
     },
   ],
 };

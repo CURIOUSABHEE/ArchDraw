@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npx tsx scripts/generateTutorialCache.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -41,6 +42,7 @@
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.2",
     "@types/dagre": "^0.7.54",
+    "@upstash/redis": "^1.37.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -48,6 +50,7 @@
     "embla-carousel-react": "^8.6.0",
     "fast-levenshtein": "^3.0.0",
     "framer-motion": "^12.38.0",
+    "groq-sdk": "^0.9.1",
     "gsap": "^3.14.2",
     "html-to-image": "^1.11.13",
     "input-otp": "^1.4.2",
