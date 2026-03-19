@@ -2,9 +2,12 @@ import React, { useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import {
   EdgeProps,
-  getBezierPath,
   EdgeLabelRenderer,
+  useStore,
 } from 'reactflow';
+import { getSmartOrthogonalPath } from '@/lib/edgeRouting';
+
+const nodesSelector = (state: any) => state.getNodes();
 import { EDGE_TYPE_CONFIGS, DEFAULT_EDGE_TYPE, EdgeType } from '@/data/edgeTypes';
 import { EdgeContextMenu } from './EdgeContextMenu';
 import { EdgeToolbar } from './EdgeToolbar';
@@ -20,10 +23,25 @@ export function FlowEdge({
   const edgeType: EdgeType = data?.edgeType ?? DEFAULT_EDGE_TYPE;
   const cfg = EDGE_TYPE_CONFIGS[edgeType];
 
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX, sourceY, sourcePosition,
-    targetX, targetY, targetPosition,
-  });
+  const spreadOffset = (data?.spreadOffset as number) ?? 0;
+  const isBundle     = (data?.isBundle     as boolean) ?? false;
+
+  const adjustedSourceY = sourceY + spreadOffset;
+  const adjustedTargetY = targetY + spreadOffset;
+
+  const nodes = useStore(nodesSelector);
+
+  const { path: edgePath, labelX: lx, labelY: ly } = getSmartOrthogonalPath(
+    { x: sourceX, y: adjustedSourceY },
+    { x: targetX, y: adjustedTargetY },
+    nodes,
+    20,
+    40
+  );
+
+  const strokeWidth = isBundle ? (cfg.strokeWidth ?? 2) + 1 : (cfg.strokeWidth ?? 2);
+
+  // Label position calculated by smart router
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
@@ -44,25 +62,26 @@ export function FlowEdge({
 
   const strokeStyle: React.CSSProperties = {
     stroke: cfg.color,
-    strokeWidth: cfg.strokeWidth,
+    strokeWidth,
     strokeDasharray: cfg.strokeDasharray || undefined,
     ...dashAnimation,
   };
 
-  const rfMarkerEnd = `url(#marker-${edgeType}-end)`;
+  const rfMarkerEnd   = `url(#marker-${edgeType}-end)`;
   const rfMarkerStart = cfg.markerStart ? `url(#marker-${edgeType}-start)` : undefined;
+
+  // lx and ly are obtained from path routing above
 
   return (
     <>
       <path
         d={edgePath}
         stroke="transparent"
-        strokeWidth={16}
+        strokeWidth={20}
         fill="none"
         onContextMenu={handleContextMenu}
         style={{ cursor: 'context-menu' }}
       />
-
       <path
         d={edgePath}
         fill="none"
@@ -72,36 +91,35 @@ export function FlowEdge({
         className={selected ? 'opacity-100' : 'opacity-80'}
         onContextMenu={handleContextMenu}
       />
-
       <EdgeLabelRenderer>
-        <div
-          style={{
-            position: 'absolute',
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-            pointerEvents: 'all',
-            zIndex: 10,
-          }}
-          onContextMenu={handleContextMenu}
-        >
-          <EdgeLabel
-            edgeId={id}
-            edgeType={edgeType}
-            label={data?.label}
-            labelX={labelX}
-            labelY={labelY}
-          />
-        </div>
+        {!data?.hideLabel && (
+          <div
+            style={{
+              position: 'absolute',
+              transform: 'translate(-50%, -100%) translate(' + lx + 'px,' + ly + 'px)',
+              pointerEvents: 'all',
+              zIndex: 10,
+            }}
+            onContextMenu={handleContextMenu}
+          >
+            <EdgeLabel
+              edgeId={id}
+              edgeType={edgeType}
+              label={data?.label}
+              labelX={lx}
+              labelY={ly}
+            />
+          </div>
+        )}
       </EdgeLabelRenderer>
-
       {selected && (
         <EdgeToolbar
           edgeId={id}
           currentType={edgeType}
-          labelX={labelX}
-          labelY={labelY}
+          labelX={lx}
+          labelY={ly}
         />
       )}
-
       {contextMenu && ReactDOM.createPortal(
         <EdgeContextMenu
           edgeId={id}

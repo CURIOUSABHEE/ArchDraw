@@ -12,27 +12,43 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   const hasError = data.hasError;
 
   const nodeStyles: React.CSSProperties = {
-    width: 140,
-    borderRadius: 12,
-    background: 'hsl(var(--card))',
-    border: `1px solid ${selected ? resolvedAccent : 'hsl(var(--border))'}`,
-    boxShadow: selected 
-      ? `0 0 0 1px ${resolvedAccent}30, 0 4px 12px -2px ${resolvedAccent}20`
-      : hasError 
-        ? `0 0 0 1px #ef444430, 0 4px 12px -2px #ef444420`
-        : '0 1px 3px -1px hsl(var(--border)), 0 1px 2px -1px hsl(var(--border))',
-    transition: 'all 0.15s ease',
+    width: data.nodeWidth ?? 180,
+    minWidth: 180,
+    minHeight: 120,
+    maxHeight: 155,
+    height: 'auto',
+    boxSizing: 'border-box',
+    borderRadius: 14,
+    background: 'linear-gradient(145deg, #1e2138 0%, #161928 100%)',
+    border: selected
+      ? '1px solid #6366f1'
+      : hasError
+        ? '1px solid rgba(239,68,68,0.4)'
+        : '1px solid rgba(99,102,241,0.2)',
+    boxShadow: selected
+      ? '0 0 0 2px #6366f1, 0 4px 20px rgba(99,102,241,0.3)'
+      : hasError
+        ? '0 0 0 1px rgba(239,68,68,0.3), 0 2px 8px rgba(0,0,0,0.3)'
+        : '0 2px 8px rgba(0,0,0,0.3)',
+    transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
     cursor: 'pointer',
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
   };
 
   const iconContainerStyle: React.CSSProperties = {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 10,
-    background: `${resolvedAccent}12`,
+    background: 'rgba(99,102,241,0.1)',
+    border: '1px solid rgba(99,102,241,0.2)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   };
 
   const handleStyle: React.CSSProperties = {
@@ -51,16 +67,16 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
       onClick={() => setSelectedNodeId(id)}
       onMouseEnter={(e) => {
         if (!selected) {
-          e.currentTarget.style.borderColor = resolvedAccent + '60';
+          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)';
           e.currentTarget.style.transform = 'translateY(-1px)';
-          e.currentTarget.style.boxShadow = `0 4px 12px -2px ${resolvedAccent}15`;
+          e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.2)';
         }
       }}
       onMouseLeave={(e) => {
         if (!selected) {
-          e.currentTarget.style.borderColor = 'hsl(var(--border))';
+          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)';
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 1px 3px -1px hsl(var(--border)), 0 1px 2px -1px hsl(var(--border))';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
         }
       }}
     >
@@ -76,13 +92,24 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         position={Position.Right}
         style={handleStyle}
       />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ ...handleStyle, opacity: 0 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ ...handleStyle, opacity: 0 }}
+      />
 
       <div style={{
-        padding: '16px 14px',
+        padding: '12px 12px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: 8,
+        width: '100%',
       }}>
         {/* Big Icon */}
         <div style={iconContainerStyle}>
@@ -96,27 +123,30 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         {/* Label */}
         <span style={{
           fontSize: 13,
-          fontWeight: 500,
-          color: 'hsl(var(--foreground))',
+          fontWeight: 600,
+          color: '#e5e7eb',
           textAlign: 'center',
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word',
           lineHeight: 1.3,
-          maxWidth: 110,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          margin: 0,
         }}>
           {data.label}
         </span>
 
-        {/* Category/Type - subtle */}
-        <span style={{
-          fontSize: 10,
-          fontWeight: 400,
-          color: 'hsl(var(--muted-foreground))',
-          letterSpacing: '0.02em',
-        }}>
-          {data.technology || data.category?.replace(/[^A-Z]/g, '').slice(0, 3) || 'Service'}
-        </span>
+        {/* Sublabel — role description (only shown when non-empty and not a layer code) */}
+        {data.sublabel && data.sublabel.trim() && (
+          <span style={{
+            fontSize: 10,
+            fontWeight: 400,
+            color: 'hsl(var(--muted-foreground))',
+            letterSpacing: '0.02em',
+            textAlign: 'center',
+            lineHeight: 1.3,
+          }}>
+            {data.sublabel}
+          </span>
+        )}
 
         {/* Error state */}
         {hasError && (

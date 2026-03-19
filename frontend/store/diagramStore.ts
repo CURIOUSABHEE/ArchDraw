@@ -14,7 +14,7 @@ import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { EdgeType, DEFAULT_EDGE_TYPE } from '@/data/edgeTypes';
 
 // Module-level fitView callback — set by Canvas on mount, avoids circular imports
-type FitViewOptions = { padding?: number; duration?: number };
+type FitViewOptions = { padding?: number; duration?: number; maxZoom?: number };
 let fitViewCallback: ((opts?: FitViewOptions) => void) | null = null;
 export function registerFitViewCallback(fn: (opts?: FitViewOptions) => void) {
   fitViewCallback = fn;
@@ -42,9 +42,11 @@ export interface NodeData {
   icon?: string;
   description?: string;
   tech?: string;
+  sublabel?: string;
   hasError?: boolean;
   accentColor?: string;
   technology?: string;
+  nodeWidth?: number;
 }
 
 export interface CanvasTab {
@@ -128,7 +130,7 @@ interface DiagramState {
   loadTemplate: (nodes: Node[], edges: Edge[]) => void;
 
   // ── Fit view ──────────────────────────────────────────────────────────────
-  fitView: () => void;
+  fitView: (options?: FitViewOptions) => void;
 
   // ── Edge editing ──────────────────────────────────────────────────────────
   editingEdgeId: string | null;
@@ -141,6 +143,12 @@ interface DiagramState {
   // ── Edge Types ────────────────────────────────────────────────────────────
   updateEdgeType: (edgeId: string, edgeType: EdgeType) => void;
   updateEdgeLabel: (edgeId: string, label: string) => void;
+
+  // ── AI Streaming (real-time canvas building) ──────────────────────────────
+  setNodes: (nodes: Node[]) => void;
+  setEdges: (edges: Edge[]) => void;
+  appendNode: (node: Node) => void;
+  appendEdge: (edge: Edge) => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -445,8 +453,8 @@ export const useDiagramStore = create<DiagramState>()(
       },
 
       // ── Fit view ───────────────────────────────────────────────────────────
-      fitView: () => {
-        fitViewCallback?.({ padding: 0.1, duration: 400 });
+      fitView: (opts) => {
+        fitViewCallback?.(opts ?? { padding: 0.1, duration: 400 });
       },
 
       // ── Edge editing ───────────────────────────────────────────────────────
@@ -469,6 +477,26 @@ export const useDiagramStore = create<DiagramState>()(
         const edges = get().edges.map((e) =>
           e.id === edgeId ? { ...e, data: { ...e.data, label: label.trim() } } : e
         );
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
+        set({ edges, canvases });
+      },
+
+      // ── AI Streaming ──────────────────────────────────────────────────────
+      setNodes: (nodes) => {
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
+        set({ nodes, canvases });
+      },
+      setEdges: (edges) => {
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
+        set({ edges, canvases });
+      },
+      appendNode: (node) => {
+        const nodes = [...get().nodes, node];
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
+        set({ nodes, canvases });
+      },
+      appendEdge: (edge) => {
+        const edges = [...get().edges, edge];
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
       },
