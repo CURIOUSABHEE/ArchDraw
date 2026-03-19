@@ -32,6 +32,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: "Client added. Let's build the entry layer.",
         errorMessage: 'Add a Client (Web/Mobile) node to the canvas first.',
       },
+      openingMessage: "Instagram serves 500M+ daily users across iOS, Android, and web. What challenges does that create?",
+      defaultSuggestions: ["What does Instagram's client do?", "How does Instagram handle mobile vs web?", "What comes after the client?"],
     },
     {
       id: 2,
@@ -52,6 +54,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: 'CDN added. Static assets will now be served from the edge.',
         errorMessage: 'Add a CDN node and connect it from the Client.',
       },
+      openingMessage: "Instagram serves billions of images daily. How does a CDN make that possible without crushing origin servers?",
+      defaultSuggestions: ["How does CDN caching work?", "What is cache invalidation?", "How does Instagram serve images so fast?"],
     },
     {
       id: 3,
@@ -71,6 +75,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: 'API Gateway in place. Now add the load balancer.',
         errorMessage: 'Add an API Gateway connected from the Client.',
       },
+      openingMessage: "The API Gateway is the single entry point for all non-media requests. What does it protect against?",
+      defaultSuggestions: ["What is API rate limiting?", "How does Instagram handle DDoS?", "What is an API gateway vs reverse proxy?"],
     },
     {
       id: 4,
@@ -91,6 +97,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: 'Load balancer added. Now the core services.',
         errorMessage: 'Add a Load Balancer connected from the API Gateway.',
       },
+      openingMessage: "When a celebrity posts and millions refresh their feed, how does the load balancer handle that spike?",
+      defaultSuggestions: ["What is auto-scaling?", "How does Instagram handle traffic spikes?", "What is a health check?"],
     },
     {
       id: 5,
@@ -111,6 +119,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: 'User Service added. Now the media pipeline.',
         errorMessage: 'Add a Microservice (User Service) connected from the Load Balancer.',
       },
+      openingMessage: "The User Service manages the social graph — billions of follow relationships. How is that stored efficiently?",
+      defaultSuggestions: ["What is a social graph?", "How does Instagram store followers?", "What database does Instagram use for users?"],
     },
     {
       id: 6,
@@ -131,6 +141,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: 'Media storage added. Now the database layer.',
         errorMessage: 'Add Object Storage connected from the Microservice.',
       },
+      openingMessage: "Object storage is infinitely scalable for binary files. How does Instagram organize billions of photos in S3?",
+      defaultSuggestions: ["How is S3 organized?", "What is 11 nines durability?", "How does Instagram compress images?"],
     },
     {
       id: 7,
@@ -151,6 +163,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: 'Database layer added. Now the feed system.',
         errorMessage: 'Add a NoSQL Database connected from the Microservice.',
       },
+      openingMessage: "Instagram uses Cassandra for social graph data. Why is NoSQL better than SQL for billions of follow relationships?",
+      defaultSuggestions: ["What is Cassandra's data model?", "How does Instagram query followers?", "What is eventual consistency?"],
     },
     {
       id: 8,
@@ -171,6 +185,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: 'Event streaming added. Now the feed service.',
         errorMessage: 'Add Kafka Streaming connected from the Microservice.',
       },
+      openingMessage: "When you post a photo, 10 things need to happen. How does Kafka decouple all of them?",
+      defaultSuggestions: ["What is event-driven architecture?", "How does Kafka handle retries?", "What events does Instagram publish?"],
     },
     {
       id: 9,
@@ -191,6 +207,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: 'Feed service connected. Now add caching.',
         errorMessage: 'Add a second Microservice (Feed Service) connected from Kafka.',
       },
+      openingMessage: "Instagram pre-computes your feed in the background. What ML signals go into ranking posts?",
+      defaultSuggestions: ["How does Instagram rank posts?", "What is feed fanout?", "How does Instagram decide what to show?"],
     },
     {
       id: 10,
@@ -211,6 +229,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: 'Caching layer added. Final step — notifications.',
         errorMessage: 'Add an In-Memory Cache connected from the Microservice.',
       },
+      openingMessage: "Redis makes Instagram's feed load in under 50ms. What data does Instagram store in Redis vs the database?",
+      defaultSuggestions: ["What is Redis used for?", "How does cache invalidation work?", "What is a cache miss?"],
     },
     {
       id: 11,
@@ -231,6 +251,8 @@ export const instagramTutorial: TutorialData = {
         successMessage: "🎉 Tutorial complete! You've designed Instagram's architecture from scratch.",
         errorMessage: 'Add a Notification Service (Microservice) connected from Kafka.',
       },
+      openingMessage: "Push notifications are a core engagement driver. How does Instagram route them to Apple vs Android devices?",
+      defaultSuggestions: ["What is APNs?", "What is FCM?", "How does Instagram decide when to send notifications?"],
     },
   ],
 };

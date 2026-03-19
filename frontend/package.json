@@ -47,6 +47,7 @@
     "dagre": "^0.8.5",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.38.0",
+    "groq-sdk": "^0.9.1",
     "gsap": "^3.14.2",
     "html-to-image": "^1.11.13",
     "input-otp": "^1.4.2",
