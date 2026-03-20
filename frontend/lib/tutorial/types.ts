@@ -72,5 +72,5 @@ export type Tutorial = {
   color: string;        // hex color
   tags: string[];       // 3-5 tags
   estimatedTime: string; // total across all levels
-  levels: [TutorialLevel, TutorialLevel, TutorialLevel]; // exactly 3
+  levels: [TutorialLevel] | [TutorialLevel, TutorialLevel] | [TutorialLevel, TutorialLevel, TutorialLevel];
 };

@@ -72,6 +72,15 @@ export const EDGE_LABEL: Record<string, string> = {
   dashboard: 'Dashboard',
   circuit_breaker: 'Circuit',
   search_engine: 'Search',
+  // AirBnb-specific
+  availability_service: 'Availability',
+  review_service: 'Review',
+  // Discord-specific
+  signaling_server: 'Signaling',
+  media_server: 'Media',
+  presence_service: 'Presence',
+  stun_server: 'STUN',
+  webrtc_server: 'WebRTC',
 };
 
 /** Resolve a component ID to its edge label (first word of canvas label).
@@ -154,7 +163,7 @@ export function level(config: {
 
 export function tutorial(
   config: Omit<Tutorial, 'levels'> & {
-    levels: [TutorialLevel, TutorialLevel, TutorialLevel];
+    levels: [TutorialLevel] | [TutorialLevel, TutorialLevel] | [TutorialLevel, TutorialLevel, TutorialLevel];
   },
 ): Tutorial {
   return config;
