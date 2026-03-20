@@ -14,6 +14,23 @@ import { useTutorialStore } from '@/store/tutorialStore';
 import type { TutorialData } from '@/data/tutorials';
 import { toast } from 'sonner';
 
+function getTutorialMeta(tutorial: TutorialData): { nodeCount: number; stepCount: number } {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const t = tutorial as any;
+  if (t.stepCount != null && t.nodeCount != null) {
+    return { nodeCount: t.nodeCount, stepCount: t.stepCount };
+  }
+  const levels = t.levels ?? [];
+  const firstLevel = levels[0];
+  const steps = firstLevel?.steps ?? [];
+  const stepCount = firstLevel?.stepCount ?? steps.length;
+  const nodeCount = steps.reduce(
+    (acc: number, s: { requiredNodes?: string[] }) => acc + (s.requiredNodes?.length ?? 0),
+    0
+  );
+  return { nodeCount, stepCount };
+}
+
 const ICON_MAP: Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>> = {
   Brain:         ({ className, style }) => <Brain className={className} style={style} />,
   Image:         ({ className, style }) => <Image className={className} style={style} />,
@@ -101,6 +118,7 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
   const [copied, setCopied] = useState(false);
 
   const progress = tutorialProgress[tutorial.id] ?? 0;
+  const { nodeCount, stepCount } = getTutorialMeta(tutorial);
   const isCompleted = completedTutorials.includes(tutorial.id);
   const isInProgress = progress > 0 && !isCompleted;
   const diffStyle = DIFFICULTY_STYLES[tutorial.difficulty] ?? DIFFICULTY_STYLES.Intermediate;
@@ -202,21 +220,21 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
         </span>
         <span className="flex items-center gap-1.5">
           <Layers className="w-3.5 h-3.5" />
-          {tutorial.nodeCount} components
+          {nodeCount} components
         </span>
-        <span>{tutorial.stepCount} steps</span>
+        <span>{stepCount} steps</span>
       </div>
 
       {isInProgress && (
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-slate-500">{progress}/{tutorial.stepCount} steps completed</span>
+            <span className="text-xs text-slate-500">{progress}/{stepCount} steps completed</span>
             <span className="text-xs text-indigo-400">Resume →</span>
           </div>
           <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <div
               className="h-full bg-indigo-500 rounded-full"
-              style={{ width: `${(progress / tutorial.stepCount) * 100}%` }}
+              style={{ width: `${stepCount > 0 ? (progress / stepCount) * 100 : 0}%` }}
             />
           </div>
         </div>
@@ -428,24 +446,35 @@ export default function TutorialsPage() {
 
       {/* Page content */}
       <div className="max-w-4xl mx-auto px-6 py-16">
-        {/* Page header */}
-        <div className="mb-12">
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs mb-6"
-            style={{
-              border: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(255,255,255,0.04)',
-              color: '#94a3b8',
-            }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            {TUTORIALS.length} tutorials available
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-4">Interactive Tutorials</h1>
-          <p className="text-lg text-slate-400 max-w-xl leading-relaxed">
-            Learn system design by building real architectures from scratch — step by step.
-          </p>
+      {/* Page header */}
+      <div className="mb-12">
+        <div
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs mb-6"
+          style={{
+            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.04)',
+            color: '#94a3b8',
+          }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+          {TUTORIALS.length} tutorials available
         </div>
+        <h1 className="text-4xl font-bold text-white mb-3">Learn System Design</h1>
+        <p className="text-lg text-slate-400 max-w-xl leading-relaxed mb-6">
+          Build real architectures step by step — from messaging apps to AI agents. Each tutorial teaches you how a production system works by guiding you to design it yourself.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)' }}>
+            Beginner to Advanced
+          </span>
+          <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(34,197,94,0.1)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' }}>
+            Step-by-step guidance
+          </span>
+          <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)' }}>
+            Interactive canvas
+          </span>
+        </div>
+      </div>
 
         {/* Available tutorials grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -454,16 +483,38 @@ export default function TutorialsPage() {
           ))}
         </div>
 
-        {/* Coming Soon section */}
+        {/* New tutorial highlights */}
         <div className="mt-16 mb-8">
-          <h2 className="text-lg font-semibold text-white mb-1">Coming Soon</h2>
-          <p className="text-sm text-slate-500">More architectures being built. New tutorials drop every week.</p>
+          <h2 className="text-lg font-semibold text-white mb-1">Freshly added</h2>
+          <p className="text-sm text-slate-500">New tutorials covering modern architecture patterns.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {COMING_SOON.map((tutorial) => (
-            <ComingSoonCard key={tutorial.id} tutorial={tutorial} />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-16">
+          {[
+            { icon: 'Link', color: '#6366f1', title: 'URL Shortener', desc: 'Classic interview question — hash generation, redirect logic, and caching.', difficulty: 'Beginner', tags: ['Hashing', 'Redirect', 'Cache'] },
+            { icon: 'Brain', color: '#ec4899', title: 'RAG Application', desc: 'Build a production RAG system — chunking, embeddings, vector search, and LLM synthesis.', difficulty: 'Intermediate', tags: ['Vector DB', 'Embeddings', 'LLM'] },
+            { icon: 'Bot', color: '#10b981', title: 'AI Agent System', desc: 'Multi-agent orchestration, tool calling, memory systems, and LangGraph workflows.', difficulty: 'Advanced', tags: ['Agents', 'Tools', 'Memory'] },
+          ].map((t) => {
+            const IconComp = ICON_MAP[t.icon];
+            const diffStyle = DIFFICULTY_STYLES[t.difficulty];
+            return (
+              <div key={t.title} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${t.color}15` }}>
+                    {IconComp && <IconComp className="w-3.5 h-3.5" style={{ color: t.color }} />}
+                  </div>
+                  <span className="text-xs font-medium text-white">{t.title}</span>
+                </div>
+                <p className="text-xs text-slate-400 mb-3 leading-relaxed">{t.desc}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: diffStyle.bg, color: diffStyle.text }}>{t.difficulty}</span>
+                  {t.tags.map(tag => (
+                    <span key={tag} className="text-[10px] text-slate-500">{tag}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

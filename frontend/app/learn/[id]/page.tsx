@@ -63,14 +63,16 @@ export default async function LearnPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allSteps: any[] = isLeveled
     ? (tutorial as Tutorial).levels?.flatMap((l: { steps: unknown[] }) => l.steps) ?? []
-    : (tutorial as TutorialData).steps ?? [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    : (((tutorial as any).steps ?? (tutorial as Tutorial).levels?.[0]?.steps) ?? []);
 
-  // Compute stepCount and nodeCount for canonical Tutorial type
+  // Compute stepCount and nodeCount
   const stepCount = isLeveled
     ? (tutorial as Tutorial).levels?.reduce((sum: number, l: { steps: unknown[] }) => sum + l.steps.length, 0) ?? 0
-    : (tutorial as TutorialData).stepCount ?? 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    : (((tutorial as any).stepCount ?? (tutorial as Tutorial).levels?.[0]?.stepCount) ?? 0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const nodeCount = allSteps.reduce((sum: number, s: { requiredNodes?: unknown[] }) => sum + (s.requiredNodes?.length ?? 0), 0) || ((tutorial as TutorialData).nodeCount ?? 0);
+  const nodeCount = allSteps.reduce((sum: number, s: { requiredNodes?: unknown[] }) => sum + (s.requiredNodes?.length ?? 0), 0) || (((tutorial as any).nodeCount ?? 0));
 
   // JSON-LD: HowTo structured data (Task 6)
   const howToSchema = {

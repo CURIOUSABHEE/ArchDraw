@@ -157,11 +157,13 @@ export default function TutorialPage() {
   });
 
   const levels: TutorialLevelData[] = isLeveled && tutorial ? (tutorial as Tutorial).levels ?? [] : [];
+  // Handle both old flat format (tutorial.steps) and new factory format (tutorial.levels[0].steps)
   const allSteps = tutorial
     ? (isLeveled
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? (tutorial as any).levels?.flatMap((l: { steps: unknown[] }) => l.steps) ?? []
-        : (tutorial as TutorialData).steps ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        : ((tutorial as any).steps ?? (tutorial as Tutorial).levels?.[0]?.steps ?? []))
     : [];
   const currentLevelData = levels[currentLevel - 1] ?? null;
   const currentLevelSteps = currentLevelData?.steps ?? allSteps;

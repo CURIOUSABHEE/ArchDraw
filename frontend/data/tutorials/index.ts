@@ -1,14 +1,31 @@
-// Legacy types (used by 15 non-refactored tutorials)
-export type { TutorialData } from './chatgpt-architecture';
+// ── Factory Tutorial format (new canonical type) ────────────────────────────────
+export type { Tutorial } from '@/lib/tutorial/types';
 export type { TutorialStep, TutorialMessage, StepValidation, TutorialLevel as TutorialLevelData } from '@/lib/tutorial/types';
 
-// New canonical type (used by 4 refactored tutorials)
-export type { Tutorial } from '@/lib/tutorial/types';
+// ── Flat Tutorial format (legacy — used by non-refactored tutorials) ────────────
+import type { TutorialStep } from '@/lib/tutorial/types';
 
-// Union type for the TUTORIALS array
-import type { TutorialData } from './chatgpt-architecture';
+export type FlatTutorial = {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  category: string;
+  estimatedTime: string;
+  nodeCount: number;
+  stepCount: number;
+  icon: string;
+  color: string;
+  tags: string[];
+  steps: TutorialStep[];
+};
+
+// Re-export FlatTutorial as TutorialData for backward compatibility with old flat tutorials
+export type { FlatTutorial as TutorialData };
+
+// ── Union type for the TUTORIALS array ────────────────────────────────────────
 import type { Tutorial } from '@/lib/tutorial/types';
-export type AnyTutorial = TutorialData | Tutorial;
+export type AnyTutorial = FlatTutorial | Tutorial;
 
 export { chatgptTutorial } from './chatgpt-architecture';
 export { instagramTutorial } from './instagram-architecture';
@@ -29,6 +46,9 @@ export { figmaTutorial } from './figma-architecture';
 export { shopifyTutorial } from './shopify-architecture';
 export { doordashTutorial } from './doordash-architecture';
 export { githubTutorial } from './github-architecture';
+export { urlShortenerTutorial } from './url-shortener-architecture';
+export { ragTutorial } from './rag-application-architecture';
+export { aiAgentTutorial } from './ai-agent-system-architecture';
 
 import { chatgptTutorial } from './chatgpt-architecture';
 import { instagramTutorial } from './instagram-architecture';
@@ -49,9 +69,12 @@ import { figmaTutorial } from './figma-architecture';
 import { shopifyTutorial } from './shopify-architecture';
 import { doordashTutorial } from './doordash-architecture';
 import { githubTutorial } from './github-architecture';
+import { urlShortenerTutorial } from './url-shortener-architecture';
+import { ragTutorial } from './rag-application-architecture';
+import { aiAgentTutorial } from './ai-agent-system-architecture';
 import { validateAllTutorials } from '@/lib/tutorial/validators';
 
-// Validate the 4 refactored tutorials at startup (dev-only, no-op in prod)
+// Validate the refactored tutorials at startup (dev-only, no-op in prod)
 validateAllTutorials([chatgptTutorial, instagramTutorial, openclawTutorial, netflixTutorial, uberTutorial]);
 
 /** tutorialId → whether this tutorial uses live Groq AI */
@@ -95,6 +118,9 @@ export const TUTORIALS: AnyTutorial[] = [
   shopifyTutorial,
   doordashTutorial,
   githubTutorial,
+  urlShortenerTutorial,
+  ragTutorial,
+  aiAgentTutorial,
 ];
 
 export function getTutorialById(id: string): AnyTutorial | undefined {

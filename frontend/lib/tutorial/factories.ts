@@ -81,6 +81,47 @@ export const EDGE_LABEL: Record<string, string> = {
   presence_service: 'Presence',
   stun_server: 'STUN',
   webrtc_server: 'WebRTC',
+  // Zoom-specific
+  turn_server: 'TURN',
+  // Spotify-specific
+  audio_cdn: 'Audio',
+  playlist_service: 'Playlist',
+  audio_transcoder: 'Audio',
+  offline_sync: 'Offline',
+  // LinkedIn-specific
+  feed_ranker: 'Feed',
+  graph_database: 'Graph',
+  timeline_service: 'Timeline',
+  // Shopify-specific
+  cart_service: 'Cart',
+  checkout_service: 'Checkout',
+  fulfillment_service: 'Fulfillment',
+  tax_service: 'Tax',
+  inventory_service: 'Inventory',
+  order_service: 'Order',
+  // Figma-specific
+  crdt_engine: 'CRDT',
+  canvas_renderer: 'Canvas',
+  version_history: 'Version',
+  // DoorDash-specific
+  dasher_service: 'Dasher',
+  eta_service: 'ETA',
+  // GitHub-specific
+  code_review_service: 'Code',
+  ci_runner: 'CI',
+  git_storage: 'Git',
+  webhook_dispatcher: 'Webhook',
+  // WhatsApp-specific
+  trending_service: 'Trending',
+  media_service: 'Media',
+  // AI Agent system
+  agent_orchestrator: 'Agent',
+  agent_planner: 'Agent',
+  agent_executor: 'Agent',
+  agent_memory: 'Memory',
+  agent_supervisor: 'Supervisor',
+  tool_registry: 'Tool',
+  llm_gateway: 'LLM',
 };
 
 /** Resolve a component ID to its edge label (first word of canvas label).
@@ -129,9 +170,11 @@ export function step(config: {
   successMessage?: string;
   errorMessage?: string;
 }): TutorialStep {
-  const { successMessage, errorMessage, ...rest } = config;
+  const { successMessage, errorMessage, requiredNodes, requiredEdges, ...rest } = config;
   return {
     ...rest,
+    requiredNodes,
+    requiredEdges,
     validation: {
       successMessage: successMessage ?? `${config.component.label} added and connected correctly.`,
       errorMessage: errorMessage ?? `Add ${config.component.label} using ⌘K and connect it as instructed.`,

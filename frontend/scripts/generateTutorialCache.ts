@@ -187,8 +187,8 @@ async function main() {
         allSteps.push(...level.steps);
       }
     } else {
-      const flat = tutorial as TutorialData;
-      allSteps = flat.steps ?? [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      allSteps = ((tutorial as any).steps ?? (tutorial as Tutorial).levels?.[0]?.steps) ?? [];
       totalSteps = allSteps.length;
       console.log(`\n── ${tutorial.id} (${totalSteps} steps) ──`);
     }

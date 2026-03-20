@@ -808,24 +808,6 @@ export function GuidePanel({
   }, [committedPhase]);
 
   useEffect(() => {
-    // ── DIAGNOSTIC LOGS ──────────────────────────────────────────────────
-    console.log('=== NODE DETECTION FIRING ===');
-    console.log('Current phase:', committedPhase);
-    const _requiredForLog = getRequiredNodes(step);
-    console.log('Required node IDs:', _requiredForLog);
-    console.log('Canvas nodes:', nodes.map((n: Node) => ({
-      id: n.id,
-      label: n.data?.label,
-      componentId: n.data?.componentId,
-      type: n.type,
-    })));
-    const _matchResults = nodes.map((n: Node) => ({
-      label: n.data?.label,
-      matches: _requiredForLog?.some(req => nodeMatchesRequirement(n, req)) ?? false,
-    }));
-    console.log('Match results:', _matchResults);
-    // ── END DIAGNOSTIC LOGS ──────────────────────────────────────────────
-
     if (committedPhase !== 'action') return;
     const requiredNodes = getRequiredNodes(step);
     if (currentStep > totalSteps || !requiredNodes?.length) return;
@@ -843,9 +825,6 @@ export function GuidePanel({
     const correctNode = newNodes.find((n: Node) =>
       requiredNodes.some(req => nodeMatchesRequirement(n, req))
     );
-
-    console.log('New nodes added:', newNodes.map((n: Node) => n.data?.label));
-    console.log('Correct node found:', correctNode ? correctNode.data?.label : 'none');
 
     if (correctNode) {
       stepCompletedRef.current = true;
@@ -1251,10 +1230,6 @@ export function GuidePanel({
             </div>
           </>
         )}
-        {/* Debug indicator — remove before production */}
-        <span className="text-[9px] text-slate-700 mt-1 block">
-          phase: {committedPhase} | text: {displayed.length}chars | loading: {isLoading.toString()}
-        </span>
       </div>
 
       {/* Phase badge */}
