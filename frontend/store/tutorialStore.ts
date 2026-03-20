@@ -93,6 +93,10 @@ interface TutorialState {
   hasHydrated: boolean;
   setHasHydrated: (v: boolean) => void;
 
+  // Tutorial switch guard — prevents canvas save effect from firing during transition
+  isSwitchingTutorial: boolean;
+  setSwitchingTutorial: (v: boolean) => void;
+
   // Current session (not persisted)
   tutorialId: string | null;
   currentStep: number;
@@ -151,15 +155,19 @@ interface TutorialState {
   saveProgress: (tutorialId: string, progress: Partial<TutorialProgressEntry>) => void;
   getProgress: (tutorialId: string) => TutorialProgressEntry | null;
   clearProgress: (tutorialId: string) => void;
+  clearAllProgress: () => void;
   syncToSupabase: (tutorialId: string) => Promise<void>;
   loadFromSupabase: (tutorialId: string) => Promise<TutorialProgressEntry | null>;
 }
 
 export const useTutorialStore = create<TutorialState>()(
-  persist(
+    persist(
     (set, get) => ({
       hasHydrated: false,
       setHasHydrated: (v) => set({ hasHydrated: v }),
+
+      isSwitchingTutorial: false,
+      setSwitchingTutorial: (v) => set({ isSwitchingTutorial: v }),
 
       tutorialId: null,
       currentStep: 1,
@@ -363,6 +371,29 @@ export const useTutorialStore = create<TutorialState>()(
           const next = { ...state.richProgress };
           delete next[tutorialId];
           return { richProgress: next };
+        });
+      },
+
+      clearAllProgress: () => {
+        set({
+          tutorialProgress: {},
+          tutorialPhase: {},
+          completedTutorials: [],
+          richProgress: {},
+          activeTutorialId: null,
+          tutorialNodes: [],
+          tutorialEdges: [],
+          currentLevel: 1,
+          completedLevels: [],
+          levelNodes: {},
+          levelEdges: {},
+          currentStep: 1,
+          nodes: [],
+          edges: [],
+          messages: [],
+          isComplete: false,
+          isLevelComplete: false,
+          tutorialId: null,
         });
       },
 

@@ -7,11 +7,12 @@ import {
   ArrowLeft, Clock, Layers, Brain, Image, BarChart2, Video, ArrowRight,
   CheckCircle, Share2, Check, Car, MessageCircle, Twitter, CreditCard,
   Github, Link as LinkIcon, Bot, Sparkles, FileText, Home, Music,
-  Linkedin, PenTool, ShoppingBag, Bike,
+  Linkedin, PenTool, ShoppingBag, Bike, RotateCcw, X,
 } from 'lucide-react';
 import { TUTORIALS, isLiveTutorial } from '@/data/tutorials';
 import { useTutorialStore } from '@/store/tutorialStore';
 import type { TutorialData } from '@/data/tutorials';
+import { toast } from 'sonner';
 
 const ICON_MAP: Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>> = {
   Brain:         ({ className, style }) => <Brain className={className} style={style} />,
@@ -321,6 +322,17 @@ function ComingSoonCard({ tutorial }: { tutorial: ComingSoonTutorial }) {
 }
 
 export default function TutorialsPage() {
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const clearAllProgress = useTutorialStore((s) => s.clearAllProgress);
+  const router = useRouter();
+
+  function handleReset() {
+    clearAllProgress();
+    setShowResetConfirm(false);
+    toast.success('All tutorial progress has been reset');
+    router.refresh();
+  }
+
   return (
     <div className="min-h-screen" style={{ background: '#080c14', color: '#f1f5f9' }}>
       {/* Header */}
@@ -342,7 +354,77 @@ export default function TutorialsPage() {
           </div>
           <span className="font-semibold text-sm">ArchFlow</span>
         </div>
+        <div className="ml-auto">
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.2)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.1)')}
+            title="Reset all tutorial progress"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Reset All Progress
+          </button>
+        </div>
       </div>
+
+      {/* Reset confirmation modal */}
+      {showResetConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowResetConfirm(false); }}
+        >
+          <div
+            className="w-full max-w-sm mx-4 rounded-2xl p-6 flex flex-col gap-5"
+            style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                  <RotateCcw className="w-4 h-4" style={{ color: '#f87171' }} />
+                </div>
+                <h2 className="text-base font-semibold text-white">Reset All Progress</h2>
+              </div>
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                style={{ background: 'rgba(255,255,255,0.06)', color: '#64748b' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                This will permanently delete all saved progress across every tutorial — including canvas diagrams, completed steps, and level unlocks. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleReset}
+                className="w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors"
+                style={{ background: '#ef4444' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f87171')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}
+              >
+                Yes, reset everything
+              </button>
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="w-full py-2.5 rounded-xl text-sm text-slate-400 hover:text-white transition-colors"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Page content */}
       <div className="max-w-4xl mx-auto px-6 py-16">

@@ -1,6 +1,7 @@
 import type { Node, Edge } from 'reactflow';
 import type { TutorialStep as LegacyTutorialStep } from '@/data/tutorials';
-import type { TutorialStep as CanonicalTutorialStep } from '@/lib/tutorial/types';
+import type { TutorialStep as CanonicalTutorialStep, EdgeRequirement } from '@/lib/tutorial/types';
+import { EDGE_LABEL } from '@/lib/tutorial/factories';
 
 type AnyTutorialStep = LegacyTutorialStep | CanonicalTutorialStep;
 
@@ -8,7 +9,7 @@ function getRequiredNodes(step: AnyTutorialStep): string[] {
   return (step as any).validation?.requiredNodes ?? (step as any).requiredNodes ?? [];
 }
 
-function getRequiredEdges(step: AnyTutorialStep): Array<{ from: string; to: string }> {
+function getRequiredEdges(step: AnyTutorialStep): EdgeRequirement[] {
   return (step as any).validation?.requiredEdges ?? (step as any).requiredEdges ?? [];
 }
 
@@ -20,6 +21,17 @@ function getSuccessMessage(step: AnyTutorialStep): string {
   return (step as any).validation?.successMessage ?? (step as any).successMessage ?? 'Great job!';
 }
 
+function nodeMatchesComponent(node: Node, componentId: string): boolean {
+  const label = node.data?.label ?? '';
+  const componentIdFromNode = node.data?.componentId ?? '';
+  const labelPrefix = EDGE_LABEL[componentId] ?? componentId;
+  return (
+    componentIdFromNode === componentId ||
+    label.toLowerCase() === componentId.toLowerCase() ||
+    label.toLowerCase().startsWith(labelPrefix.toLowerCase())
+  );
+}
+
 export function validateStep(
   step: AnyTutorialStep,
   nodes: Node[],
@@ -27,9 +39,7 @@ export function validateStep(
 ): { valid: boolean; message: string } {
   const requiredNodes = getRequiredNodes(step);
   for (const required of requiredNodes) {
-    const found = nodes.some((n) =>
-      n.data?.label?.toLowerCase().includes(required.toLowerCase())
-    );
+    const found = nodes.some((n) => nodeMatchesComponent(n, required));
     if (!found) {
       return {
         valid: false,
@@ -43,9 +53,10 @@ export function validateStep(
     const found = edges.some((e) => {
       const sourceNode = nodes.find((n) => n.id === e.source);
       const targetNode = nodes.find((n) => n.id === e.target);
+      if (!sourceNode || !targetNode) return false;
       return (
-        sourceNode?.data?.label?.toLowerCase().includes(requiredEdge.from.toLowerCase()) &&
-        targetNode?.data?.label?.toLowerCase().includes(requiredEdge.to.toLowerCase())
+        nodeMatchesComponent(sourceNode, requiredEdge.from) &&
+        nodeMatchesComponent(targetNode, requiredEdge.to)
       );
     });
     if (!found) {

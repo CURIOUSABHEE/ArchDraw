@@ -7,13 +7,14 @@ import Link from 'next/link';
 import { ArrowLeft, PenSquare, RotateCcw, Moon, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTutorialById, isLiveTutorial, isLeveledTutorial, TUTORIALS } from '@/data/tutorials';
-import { useTutorialStore } from '@/store/tutorialStore';
+import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
 import { validateStep } from '@/lib/tutorialValidation';
 import { GuidePanel } from '@/components/tutorial/GuidePanel';
 import { TutorialComplete } from '@/components/tutorial/TutorialComplete';
 import type { TutorialData } from '@/data/tutorials';
 import type { Tutorial, TutorialLevel } from '@/lib/tutorial/types';
 import type { TutorialLevelData } from '@/data/tutorials';
+import type { Node, Edge } from 'reactflow';
 const _TutorialLevelData: TutorialLevelData = null as unknown as TutorialLevel;
 
 // Dynamic import to avoid SSR issues with ReactFlow
@@ -109,6 +110,7 @@ export default function TutorialPage() {
     completeTutorial, advanceLevel, dismissLevelComplete,
     activeTutorialId, clearTutorialCanvas,
     loadFromSupabase, getProgress, saveProgress,
+    isSwitchingTutorial, setSwitchingTutorial,
   } = useTutorialStore();
 
   const hasStarted = useRef(false);
@@ -120,14 +122,39 @@ export default function TutorialPage() {
   const [panelRatio, setPanelRatio] = useState<'3:7' | '4:6'>('3:7');
   const [canvasTheme, setCanvasTheme] = useState<'dark' | 'light'>('dark');
 
-  // If navigating to a different tutorial, clear the persisted canvas
+  // If navigating to a different tutorial, save the current canvas and switch.
+  // Uses refs to capture nodes/edges at the moment the effect fires —
+  // prevents stale closures after startTutorial clears them.
+  const prevNodesRef = useRef<Node[]>([]);
+  const prevEdgesRef = useRef<Edge[]>([]);
+  const prevIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!tutorial) return;
-    if (activeTutorialId && activeTutorialId !== tutorial.id) {
-      clearTutorialCanvas();
+    if (!activeTutorialId || activeTutorialId === tutorial.id) {
+      useTutorialStore.setState({ activeTutorialId: tutorial.id });
+      return;
     }
+
+    const fromId = activeTutorialId;
+    const fromNodes = prevNodesRef.current;
+    const fromEdges = prevEdgesRef.current;
+
+    setSwitchingTutorial(true);
+    saveProgress(fromId, {
+      canvasNodes: fromNodes.map(sanitizeNode),
+      canvasEdges: fromEdges.map(sanitizeEdge),
+    });
     useTutorialStore.setState({ activeTutorialId: tutorial.id });
-  }, [tutorial, activeTutorialId, clearTutorialCanvas]);
+    setTimeout(() => setSwitchingTutorial(false), 50);
+  }, [tutorial, activeTutorialId, clearTutorialCanvas, saveProgress, nodes, edges, setSwitchingTutorial]);
+
+  // Keep refs in sync with current canvas state at render time
+  useEffect(() => {
+    prevNodesRef.current = nodes;
+    prevEdgesRef.current = edges;
+    prevIdRef.current = activeTutorialId;
+  });
 
   const levels: TutorialLevelData[] = isLeveled && tutorial ? (tutorial as Tutorial).levels ?? [] : [];
   const allSteps = tutorial
@@ -379,7 +406,7 @@ export default function TutorialPage() {
           </div>
         </div>
         <div className="flex flex-1 overflow-hidden">
-          <TutorialCanvas theme={canvasTheme} />
+          <TutorialCanvas theme={canvasTheme} tutorialId={tutorial.id} />
         </div>
 
         {/* Level complete overlay */}

@@ -1,5 +1,6 @@
 // Legacy types (used by 15 non-refactored tutorials)
-export type { TutorialData, TutorialStep, TutorialMessage, StepValidation, TutorialLevelData } from './chatgpt-architecture';
+export type { TutorialData } from './chatgpt-architecture';
+export type { TutorialStep, TutorialMessage, StepValidation, TutorialLevel as TutorialLevelData } from '@/lib/tutorial/types';
 
 // New canonical type (used by 4 refactored tutorials)
 export type { Tutorial } from '@/lib/tutorial/types';

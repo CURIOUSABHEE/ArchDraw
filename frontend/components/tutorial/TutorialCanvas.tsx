@@ -9,6 +9,8 @@ import ReactFlow, {
   type EdgeChange,
   type Connection,
   type NodeProps,
+  type Node,
+  type Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
@@ -62,7 +64,7 @@ const NODE_TYPES = {
   annotationNode: AnnotationNode,
 };
 
-function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
+function TutorialCanvasInner({ theme, tutorialId }: { theme: 'dark' | 'light'; tutorialId: string }) {
   const isDark = theme === 'dark';
   const canvasBg = isDark ? '#0f172a' : '#f8fafc';
   const dotColor = isDark ? '#334155' : '#cbd5e1';
@@ -75,8 +77,8 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
     : 'bg-black/[0.06] text-slate-500 border-black/10';
   const controlsClass = isDark
     ? '!bg-[#0d1117]/90 !backdrop-blur-sm !border !border-white/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-white/10 [&>button:hover]:!bg-white/5'
-    : '!bg-white/90 !backdrop-blur-sm !border !border-black/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-black/10 [&>button:hover]:!bg-black/5';
-  const { nodes, edges, setNodes, setEdges, tutorialNodes, tutorialEdges, setTutorialNodes, setTutorialEdges, saveProgress, activeTutorialId } = useTutorialStore();
+    : '!bg-white/90 !backdrop-blur-sm !border !border-black/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-black/10 [&>button]:hover:!bg-black/5';
+  const { nodes, edges, setNodes, setEdges, tutorialNodes, tutorialEdges, setTutorialNodes, setTutorialEdges, saveProgress, getProgress, hasHydrated, isSwitchingTutorial } = useTutorialStore();
   const reactFlowInstance = useReactFlow();
   const [isMac, setIsMac] = useState(false);
   const [paletteForceOpen, setPaletteForceOpen] = useState(false);
@@ -88,25 +90,37 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
     setIsMac(navigator.platform.toUpperCase().includes('MAC'));
   }, []);
 
-  // Restore canvas from persisted store on mount
+  // Restore canvas from richProgress on mount and when tutorialId changes.
+  // tutorialId comes from the URL — always correct, never stale.
   useEffect(() => {
-    if (restoredRef.current) return;
-    restoredRef.current = true;
-    if (tutorialNodes.length > 0) {
-      setNodes(tutorialNodes);
-      setEdges(tutorialEdges);
+    if (!hasHydrated) return;
+    if (!tutorialId) return;
+    restoredRef.current = false;
+
+    const progress = getProgress(tutorialId);
+    const savedNodes = progress?.canvasNodes as Node[] | undefined;
+    const savedEdges = progress?.canvasEdges as Edge[] | undefined;
+
+    if (savedNodes && savedNodes.length > 0) {
+      setNodes(savedNodes as unknown as Node[]);
+      setEdges((savedEdges ?? []) as unknown as Edge[]);
+      setTutorialNodes(savedNodes as unknown as Node[]);
+      setTutorialEdges((savedEdges ?? []) as unknown as Edge[]);
       toast.success('Canvas restored', { duration: 2000, position: 'bottom-center' });
       setTimeout(() => reactFlowInstance.fitView({ maxZoom: 0.7 }), 100);
     }
+    restoredRef.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasHydrated, tutorialId, getProgress]);
 
-  // Save canvas nodes/edges to richProgress on change (debounced 1s)
+  // Save canvas nodes/edges to richProgress on change (debounced 1s).
+  // Uses tutorialId from URL — never the store's activeTutorialId.
   useEffect(() => {
-    if (!activeTutorialId) return;
+    if (!tutorialId) return;
+    if (isSwitchingTutorial) return;
     if (canvasSaveTimerRef.current) clearTimeout(canvasSaveTimerRef.current);
     canvasSaveTimerRef.current = setTimeout(() => {
-      saveProgress(activeTutorialId, {
+      saveProgress(tutorialId, {
         canvasNodes: nodes.map(sanitizeNode),
         canvasEdges: edges.map(sanitizeEdge),
       });
@@ -115,7 +129,7 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
       if (canvasSaveTimerRef.current) clearTimeout(canvasSaveTimerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, edges]);
+  }, [nodes, edges, tutorialId, saveProgress, isSwitchingTutorial]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -303,10 +317,10 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
   );
 }
 
-export function TutorialCanvas({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
+export function TutorialCanvas({ theme = 'dark', tutorialId }: { theme?: 'dark' | 'light'; tutorialId: string }) {
   return (
     <ReactFlowProvider>
-      <TutorialCanvasInner theme={theme} />
+      <TutorialCanvasInner theme={theme} tutorialId={tutorialId} />
     </ReactFlowProvider>
   );
 }

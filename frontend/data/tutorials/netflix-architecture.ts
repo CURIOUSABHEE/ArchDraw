@@ -1,5 +1,5 @@
 import { step, level, tutorial, component, edge, msg } from '@/lib/tutorial/factories';
-import { buildAction, buildFirstStepAction, buildCelebration, buildOpeningL2, buildOpeningL3 } from '@/lib/tutorial/defaults';
+import { buildAction, buildFirstStepAction, buildCelebration, buildOpeningL1, buildOpeningL2, buildOpeningL3 } from '@/lib/tutorial/defaults';
 import type { Tutorial } from '@/lib/tutorial/types';
 
 const l1 = level({
@@ -18,23 +18,23 @@ const l1 = level({
       action: buildFirstStepAction('Web'),
       why: "The client is the entry point for every stream, search, and recommendation request. Netflix has to support wildly different clients simultaneously — from a 4K TV with 50Mbps to a phone on 3G. Every architectural decision downstream is shaped by this diversity.",
       component: component('client_web', 'Web'),
-      openingMessage: "Netflix runs on 2,000+ device types simultaneously. What does that mean for the architecture?",
-      celebrationMessage: buildCelebration('Client', 'the canvas', 'Netflix has 270 million subscribers across 190 countries, all connecting through clients on hundreds of different device types.', 'DNS and the CDN'),
+      openingMessage: buildOpeningL1('Netflix', 'Web Client', 'run on 2,000+ device types simultaneously — Smart TVs, phones, tablets, browsers — implementing adaptive bitrate streaming that switches quality every few seconds', "Every architectural decision downstream is shaped by this diversity — from a 4K TV with 50Mbps to a phone on 3G.", 'Web'),
+      celebrationMessage: buildCelebration('Web Client', 'the canvas', 'Netflix has 270 million subscribers across 190 countries, all connecting through clients on hundreds of different device types.', 'DNS and the CDN'),
       messages: [
         msg("Welcome to the Netflix Architecture tutorial. 270 million subscribers, 190 countries, 1 billion hours of content streamed per month."),
         msg("Netflix's client implements adaptive bitrate streaming — it monitors your bandwidth every few seconds and switches quality automatically. That quality switch is a new CDN request to a different encoded file."),
         msg('Press ⌘K, search for "Web", and add it to the canvas.'),
       ],
-      requiredNodes: ['client_web', 'client_mobile'],
+      requiredNodes: ['client_web'],
       requiredEdges: [],
       successMessage: 'Client added. Now the routing layer.',
-      errorMessage: 'Add a Web or Mobile client node to the canvas first.',
+      errorMessage: 'Add a Web client node to the canvas first.',
     }),
     step({
       id: 2,
       title: 'Add DNS and CDN',
       explanation: "Netflix's Open Connect CDN has 15,000+ servers physically embedded inside ISPs worldwide. 94% of Netflix traffic is served from these edge nodes — your video might come from a server in the same building as your router.",
-      action: buildAction('DNS', 'Client', 'DNS', 'every Netflix request being routed to the nearest edge node before anything else happens'),
+      action: buildAction('DNS', 'Web', 'DNS', 'every Netflix request being routed to the nearest edge node before anything else happens'),
       why: "Without DNS-based routing, every user would hit the same data center regardless of location. Without the CDN, every video byte would travel from Netflix's origin servers — impossible at 270M subscribers.",
       component: component('dns', 'DNS'),
       openingMessage: "Netflix's CDN serves 94% of traffic without hitting origin. How does DNS route you to the nearest edge node?",
@@ -399,6 +399,25 @@ const l3 = level({
     }),
     step({
       id: 20,
+      title: 'Add CDN Cache',
+      explanation: "The CDN Cache pre-warms popular titles on edge nodes before users request them. Netflix analyzes viewing patterns to predict which titles will be popular in each region and proactively caches them — reducing origin server load by 60%.",
+      action: buildAction('CDN Cache', 'CDN', 'CDN Cache', 'popular titles being pre-warmed on edge nodes so requests are served from cache rather than hitting origin'),
+      why: "Without proactive caching, every new release causes a flash crowd at the origin. Netflix predicts popularity and pre-warms popular titles across 15,000+ edge nodes before users request them.",
+      component: component('cdn_cache', 'CDN Cache'),
+      openingMessage: buildOpeningL3('Netflix', 'CDN Cache', 'proactive pre-warming of popular titles across 15,000+ edge nodes based on viewing pattern prediction', 'Without it, every new release causes a flash crowd at the origin.', 'CDN Cache'),
+      celebrationMessage: buildCelebration('CDN Cache', 'CDN', "Netflix's CDN Cache pre-warms popular titles across 15,000+ edge nodes. Proactive caching reduces origin server load by 60% — most viewers never hit the origin at all.", 'the Circuit Breaker'),
+      connectingMessage: "CDN Cache is on the canvas. Now connect CDN to CDN Cache. Hover over CDN until a circle appears on its edge, then drag to CDN Cache. This connection means popular titles are pre-cached at edge nodes before users request them.",
+      messages: [
+        msg("Netflix analyzes viewing patterns to predict popularity by region. New releases are pre-warmed across edge nodes before they premiere — preventing flash crowds at the origin."),
+        msg("Connect: CDN to CDN Cache."),
+      ],
+      requiredNodes: ['cdn_cache'],
+      requiredEdges: [edge('cdn', 'cdn_cache')],
+      successMessage: 'CDN Cache added. Now the circuit breaker.',
+      errorMessage: 'Add a CDN Cache connected from the CDN.',
+    }),
+    step({
+      id: 21,
       title: 'Add Circuit Breaker',
       explanation: "A circuit breaker monitors calls to a downstream service — if the failure rate exceeds a threshold, it trips and returns a fallback response immediately instead of waiting for a timeout. Netflix invented this pattern with Hystrix.",
       action: buildAction('Circuit Breaker', 'API Gateway', 'Circuit Breaker', 'cascading failures being prevented by returning fallback responses when downstream services degrade'),
@@ -415,6 +434,25 @@ const l3 = level({
       requiredEdges: [edge('api_gateway', 'circuit_breaker')],
       successMessage: 'Level 3 complete! You have designed Netflix architecture like a senior engineer.',
       errorMessage: 'Add a Circuit Breaker connected from the API Gateway.',
+    }),
+    step({
+      id: 22,
+      title: 'Add Secret Manager',
+      explanation: "The Secret Manager provides centralized secrets management with automatic rotation — database credentials, CDN signing keys, and payment API tokens rotate automatically without service restarts.",
+      action: buildAction('Secret Manager', 'Auth Service', 'Secret Manager', 'credentials being stored and rotated automatically without service restarts or environment variables'),
+      why: "Netflix manages thousands of secrets across hundreds of services. Hardcoded credentials are a security risk — if one server is compromised, attackers get every credential. Secret Manager fetches credentials at runtime with automatic rotation.",
+      component: component('secret_manager', 'Secret Manager'),
+      openingMessage: buildOpeningL3('Netflix', 'Secret Manager', 'automatic credential rotation without service restarts — Netflix manages thousands of secrets across hundreds of services', 'Hardcoded credentials are a security risk — if one server is compromised, attackers get every credential.', 'Secret Manager'),
+      celebrationMessage: buildCelebration('Secret Manager', 'Auth Service', "Netflix manages thousands of secrets across hundreds of services. HashiCorp Vault or AWS Secrets Manager rotates CDN signing keys, database credentials, and payment API tokens automatically every 30 days — a compromised credential is invalid within 30 days maximum. You have completed the full Netflix expert architecture.", 'completion'),
+      connectingMessage: "Secret Manager is on the canvas. Now connect Auth Service to Secret Manager. Hover over Auth Service until a circle appears on its edge, then drag to Secret Manager. This connection means the auth service reads credentials from the secret manager instead of hardcoded environment variables.",
+      messages: [
+        msg("Netflix manages thousands of secrets across hundreds of services. HashiCorp Vault or AWS Secrets Manager rotates credentials automatically — a compromised credential is invalid within 30 days maximum."),
+        msg("Connect: Auth Service to Secret Manager."),
+      ],
+      requiredNodes: ['secret_manager'],
+      requiredEdges: [edge('auth_service', 'secret_manager')],
+      successMessage: "Level 3 complete! You have designed Netflix architecture like a senior engineer.",
+      errorMessage: 'Add a Secret Manager connected from the Auth Service.',
     }),
   ],
 });

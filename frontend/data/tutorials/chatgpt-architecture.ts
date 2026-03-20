@@ -1,48 +1,9 @@
 import { step, level, tutorial, component, edge, msg } from '@/lib/tutorial/factories';
 import { buildAction, buildFirstStepAction, buildCelebration, buildOpeningL1, buildOpeningL2, buildOpeningL3 } from '@/lib/tutorial/defaults';
-import type { Tutorial } from '@/lib/tutorial/types';
+import type { Tutorial, TutorialLevel, TutorialMessage, StepValidation } from '@/lib/tutorial/types';
 
-export interface TutorialMessage {
-  type: 'guide' | 'user' | 'success' | 'error';
-  content: string;
-}
-
-export interface StepValidation {
-  requiredNodes: string[];
-  requiredEdges: Array<{ from: string; to: string }>;
-  errorMessage: string;
-  successMessage: string;
-}
-
-export interface TutorialStep {
-  id: number;
-  title: string;
-  explanation: string;
-  action: string;
-  why: string;
-  searchHint?: string;
-  messages: TutorialMessage[];
-  validation: StepValidation;
-  openingMessage?: string;
-  defaultSuggestions?: string[];
-}
-
-export type { TutorialLevel as TutorialLevelData } from '@/lib/tutorial/types';
-
-export interface TutorialData {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  category: string;
-  estimatedTime: string;
-  nodeCount: number;
-  stepCount: number;
-  icon: string;
-  color: string;
-  tags: string[];
-  steps: TutorialStep[];
-}
+export type { TutorialLevel };
+export type { Tutorial as TutorialData };
 
 const l1 = level({
   level: 1,
