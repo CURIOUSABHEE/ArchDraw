@@ -476,45 +476,46 @@ export default function TutorialsPage() {
         </div>
       </div>
 
+        {/* New tutorial highlights */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <h2 className="text-sm font-medium text-slate-300">Freshly added</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+            {[
+              { icon: 'Link', color: '#6366f1', title: 'URL Shortener', desc: 'Classic interview question — hash generation, redirect logic, and caching.', difficulty: 'Beginner', tags: ['Hashing', 'Redirect', 'Cache'] },
+              { icon: 'Brain', color: '#ec4899', title: 'RAG Application', desc: 'Build a production RAG system — chunking, embeddings, vector search, and LLM synthesis.', difficulty: 'Intermediate', tags: ['Vector DB', 'Embeddings', 'LLM'] },
+              { icon: 'Bot', color: '#10b981', title: 'AI Agent System', desc: 'Multi-agent orchestration, tool calling, memory systems, and LangGraph workflows.', difficulty: 'Advanced', tags: ['Agents', 'Tools', 'Memory'] },
+            ].map((t) => {
+              const IconComp = ICON_MAP[t.icon];
+              const diffStyle = DIFFICULTY_STYLES[t.difficulty];
+              return (
+                <div key={t.title} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${t.color}15` }}>
+                      {IconComp && <IconComp className="w-3.5 h-3.5" style={{ color: t.color }} />}
+                    </div>
+                    <span className="text-xs font-medium text-white">{t.title}</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-3 leading-relaxed">{t.desc}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: diffStyle.bg, color: diffStyle.text }}>{t.difficulty}</span>
+                    {t.tags.map(tag => (
+                      <span key={tag} className="text-[10px] text-slate-500">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Available tutorials grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {TUTORIALS.map((tutorial) => (
             <TutorialCard key={tutorial.id} tutorial={tutorial as TutorialData} />
           ))}
-        </div>
-
-        {/* New tutorial highlights */}
-        <div className="mt-16 mb-8">
-          <h2 className="text-lg font-semibold text-white mb-1">Freshly added</h2>
-          <p className="text-sm text-slate-500">New tutorials covering modern architecture patterns.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-16">
-          {[
-            { icon: 'Link', color: '#6366f1', title: 'URL Shortener', desc: 'Classic interview question — hash generation, redirect logic, and caching.', difficulty: 'Beginner', tags: ['Hashing', 'Redirect', 'Cache'] },
-            { icon: 'Brain', color: '#ec4899', title: 'RAG Application', desc: 'Build a production RAG system — chunking, embeddings, vector search, and LLM synthesis.', difficulty: 'Intermediate', tags: ['Vector DB', 'Embeddings', 'LLM'] },
-            { icon: 'Bot', color: '#10b981', title: 'AI Agent System', desc: 'Multi-agent orchestration, tool calling, memory systems, and LangGraph workflows.', difficulty: 'Advanced', tags: ['Agents', 'Tools', 'Memory'] },
-          ].map((t) => {
-            const IconComp = ICON_MAP[t.icon];
-            const diffStyle = DIFFICULTY_STYLES[t.difficulty];
-            return (
-              <div key={t.title} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${t.color}15` }}>
-                    {IconComp && <IconComp className="w-3.5 h-3.5" style={{ color: t.color }} />}
-                  </div>
-                  <span className="text-xs font-medium text-white">{t.title}</span>
-                </div>
-                <p className="text-xs text-slate-400 mb-3 leading-relaxed">{t.desc}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: diffStyle.bg, color: diffStyle.text }}>{t.difficulty}</span>
-                  {t.tags.map(tag => (
-                    <span key={tag} className="text-[10px] text-slate-500">{tag}</span>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>
