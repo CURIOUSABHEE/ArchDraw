@@ -1,4 +1,14 @@
-export type { TutorialData, TutorialStep, TutorialMessage, StepValidation } from './chatgpt-architecture';
+// Legacy types (used by 15 non-refactored tutorials)
+export type { TutorialData, TutorialStep, TutorialMessage, StepValidation, TutorialLevelData } from './chatgpt-architecture';
+
+// New canonical type (used by 4 refactored tutorials)
+export type { Tutorial } from '@/lib/tutorial/types';
+
+// Union type for the TUTORIALS array
+import type { TutorialData } from './chatgpt-architecture';
+import type { Tutorial } from '@/lib/tutorial/types';
+export type AnyTutorial = TutorialData | Tutorial;
+
 export { chatgptTutorial } from './chatgpt-architecture';
 export { instagramTutorial } from './instagram-architecture';
 export { openclawTutorial } from './openclaw-architecture';
@@ -38,16 +48,33 @@ import { figmaTutorial } from './figma-architecture';
 import { shopifyTutorial } from './shopify-architecture';
 import { doordashTutorial } from './doordash-architecture';
 import { githubTutorial } from './github-architecture';
-import type { TutorialData } from './chatgpt-architecture';
+import { validateAllTutorials } from '@/lib/tutorial/validators';
+
+// Validate the 4 refactored tutorials at startup (dev-only, no-op in prod)
+validateAllTutorials([chatgptTutorial, instagramTutorial, openclawTutorial, netflixTutorial, uberTutorial]);
 
 /** tutorialId → whether this tutorial uses live Groq AI */
-export const LIVE_TUTORIALS = new Set(['netflix-architecture']);
+// Netflix moved to static — no live tutorials currently
+export const LIVE_TUTORIALS = new Set<string>([]);
 
 export function isLiveTutorial(id: string): boolean {
   return LIVE_TUTORIALS.has(id);
 }
 
-export const TUTORIALS: TutorialData[] = [
+/** tutorialId → whether this tutorial uses the 3-level progressive format */
+export const LEVELED_TUTORIALS = new Set([
+  'chatgpt-architecture',
+  'instagram-architecture',
+  'netflix-architecture',
+  'openclaw-architecture',
+  'uber-architecture',
+]);
+
+export function isLeveledTutorial(id: string): boolean {
+  return LEVELED_TUTORIALS.has(id);
+}
+
+export const TUTORIALS: AnyTutorial[] = [
   chatgptTutorial,
   instagramTutorial,
   openclawTutorial,
@@ -69,6 +96,6 @@ export const TUTORIALS: TutorialData[] = [
   githubTutorial,
 ];
 
-export function getTutorialById(id: string): TutorialData | undefined {
+export function getTutorialById(id: string): AnyTutorial | undefined {
   return TUTORIALS.find((t) => t.id === id);
 }

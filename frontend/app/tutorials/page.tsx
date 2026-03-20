@@ -183,7 +183,7 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
       </div>
 
       <div className="flex flex-wrap gap-1.5">
-        {tutorial.tags.map((tag) => (
+        {tutorial.tags.map((tag: string) => (
           <span
             key={tag}
             className="text-[10px] px-2 py-0.5 rounded-full"
@@ -368,7 +368,7 @@ export default function TutorialsPage() {
         {/* Available tutorials grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {TUTORIALS.map((tutorial) => (
-            <TutorialCard key={tutorial.id} tutorial={tutorial} />
+            <TutorialCard key={tutorial.id} tutorial={tutorial as TutorialData} />
           ))}
         </div>
 

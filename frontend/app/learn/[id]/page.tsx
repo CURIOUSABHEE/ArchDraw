@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getTutorialById, TUTORIALS } from '@/data/tutorials';
+import { getTutorialById, TUTORIALS, isLeveledTutorial } from '@/data/tutorials';
+import type { TutorialData } from '@/data/tutorials';
+import type { Tutorial } from '@/lib/tutorial/types';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 
@@ -56,13 +58,27 @@ export default async function LearnPage({
   // Extract company name from title (strip "How to Design " prefix if present)
   const companyName = tutorial.title.replace(/^How to Design\s+/i, '').replace(/\s+Architecture$/i, '');
 
+  // Get steps array — leveled tutorials have levels[].steps, others have steps directly
+  const isLeveled = isLeveledTutorial(tutorial.id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allSteps: any[] = isLeveled
+    ? (tutorial as Tutorial).levels?.flatMap((l: { steps: unknown[] }) => l.steps) ?? []
+    : (tutorial as TutorialData).steps ?? [];
+
+  // Compute stepCount and nodeCount for canonical Tutorial type
+  const stepCount = isLeveled
+    ? (tutorial as Tutorial).levels?.reduce((sum: number, l: { steps: unknown[] }) => sum + l.steps.length, 0) ?? 0
+    : (tutorial as TutorialData).stepCount ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nodeCount = allSteps.reduce((sum: number, s: { requiredNodes?: unknown[] }) => sum + (s.requiredNodes?.length ?? 0), 0) || ((tutorial as TutorialData).nodeCount ?? 0);
+
   // JSON-LD: HowTo structured data (Task 6)
   const howToSchema = {
     '@context': 'https://schema.org',
     '@type': 'HowTo',
     name: `How to Design ${tutorial.title}`,
     description: tutorial.description,
-    step: tutorial.steps.map((step) => ({
+    step: allSteps.map((step: { title: string; explanation: string }) => ({
       '@type': 'HowToStep',
       name: step.title,
       text: step.explanation,
@@ -118,7 +134,7 @@ export default async function LearnPage({
               <span className="text-xs text-slate-500">·</span>
               <span className="text-xs text-slate-500">{tutorial.estimatedTime}</span>
               <span className="text-xs text-slate-500">·</span>
-              <span className="text-xs text-slate-500">{tutorial.stepCount} steps</span>
+              <span className="text-xs text-slate-500">{stepCount} steps</span>
             </div>
 
             {/* H1 */}
@@ -150,7 +166,7 @@ export default async function LearnPage({
             <h2 className="text-2xl font-bold text-white mb-4">The Architecture Overview</h2>
             <p className="text-slate-400 leading-relaxed mb-12">
               The {companyName} architecture is a {tutorial.difficulty.toLowerCase()}-level distributed system
-              built around {tutorial.nodeCount} core components. It covers {tutorial.tags.join(', ')}, and is
+              built around {nodeCount} core components. It covers {(tutorial.tags as string[]).join(', ')}, and is
               designed to handle real-world scale. The sections below break down each component and explain
               how they connect.
             </p>
@@ -159,7 +175,7 @@ export default async function LearnPage({
             <h2 className="text-2xl font-bold text-white mb-8">Components of {companyName} Architecture</h2>
 
             <div className="flex flex-col gap-10 mb-16">
-              {tutorial.steps.map((step) => (
+              {allSteps.map((step: { id: number; title: string; explanation: string; why: string; messages: Array<{ type: string; content: string }> }) => (
                 <div key={step.id}>
                   <h3 className="text-xl font-semibold text-white mb-3">{step.title}</h3>
                   <p className="text-slate-400 leading-relaxed mb-3">{step.explanation}</p>
@@ -169,7 +185,7 @@ export default async function LearnPage({
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: '#94a3b8' }}
                   >
                     <span className="font-medium text-indigo-400">Key insight:</span>{' '}
-                    {step.messages.find((m) => m.type === 'guide')?.content ?? step.explanation}
+                    {step.messages.find((m: { type: string; content: string }) => m.type === 'guide')?.content ?? step.explanation}
                   </div>
                 </div>
               ))}
@@ -178,7 +194,7 @@ export default async function LearnPage({
             {/* Key Architectural Decisions */}
             <h2 className="text-2xl font-bold text-white mb-5">Key Architectural Decisions</h2>
             <ul className="flex flex-col gap-3 mb-16 list-none pl-0">
-              {tutorial.tags.map((tag) => (
+              {tutorial.tags.map((tag: string) => (
                 <li key={tag} className="flex items-start gap-3 text-slate-400">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
                   <span>{tag} is a core part of the {companyName} architecture, enabling the system to scale and remain resilient.</span>

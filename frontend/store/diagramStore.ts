@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { serializedStorage } from './storage';
 import {
   Connection,
   Edge,
@@ -503,6 +504,7 @@ export const useDiagramStore = create<DiagramState>()(
     }),
     {
       name: 'archdraw-storage',
+      storage: createJSONStorage(() => serializedStorage),
       partialize: (s) => ({
         canvases: s.canvases,
         activeCanvasId: s.activeCanvasId,

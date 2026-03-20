@@ -91,26 +91,26 @@ function getViewportCenter(): { x: number; y: number } {
 export function TutorialSidebar() {
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const { nodes, setNodes } = useTutorialStore();
+  const { nodes, setNodes, setTutorialNodes } = useTutorialStore();
 
   const handleAdd = (comp: ComponentEntry) => {
     const position = getViewportCenter();
     const id = `${comp.id}-${Date.now()}`;
-    setNodes([
-      ...nodes,
-      {
-        id,
-        type: 'systemNode',
-        position,
-        data: {
-          label: comp.label,
-          category: comp.category,
-          color: comp.color,
-          icon: comp.icon,
-          technology: comp.technology,
-        },
+    const newNode = {
+      id,
+      type: 'systemNode' as const,
+      position,
+      data: {
+        label: comp.label,
+        category: comp.category,
+        color: comp.color,
+        icon: comp.icon,
+        technology: comp.technology,
       },
-    ]);
+    };
+    const updated = [...nodes, newNode];
+    setNodes(updated);
+    setTutorialNodes(updated);
   };
 
   const toggleKey = (key: string) =>

@@ -159,11 +159,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Only Netflix tutorial uses live AI — block all others at the API level
-    if (tutorialId !== 'netflix-architecture') {
+    // Netflix moved to static — no live tutorials currently
+    const LIVE_TUTORIALS: string[] = [];
+    if (!LIVE_TUTORIALS.includes(tutorialId)) {
       return NextResponse.json(
-        { error: 'AI is only available for the Netflix tutorial' },
+        { error: 'This tutorial uses static content' },
         { status: 403 },
+      );
+    }
+
+    // Guard: require GROQ_API_KEY before attempting any Groq call
+    if (!process.env.GROQ_API_KEY) {
+      console.error('[API] GROQ_API_KEY is not set — cannot serve AI responses');
+      return NextResponse.json(
+        { error: 'AI service unavailable — server misconfiguration' },
+        { status: 503 },
       );
     }
 

@@ -20,7 +20,7 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
-import { useTutorialStore } from '@/store/tutorialStore';
+import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
 import { ComponentPalette } from '@/components/tutorial/ComponentPalette';
 import { NodeTooltip } from '@/components/tutorial/NodeTooltip';
 import components from '@/data/components.json';
@@ -76,12 +76,13 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
   const controlsClass = isDark
     ? '!bg-[#0d1117]/90 !backdrop-blur-sm !border !border-white/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-white/10 [&>button:hover]:!bg-white/5'
     : '!bg-white/90 !backdrop-blur-sm !border !border-black/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-black/10 [&>button:hover]:!bg-black/5';
-  const { nodes, edges, setNodes, setEdges, tutorialNodes, tutorialEdges, setTutorialNodes, setTutorialEdges } = useTutorialStore();
+  const { nodes, edges, setNodes, setEdges, tutorialNodes, tutorialEdges, setTutorialNodes, setTutorialEdges, saveProgress, activeTutorialId } = useTutorialStore();
   const reactFlowInstance = useReactFlow();
   const [isMac, setIsMac] = useState(false);
   const [paletteForceOpen, setPaletteForceOpen] = useState(false);
   const [paletteInitialQuery, setPaletteInitialQuery] = useState('');
   const restoredRef = useRef(false);
+  const canvasSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setIsMac(navigator.platform.toUpperCase().includes('MAC'));
@@ -99,6 +100,22 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Save canvas nodes/edges to richProgress on change (debounced 1s)
+  useEffect(() => {
+    if (!activeTutorialId) return;
+    if (canvasSaveTimerRef.current) clearTimeout(canvasSaveTimerRef.current);
+    canvasSaveTimerRef.current = setTimeout(() => {
+      saveProgress(activeTutorialId, {
+        canvasNodes: nodes.map(sanitizeNode),
+        canvasEdges: edges.map(sanitizeEdge),
+      });
+    }, 1000);
+    return () => {
+      if (canvasSaveTimerRef.current) clearTimeout(canvasSaveTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -157,6 +174,7 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
           position,
           data: {
             label: comp.label,
+            componentId: comp.id,
             category: comp.category,
             color: comp.color,
             icon: comp.icon,
@@ -186,6 +204,7 @@ function TutorialCanvasInner({ theme }: { theme: 'dark' | 'light' }) {
         },
         data: {
           label: component.label,
+          componentId: component.id,
           category: component.category,
           color: component.color,
           icon: component.icon,

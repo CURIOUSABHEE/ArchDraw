@@ -23,8 +23,7 @@ interface UseTutorialChatReturn {
 }
 
 export function useTutorialChat(_opts: UseTutorialChatOptions): UseTutorialChatReturn {
-  // Start as true so loading dots show immediately on mount
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
 
   const historyRef = useRef<ChatMessage[]>([]);
@@ -119,6 +118,7 @@ export function useTutorialChat(_opts: UseTutorialChatOptions): UseTutorialChatR
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
         console.log('[TutorialChat] aborted');
+        setStreamingContent('');
         return;
       }
       console.error('[TutorialChat] error:', err);
@@ -137,7 +137,10 @@ export function useTutorialChat(_opts: UseTutorialChatOptions): UseTutorialChatR
 
   const clearHistory = useCallback(() => {
     abortRef.current?.abort();
+    abortRef.current = null;
     historyRef.current = [];
+    setStreamingContent('');
+    setIsLoading(false);
   }, []);
 
   return { sendMessage, isLoading, streamingContent, clearHistory, abort };

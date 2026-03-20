@@ -1,19 +1,20 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { TutorialStep, TutorialData } from '@/data/tutorials';
+import type { TutorialStep as LegacyTutorialStep, TutorialData } from '@/data/tutorials';
+import type { TutorialStep as CanonicalTutorialStep } from '@/lib/tutorial/types';
 import type { TutorialMessage } from '@/store/tutorialStore';
 import { useTutorialStore } from '@/store/tutorialStore';
 import { useTutorialChat } from '@/hooks/useTutorialChat';
-import type { Node } from 'reactflow';
+import type { Node, Edge } from 'reactflow';
 import staticCacheData from '@/data/tutorialCache.json';
 
 // ── Types ────────────────────────────────────────────────────────────────────
-type Phase = 'context' | 'intro' | 'teaching' | 'action' | 'celebration';
+type Phase = 'context' | 'intro' | 'teaching' | 'action' | 'connecting' | 'celebration';
 
 interface Chip {
   label: string;
-  nextPhase: Phase | 'next_step' | 'reteach' | 'context_more';
+  nextPhase: Phase | 'next_step' | 'reteach' | 'context_more' | 'check_connection' | 'explain_connection' | 'force_continue';
 }
 
 // ── Speed constants ──────────────────────────────────────────────────────────
@@ -25,9 +26,6 @@ const SPEED: Record<string, number> = {
 };
 
 // ── useTypewriter ────────────────────────────────────────────────────────────
-// Handles both static strings and live streaming buffers.
-// For static: types the full string char by char.
-// For streaming: advances a display pointer through a growing buffer.
 function useTypewriter(
   text: string,
   speed: number,
@@ -36,22 +34,19 @@ function useTypewriter(
   const [displayed, setDisplayed] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  // Internal refs — avoid stale closures in interval
-  const bufferRef = useRef('');       // full target text (grows for streaming)
-  const posRef = useRef(0);           // how many chars we've shown
+  const bufferRef = useRef('');
+  const posRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   const speedRef = useRef(speed);
   speedRef.current = speed;
 
-  // Advance the display pointer one char at a time
   const startInterval = useCallback(() => {
-    if (intervalRef.current) return; // already running
+    if (intervalRef.current) return;
     intervalRef.current = setInterval(() => {
       const buf = bufferRef.current;
       if (posRef.current >= buf.length) {
-        // Buffer exhausted — stop and wait for more text or completion signal
         clearInterval(intervalRef.current!);
         intervalRef.current = null;
         return;
@@ -61,12 +56,8 @@ function useTypewriter(
     }, speedRef.current);
   }, []);
 
-  // When text changes: if it's a brand-new message (not an extension of current buffer),
-  // reset everything. If it extends the buffer (streaming), just update buffer and
-  // restart the interval if it stopped.
   useEffect(() => {
     if (!text) {
-      // Clear
       if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
       bufferRef.current = '';
       posRef.current = 0;
@@ -78,7 +69,6 @@ function useTypewriter(
     const isExtension = text.startsWith(bufferRef.current) && bufferRef.current.length > 0;
 
     if (!isExtension) {
-      // New message — full reset
       if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
       bufferRef.current = text;
       posRef.current = 0;
@@ -86,7 +76,6 @@ function useTypewriter(
       setIsTyping(true);
       startInterval();
     } else {
-      // Streaming extension — update buffer, restart interval if it paused
       bufferRef.current = text;
       if (!intervalRef.current && posRef.current < text.length) {
         setIsTyping(true);
@@ -96,7 +85,6 @@ function useTypewriter(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
 
-  // Poll for completion: when not streaming and display caught up
   useEffect(() => {
     if (!isTyping) return;
     const check = setInterval(() => {
@@ -110,7 +98,6 @@ function useTypewriter(
     return () => clearInterval(check);
   }, [isTyping]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -120,8 +107,66 @@ function useTypewriter(
   return { displayed, isTyping };
 }
 
-// ── Fuzzy node matching ──────────────────────────────────────────────────────
-function nodeMatchesRequired(nodeLabel: string, requiredRaw: string): boolean {
+// ── components.json import for ID-based matching ────────────────────────────
+import components from '@/data/components.json';
+type ComponentEntry = { id: string; label: string; category: string; color: string };
+
+// ── Step field accessors — handle both legacy and new tutorial formats ────────
+// Legacy format: step.validation.requiredNodes / step.validation.requiredEdges
+// New format:    step.requiredNodes / step.requiredEdges (top-level)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getRequiredNodes(step: any): string[] {
+  return step.requiredNodes ?? step.validation?.requiredNodes ?? [];
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getRequiredEdges(step: any): Array<{ from: string; to: string }> {
+  return step.requiredEdges ?? step.validation?.requiredEdges ?? [];
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getSuccessMessage(step: any): string {
+  return step.validation?.successMessage ?? step.successMessage ?? `Great job adding ${step.title}!`;
+}
+
+// ── Robust node matching: checks componentId, label, and components.json lookup ──
+function nodeMatchesRequirement(node: Node, requiredId: string): boolean {
+  const nodeLabel = (node.data?.label as string ?? '').toLowerCase().trim();
+  const nodeComponentId = (node.data?.componentId as string ?? '').toLowerCase().trim();
+  const req = requiredId.toLowerCase().trim();
+
+  // Check 1: direct componentId match
+  if (nodeComponentId && (nodeComponentId === req || nodeComponentId.includes(req) || req.includes(nodeComponentId))) return true;
+
+  // Check 2: look up required ID in components.json and compare labels
+  const reqComponent = (components as ComponentEntry[]).find(c => c.id === req);
+  if (reqComponent) {
+    const reqLabel = reqComponent.label.toLowerCase();
+    if (nodeLabel.includes(reqLabel) || reqLabel.includes(nodeLabel)) return true;
+    // First word match
+    const nodeFirst = nodeLabel.split(/[\s\/\(\)]+/)[0] ?? '';
+    const reqFirst = reqLabel.split(/[\s\/\(\)]+/)[0] ?? '';
+    if (nodeFirst.length >= 3 && nodeFirst === reqFirst) return true;
+  }
+
+  // Check 3: fuzzy label vs requiredId (handles "Web" vs "client_web")
+  const reqStripped = req.replace(/[^a-z0-9]/g, '');
+  const labelStripped = nodeLabel.replace(/[^a-z0-9]/g, '');
+  if (labelStripped && reqStripped) {
+    if (labelStripped.includes(reqStripped) || reqStripped.includes(labelStripped)) return true;
+    const prefix = reqStripped.slice(0, 6);
+    if (prefix.length >= 3 && labelStripped.includes(prefix)) return true;
+  }
+
+  // Check 4: client alias fallback
+  const CLIENT_IDS = ['client_web', 'client_mobile', 'client_web_mobile'];
+  const CLIENT_LABELS = ['web', 'mobile', 'client', 'app'];
+  if (CLIENT_IDS.includes(req) && CLIENT_LABELS.some(alias => nodeLabel.includes(alias))) return true;
+
+  return false;
+}
+
+// ── Legacy label-only fuzzy match (kept for reference) ───────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _nodeMatchesRequiredLegacy(nodeLabel: string, requiredRaw: string): boolean {
   const label = nodeLabel.toLowerCase().replace(/[^a-z0-9]/g, '');
   const required = requiredRaw.toLowerCase().replace(/[^a-z0-9]/g, '');
   if (!required) return false;
@@ -132,12 +177,95 @@ function nodeMatchesRequired(nodeLabel: string, requiredRaw: string): boolean {
   return false;
 }
 
+// ── Multi-strategy edge matcher ──────────────────────────────────────────────
+function edgeMatchesRequired(
+  edge: Edge,
+  nodes: Node[],
+  required: { from: string; to: string },
+): boolean {
+  const sourceNode = nodes.find(n => n.id === edge.source);
+  const targetNode = nodes.find(n => n.id === edge.target);
+  if (!sourceNode || !targetNode) return false;
+
+  const sourceLabel = (sourceNode.data?.label as string ?? '').toLowerCase();
+  const targetLabel = (targetNode.data?.label as string ?? '').toLowerCase();
+  const sourceId = (sourceNode.data?.componentId as string ?? '').toLowerCase();
+  const targetId = (targetNode.data?.componentId as string ?? '').toLowerCase();
+  const fromReq = required.from.toLowerCase();
+  const toReq = required.to.toLowerCase();
+
+  // Strategy A: componentId match
+  const idMatch =
+    (sourceId === fromReq || sourceId.includes(fromReq) || fromReq.includes(sourceId)) &&
+    (targetId === toReq || targetId.includes(toReq) || toReq.includes(targetId));
+  if (idMatch && sourceId && targetId) return true;
+
+  // Strategy B: label contains match
+  const labelMatch =
+    (sourceLabel.includes(fromReq) || fromReq.includes(sourceLabel)) &&
+    (targetLabel.includes(toReq) || toReq.includes(targetLabel));
+  if (labelMatch) return true;
+
+  // Strategy C: first word match
+  const sourceFirst = sourceLabel.split(/[\s\/\(\)]+/)[0] ?? '';
+  const targetFirst = targetLabel.split(/[\s\/\(\)]+/)[0] ?? '';
+  const fromFirst = fromReq.split(/[\s\/\(\)]+/)[0] ?? '';
+  const toFirst = toReq.split(/[\s\/\(\)]+/)[0] ?? '';
+  if (
+    sourceFirst.length >= 3 && fromFirst.length >= 3 &&
+    targetFirst.length >= 3 && toFirst.length >= 3 &&
+    (sourceFirst === fromFirst || sourceLabel.includes(fromFirst)) &&
+    (targetFirst === toFirst || targetLabel.includes(toFirst))
+  ) return true;
+
+  // Strategy D: any significant word overlap
+  const fromWords = fromReq.split(/[\s\/\(\)]+/).filter(w => w.length > 2);
+  const toWords = toReq.split(/[\s\/\(\)]+/).filter(w => w.length > 2);
+  const srcHasFrom = fromWords.some(w => sourceLabel.includes(w));
+  const tgtHasTo = toWords.some(w => targetLabel.includes(w));
+  if (srcHasFrom && tgtHasTo) return true;
+
+  return false;
+}
+
+// ── Check if edge exists in reverse direction ────────────────────────────────
+function edgeMatchesReverse(
+  edge: Edge,
+  nodes: Node[],
+  required: { from: string; to: string },
+): boolean {
+  return edgeMatchesRequired(edge, nodes, { from: required.to, to: required.from });
+}
+
+// ── Find best partial match for error reporting ──────────────────────────────
+function findBestEdgeMatch(
+  edges: Edge[],
+  nodes: Node[],
+  required: { from: string; to: string },
+): { sourceLabel: string; targetLabel: string } | null {
+  for (const edge of edges) {
+    const src = nodes.find(n => n.id === edge.source);
+    const tgt = nodes.find(n => n.id === edge.target);
+    if (!src || !tgt) continue;
+    const sl = (src.data?.label as string ?? '').toLowerCase();
+    const tl = (tgt.data?.label as string ?? '').toLowerCase();
+    const fromWords = required.from.toLowerCase().split(/[\s\/\(\)]+/).filter(w => w.length > 2);
+    const toWords = required.to.toLowerCase().split(/[\s\/\(\)]+/).filter(w => w.length > 2);
+    if (fromWords.some(w => sl.includes(w)) || toWords.some(w => tl.includes(w))) {
+      return { sourceLabel: src.data?.label as string ?? sl, targetLabel: tgt.data?.label as string ?? tl };
+    }
+  }
+  return null;
+}
+
 // ── Chip logic ───────────────────────────────────────────────────────────────
 function getChips(
   phase: Phase,
   isLastStep: boolean,
   explainCount: number,
   contextTellMoreCount: number,
+  connectionAttempts: number,
+  hasNextLevel: boolean,
 ): Chip[] {
   switch (phase) {
     case 'context':
@@ -158,7 +286,18 @@ function getChips(
       ];
     case 'action':
       return [];
+    case 'connecting': {
+      const chips: Chip[] = [
+        { label: 'I connected them', nextPhase: 'check_connection' },
+        { label: 'How do I connect?', nextPhase: 'explain_connection' },
+      ];
+      if (connectionAttempts >= 2) {
+        chips.push({ label: 'Continue anyway →', nextPhase: 'force_continue' });
+      }
+      return chips;
+    }
     case 'celebration':
+      if (isLastStep && hasNextLevel) return [{ label: 'Next Level →', nextPhase: 'next_step' }];
       if (isLastStep) return [];
       return [{ label: 'Next step →', nextPhase: 'next_step' }];
     default:
@@ -168,7 +307,7 @@ function getChips(
 
 // ── Props ────────────────────────────────────────────────────────────────────
 interface GuidePanelProps {
-  step: TutorialStep;
+  step: LegacyTutorialStep | CanonicalTutorialStep;
   currentStep: number;
   totalSteps: number;
   tutorial: TutorialData;
@@ -180,6 +319,11 @@ interface GuidePanelProps {
   onValidate: () => void;
   onSkip: () => void;
   onRestart: () => void;
+  // Level progression (optional — only for leveled tutorials)
+  currentLevel?: number;
+  totalLevels?: number;
+  completedLevels?: number[];
+  onNextLevel?: () => void;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -189,6 +333,10 @@ export function GuidePanel({
   totalSteps,
   tutorial,
   isLive,
+  currentLevel,
+  totalLevels,
+  completedLevels,
+  onNextLevel,
 }: GuidePanelProps) {
   const [committedPhase, setCommittedPhase] = useState<Phase>('context');
   const pendingPhaseRef = useRef<Phase>('context');
@@ -196,32 +344,41 @@ export function GuidePanel({
   const [inputValue, setInputValue] = useState('');
   const [explainCount, setExplainCount] = useState(0);
 
-  // Single source of truth for the message being displayed
   const [activeMessage, setActiveMessage] = useState('');
-  // Speed for current message
   const [typeSpeed, setTypeSpeed] = useState(SPEED.normal);
-  // Chips only appear after typewriter completes
   const [showChips, setShowChips] = useState(false);
 
-  // Context phase
   const [hasShownContext, setHasShownContext] = useState(false);
   const [contextTellMoreCount, setContextTellMoreCount] = useState(0);
 
-  // Dead-end fix
   const stepCompletedRef = useRef(false);
   const pendingCelebration = useRef(false);
 
-  // Escape hatch
   const [showEscapeHatch, setShowEscapeHatch] = useState(false);
   const escapeHatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Detection flash
+  const [showConnectionEscapeHatch, setShowConnectionEscapeHatch] = useState(false);
+  const connectionEscapeHatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const [detectionFlash, setDetectionFlash] = useState(false);
 
+  // Track failed "I connected them" attempts for force_continue escape hatch
+  const connectionAttempts = useRef(0);
+
+  // ── Connecting phase: track which edge requirement we're on ───────────────
+  const [connectingEdgeIndex, setConnectingEdgeIndex] = useState(0);
+  const connectingEdgeIndexRef = useRef(0);
+  connectingEdgeIndexRef.current = connectingEdgeIndex;
+
+  // Track edges that existed BEFORE connecting phase began, so we only detect new ones
+  const edgesAtConnectStart = useRef<Set<string>>(new Set());
+
   const {
-    advanceStep, completeTutorial, nodes,
-    savePhase, getPersistedPhase,
+    advanceStep, completeTutorial, nodes, edges,
+    savePhase, getPersistedPhase, saveProgress,
   } = useTutorialStore();
+
+  const activeTutorialId = useTutorialStore((s) => s.activeTutorialId);
 
   const { sendMessage, isLoading, streamingContent, clearHistory, abort } = useTutorialChat({
     tutorialId: tutorial.id,
@@ -230,14 +387,59 @@ export function GuidePanel({
     stepExplanation: step.explanation,
   });
 
-  // Stable refs
+  // ── Save progress on every meaningful state change ───────────────────────
+  useEffect(() => {
+    if (!activeTutorialId) return;
+    if (!currentStep) return;
+    saveProgress(activeTutorialId, {
+      currentLevel: currentLevel ?? 1,
+      currentStep,
+      currentPhase: committedPhase,
+      completedLevels: completedLevels ?? [],
+      explainCount,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [committedPhase, currentStep, currentLevel, completedLevels, explainCount]);
+
   const stepRef = useRef(step); stepRef.current = step;
   const tutorialRef = useRef(tutorial); tutorialRef.current = tutorial;
   const currentStepRef = useRef(currentStep); currentStepRef.current = currentStep;
   const totalStepsRef = useRef(totalSteps); totalStepsRef.current = totalSteps;
   const committedPhaseRef = useRef(committedPhase); committedPhaseRef.current = committedPhase;
   const nodesRef = useRef(nodes); nodesRef.current = nodes;
+  const edgesRef = useRef(edges); edgesRef.current = edges;
   const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Helper: Get the current required edge from the step ──────────────────
+  const getCurrentRequiredEdge = useCallback(() => {
+    const s = stepRef.current;
+    const reqEdges = getRequiredEdges(s);
+    if (reqEdges.length === 0) return null;
+    return reqEdges[connectingEdgeIndexRef.current] ?? null;
+  }, []);
+
+  // ── Build connecting message ─────────────────────────────────────────────
+  const buildConnectingMessage = useCallback((edgeIndex: number): string => {
+    const s = stepRef.current;
+    const t = tutorialRef.current;
+    const cs = currentStepRef.current;
+    const reqEdges = getRequiredEdges(s);
+    const edge = reqEdges[edgeIndex];
+    if (!edge) return getSuccessMessage(s);
+
+    // Priority 1: step.connectingMessage (author-written, most specific)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stepConnectingMsg = (s as any).connectingMessage as string | undefined;
+    if (stepConnectingMsg && edgeIndex === 0) return stepConnectingMsg;
+
+    // Priority 2: cache
+    const cacheKey = `${t.id}:${cs}:connecting:${edgeIndex}`;
+    const cached = (staticCacheData as Record<string, string>)[cacheKey];
+    if (cached) return cached;
+
+    // Priority 3: build a clear fallback
+    return `${s.title} is on the canvas. Now connect ${edge.from} → ${edge.to}. Hover over ${edge.from} until a circle appears on its edge, then drag to ${edge.to}. This connection means ${edge.from} sends requests to ${edge.to}.`;
+  }, []);
 
   // ── Helper: set a new message with appropriate speed ────────────────────
   const showMessage = useCallback((text: string, phase: Phase) => {
@@ -249,11 +451,8 @@ export function GuidePanel({
     setActiveMessage(text);
   }, []);
 
-  // ── Typewriter: feeds on activeMessage, extends with streamingContent ────
-  // For live AI: streamingContent grows as chunks arrive — we feed it as buffer extension
   const typewriterInput = (() => {
     if (!isLive || !streamingContent) return activeMessage;
-    // If streaming is active and content is longer than activeMessage, use it as the buffer
     if (streamingContent.length > activeMessage.length) return streamingContent;
     return activeMessage;
   })();
@@ -282,9 +481,15 @@ export function GuidePanel({
         return extra === 'force'
           ? `${base} PHASE:ACTION INSTRUCTION:"${s.action}" NOTE:"Keep this very short and direct."`
           : `${base} PHASE:ACTION INSTRUCTION:"${s.action}"`;
+      case 'connecting': {
+        const edge = getCurrentRequiredEdge();
+        return edge
+          ? `${base} PHASE:CONNECTING FROM:"${edge.from}" TO:"${edge.to}"`
+          : `${base} PHASE:CELEBRATION`;
+      }
       case 'celebration': return `${base} PHASE:CELEBRATION`;
     }
-  }, []);
+  }, [getCurrentRequiredEdge]);
 
   // ── Commit phase ─────────────────────────────────────────────────────────
   const commitPhase = useCallback((p: Phase) => {
@@ -292,10 +497,57 @@ export function GuidePanel({
     if (p !== 'context') savePhase(tutorialRef.current.id, currentStepRef.current, p);
   }, [savePhase]);
 
+  // ── Static message resolver — exhaustive fallbacks, never returns empty ──
+  const getStaticMessage = useCallback((p: Phase, extra?: string): string => {
+    const s = stepRef.current;
+    const t = tutorialRef.current;
+    const cs = currentStepRef.current;
+    const cache = staticCacheData as Record<string, string>;
+
+    switch (p) {
+      case 'context': {
+        const cached = cache[`${t.id}:context`];
+        if (cached) return cached;
+        return `Let's build the ${t.title} architecture. Ready to start?`;
+      }
+      case 'intro': {
+        const cached = cache[`${t.id}:${cs}:intro:0`];
+        if (cached) return cached;
+        return s.openingMessage ?? `Do you know what ${s.title} does in this system?`;
+      }
+      case 'teaching': {
+        const ec = extra === 'reteach' ? (explainCount + 1) : explainCount;
+        const cached = cache[`${t.id}:${cs}:teaching:${ec}`];
+        if (cached) return cached;
+        return s.explanation ?? `${s.title} is a key component in this architecture.`;
+      }
+      case 'action':
+        return s.action ?? `Press ⌘K and search for "${s.title}" to add it.`;
+      case 'connecting': {
+        const reqEdges = getRequiredEdges(s);
+        const edge = reqEdges[connectingEdgeIndexRef.current];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const stepConnectingMsg = (s as any).connectingMessage as string | undefined;
+        if (stepConnectingMsg && connectingEdgeIndexRef.current === 0) return stepConnectingMsg;
+        const cached = cache[`${t.id}:${cs}:connecting:${connectingEdgeIndexRef.current}`];
+        if (cached) return cached;
+        if (edge) return `Now connect ${edge.from} → ${edge.to}. Hover over ${edge.from} until a circle appears on its edge, then drag to ${edge.to}.`;
+        return getSuccessMessage(s);
+      }
+      case 'celebration': {
+        const cached = cache[`${t.id}:${cs}:celebration:0`];
+        if (cached) return cached;
+        return getSuccessMessage(s);
+      }
+      default:
+        return s.explanation ?? s.action ?? 'Continue to the next step.';
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [explainCount]);
+
   // ── Trigger AI phase ─────────────────────────────────────────────────────
   const triggerPhase = useCallback(async (p: Phase, extra?: string) => {
     pendingPhaseRef.current = p;
-    // Clear active message so typewriter resets; streaming will fill it
     setShowChips(false);
     setActiveMessage('');
     setTypeSpeed(p === 'context' ? SPEED.context : p === 'celebration' ? SPEED.celebration : SPEED.normal);
@@ -303,25 +555,76 @@ export function GuidePanel({
     if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
     streamTimeoutRef.current = setTimeout(() => {
       abort();
-      const fallback = stepRef.current.explanation || 'Let\'s continue building.';
-      showMessage(fallback, 'action');
+      // Timeout fallback — use static message so panel is never blank
+      const fallback = getStaticMessage(p, extra);
+      showMessage(fallback, p);
       commitPhase(p);
     }, 10_000);
 
     try {
       await sendMessage(buildPrompt(p, extra));
     } catch {
-      const fallback = stepRef.current.explanation || 'Something went wrong. Try adding the component to continue.';
+      // Error fallback — use static message so panel is never blank
+      const fallback = getStaticMessage(p, extra);
       setTypeSpeed(SPEED.fallback);
       setActiveMessage(fallback);
-      commitPhase('action');
+      commitPhase(p);
       return;
     } finally {
       if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
     }
 
+    // If streaming returned empty, use static fallback
+    if (!streamingContent && !activeMessage) {
+      showMessage(getStaticMessage(p, extra), p);
+    }
+
     commitPhase(p);
-  }, [sendMessage, buildPrompt, commitPhase, abort, showMessage]);
+  }, [sendMessage, buildPrompt, commitPhase, abort, showMessage, getStaticMessage, streamingContent, activeMessage]);
+
+  // ── Enter connecting phase ───────────────────────────────────────────────
+  const enterConnectingPhase = useCallback((edgeIndex: number) => {
+    const s = stepRef.current;
+    const reqEdges = getRequiredEdges(s);
+
+    if (reqEdges.length === 0 || edgeIndex >= reqEdges.length) {
+      // No edges to connect — skip to celebration
+      stepCompletedRef.current = true;
+      pendingCelebration.current = true;
+      commitPhase('celebration');
+      return;
+    }
+
+    setConnectingEdgeIndex(edgeIndex);
+    connectingEdgeIndexRef.current = edgeIndex;
+    edgesAtConnectStart.current = new Set(edgesRef.current.map((e: Edge) => e.id));
+
+    // Clear and start connection escape hatch timer (45s)
+    setShowConnectionEscapeHatch(false);
+    if (connectionEscapeHatchTimerRef.current) clearTimeout(connectionEscapeHatchTimerRef.current);
+    connectionEscapeHatchTimerRef.current = setTimeout(() => setShowConnectionEscapeHatch(true), 45_000);
+
+    const msg = buildConnectingMessage(edgeIndex);
+    setDetectionFlash(false);
+    commitPhase('connecting');
+    setTypeSpeed(SPEED.normal);
+    setShowChips(false);
+    setActiveMessage(msg);
+  }, [commitPhase, buildConnectingMessage]);
+
+  // ── Initial load safety net — if nothing rendered after 3s, force fallback ─
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!activeMessage && !streamingContent && !isLoading) {
+        console.warn('[GuidePanel] initial load fallback triggered');
+        const fallback = getStaticMessage(committedPhaseRef.current);
+        showMessage(fallback, committedPhaseRef.current);
+        setShowChips(true);
+      }
+    }, 3_000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // runs once on mount
 
   // ── Step/tutorial change ─────────────────────────────────────────────────
   const lastFiredRef = useRef<string>('');
@@ -330,10 +633,15 @@ export function GuidePanel({
     if (currentStep > totalSteps) return;
     if (!tutorial.id || !step?.title || currentStep < 1) return;
 
-    const key = `${tutorial.id}:${currentStep}`;
+    const key = `${tutorial.id}:${currentLevel}:${currentStep}`;
     if (lastFiredRef.current === key) return;
     lastFiredRef.current = key;
 
+    // Reset on cleanup so React Strict Mode double-invoke doesn't skip the
+    // second (real) mount — the ref persists across the unmount/remount cycle.
+    const cleanup = () => { lastFiredRef.current = ''; };
+
+    abort();        // H1: cancel any in-flight request before resetting state
     clearHistory();
     pendingPhaseRef.current = 'intro';
     setCommittedPhase('intro');
@@ -343,30 +651,33 @@ export function GuidePanel({
     setActiveMessage('');
     setShowChips(false);
     setShowEscapeHatch(false);
+    setShowConnectionEscapeHatch(false);
     setDetectionFlash(false);
+    setConnectingEdgeIndex(0);
+    connectingEdgeIndexRef.current = 0;
+    connectionAttempts.current = 0;
     stepCompletedRef.current = false;
     pendingCelebration.current = false;
     if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current);
+    if (connectionEscapeHatchTimerRef.current) clearTimeout(connectionEscapeHatchTimerRef.current);
 
-    // Context phase on first step (once per session)
     if (currentStep === 1 && !hasShownContext) {
       const contextKey = `${tutorial.id}:context`;
       const contextText = (staticCacheData as Record<string, string>)[contextKey];
       if (contextText) {
         pendingPhaseRef.current = 'context';
-        setTimeout(() => {
+        const t = setTimeout(() => {
           commitPhase('context');
           showMessage(contextText, 'context');
         }, 0);
-        return;
+        return () => { clearTimeout(t); cleanup(); };
       }
       if (isLive) {
         const t = setTimeout(() => triggerPhase('context'), 50);
-        return () => clearTimeout(t);
+        return () => { clearTimeout(t); cleanup(); };
       }
     }
 
-    // Normal step flow
     const persisted = getPersistedPhase(tutorial.id, currentStep);
     const startPhase: Phase = (persisted === 'action' || persisted === 'celebration')
       ? (persisted as Phase) : 'intro';
@@ -380,17 +691,17 @@ export function GuidePanel({
         return step.openingMessage ?? step.explanation ?? step.action;
       };
       pendingPhaseRef.current = startPhase;
-      setTimeout(() => {
+      const t = setTimeout(() => {
         commitPhase(startPhase);
         showMessage(resolveText(), startPhase);
       }, 0);
-      return;
+      return () => { clearTimeout(t); cleanup(); };
     }
 
     const t = setTimeout(() => triggerPhase(startPhase), 50);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t); cleanup(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, tutorial.id, step?.title]);
+  }, [currentStep, currentLevel, tutorial.id, step?.title]);
 
   // ── Chunk stall timeout ──────────────────────────────────────────────────
   const prevContentRef = useRef('');
@@ -405,10 +716,9 @@ export function GuidePanel({
     }
   }, [streamingContent, isLoading, commitPhase]);
 
-  // ── When streaming completes, sync activeMessage so typewriter can finish ─
+  // ── When streaming completes, sync activeMessage ─────────────────────────
   useEffect(() => {
     if (!isLoading && streamingContent && streamingContent !== activeMessage) {
-      // Stream done — make sure typewriter has the full text as its target
       setActiveMessage(streamingContent);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -420,7 +730,7 @@ export function GuidePanel({
       pendingCelebration.current = false;
       if (!isLive) {
         const s = stepRef.current;
-        showMessage(s.validation?.successMessage ?? `Great job adding the ${s.title}!`, 'celebration');
+        showMessage(getSuccessMessage(s), 'celebration');
       } else {
         triggerPhase('celebration');
       }
@@ -428,7 +738,23 @@ export function GuidePanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [committedPhase]);
 
-  // ── Escape hatch timer ───────────────────────────────────────────────────
+  // ── Phase watchdog — auto-recovers blank panel within 2s ─────────────────
+  const phaseWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (phaseWatchdogRef.current) clearTimeout(phaseWatchdogRef.current);
+    phaseWatchdogRef.current = setTimeout(() => {
+      if (!activeMessage && !streamingContent && !isLoading) {
+        console.warn('[GuidePanel watchdog] blank state in phase:', committedPhase, '— recovering');
+        const fallback = getStaticMessage(committedPhase);
+        showMessage(fallback, committedPhase);
+        setShowChips(true);
+      }
+    }, 2_000);
+    return () => { if (phaseWatchdogRef.current) clearTimeout(phaseWatchdogRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [committedPhase]);
+
+  // ── Escape hatch timer (action phase) ────────────────────────────────────
   useEffect(() => {
     if (committedPhase !== 'action') {
       setShowEscapeHatch(false);
@@ -439,16 +765,69 @@ export function GuidePanel({
     return () => { if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current); };
   }, [committedPhase]);
 
-  // ── Canvas watcher ───────────────────────────────────────────────────────
+  // ── Connecting escape hatch cleanup when leaving connecting ──────────────
+  useEffect(() => {
+    if (committedPhase !== 'connecting') {
+      setShowConnectionEscapeHatch(false);
+      if (connectionEscapeHatchTimerRef.current) clearTimeout(connectionEscapeHatchTimerRef.current);
+    }
+  }, [committedPhase]);
+
+  // ── Publish current required edge to window for TutorialCanvas highlight ─
+  useEffect(() => {
+    if (committedPhase === 'connecting') {
+      const req = getRequiredEdges(step)[connectingEdgeIndex];
+      (window as unknown as Record<string, unknown>).__tutorialRequiredEdge = req ?? null;
+    } else {
+      (window as unknown as Record<string, unknown>).__tutorialRequiredEdge = null;
+    }
+    return () => {
+      (window as unknown as Record<string, unknown>).__tutorialRequiredEdge = null;
+    };
+  }, [committedPhase, connectingEdgeIndex, step]);
+
+  // ── Canvas node watcher ──────────────────────────────────────────────────
   const prevNodeIdsRef = useRef<Set<string>>(new Set());
   const wrongNodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Reset stepCompletedRef and baseline snapshot on step/level change
   useEffect(() => {
-    if (committedPhase !== 'action') {
+    stepCompletedRef.current = false;
+    prevNodeIdsRef.current = new Set(nodes.map((n: Node) => n.id));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, currentLevel]);
+
+  // Snapshot baseline when entering 'action' phase
+  const prevPhaseRef = useRef<Phase>('intro');
+  useEffect(() => {
+    if (committedPhase === 'action' && prevPhaseRef.current !== 'action') {
       prevNodeIdsRef.current = new Set(nodes.map((n: Node) => n.id));
-      return;
     }
-    const requiredNodes = step.validation?.requiredNodes;
+    prevPhaseRef.current = committedPhase;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [committedPhase]);
+
+  useEffect(() => {
+    // ── DIAGNOSTIC LOGS ──────────────────────────────────────────────────
+    console.log('=== NODE DETECTION FIRING ===');
+    console.log('Current phase:', committedPhase);
+    const _requiredForLog = getRequiredNodes(step);
+    console.log('Required node IDs:', _requiredForLog);
+    console.log('Canvas nodes:', nodes.map((n: Node) => ({
+      id: n.id,
+      label: n.data?.label,
+      componentId: n.data?.componentId,
+      type: n.type,
+    })));
+    const _matchResults = nodes.map((n: Node) => ({
+      label: n.data?.label,
+      matches: _requiredForLog?.some(req => nodeMatchesRequirement(n, req)) ?? false,
+    }));
+    console.log('Match results:', _matchResults);
+    // ── END DIAGNOSTIC LOGS ──────────────────────────────────────────────
+
+    if (committedPhase !== 'action') return;
+    const requiredNodes = getRequiredNodes(step);
     if (currentStep > totalSteps || !requiredNodes?.length) return;
     if (stepCompletedRef.current) return;
 
@@ -457,30 +836,36 @@ export function GuidePanel({
 
     prevNodeIdsRef.current = new Set(nodes.map((n: Node) => n.id));
 
-    // Reset escape hatch timer on any node addition
     setShowEscapeHatch(false);
     if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current);
     escapeHatchTimerRef.current = setTimeout(() => setShowEscapeHatch(true), 30_000);
 
     const correctNode = newNodes.find((n: Node) =>
-      requiredNodes.some(req => nodeMatchesRequired(n.data?.label as string ?? '', req))
+      requiredNodes.some(req => nodeMatchesRequirement(n, req))
     );
+
+    console.log('New nodes added:', newNodes.map((n: Node) => n.data?.label));
+    console.log('Correct node found:', correctNode ? correctNode.data?.label : 'none');
 
     if (correctNode) {
       stepCompletedRef.current = true;
       if (wrongNodeTimerRef.current) clearTimeout(wrongNodeTimerRef.current);
 
-      // Detection flash — fast fallback speed, chips hidden
       setDetectionFlash(true);
       setTypeSpeed(SPEED.fallback);
       setShowChips(false);
-      setActiveMessage('Component detected — great work! Loading next step...');
+      setActiveMessage('Component detected — great work!');
 
       setTimeout(() => {
         setDetectionFlash(false);
-        pendingCelebration.current = true;
-        commitPhase('celebration');
-      }, 500);
+        const reqEdges = getRequiredEdges(step);
+        if (currentStep === 1 || reqEdges.length === 0) {
+          pendingCelebration.current = true;
+          commitPhase('celebration');
+        } else {
+          enterConnectingPhase(0);
+        }
+      }, 600);
     } else {
       if (wrongNodeTimerRef.current) clearTimeout(wrongNodeTimerRef.current);
       wrongNodeTimerRef.current = setTimeout(() => {
@@ -501,6 +886,58 @@ export function GuidePanel({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, committedPhase]);
+
+  // ── Edge watcher (connecting phase) ──────────────────────────────────────
+  const edgeCheckInProgressRef = useRef(false);
+
+  const checkEdgeDetection = useCallback(() => {
+    const reqEdge = getRequiredEdges(step)[connectingEdgeIndexRef.current];
+    if (!reqEdge) return false;
+
+    // Look for the required edge among ALL edges (including existing ones on canvas)
+    const found = edgesRef.current.some((e: Edge) =>
+      edgeMatchesRequired(e, nodesRef.current, reqEdge)
+    );
+    return found;
+  }, [step]);
+
+  useEffect(() => {
+    if (committedPhase !== 'connecting') return;
+    if (edgeCheckInProgressRef.current) return;
+
+    const reqEdge = getRequiredEdges(step)[connectingEdgeIndex];
+    if (!reqEdge) return;
+
+    // Check all edges (auto-detect newly drawn edges)
+    const found = edges.some((e: Edge) =>
+      edgeMatchesRequired(e, nodes, reqEdge)
+    );
+
+    if (found) {
+      edgeCheckInProgressRef.current = true;
+      setDetectionFlash(true);
+      setTypeSpeed(SPEED.fallback);
+      setShowChips(false);
+      setActiveMessage('Connection detected! Great work!');
+
+      setTimeout(() => {
+        setDetectionFlash(false);
+        edgeCheckInProgressRef.current = false;
+        const reqEdges = getRequiredEdges(step);
+        const nextEdgeIndex = connectingEdgeIndex + 1;
+
+        if (nextEdgeIndex < reqEdges.length) {
+          // More edges to connect
+          enterConnectingPhase(nextEdgeIndex);
+        } else {
+          // All edges done — celebrate
+          pendingCelebration.current = true;
+          commitPhase('celebration');
+        }
+      }, 700);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [edges, committedPhase, connectingEdgeIndex]);
 
   // ── Palette close watcher ────────────────────────────────────────────────
   const paletteCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -535,12 +972,96 @@ export function GuidePanel({
   // ── Chip click ───────────────────────────────────────────────────────────
   const handleChipClick = useCallback((chip: Chip) => {
     if (chip.nextPhase === 'next_step') {
-      if (currentStepRef.current >= totalStepsRef.current) { completeTutorial(); return; }
+      if (currentStepRef.current >= totalStepsRef.current) {
+        // Last step of this level — trigger next level if available
+        if (onNextLevel) { onNextLevel(); return; }
+        completeTutorial();
+        return;
+      }
       advanceStep();
       return;
     }
 
-    // Context: "Let's build it →"
+    // Connecting phase chips
+    if (chip.nextPhase === 'check_connection') {
+      const found = checkEdgeDetection();
+      if (found) {
+        connectionAttempts.current = 0;
+        setDetectionFlash(true);
+        setTypeSpeed(SPEED.fallback);
+        setShowChips(false);
+        setActiveMessage('Connection detected! Great work!');
+
+        setTimeout(() => {
+          setDetectionFlash(false);
+          const reqEdges = getRequiredEdges(stepRef.current);
+          const nextEdgeIndex = connectingEdgeIndexRef.current + 1;
+          if (nextEdgeIndex < reqEdges.length) {
+            enterConnectingPhase(nextEdgeIndex);
+          } else {
+            pendingCelebration.current = true;
+            commitPhase('celebration');
+          }
+        }, 700);
+      } else {
+        connectionAttempts.current += 1;
+        const reqEdge = getRequiredEdges(stepRef.current)[connectingEdgeIndexRef.current];
+        const fromLabel = reqEdge?.from ?? 'source';
+        const toLabel = reqEdge?.to ?? 'target';
+
+        // Check for reverse connection
+        const isReversed = reqEdge
+          ? edgesRef.current.some(e => edgeMatchesReverse(e, nodesRef.current, reqEdge))
+          : false;
+
+        if (isReversed) {
+          setTypeSpeed(SPEED.fallback);
+          setShowChips(false);
+          setActiveMessage(
+            `Almost! The connection is backwards. Delete it and drag FROM ${fromLabel} TO ${toLabel}. Hover over ${fromLabel} and drag from the handle on its right side.`
+          );
+        } else {
+          // Try to find a partial match to give a better error
+          const bestMatch = reqEdge ? findBestEdgeMatch(edgesRef.current, nodesRef.current, reqEdge) : null;
+          if (bestMatch) {
+            setTypeSpeed(SPEED.fallback);
+            setShowChips(false);
+            setActiveMessage(
+              `I can see you connected ${bestMatch.sourceLabel} → ${bestMatch.targetLabel}. I'm looking for ${fromLabel} → ${toLabel}. Make sure the arrow goes in the right direction.`
+            );
+          } else {
+            setTypeSpeed(SPEED.fallback);
+            setShowChips(false);
+            setActiveMessage(
+              `Not quite — I'm looking for ${fromLabel} → ${toLabel}. Hover over ${fromLabel} until a circle appears on its border, then drag to ${toLabel}.`
+            );
+          }
+        }
+        setTimeout(() => setShowChips(true), 1_800);
+      }
+      return;
+    }
+
+    if (chip.nextPhase === 'force_continue') {
+      connectionAttempts.current = 0;
+      pendingCelebration.current = true;
+      commitPhase('celebration');
+      return;
+    }
+
+    if (chip.nextPhase === 'explain_connection') {
+      const reqEdge = getRequiredEdges(stepRef.current)[connectingEdgeIndexRef.current];
+      const fromLabel = reqEdge?.from ?? 'the source node';
+      const toLabel = reqEdge?.to ?? 'the target node';
+      setTypeSpeed(SPEED.fallback);
+      setShowChips(false);
+      setActiveMessage(
+        `To connect nodes: hover over ${fromLabel} until a small circle appears on its border, then click and drag to ${toLabel}. Release when you see the connection snap.`
+      );
+      setTimeout(() => setShowChips(true), 2_500);
+      return;
+    }
+
     if (chip.nextPhase === 'intro' && committedPhaseRef.current === 'context') {
       setHasShownContext(true);
       if (!isLive) {
@@ -555,7 +1076,6 @@ export function GuidePanel({
       return;
     }
 
-    // Context: "Tell me more"
     if (chip.nextPhase === 'context_more') {
       setContextTellMoreCount(c => c + 1);
       const moreText = (staticCacheData as Record<string, string>)[`${tutorialRef.current.id}:context:more`];
@@ -564,6 +1084,11 @@ export function GuidePanel({
         showMessage(moreText, 'context');
       } else if (isLive) {
         triggerPhase('context', 'more');
+      } else {
+        // Fallback: show tutorial description so panel is never blank
+        const fallback = tutorialRef.current.description ?? `Let's build the ${tutorialRef.current.title} architecture.`;
+        commitPhase('context');
+        showMessage(fallback, 'context');
       }
       return;
     }
@@ -579,7 +1104,7 @@ export function GuidePanel({
       } else if (chip.nextPhase === 'action') {
         text = s.action;
       } else if (chip.nextPhase === 'celebration') {
-        text = s.validation?.successMessage ?? `Great job adding the ${s.title}!`;
+        text = getSuccessMessage(s);
       } else {
         text = s.explanation ?? s.action;
       }
@@ -591,18 +1116,35 @@ export function GuidePanel({
     if (chip.nextPhase === 'reteach') { setExplainCount(c => c + 1); triggerPhase('teaching', 'reteach'); return; }
     if (chip.nextPhase === 'action' && explainCount >= 3) { triggerPhase('action', 'force'); return; }
     triggerPhase(chip.nextPhase as Phase);
-  }, [advanceStep, completeTutorial, triggerPhase, commitPhase, showMessage, explainCount, isLive, contextTellMoreCount]);
+  }, [advanceStep, completeTutorial, triggerPhase, commitPhase, showMessage, explainCount, isLive,
+      contextTellMoreCount, checkEdgeDetection, enterConnectingPhase]);
 
-  // ── Escape hatch click ───────────────────────────────────────────────────
+  // ── Escape hatch click (action phase) ────────────────────────────────────
   const handleEscapeHatch = useCallback(() => {
     stepCompletedRef.current = true;
     setShowEscapeHatch(false);
     if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current);
-    const s = stepRef.current;
-    const celebText = s.validation?.successMessage ?? `Great job adding the ${s.title}!`;
+
+    // Check if we need to do connecting phase
+    const reqEdges = getRequiredEdges(stepRef.current);
+    if (currentStepRef.current === 1 || reqEdges.length === 0) {
+      const s = stepRef.current;
+      const celebText = getSuccessMessage(s);
+      commitPhase('celebration');
+      showMessage(celebText, 'celebration');
+    } else {
+      // Go from action → connecting
+      enterConnectingPhase(0);
+    }
+  }, [commitPhase, showMessage, enterConnectingPhase]);
+
+  // ── Connecting escape hatch click ─────────────────────────────────────────
+  const handleConnectionEscapeHatch = useCallback(() => {
+    setShowConnectionEscapeHatch(false);
+    if (connectionEscapeHatchTimerRef.current) clearTimeout(connectionEscapeHatchTimerRef.current);
+    pendingCelebration.current = true;
     commitPhase('celebration');
-    showMessage(celebText, 'celebration');
-  }, [commitPhase, showMessage]);
+  }, [commitPhase]);
 
   // ── Free-text send ───────────────────────────────────────────────────────
   const handleSend = useCallback(async () => {
@@ -626,29 +1168,103 @@ export function GuidePanel({
   // ── Derived ──────────────────────────────────────────────────────────────
   const showLoadingDots = isLive && isLoading && !streamingContent && !activeMessage;
   const isLastStep = currentStep >= totalSteps;
-  const chips = getChips(committedPhase, isLastStep, explainCount, contextTellMoreCount);
-  // Chips gate: show only when typewriter done AND phase has chips
+  const hasNextLevel = !!(currentLevel && totalLevels && currentLevel < totalLevels);
+  const chips = getChips(committedPhase, isLastStep, explainCount, contextTellMoreCount, connectionAttempts.current, hasNextLevel);
   const chipsVisible = showChips && chips.length > 0;
+
+  // For node highlights: get current required edge's from/to
+  const currentRequiredEdge = committedPhase === 'connecting'
+    ? (getRequiredEdges(step)[connectingEdgeIndex] ?? null)
+    : null;
 
   return (
     <div className="h-full flex flex-col" style={{ background: '#0d1117', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
 
-      {/* Blink keyframe injected inline */}
       <style>{`
         @keyframes tw-blink { 0%,100%{opacity:1} 50%{opacity:0} }
         .tw-cursor { display:inline-block; width:2px; height:1em; background:#818cf8; margin-left:2px; vertical-align:middle; animation:tw-blink 1.06s step-end infinite; }
+        @keyframes pulse-indigo {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
+          50% { box-shadow: 0 0 0 8px rgba(99,102,241,0); }
+        }
+        @keyframes pulse-green {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+          50% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+        }
+        .tutorial-source-highlight { animation: pulse-indigo 1.5s ease-in-out infinite !important; outline: 2px solid rgba(99,102,241,0.7) !important; }
+        .tutorial-target-highlight { animation: pulse-green 1.5s ease-in-out infinite !important; outline: 2px solid rgba(34,197,94,0.7) !important; }
       `}</style>
+
+      {/* Inject required edge info into DOM for TutorialCanvas to pick up */}
+      {currentRequiredEdge && (
+        <script
+          dangerouslySetInnerHTML={{ __html: '' }}
+          data-tutorial-required-from={currentRequiredEdge.from}
+          data-tutorial-required-to={currentRequiredEdge.to}
+        />
+      )}
 
       {/* Progress bar */}
       <div className="p-4 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-slate-500">Step {currentStep} of {totalSteps}</span>
-          <span className="text-xs text-indigo-400 font-medium">{Math.round((currentStep / totalSteps) * 100)}%</span>
-        </div>
-        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-          <div className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
-        </div>
+        {/* Level indicator (leveled tutorials only) */}
+        {currentLevel !== undefined && totalLevels !== undefined && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs text-slate-400">Level {currentLevel} of {totalLevels}</span>
+              <span className="text-xs text-slate-500">Step {currentStep} of {totalSteps}</span>
+            </div>
+            <div className="h-1 rounded-full overflow-hidden mb-2" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
+            </div>
+            {/* Level dots */}
+            <div className="flex items-center gap-2 mt-2">
+              {Array.from({ length: totalLevels }, (_, i) => {
+                const lvl = i + 1;
+                const isDone = completedLevels?.includes(lvl);
+                const isCurrent = lvl === currentLevel;
+                return (
+                  <div key={lvl} className="flex items-center gap-1">
+                    <div
+                      className="w-2 h-2 rounded-full transition-all"
+                      style={{
+                        background: isDone ? '#6366f1' : isCurrent ? '#818cf8' : 'rgba(255,255,255,0.15)',
+                        boxShadow: isCurrent ? '0 0 0 2px rgba(99,102,241,0.3)' : 'none',
+                      }}
+                    />
+                    {isDone && <span className="text-[9px] text-indigo-400">✓</span>}
+                    {!isDone && <span className="text-[10px]" style={{ color: isCurrent ? '#94a3b8' : '#475569' }}>Level {lvl}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {/* Standard progress (non-leveled) */}
+        {currentLevel === undefined && (
+          <>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-500">Step {currentStep} of {totalSteps}</span>
+              <span className="text-xs text-indigo-400 font-medium">{Math.round((currentStep / totalSteps) * 100)}%</span>
+            </div>
+            <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
+            </div>
+          </>
+        )}
+        {/* Debug indicator — remove before production */}
+        <span className="text-[9px] text-slate-700 mt-1 block">
+          phase: {committedPhase} | text: {displayed.length}chars | loading: {isLoading.toString()}
+        </span>
       </div>
+
+      {/* Phase badge */}
+      {committedPhase === 'connecting' && (
+        <div className="px-4 pt-2 shrink-0">
+          <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full" style={{ background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' }}>
+            🔗 Connect the nodes
+          </span>
+        </div>
+      )}
 
       {/* Message bubble */}
       <div className="flex-1 p-4 overflow-y-auto flex flex-col justify-end min-h-0">
@@ -666,7 +1282,7 @@ export function GuidePanel({
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
-          ) : (
+          ) : displayed ? (
             <>
               <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
                 {displayed}
@@ -676,6 +1292,24 @@ export function GuidePanel({
                 <p className="text-[10px] text-slate-600 mt-3 uppercase tracking-wider">{step.title}</p>
               )}
             </>
+          ) : (
+            /* Emergency fallback — panel must never be completely blank */
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-slate-400 leading-relaxed">
+                {step.openingMessage ?? step.explanation ?? `Let's add the ${step.title}.`}
+              </p>
+              <button
+                onClick={() => {
+                  const msg = getStaticMessage(committedPhase);
+                  showMessage(msg, committedPhase);
+                  setShowChips(true);
+                }}
+                className="self-start px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white transition-colors"
+                style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }}
+              >
+                Continue →
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -687,7 +1321,17 @@ export function GuidePanel({
         </div>
       )}
 
-      {/* Escape hatch */}
+      {/* Connecting hint — prominent required connection indicator */}
+      {committedPhase === 'connecting' && currentRequiredEdge && (
+        <div className="px-4 pb-2 shrink-0">
+          <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>
+            <p className="text-[10px] text-indigo-400 uppercase tracking-wider mb-1">Required connection</p>
+            <p className="text-sm text-white font-medium">{currentRequiredEdge.from} → {currentRequiredEdge.to}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Escape hatch (action phase) */}
       {showEscapeHatch && committedPhase === 'action' && (
         <div className="px-4 pb-2 shrink-0">
           <button onClick={handleEscapeHatch} className="w-full text-center text-[11px] text-slate-500 hover:text-indigo-400 transition-colors py-1">
@@ -696,11 +1340,28 @@ export function GuidePanel({
         </div>
       )}
 
-      {/* Chips — only after typewriter completes */}
+      {/* Connecting escape hatch */}
+      {showConnectionEscapeHatch && committedPhase === 'connecting' && (
+        <div className="px-4 pb-2 shrink-0 space-y-1">
+          {currentRequiredEdge && (
+            <p className="text-[10px] text-slate-500 text-center">
+              To connect: hover over {currentRequiredEdge.from} until a circle appears, then drag to {currentRequiredEdge.to}
+            </p>
+          )}
+          <button
+            onClick={handleConnectionEscapeHatch}
+            className="w-full text-center text-[11px] text-slate-500 hover:text-indigo-400 transition-colors py-1"
+          >
+            Skip connection →
+          </button>
+        </div>
+      )}
+
+      {/* Chips */}
       {chipsVisible && (
         <div className="px-4 pb-3 flex flex-col gap-2 shrink-0">
           {chips.map((chip, i) => {
-            const isNext = chip.nextPhase === 'next_step' || chip.nextPhase === 'intro';
+            const isNext = chip.nextPhase === 'next_step' || chip.nextPhase === 'intro' || chip.nextPhase === 'check_connection';
             return (
               <button
                 key={i}

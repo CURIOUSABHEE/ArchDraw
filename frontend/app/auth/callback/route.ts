@@ -12,11 +12,23 @@ export async function GET(request: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  let userId: string | null = null;
+
   if (code) {
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data } = await supabase.auth.exchangeCodeForSession(code);
+    userId = data.session?.user?.id ?? null;
   } else if (token_hash && type) {
-    await supabase.auth.verifyOtp({ token_hash, type: type as 'email' });
+    const { data } = await supabase.auth.verifyOtp({ token_hash, type: type as 'email' });
+    userId = data.session?.user?.id ?? null;
   }
 
-  return NextResponse.redirect(new URL('/editor', request.url));
+  // Guest-to-authenticated migration is handled client-side via AuthProvider
+  // (server route has no access to localStorage)
+
+  const redirectUrl = new URL('/editor', request.url);
+  if (userId) {
+    redirectUrl.searchParams.set('migrate_progress', '1');
+  }
+
+  return NextResponse.redirect(redirectUrl);
 }
