@@ -80,6 +80,22 @@
     "description": "Event-driven compute that scales to zero — you only pay when code is actually running."
   },
   {
+    "id": "upload_service",
+    "label": "Upload Service",
+    "category": "Compute",
+    "color": "#3b82f6",
+    "icon": "Upload",
+    "description": "Receives and validates file uploads, triggering the media processing pipeline without blocking the upload response."
+  },
+  {
+    "id": "user_service",
+    "label": "User Service",
+    "category": "Compute",
+    "color": "#3b82f6",
+    "icon": "Users",
+    "description": "Manages follower graph operations — follow, unfollow, block, and restrict — as a dedicated microservice separate from authentication."
+  },
+  {
     "id": "worker_job",
     "label": "Worker / Background Job",
     "category": "Compute",
@@ -547,5 +563,14 @@
   { "id": "trust_service", "label": "Trust & Safety Service", "category": "Auth & Security", "color": "#8b5cf6", "icon": "ShieldCheck", "description": "Detects and prevents fraud, abuse, and policy violations using ML and rule engines." },
   { "id": "review_service", "label": "Review Service", "category": "Compute", "color": "#3b82f6", "icon": "Star", "description": "Manages user reviews and ratings with fraud detection and sentiment analysis." },
   { "id": "pricing_engine", "label": "Pricing Engine", "category": "Compute", "color": "#3b82f6", "icon": "DollarSign", "description": "Calculates dynamic prices based on demand, supply, time, and market conditions." },
-  { "id": "availability_service", "label": "Availability Service", "category": "Compute", "color": "#3b82f6", "icon": "Calendar", "description": "Manages listing calendars, booking windows, and real-time availability for rentals." }
+  { "id": "availability_service", "label": "Availability Service", "category": "Compute", "color": "#3b82f6", "icon": "Calendar", "description": "Manages listing calendars, booking windows, and real-time availability for rentals." },
+  { "id": "circuit_breaker", "label": "Circuit Breaker", "category": "DevOps / Infra", "color": "#64748b", "icon": "Zap", "description": "Prevents cascading failures by stopping requests to a failing service until it recovers." },
+  { "id": "notification_service", "label": "Notification Service", "category": "Compute", "color": "#3b82f6", "icon": "Bell", "description": "Manages delivery of in-app, push, email, and SMS notifications triggered by system events." },
+  { "id": "ml_service", "label": "ML Service", "category": "AI / ML", "color": "#ec4899", "icon": "Brain", "description": "Serves trained machine learning model predictions in real-time via a REST or gRPC API." },
+  { "id": "recommendation_service", "label": "Recommendation Service", "category": "AI / ML", "color": "#ec4899", "icon": "Sparkles", "description": "Generates personalized content recommendations using collaborative filtering and ML models." },
+  { "id": "feed_service", "label": "Feed Service", "category": "Compute", "color": "#3b82f6", "icon": "Rss", "description": "Assembles and serves the personalized home feed by merging content from followed accounts." },
+  { "id": "data_ingestion_service", "label": "Data Ingestion Service", "category": "Compute", "color": "#3b82f6", "icon": "Download", "description": "Receives, validates, and normalizes incoming event streams from external sources and SDKs." },
+  { "id": "driver_app", "label": "Driver App", "category": "Client & Entry", "color": "#6366f1", "icon": "Car", "description": "Native mobile app used by Uber drivers to receive trip requests, navigate, and manage earnings." },
+  { "id": "location_service", "label": "Location Service", "category": "Compute", "color": "#3b82f6", "icon": "MapPin", "description": "Ingests and processes high-frequency GPS location updates from driver devices in real time." },
+  { "id": "fraud_detection_service", "label": "Fraud Detection Service", "category": "Auth & Security", "color": "#8b5cf6", "icon": "ShieldAlert", "description": "Detects payment fraud, fake GPS routes, and account abuse using ML signals per transaction." }
 ]
