@@ -29,7 +29,9 @@ if (targetEnv) {
   }
 }
 
-import { TUTORIALS } from '../data/tutorials/index';
+import { TUTORIALS, isLeveledTutorial } from '../data/tutorials/index';
+import type { TutorialData } from '../data/tutorials';
+import type { Tutorial } from '@/lib/tutorial/types';
 
 const SYSTEM_PROMPT = `You are an expert system design tutor guiding users through architecture diagramming. You lead every step — the user follows your cues.
 
@@ -170,13 +172,32 @@ async function main() {
   let errors = 0;
 
   for (const tutorial of TUTORIALS) {
-    console.log(`\n── ${tutorial.id} (${tutorial.steps.length} steps) ──`);
+    const isLeveled = isLeveledTutorial(tutorial.id);
+
+    // Get steps array — leveled tutorials have levels[].steps, others have steps directly
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let allSteps: any[] = [];
+    let totalSteps = 0;
+
+    if (isLeveled) {
+      const leveled = tutorial as Tutorial;
+      totalSteps = leveled.levels?.reduce((sum, l) => sum + l.steps.length, 0) ?? 0;
+      console.log(`\n── ${tutorial.id} (${totalSteps} steps across ${leveled.levels?.length ?? 0} levels) ──`);
+      for (const level of leveled.levels ?? []) {
+        allSteps.push(...level.steps);
+      }
+    } else {
+      const flat = tutorial as TutorialData;
+      allSteps = flat.steps ?? [];
+      totalSteps = allSteps.length;
+      console.log(`\n── ${tutorial.id} (${totalSteps} steps) ──`);
+    }
 
     // Non-Netflix tutorials: only generate intro for steps 1-3
     // Netflix: generate all phases for all steps
     const isNetflix = tutorial.id === 'netflix-architecture';
 
-    for (const step of tutorial.steps) {
+    for (const step of allSteps) {
       // Skip steps 4+ for non-Netflix tutorials
       if (!isNetflix && step.id > 3) {
         process.stdout.write(`  SKIP  ${tutorial.id}:${step.id} (non-live, step>3)\n`);
@@ -200,7 +221,7 @@ async function main() {
         const prompt = buildPrompt(
           tutorial.id,
           step.id,
-          tutorial.steps.length,
+          totalSteps,
           step.title,
           step.explanation,
           step.action,
