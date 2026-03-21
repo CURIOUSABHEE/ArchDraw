@@ -101,6 +101,7 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
           boxShadow: isHovered 
             ? '0 20px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(99,102,241,0.1)' 
             : '0 4px 12px rgba(0,0,0,0.2)',
+          height: '320px',
         }}
       >
         <div 
