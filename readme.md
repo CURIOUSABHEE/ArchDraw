@@ -1,8 +1,8 @@
-# ArchFlow
+# ArchDraw
 
 A browser-based, drag-and-drop **system architecture diagramming tool** — built with Next.js, React Flow, and Supabase.
 
-Live at: [archflow.app](https://archflow.abhishekjamdade.xyz)
+Live at: [archdraw.app](https://archdraw.abhishekjamdade.xyz)
 
 ---
 
