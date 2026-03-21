@@ -6,123 +6,71 @@ import { useState } from 'react';
 import {
   ArrowLeft, Clock, Layers, Brain, Image, BarChart2, Video, ArrowRight,
   CheckCircle, Share2, Check, Car, MessageCircle, Twitter, CreditCard,
-  Github, Link as LinkIcon, Bot, Sparkles, FileText, Home, Music,
-  Linkedin, PenTool, ShoppingBag, Bike, RotateCcw, X,
+  Github, Link as LinkIcon, Bot, FileText, Home, Music, Linkedin, 
+  PenTool, ShoppingBag, Bike, RotateCcw, X, Sparkles, Zap, BookOpen,
+  ChevronRight,
 } from 'lucide-react';
 import { TUTORIALS, isLiveTutorial } from '@/data/tutorials';
 import { useTutorialStore } from '@/store/tutorialStore';
 import type { TutorialData } from '@/data/tutorials';
 import { toast } from 'sonner';
 
+const ICON_MAP: Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>> = {
+  Brain,
+  Image,
+  BarChart2,
+  Video,
+  Car,
+  MessageCircle,
+  Twitter,
+  CreditCard,
+  Github,
+  Link: LinkIcon,
+  Bot,
+  FileText,
+  Home,
+  Music,
+  Linkedin,
+  PenTool,
+  ShoppingBag,
+  Bike,
+};
+
+const DIFFICULTY_CONFIG = {
+  Beginner: { color: '#22c55e', bg: 'rgba(34,197,94,0.08)', label: 'Beginner' },
+  Intermediate: { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', label: 'Intermediate' },
+  Advanced: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', label: 'Advanced' },
+};
+
 function getTutorialMeta(tutorial: TutorialData): { nodeCount: number; stepCount: number } {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const t = tutorial as any;
+  const t = tutorial as Record<string, unknown>;
   if (t.stepCount != null && t.nodeCount != null) {
-    return { nodeCount: t.nodeCount, stepCount: t.stepCount };
+    return { nodeCount: t.nodeCount as number, stepCount: t.stepCount as number };
   }
-  const levels = t.levels ?? [];
+  const levels = (t.levels ?? []) as Array<{ steps?: Array<{ requiredNodes?: string[] }>; stepCount?: number }>;
   const firstLevel = levels[0];
   const steps = firstLevel?.steps ?? [];
   const stepCount = firstLevel?.stepCount ?? steps.length;
   const nodeCount = steps.reduce(
-    (acc: number, s: { requiredNodes?: string[] }) => acc + (s.requiredNodes?.length ?? 0),
+    (acc, s) => acc + (s.requiredNodes?.length ?? 0),
     0
   );
   return { nodeCount, stepCount };
 }
 
-const ICON_MAP: Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>> = {
-  Brain:         ({ className, style }) => <Brain className={className} style={style} />,
-  Image:         ({ className, style }) => <Image className={className} style={style} />,
-  BarChart2:     ({ className, style }) => <BarChart2 className={className} style={style} />,
-  Video:         ({ className, style }) => <Video className={className} style={style} />,
-  Car:           ({ className, style }) => <Car className={className} style={style} />,
-  MessageCircle: ({ className, style }) => <MessageCircle className={className} style={style} />,
-  Twitter:       ({ className, style }) => <Twitter className={className} style={style} />,
-  CreditCard:    ({ className, style }) => <CreditCard className={className} style={style} />,
-  Github:        ({ className, style }) => <Github className={className} style={style} />,
-  Link:          ({ className, style }) => <LinkIcon className={className} style={style} />,
-  Bot:           ({ className, style }) => <Bot className={className} style={style} />,
-  FileText:      ({ className, style }) => <FileText className={className} style={style} />,
-  Home:          ({ className, style }) => <Home className={className} style={style} />,
-  Music:         ({ className, style }) => <Music className={className} style={style} />,
-  Linkedin:      ({ className, style }) => <Linkedin className={className} style={style} />,
-  PenTool:       ({ className, style }) => <PenTool className={className} style={style} />,
-  ShoppingBag:   ({ className, style }) => <ShoppingBag className={className} style={style} />,
-  Bike:          ({ className, style }) => <Bike className={className} style={style} />,
-};
-
-const DIFFICULTY_STYLES: Record<string, { bg: string; text: string; border: string }> = {
-  Beginner:     { bg: 'rgba(34,197,94,0.1)',   text: '#4ade80', border: 'rgba(34,197,94,0.2)'   },
-  Intermediate: { bg: 'rgba(245,158,11,0.1)',  text: '#fbbf24', border: 'rgba(245,158,11,0.2)'  },
-  Advanced:     { bg: 'rgba(239,68,68,0.1)',   text: '#f87171', border: 'rgba(239,68,68,0.2)'   },
-};
-
-const DIFFICULTY_STYLES_MUTED: Record<string, { bg: string; text: string; border: string }> = {
-  Beginner:     { bg: 'rgba(34,197,94,0.05)',  text: '#4ade8066', border: 'rgba(34,197,94,0.1)'  },
-  Intermediate: { bg: 'rgba(245,158,11,0.05)', text: '#fbbf2466', border: 'rgba(245,158,11,0.1)' },
-  Advanced:     { bg: 'rgba(239,68,68,0.05)',  text: '#f8717166', border: 'rgba(239,68,68,0.1)'  },
-};
-
-interface ComingSoonTutorial {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  icon: string;
-  color: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  estimatedTime: string;
-  tags: string[];
-}
-
-const COMING_SOON: ComingSoonTutorial[] = [
-  {
-    id: 'rag-application',
-    title: 'RAG Application',
-    description: 'Build a production RAG system with vector search, chunking strategies, reranking, and LLM integration.',
-    category: 'AI Systems',
-    icon: 'Brain',
-    color: '#ec4899',
-    difficulty: 'Intermediate',
-    estimatedTime: '~25 mins',
-    tags: ['Vector DB', 'Embeddings', 'LLM', 'Retrieval'],
-  },
-  {
-    id: 'url-shortener',
-    title: 'URL Shortener',
-    description: 'The classic system design interview question. Hash generation, redirect service, analytics, and scale.',
-    category: 'Interview Prep',
-    icon: 'Link',
-    color: '#6366f1',
-    difficulty: 'Beginner',
-    estimatedTime: '~15 mins',
-    tags: ['Hashing', 'Redirect', 'Analytics', 'Cache'],
-  },
-  {
-    id: 'ai-agent-system',
-    title: 'AI Agent System',
-    description: 'Multi-agent orchestration, tool calling, memory systems, LangGraph workflows, and agent supervision.',
-    category: 'AI Systems',
-    icon: 'Bot',
-    color: '#10b981',
-    difficulty: 'Advanced',
-    estimatedTime: '~30 mins',
-    tags: ['LangGraph', 'Tool Use', 'Memory', 'Agents'],
-  },
-];
-
 function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
   const router = useRouter();
   const { tutorialProgress, completedTutorials } = useTutorialStore();
   const [copied, setCopied] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const progress = tutorialProgress[tutorial.id] ?? 0;
   const { nodeCount, stepCount } = getTutorialMeta(tutorial);
   const isCompleted = completedTutorials.includes(tutorial.id);
   const isInProgress = progress > 0 && !isCompleted;
-  const diffStyle = DIFFICULTY_STYLES[tutorial.difficulty] ?? DIFFICULTY_STYLES.Intermediate;
+  const diffConfig = DIFFICULTY_CONFIG[tutorial.difficulty] ?? DIFFICULTY_CONFIG.Intermediate;
   const IconComp = ICON_MAP[tutorial.icon];
+  const completionPercent = stepCount > 0 ? (progress / stepCount) * 100 : 0;
 
   function handleShare(e: React.MouseEvent) {
     e.stopPropagation();
@@ -135,206 +83,173 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
 
   return (
     <div
-      className="rounded-2xl p-6 flex flex-col gap-4 transition-all duration-200 cursor-pointer group"
-      style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.08)' }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(99,102,241,0.4)';
-        (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(99,102,241,0.1)';
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.08)';
-        (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
-      }}
+      className="relative group cursor-pointer"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={() => router.push(`/tutorials/${tutorial.id}`)}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: `${tutorial.color}15`, border: `1px solid ${tutorial.color}25` }}
-          >
-            {IconComp && <IconComp className="w-5 h-5" style={{ color: tutorial.color }} />}
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span
-                className="text-xs font-medium px-2 py-0.5 rounded-full"
-                style={{ background: diffStyle.bg, color: diffStyle.text, border: `1px solid ${diffStyle.border}` }}
+      <div
+        className="relative overflow-hidden rounded-2xl p-6 transition-all duration-300"
+        style={{
+          background: isHovered 
+            ? 'linear-gradient(135deg, rgba(30,35,50,0.95) 0%, rgba(20,25,40,0.98) 100%)'
+            : 'linear-gradient(135deg, rgba(25,30,45,0.6) 0%, rgba(15,20,35,0.8) 100%)',
+          border: isHovered 
+            ? '1px solid rgba(99,102,241,0.3)' 
+            : '1px solid rgba(255,255,255,0.06)',
+          transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+          boxShadow: isHovered 
+            ? '0 20px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(99,102,241,0.1)' 
+            : '0 4px 12px rgba(0,0,0,0.2)',
+        }}
+      >
+        <div 
+          className="absolute inset-0 opacity-0 transition-opacity duration-300"
+          style={{ 
+            opacity: isHovered ? 1 : 0,
+            background: 'radial-gradient(ellipse at top right, rgba(99,102,241,0.08) 0%, transparent 50%)',
+          }} 
+        />
+
+        <div className="relative z-10 flex flex-col h-full">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center transition-transform duration-300"
+                style={{ 
+                  background: `linear-gradient(135deg, ${tutorial.color}20 0%, ${tutorial.color}10 100%)`,
+                  border: `1px solid ${tutorial.color}30`,
+                  transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+                }}
               >
-                {tutorial.difficulty}
-              </span>
-              <span className="text-xs text-slate-500">{tutorial.category}</span>
-              {isLiveTutorial(tutorial.id) && (
-                <span
-                  className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                  style={{
-                    background: 'rgba(99,102,241,0.15)',
-                    color: '#a5b4fc',
-                    border: '1px solid rgba(99,102,241,0.3)',
-                    boxShadow: '0 0 8px rgba(99,102,241,0.2)',
-                  }}
+                {IconComp && (
+                  <IconComp 
+                    className="w-5 h-5 transition-transform duration-300" 
+                    style={{ color: tutorial.color }} 
+                  />
+                )}
+              </div>
+              <div>
+                <div 
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium mb-1"
+                  style={{ background: diffConfig.bg, color: diffConfig.color }}
                 >
-                  <Sparkles className="w-2.5 h-2.5" />
-                  AI Mentor
-                </span>
+                  {diffConfig.label}
+                </div>
+                <div className="text-xs text-slate-500">{tutorial.category}</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {isLiveTutorial(tutorial.id) && (
+                <div className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium"
+                  style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  AI
+                </div>
               )}
+              {isCompleted && (
+                <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.15)' }}>
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                </div>
+              )}
+              <button
+                onClick={handleShare}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
+                style={{ 
+                  background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
+                  color: copied ? '#4ade80' : '#64748b',
+                }}
+                onMouseEnter={(e) => { if (!copied) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                onMouseLeave={(e) => { if (!copied) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+              >
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+              </button>
             </div>
           </div>
-        </div>
-        {isCompleted && <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />}
-        <button
-          onClick={handleShare}
-          className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-          style={{ background: 'rgba(255,255,255,0.05)', color: copied ? '#4ade80' : '#64748b' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-          title="Copy link"
-        >
-          {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-        </button>
-      </div>
 
-      <div>
-        <h3 className="text-base font-semibold text-white mb-1.5 group-hover:text-indigo-300 transition-colors">
-          {tutorial.title}
-        </h3>
-        <p className="text-sm text-slate-400 leading-relaxed line-clamp-2">{tutorial.description}</p>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5">
-        {tutorial.tags.map((tag: string) => (
-          <span
-            key={tag}
-            className="text-[10px] px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(255,255,255,0.05)', color: '#64748b', border: '1px solid rgba(255,255,255,0.06)' }}
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" />
-          {tutorial.estimatedTime}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5" />
-          {nodeCount} components
-        </span>
-        <span>{stepCount} steps</span>
-      </div>
-
-      {isInProgress && (
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-slate-500">{progress}/{stepCount} steps completed</span>
-            <span className="text-xs text-indigo-400">Resume →</span>
+          <div className="flex-1 mb-4">
+            <h3 className="text-lg font-semibold text-white mb-2 tracking-tight transition-colors duration-200" style={{ letterSpacing: '-0.02em' }}>
+              {tutorial.title}
+            </h3>
+            <p className="text-sm text-slate-400 leading-relaxed line-clamp-2">
+              {tutorial.description}
+            </p>
           </div>
-          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <div
-              className="h-full bg-indigo-500 rounded-full"
-              style={{ width: `${stepCount > 0 ? (progress / stepCount) * 100 : 0}%` }}
-            />
+
+          <div className="flex flex-wrap gap-1.5 mb-4 max-h-20 overflow-hidden">
+            {tutorial.tags.slice(0, 4).map((tag: string) => (
+              <span
+                key={tag}
+                className="text-[11px] px-2 py-1 rounded-md font-medium"
+                style={{ background: 'rgba(255,255,255,0.04)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                {tag}
+              </span>
+            ))}
           </div>
-        </div>
-      )}
 
-      <button
-        className="w-full py-2.5 rounded-lg text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors mt-auto"
-        style={{ background: '#4f46e5' }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = '#6366f1')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = '#4f46e5')}
-        onClick={(e) => { e.stopPropagation(); router.push(`/tutorials/${tutorial.id}`); }}
-      >
-        {isInProgress ? 'Resume Tutorial' : isCompleted ? 'Redo Tutorial' : 'Start Tutorial'}
-        <ArrowRight className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
-
-function ComingSoonCard({ tutorial }: { tutorial: ComingSoonTutorial }) {
-  const diffStyle = DIFFICULTY_STYLES_MUTED[tutorial.difficulty] ?? DIFFICULTY_STYLES_MUTED.Intermediate;
-  const IconComp = ICON_MAP[tutorial.icon];
-
-  return (
-    <div
-      className="relative rounded-2xl p-6 flex flex-col gap-4"
-      style={{
-        background: '#0d1117',
-        border: '1px solid rgba(255,255,255,0.06)',
-        opacity: 0.7,
-        cursor: 'default',
-      }}
-    >
-      {/* Coming Soon badge */}
-      <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/6 border border-white/10 text-slate-500">
-        Coming Soon
-      </div>
-
-      {/* Header */}
-      <div className="flex items-start gap-3">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: `${tutorial.color}10`, border: `1px solid ${tutorial.color}18` }}
-        >
-          {IconComp && <IconComp className="w-5 h-5" style={{ color: `${tutorial.color}99` }} />}
-        </div>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span
-              className="text-xs font-medium px-2 py-0.5 rounded-full"
-              style={{ background: diffStyle.bg, color: diffStyle.text, border: `1px solid ${diffStyle.border}` }}
-            >
-              {tutorial.difficulty}
+          <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              {tutorial.estimatedTime}
             </span>
-            <span className="text-xs text-slate-600">{tutorial.category}</span>
+            <span className="flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5" />
+              {nodeCount} nodes
+            </span>
+            <span>{stepCount} steps</span>
           </div>
+
+          {isInProgress && (
+            <div className="mb-4 p-3 rounded-xl" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-400">{progress}/{stepCount} steps</span>
+                <span className="text-xs font-medium" style={{ color: '#818cf8' }}>{Math.round(completionPercent)}%</span>
+              </div>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ 
+                    width: `${completionPercent}%`,
+                    background: 'linear-gradient(90deg, #6366f1 0%, #818cf8 100%)',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            className="w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 group/btn"
+            style={{ 
+              background: isInProgress ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(255,255,255,0.06)',
+              color: isInProgress ? '#ffffff' : '#e2e8f0',
+              border: isInProgress ? 'none' : '1px solid rgba(255,255,255,0.1)',
+            }}
+            onMouseEnter={(e) => {
+              if (isInProgress) {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)';
+              } else {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (isInProgress) {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+              } else {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+              }
+            }}
+            onClick={(e) => { e.stopPropagation(); router.push(`/tutorials/${tutorial.id}`); }}
+          >
+            {isInProgress ? 'Resume' : isCompleted ? 'Redo' : 'Start'}
+            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover/btn:translate-x-0.5" />
+          </button>
         </div>
       </div>
-
-      {/* Title + description */}
-      <div>
-        <h3 className="text-base font-semibold text-slate-400 mb-1.5">{tutorial.title}</h3>
-        <p className="text-sm text-slate-600 leading-relaxed line-clamp-2">{tutorial.description}</p>
-      </div>
-
-      {/* Tags */}
-      <div className="flex flex-wrap gap-1.5">
-        {tutorial.tags.map((tag) => (
-          <span
-            key={tag}
-            className="text-[10px] px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(255,255,255,0.03)', color: '#475569', border: '1px solid rgba(255,255,255,0.04)' }}
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-
-      {/* Stats */}
-      <div className="flex items-center gap-4 text-xs text-slate-600">
-        <span className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" />
-          {tutorial.estimatedTime}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5" />
-          — components
-        </span>
-        <span>— steps</span>
-      </div>
-
-      {/* Notify me */}
-      <div className="mt-auto pt-1">
-        <span className="text-xs text-slate-600 cursor-default select-none">
-          Notify me when available →
-        </span>
-      </div>
-
-      {/* Bottom overlay anchor */}
-      <div className="absolute inset-0 rounded-xl flex items-end justify-center pb-4 pointer-events-none" />
     </div>
   );
 }
@@ -343,6 +258,10 @@ export default function TutorialsPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const clearAllProgress = useTutorialStore((s) => s.clearAllProgress);
   const router = useRouter();
+
+  const completedCount = useTutorialStore((s) => s.completedTutorials.length);
+  const totalCount = TUTORIALS.length;
+  const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   function handleReset() {
     clearAllProgress();
@@ -353,171 +272,186 @@ export default function TutorialsPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#080c14', color: '#f1f5f9' }}>
-      {/* Header */}
-      <div
-        className="sticky top-0 z-10 px-6 py-4 flex items-center gap-4"
-        style={{ background: '#080c14', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-      >
-        <Link
-          href="/editor"
-          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Canvas
-        </Link>
-        <div className="w-px h-4" style={{ background: 'rgba(255,255,255,0.1)' }} />
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 bg-indigo-600 rounded-md flex items-center justify-center">
-            <div className="w-2 h-2 border border-white/80 rounded-sm" />
-          </div>
-          <span className="font-semibold text-sm">ArchFlow</span>
-        </div>
-        <div className="ml-auto">
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.2)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.1)')}
-            title="Reset all tutorial progress"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset All Progress
-          </button>
-        </div>
-      </div>
+      <div 
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.08) 0%, transparent 50%)',
+        }}
+      />
 
-      {/* Reset confirmation modal */}
+      <header 
+        className="sticky top-0 z-20 backdrop-blur-xl"
+        style={{ background: 'rgba(8,12,20,0.8)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/editor"
+              className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back to Canvas</span>
+            </Link>
+            <div className="w-px h-5" style={{ background: 'rgba(255,255,255,0.1)' }} />
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}>
+                <BookOpen className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-semibold text-sm">Tutorials</span>
+            </div>
+          </div>
+
+          {completedCount > 0 && (
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
+              style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reset
+            </button>
+          )}
+        </div>
+      </header>
+
       {showResetConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowResetConfirm(false); }}
         >
           <div
-            className="w-full max-w-sm mx-4 rounded-2xl p-6 flex flex-col gap-5"
-            style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.1)' }}
+            className="w-full max-w-md rounded-2xl p-6"
+            style={{ background: 'linear-gradient(135deg, #141824 0%, #0d1117 100%)', border: '1px solid rgba(255,255,255,0.1)' }}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.15)' }}>
-                  <RotateCcw className="w-4 h-4" style={{ color: '#f87171' }} />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                  <RotateCcw className="w-5 h-5" style={{ color: '#f87171' }} />
                 </div>
-                <h2 className="text-base font-semibold text-white">Reset All Progress</h2>
+                <h2 className="text-lg font-semibold text-white" style={{ letterSpacing: '-0.02em' }}>Reset Progress</h2>
               </div>
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-                style={{ background: 'rgba(255,255,255,0.06)', color: '#64748b' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                style={{ background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <div>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                This will permanently delete all saved progress across every tutorial — including canvas diagrams, completed steps, and level unlocks. This action cannot be undone.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={handleReset}
-                className="w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors"
-                style={{ background: '#ef4444' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#f87171')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}
-              >
-                Yes, reset everything
-              </button>
+            <p className="text-sm text-slate-400 leading-relaxed mb-6">
+              This will permanently delete all your progress across every tutorial. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="w-full py-2.5 rounded-xl text-sm text-slate-400 hover:text-white transition-colors"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-300 transition-colors"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
               >
                 Cancel
+              </button>
+              <button
+                onClick={handleReset}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white transition-all duration-200"
+                style={{ background: '#ef4444' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#f87171'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#ef4444'; }}
+              >
+                Reset All
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Page content */}
-      <div className="max-w-4xl mx-auto px-6 py-16">
-      {/* Page header */}
-      <div className="mb-12">
-        <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs mb-6"
-          style={{
-            border: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.04)',
-            color: '#94a3b8',
-          }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-          {TUTORIALS.length} tutorials available
-        </div>
-        <h1 className="text-4xl font-bold text-white mb-3">Learn System Design</h1>
-        <p className="text-lg text-slate-400 max-w-xl leading-relaxed mb-6">
-          Build real architectures step by step — from messaging apps to AI agents. Each tutorial teaches you how a production system works by guiding you to design it yourself.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)' }}>
-            Beginner to Advanced
-          </span>
-          <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(34,197,94,0.1)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' }}>
-            Step-by-step guidance
-          </span>
-          <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)' }}>
-            Interactive canvas
-          </span>
-        </div>
-      </div>
-
-        {/* New tutorial highlights */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            <h2 className="text-sm font-medium text-slate-300">Freshly added</h2>
+      <main className="relative max-w-6xl mx-auto px-6 pt-16 pb-24">
+        <div className="max-w-3xl mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8' }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#6366f1' }} />
+            {totalCount} tutorials available
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-            {[
-              { icon: 'Link', color: '#6366f1', title: 'URL Shortener', desc: 'Classic interview question — hash generation, redirect logic, and caching.', difficulty: 'Beginner', tags: ['Hashing', 'Redirect', 'Cache'] },
-              { icon: 'Brain', color: '#ec4899', title: 'RAG Application', desc: 'Build a production RAG system — chunking, embeddings, vector search, and LLM synthesis.', difficulty: 'Intermediate', tags: ['Vector DB', 'Embeddings', 'LLM'] },
-              { icon: 'Bot', color: '#10b981', title: 'AI Agent System', desc: 'Multi-agent orchestration, tool calling, memory systems, and LangGraph workflows.', difficulty: 'Advanced', tags: ['Agents', 'Tools', 'Memory'] },
-            ].map((t) => {
-              const IconComp = ICON_MAP[t.icon];
-              const diffStyle = DIFFICULTY_STYLES[t.difficulty];
-              return (
-                <div key={t.title} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${t.color}15` }}>
-                      {IconComp && <IconComp className="w-3.5 h-3.5" style={{ color: t.color }} />}
-                    </div>
-                    <span className="text-xs font-medium text-white">{t.title}</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mb-3 leading-relaxed">{t.desc}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: diffStyle.bg, color: diffStyle.text }}>{t.difficulty}</span>
-                    {t.tags.map(tag => (
-                      <span key={tag} className="text-[10px] text-slate-500">{tag}</span>
-                    ))}
-                  </div>
+          
+          <h1 
+            className="text-5xl md:text-6xl font-bold text-white mb-6"
+            style={{ letterSpacing: '-0.04em', lineHeight: 1.1 }}
+          >
+            Learn System Design
+          </h1>
+          
+          <p className="text-lg text-slate-400 leading-relaxed max-w-xl mb-8" style={{ lineHeight: 1.7 }}>
+            Build real architectures step by step. From messaging apps to AI agents — each tutorial teaches you how production systems work by guiding you to design them yourself.
+          </p>
+
+          <div className="flex flex-wrap gap-3">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
+              <Zap className="w-4 h-4" style={{ color: '#818cf8' }} />
+              <span className="text-sm text-slate-300">Interactive Canvas</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.15)' }}>
+              <BookOpen className="w-4 h-4" style={{ color: '#4ade80' }} />
+              <span className="text-sm text-slate-300">Step-by-step</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
+              <Sparkles className="w-4 h-4" style={{ color: '#fbbf24' }} />
+              <span className="text-sm text-slate-300">AI Mentor</span>
+            </div>
+          </div>
+        </div>
+
+        {completedCount > 0 && (
+          <div className="mb-12 p-5 rounded-2xl" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(99,102,241,0.03) 100%)', border: '1px solid rgba(99,102,241,0.15)' }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.2)' }}>
+                  <CheckCircle className="w-5 h-5" style={{ color: '#818cf8' }} />
                 </div>
-              );
-            })}
+                <div>
+                  <div className="text-sm font-medium text-white">Your Progress</div>
+                  <div className="text-xs text-slate-400">{completedCount} of {totalCount} tutorials completed</div>
+                </div>
+              </div>
+              <div className="text-2xl font-bold" style={{ color: '#818cf8' }}>{completionPercent}%</div>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ 
+                  width: `${completionPercent}%`,
+                  background: 'linear-gradient(90deg, #6366f1 0%, #818cf8 100%)',
+                }}
+              />
+            </div>
           </div>
+        )}
+
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-xl font-semibold text-white" style={{ letterSpacing: '-0.02em' }}>All Tutorials</h2>
         </div>
 
-        {/* Available tutorials grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {TUTORIALS.map((tutorial) => (
             <TutorialCard key={tutorial.id} tutorial={tutorial as TutorialData} />
           ))}
         </div>
-      </div>
+
+        <div className="mt-16 text-center">
+          <p className="text-sm text-slate-500">
+            More tutorials coming soon
+            <span className="inline-flex items-center gap-1 ml-2" style={{ color: '#6366f1' }}>
+              <Sparkles className="w-3.5 h-3.5" />
+              AI Agent System, RAG Application, URL Shortener
+            </span>
+          </p>
+        </div>
+      </main>
     </div>
   );
 }

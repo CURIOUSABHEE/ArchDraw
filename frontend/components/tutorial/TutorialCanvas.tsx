@@ -11,10 +11,11 @@ import ReactFlow, {
   type NodeProps,
   type Node,
   type Edge,
+  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
-import { Search } from 'lucide-react';
+import { Search, RotateCcw, SkipForward, BookOpen, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { SystemNode } from '@/components/SystemNode';
 import type { NodeData } from '@/store/diagramStore';
@@ -26,6 +27,7 @@ import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialSt
 import { ComponentPalette } from '@/components/tutorial/ComponentPalette';
 import { NodeTooltip } from '@/components/tutorial/NodeTooltip';
 import components from '@/data/components.json';
+import { TUTORIALS } from '@/data/tutorials';
 
 type ComponentEntry = { id: string; label: string; category: string; color: string; description?: string };
 const componentMap = new Map<string, ComponentEntry>(
@@ -44,6 +46,28 @@ function findComponentMeta(label: string): ComponentEntry | undefined {
 
 function TutorialSystemNodeWrapper(props: NodeProps<NodeData>) {
   const meta = findComponentMeta(props.data.label ?? '');
+  const [isHighlighted, setIsHighlighted] = useState<'source' | 'target' | null>(null);
+  
+  useEffect(() => {
+    const checkHighlight = () => {
+      const requiredFrom = (window as Window & { __tutorialRequiredFrom?: string }).__tutorialRequiredFrom;
+      const requiredTo = (window as Window & { __tutorialRequiredTo?: string }).__tutorialRequiredTo;
+      const nodeLabel = (props.data.label ?? '').toLowerCase().trim();
+      
+      if (requiredFrom && nodeLabel.includes(requiredFrom.toLowerCase())) {
+        setIsHighlighted('source');
+      } else if (requiredTo && nodeLabel.includes(requiredTo.toLowerCase())) {
+        setIsHighlighted('target');
+      } else {
+        setIsHighlighted(null);
+      }
+    };
+    
+    checkHighlight();
+    const interval = setInterval(checkHighlight, 500);
+    return () => clearInterval(interval);
+  }, [props.data.label]);
+
   return (
     <NodeTooltip
       label={props.data.label ?? ''}
@@ -51,7 +75,15 @@ function TutorialSystemNodeWrapper(props: NodeProps<NodeData>) {
       category={props.data.category}
       color={props.data.color ?? meta?.color}
     >
-      <SystemNode {...props} />
+      <div 
+        className={`${isHighlighted === 'source' ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-[#0f172a]' : ''} ${isHighlighted === 'target' ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-[#0f172a]' : ''} rounded-lg transition-all duration-300`}
+        style={{
+          boxShadow: isHighlighted === 'source' ? '0 0 20px rgba(99,102,241,0.4), inset 0 0 15px rgba(99,102,241,0.1)' : 
+                     isHighlighted === 'target' ? '0 0 20px rgba(16,185,129,0.4), inset 0 0 15px rgba(16,185,129,0.1)' : 'none',
+        }}
+      >
+        <SystemNode {...props} />
+      </div>
     </NodeTooltip>
   );
 }
@@ -64,7 +96,29 @@ const NODE_TYPES = {
   annotationNode: AnnotationNode,
 };
 
-function TutorialCanvasInner({ theme, tutorialId }: { theme: 'dark' | 'light'; tutorialId: string }) {
+interface TutorialCanvasInnerProps {
+  theme: 'dark' | 'light';
+  tutorialId: string;
+  tutorialTitle?: string;
+  currentStep?: number;
+  totalSteps?: number;
+  currentLevel?: number;
+  totalLevels?: number;
+  onRestart?: () => void;
+  onSkip?: () => void;
+}
+
+function TutorialCanvasInner({ 
+  theme, 
+  tutorialId, 
+  tutorialTitle,
+  currentStep = 1,
+  totalSteps = 1,
+  currentLevel,
+  totalLevels,
+  onRestart,
+  onSkip,
+}: TutorialCanvasInnerProps) {
   const isDark = theme === 'dark';
   const canvasBg = isDark ? '#0f172a' : '#f8fafc';
   const dotColor = isDark ? '#334155' : '#cbd5e1';
@@ -78,7 +132,7 @@ function TutorialCanvasInner({ theme, tutorialId }: { theme: 'dark' | 'light'; t
   const controlsClass = isDark
     ? '!bg-[#0d1117]/90 !backdrop-blur-sm !border !border-white/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-white/10 [&>button:hover]:!bg-white/5'
     : '!bg-white/90 !backdrop-blur-sm !border !border-black/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-black/10 [&>button]:hover:!bg-black/5';
-  const { nodes, edges, setNodes, setEdges, tutorialNodes, tutorialEdges, setTutorialNodes, setTutorialEdges, saveProgress, getProgress, hasHydrated, isSwitchingTutorial } = useTutorialStore();
+  const { nodes, edges, setNodes, setEdges, setTutorialNodes, setTutorialEdges, saveProgress, getProgress, hasHydrated, isSwitchingTutorial, tutorialProgress, completedTutorials } = useTutorialStore();
   const reactFlowInstance = useReactFlow();
   const [isMac, setIsMac] = useState(false);
   const [paletteForceOpen, setPaletteForceOpen] = useState(false);
@@ -241,71 +295,166 @@ function TutorialCanvasInner({ theme, tutorialId }: { theme: 'dark' | 'light'; t
 
   // Expose to window so GuidePanel (sibling) can call it
   useEffect(() => {
-    (window as any).__tutorialOpenPalette = openPaletteWithQuery;
-    return () => { delete (window as any).__tutorialOpenPalette; };
+    (window as Window & { __tutorialOpenPalette?: typeof openPaletteWithQuery }).__tutorialOpenPalette = openPaletteWithQuery;
+    return () => { delete (window as Window & { __tutorialOpenPalette?: typeof openPaletteWithQuery }).__tutorialOpenPalette; };
   }, [openPaletteWithQuery]);
 
-  return (
-    <div className="flex-1 relative">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-        nodeTypes={NODE_TYPES}
-        snapToGrid
-        snapGrid={[20, 20]}
-        minZoom={0.1}
-        maxZoom={2}
-        defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
-        fitView
-        fitViewOptions={{ maxZoom: 0.7 }}
-        proOptions={{ hideAttribution: true }}
-        connectionLineType={ConnectionLineType.SmoothStep}
-        style={{ background: canvasBg }}
-        defaultEdgeOptions={{
-          type: 'smoothstep',
-          animated: true,
-          style: { stroke: '#94a3b8', strokeWidth: 1.5 },
-        }}
-        deleteKeyCode={['Backspace', 'Meta+Backspace']}
-      >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color={dotColor} style={{ backgroundColor: canvasBg }} />
-        <Controls
-          showInteractive={false}
-          className={controlsClass}
-        />
-      </ReactFlow>
+  const progress = tutorialProgress[tutorialId] ?? 0;
+  const isCompleted = completedTutorials.includes(tutorialId);
+  const progressPercent = totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0;
 
-      {nodes.length === 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-10">
-          <div className="flex flex-col items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ background: emptyIconBg, border: `1px solid ${emptyIconBorder}` }}
-            >
-              <Search className={`w-5 h-5 ${emptyTextSecondary}`} />
+  return (
+    <div className="flex-1 relative flex flex-col">
+      {tutorialTitle && (
+        <div 
+          className="shrink-0 flex items-center justify-between px-4 py-3"
+          style={{ background: 'rgba(13,17,23,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.15)' }}>
+                <BookOpen className="w-4 h-4" style={{ color: '#818cf8' }} />
+              </div>
+              <div>
+                <h1 className="text-sm font-semibold text-white" style={{ letterSpacing: '-0.02em' }}>
+                  {tutorialTitle}
+                </h1>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-slate-500">Step {currentStep} of {totalSteps}</span>
+                  {currentLevel !== undefined && totalLevels !== undefined && (
+                    <>
+                      <span className="text-slate-600">•</span>
+                      <span className="text-xs text-slate-500">Level {currentLevel} of {totalLevels}</span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="text-center">
-              <p className={`${emptyTextPrimary} text-sm font-medium mb-1`}>Follow the guide on the left</p>
-              <p className={`${emptyTextSecondary} text-xs`}>
-                Press{' '}
-                <kbd className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${kbdStyle}`}>
-                  {isMac ? '⌘' : 'Ctrl'}
-                </kbd>
-                {' + '}
-                <kbd className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${kbdStyle}`}>
-                  K
-                </kbd>
-                {' '}to search and add components
-              </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <div 
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ 
+                    width: `${progressPercent}%`,
+                    background: isCompleted 
+                      ? 'linear-gradient(90deg, #22c55e 0%, #4ade80 100%)'
+                      : 'linear-gradient(90deg, #6366f1 0%, #818cf8 100%)',
+                  }}
+                />
+              </div>
+              <span className="text-xs font-medium" style={{ color: isCompleted ? '#4ade80' : '#818cf8' }}>
+                {isCompleted ? 'Complete' : `${progressPercent}%`}
+              </span>
             </div>
+
+            <div className="w-px h-5" style={{ background: 'rgba(255,255,255,0.1)' }} />
+
+            {onRestart && (
+              <button
+                onClick={onRestart}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors"
+                style={{ background: 'rgba(255,255,255,0.04)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                title="Restart tutorial"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Restart</span>
+              </button>
+            )}
+
+            {onSkip && (
+              <button
+                onClick={onSkip}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors"
+                style={{ background: 'rgba(255,255,255,0.04)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                title="Skip step"
+              >
+                <SkipForward className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Skip</span>
+              </button>
+            )}
           </div>
         </div>
       )}
+
+      <div className="flex-1 relative">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          nodeTypes={NODE_TYPES}
+          snapToGrid
+          snapGrid={[20, 20]}
+          minZoom={0.1}
+          maxZoom={2}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
+          fitView
+          fitViewOptions={{ maxZoom: 0.7 }}
+          proOptions={{ hideAttribution: true }}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          style={{ background: canvasBg }}
+          defaultEdgeOptions={{
+            type: 'smoothstep',
+            animated: true,
+            style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+          }}
+          deleteKeyCode={['Backspace', 'Delete', 'Meta+Backspace']}
+        >
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color={dotColor} style={{ backgroundColor: canvasBg }} />
+          <Controls
+            showInteractive={false}
+            className={controlsClass}
+          />
+        </ReactFlow>
+
+        {nodes.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-10">
+            <div className="flex flex-col items-center gap-3">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center"
+                style={{ background: emptyIconBg, border: `1px solid ${emptyIconBorder}` }}
+              >
+                <Search className={`w-5 h-5 ${emptyTextSecondary}`} />
+              </div>
+              <div className="text-center">
+                <p className={`${emptyTextPrimary} text-sm font-medium mb-1`}>Follow the guide on the left</p>
+                <p className={`${emptyTextSecondary} text-xs`}>
+                  Press{' '}
+                  <kbd className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${kbdStyle}`}>
+                    {isMac ? '⌘' : 'Ctrl'}
+                  </kbd>
+                  {' + '}
+                  <kbd className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${kbdStyle}`}>
+                    K
+                  </kbd>
+                  {' '}to search and add components
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div 
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg text-xs z-10"
+          style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }}
+        >
+          <span>Press</span>
+          <kbd className="mx-1 px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ background: 'rgba(255,255,255,0.06)' }}>Delete</kbd>
+          <span>or</span>
+          <kbd className="mx-1 px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ background: 'rgba(255,255,255,0.06)' }}>Backspace</kbd>
+          <span>to remove nodes</span>
+        </div>
+      </div>
 
       <ComponentPalette
         onAddComponent={handleAddComponent}
@@ -317,10 +466,42 @@ function TutorialCanvasInner({ theme, tutorialId }: { theme: 'dark' | 'light'; t
   );
 }
 
-export function TutorialCanvas({ theme = 'dark', tutorialId }: { theme?: 'dark' | 'light'; tutorialId: string }) {
+interface TutorialCanvasProps {
+  theme?: 'dark' | 'light';
+  tutorialId: string;
+  tutorialTitle?: string;
+  currentStep?: number;
+  totalSteps?: number;
+  currentLevel?: number;
+  totalLevels?: number;
+  onRestart?: () => void;
+  onSkip?: () => void;
+}
+
+export function TutorialCanvas({ 
+  theme = 'dark', 
+  tutorialId,
+  tutorialTitle,
+  currentStep,
+  totalSteps,
+  currentLevel,
+  totalLevels,
+  onRestart,
+  onSkip,
+}: TutorialCanvasProps) {
   return (
     <ReactFlowProvider>
-      <TutorialCanvasInner theme={theme} tutorialId={tutorialId} />
+      <TutorialCanvasInner 
+        theme={theme} 
+        tutorialId={tutorialId}
+        tutorialTitle={tutorialTitle}
+        currentStep={currentStep}
+        totalSteps={totalSteps}
+        currentLevel={currentLevel}
+        totalLevels={totalLevels}
+        onRestart={onRestart}
+        onSkip={onSkip}
+      />
     </ReactFlowProvider>
   );
 }

@@ -154,6 +154,7 @@ interface TutorialState {
   // ── New persistence actions ──────────────────────────────────────────────
   saveProgress: (tutorialId: string, progress: Partial<TutorialProgressEntry>) => void;
   getProgress: (tutorialId: string) => TutorialProgressEntry | null;
+  getLevelCanvasState: (level: number) => { nodes: Node[]; edges: Edge[] } | null;
   clearProgress: (tutorialId: string) => void;
   clearAllProgress: () => void;
   syncToSupabase: (tutorialId: string) => Promise<void>;
@@ -364,6 +365,14 @@ export const useTutorialStore = create<TutorialState>()(
 
       getProgress: (tutorialId) => {
         return get().richProgress[tutorialId] ?? null;
+      },
+
+      getLevelCanvasState: (level) => {
+        const { levelNodes, levelEdges } = get();
+        const nodes = levelNodes[level];
+        const edges = levelEdges[level];
+        if (!nodes || nodes.length === 0) return null;
+        return { nodes, edges: edges ?? [] };
       },
 
       clearProgress: (tutorialId) => {

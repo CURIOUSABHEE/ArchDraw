@@ -761,7 +761,7 @@ export function GuidePanel({
       if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current);
       return;
     }
-    escapeHatchTimerRef.current = setTimeout(() => setShowEscapeHatch(true), 30_000);
+    escapeHatchTimerRef.current = setTimeout(() => setShowEscapeHatch(true), 15_000);
     return () => { if (escapeHatchTimerRef.current) clearTimeout(escapeHatchTimerRef.current); };
   }, [committedPhase]);
 
@@ -854,7 +854,7 @@ export function GuidePanel({
           const s = stepRef.current;
           setTypeSpeed(SPEED.fallback);
           setShowChips(false);
-          setActiveMessage(`That's not quite right — search for "${s.title}" in ⌘K to find the right component.`);
+          setActiveMessage(`That's not quite right — search for "${s.title}" in ⌘K palette. Press Delete or Backspace to remove the wrong component.`);
           commitPhase('action');
         } else {
           sendMessage(

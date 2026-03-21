@@ -10,7 +10,8 @@ import { getTutorialById, isLiveTutorial, isLeveledTutorial, TUTORIALS } from '@
 import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
 import { validateStep } from '@/lib/tutorialValidation';
 import { GuidePanel } from '@/components/tutorial/GuidePanel';
-import { TutorialComplete } from '@/components/tutorial/TutorialComplete';
+import { IntroCardFlow } from '@/components/tutorial/IntroCardFlow';
+import { CompletionCardFlow } from '@/components/tutorial/CompletionCardFlow';
 import type { TutorialData } from '@/data/tutorials';
 import type { Tutorial, TutorialLevel } from '@/lib/tutorial/types';
 import type { TutorialLevelData } from '@/data/tutorials';
@@ -101,7 +102,7 @@ export default function TutorialPage() {
   const isLeveled = tutorial ? isLeveledTutorial(tutorial.id) : false;
 
   const {
-    currentStep, totalSteps, nodes, edges,
+    currentStep, totalSteps, nodes, edges, setNodes, setEdges,
     messages, isTyping, validationStatus, validationError,
     isComplete, isLevelComplete,
     currentLevel, completedLevels,
@@ -109,7 +110,7 @@ export default function TutorialPage() {
     addMessage, advanceStep, skipStep, resetTutorial,
     completeTutorial, advanceLevel, dismissLevelComplete,
     activeTutorialId, clearTutorialCanvas,
-    loadFromSupabase, getProgress, saveProgress,
+    loadFromSupabase, getProgress, saveProgress, getLevelCanvasState,
     isSwitchingTutorial, setSwitchingTutorial,
   } = useTutorialStore();
 
@@ -121,6 +122,9 @@ export default function TutorialPage() {
   const headerRestartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [panelRatio, setPanelRatio] = useState<'3:7' | '4:6'>('3:7');
   const [canvasTheme, setCanvasTheme] = useState<'dark' | 'light'>('dark');
+  const [showIntro, setShowIntro] = useState(false);
+  const [introSkipped, setIntroSkipped] = useState(false);
+  const [completionCardIndex, setCompletionCardIndex] = useState(0);
 
   // If navigating to a different tutorial, save the current canvas and switch.
   // Uses refs to capture nodes/edges at the moment the effect fires —
@@ -160,10 +164,10 @@ export default function TutorialPage() {
   // Handle both old flat format (tutorial.steps) and new factory format (tutorial.levels[0].steps)
   const allSteps = tutorial
     ? (isLeveled
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? (tutorial as any).levels?.flatMap((l: { steps: unknown[] }) => l.steps) ?? []
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        : ((tutorial as any).steps ?? (tutorial as Tutorial).levels?.[0]?.steps ?? []))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (tutorial as any).levels?.flatMap((l: { steps: unknown[] }) => l.steps) ?? []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      : ((tutorial as any).steps ?? (tutorial as Tutorial).levels?.[0]?.steps ?? []))
     : [];
   const currentLevelData = levels[currentLevel - 1] ?? null;
   const currentLevelSteps = currentLevelData?.steps ?? allSteps;
@@ -178,7 +182,7 @@ export default function TutorialPage() {
     } else {
       startTutorial(tutorial.id, allSteps.length);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorial]);
 
   // Restore rich progress on mount (Supabase first, then localStorage)
@@ -190,7 +194,14 @@ export default function TutorialPage() {
       // Try Supabase first (authenticated users)
       const supabaseProgress = await loadFromSupabase(tutorialId);
       const progress = supabaseProgress ?? getProgress(tutorialId);
-      if (!progress || progress.currentStep <= 1) return;
+      if (!progress || progress.currentStep <= 1) {
+        // No progress yet - show intro
+        setShowIntro(true);
+        return;
+      }
+
+      // Has progress - skip intro, restore state
+      setIntroSkipped(true);
 
       // Restore level/step state
       useTutorialStore.setState({
@@ -207,14 +218,21 @@ export default function TutorialPage() {
         },
       }));
 
+      // Restore canvas state from current level if available
+      const levelCanvasState = getLevelCanvasState(progress.currentLevel);
+      if (levelCanvasState && levelCanvasState.nodes.length > 0) {
+        setNodes(levelCanvasState.nodes);
+        setEdges(levelCanvasState.edges);
+      }
+
       toast.success(
         `Resumed from Level ${progress.currentLevel} · Step ${progress.currentStep}`,
         { duration: 3000 }
       );
     };
 
-    restore().catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    restore().catch(() => { });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorial?.id]);
 
   const handleValidate = useCallback(() => {
@@ -246,7 +264,7 @@ export default function TutorialPage() {
       addMessage('error', result.message);
     }
   }, [tutorial, currentStep, nodes, edges, setValidationStatus, addMessage, advanceStep,
-      completeTutorial, totalSteps, isLeveled, currentLevel, levels, currentLevelSteps]);
+    completeTutorial, totalSteps, isLeveled, currentLevel, levels, currentLevelSteps]);
 
   const handleSkip = useCallback(() => {
     setValidationStatus('idle');
@@ -308,6 +326,20 @@ export default function TutorialPage() {
     dismissLevelComplete();
     router.push('/tutorials');
   }, [dismissLevelComplete, router]);
+
+  const handleStartFromIntro = useCallback(() => {
+    setShowIntro(false);
+    setIntroSkipped(true);
+  }, []);
+
+  const handleIntroSkip = useCallback(() => {
+    setShowIntro(false);
+    setIntroSkipped(true);
+  }, []);
+
+  // Calculate component count for intro
+  const componentCount = (allSteps as Array<{ requiredNodes?: unknown[] }>)
+    .filter((s) => s.requiredNodes && s.requiredNodes.length > 0).length;
 
   if (!tutorial) {
     return (
@@ -408,7 +440,17 @@ export default function TutorialPage() {
           </div>
         </div>
         <div className="flex flex-1 overflow-hidden">
-          <TutorialCanvas theme={canvasTheme} tutorialId={tutorial.id} />
+          <TutorialCanvas
+            theme={canvasTheme}
+            tutorialId={tutorial.id}
+            tutorialTitle={tutorial.title}
+            currentStep={currentStep}
+            totalSteps={totalSteps}
+            currentLevel={isLeveled ? currentLevel : undefined}
+            totalLevels={isLeveled ? levels.length : undefined}
+            onRestart={showHeaderConfirm}
+            onSkip={handleSkip}
+          />
         </div>
 
         {/* Level complete overlay */}
@@ -425,13 +467,106 @@ export default function TutorialPage() {
       </div>
 
       {isComplete && (
-        <TutorialComplete
-          tutorial={tutorial as TutorialData}
+        <CompletionCardFlow
+          tutorialTitle={tutorial.title}
+          tutorialColor={tutorial.color}
+          learnedItems={getLearnedItems(tutorial.id)}
+          nextTutorialTitle={getNextTutorial(tutorial.id)?.title}
+          nextTutorialReason={getNextTutorial(tutorial.id)?.reason}
           onRetry={handleRetry}
-          onNext={handleNextTutorial}
+          onNext={() => {
+            const next = getNextTutorial(tutorial.id);
+            if (next) router.push(`/tutorials/${next.id}`);
+          }}
           onGoToCanvas={handleGoToCanvas}
+        />
+      )}
+
+      {showIntro && !introSkipped && (
+        <IntroCardFlow
+          tutorialTitle={tutorial.title}
+          tutorialDescription={tutorial.description}
+          levelTitle={currentLevelData?.title}
+          levelDescription={currentLevelData?.description}
+          stepCount={totalSteps}
+          estimatedTime={tutorial.estimatedTime}
+          componentCount={componentCount}
+          onStart={handleStartFromIntro}
+          onSkip={handleIntroSkip}
+          tutorialColor={tutorial.color}
         />
       )}
     </div>
   );
+}
+
+// Learning items data
+const LEARNED_ITEMS: Record<string, string[]> = {
+  'netflix-architecture': [
+    'Why edge caching can reduce origin traffic to near zero',
+    'How recommendation ML models rank content for personalized homescreens',
+    'Why stateless services enable horizontal scaling without coordination',
+  ],
+  'chatgpt-architecture': [
+    'How LLMs connect to real-time data via RAG pipelines',
+    'Why vector databases enable semantic search over private data',
+    'How load balancers make AI systems production-ready',
+  ],
+  'instagram-architecture': [
+    'How CDNs serve media at global scale with 95%+ cache hit rates',
+    'Why Kafka decouples microservices for independent scaling',
+    'How feed pre-computation enables instant timeline loads',
+  ],
+  'uber-architecture': [
+    'How geospatial indexes enable real-time driver-passenger matching',
+    'Why microservice orchestration handles complex trip workflows',
+    'How real-time pricing balances supply and demand instantly',
+  ],
+  'whatsapp-architecture': [
+    'Why end-to-end encryption means servers never see plaintext messages',
+    'How store-and-forward enables 30-day message delivery guarantees',
+    'Why presence detection needs its own dedicated service at billion-user scale',
+  ],
+  'stripe-architecture': [
+    'How idempotency keys prevent double charges in distributed systems',
+    'Why double-entry bookkeeping creates an immutable, auditable ledger',
+    'How webhook retry with exponential backoff guarantees reliable notifications',
+  ],
+  'url-shortener-architecture': [
+    'Why consistent hashing keeps redirect caches hot',
+    'How write batching prevents database saturation',
+    'Why semantic caching saves 30-60% of compute on common queries',
+  ],
+  'rag-application-architecture': [
+    'Why chunking strategy determines 80% of RAG quality',
+    'How vector similarity enables semantic search across different wording',
+    'Why semantic caching dramatically reduces LLM API costs',
+  ],
+  'ai-agent-system-architecture': [
+    'How multi-agent orchestration decomposes complex goals into sub-tasks',
+    'Why token budgets at the gateway prevent runaway agent loops',
+    'How agent memory enables context-aware, persistent behavior',
+  ],
+};
+
+const NEXT_TUTORIALS_MAP: Record<string, { id: string; title: string; reason: string }> = {
+  'url-shortener-architecture': { id: 'chatgpt-architecture', title: 'ChatGPT Architecture', reason: 'Understand the LLM foundation that powers AI systems' },
+  'chatgpt-architecture': { id: 'instagram-architecture', title: 'Instagram Architecture', reason: 'Explore how social platforms handle massive write volumes' },
+  'instagram-architecture': { id: 'netflix-architecture', title: 'Netflix Architecture', reason: 'See how streaming platforms optimize for read-heavy workloads' },
+  'netflix-architecture': { id: 'uber-architecture', title: 'Uber Architecture', reason: 'Learn how real-time and geospatial systems work at scale' },
+  'uber-architecture': { id: 'whatsapp-architecture', title: 'WhatsApp Architecture', reason: 'Understand how messaging systems achieve billion-user scale' },
+  'whatsapp-architecture': { id: 'stripe-architecture', title: 'Stripe Architecture', reason: 'Build financial systems with ACID guarantees and idempotency' },
+  'stripe-architecture': { id: 'url-shortener-architecture', title: 'URL Shortener', reason: 'Practice the classic interview question with hashing and caching' },
+};
+
+function getLearnedItems(tutorialId: string): string[] {
+  return LEARNED_ITEMS[tutorialId] ?? [
+    'How this architecture solves its core scaling challenges',
+    'Why each component exists and how they work together',
+    'The real architectural decisions behind the system',
+  ];
+}
+
+function getNextTutorial(tutorialId: string): { id: string; title: string; reason: string } | null {
+  return NEXT_TUTORIALS_MAP[tutorialId] ?? null;
 }
