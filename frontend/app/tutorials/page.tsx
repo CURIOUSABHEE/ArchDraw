@@ -204,20 +204,13 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
           </div>
 
           {isInProgress && (
-            <div className="mb-4 p-3 rounded-xl" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-slate-400">{progress}/{stepCount} steps</span>
-                <span className="text-xs font-medium" style={{ color: '#818cf8' }}>{Math.round(completionPercent)}%</span>
+            <div className="mb-3 flex items-center justify-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ background: '#6366f1' }} />
+                <div className="w-2 h-2 rounded-full" style={{ background: progress >= stepCount * 0.33 ? '#6366f1' : 'rgba(255,255,255,0.2)' }} />
+                <div className="w-2 h-2 rounded-full" style={{ background: progress >= stepCount * 0.66 ? '#6366f1' : 'rgba(255,255,255,0.2)' }} />
               </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ 
-                    width: `${completionPercent}%`,
-                    background: 'linear-gradient(90deg, #6366f1 0%, #818cf8 100%)',
-                  }}
-                />
-              </div>
+              <span className="text-xs text-slate-500">{Math.round(completionPercent)}%</span>
             </div>
           )}
 
