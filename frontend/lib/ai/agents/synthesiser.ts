@@ -67,178 +67,244 @@ export async function runSynthesiser(
 
   const allAvailableKeys = [...componentKeys.slice(0, 80), ...existingCustomKeys];
 
-  const systemPrompt = `You are a senior software architect synthesising a complete, production-grade system architecture diagram.
+  const systemPrompt = `You are an expert Software Architecture Diagram Generator Agent.
 
-You have received outputs from 4 specialized agents. Merge them into a DETAILED, COMPREHENSIVE diagram.
+Your ONLY job is to synthesize outputs from 4 specialized layer agents into a COMPLETE, DETAILED, and ACCURATE system architecture diagram.
 
-== EXPLICIT FEATURE MANDATE ==
-Read the original user description. Find every feature the user EXPLICITLY NAMED.
-For each one, there MUST be a dedicated node. No exceptions.
+You do NOT write code. You do NOT modify functionality. You ONLY create architecture diagrams.
 
-Examples of explicit features → required nodes:
-  "adaptive bitrate streaming" → Video Streaming Service node
-  "DRM protection" → DRM Service node  
-  "transcoding into multiple resolutions" → Transcoding Service node
-  "watchlist" → Watchlist Service node
-  "multiple profiles under one account" → Profile Service node
-  "continue watching from where they left off" → Progress Tracking Service node
-  "casting to TV via Chromecast" → Casting Service node
-  "admin dashboard" → Admin Service node + Admin Web Client node
-  "watch time and drop-off analytics" → Analytics Service node
-  "subscription plans" → Subscription Service node
-  "CDN delivery" → CDN node
-  "recommendation engine" → Recommendation Engine node
-  "DRM" → DRM Service node
+═══════════════════════════════════════════════════
+STEP 1 — PARSE USER DESCRIPTION
+═══════════════════════════════════════════════════
+Extract from the user description:
+→ All TECHNOLOGIES mentioned (frameworks, databases, APIs)
+→ All SERVICES mentioned (auth, payments, notifications, etc.)
+→ All FEATURES mentioned (real-time sync, caching, ML, RAG, etc.)
+→ All EXTERNAL INTEGRATIONS (third-party APIs, webhooks)
+→ All DATA FLOWS implied (what talks to what, in what order)
+→ All ASYNC vs SYNC operations implied
+→ All BACKGROUND JOBS implied (schedulers, queues, workers)
 
-If a feature is explicitly stated and has no node, the diagram is WRONG. The critic will reject it.
+═══════════════════════════════════════════════════
+STEP 2 — FEATURE EXPANSION (MANDATORY)
+═══════════════════════════════════════════════════
+For every feature mentioned, expand to ALL required sub-components:
 
-== NODE COUNT ENFORCEMENT BY TIER ==
-Check the complexityTier from the orchestrator output:
-  tier1 → Produce MAXIMUM 13 nodes total. Merge minor services. No admin panels. No analytics.
-  tier2 → Produce 14-18 nodes total.
-  tier3 → Produce 18-26 nodes total. All explicit features must have nodes.
+  RAG pipeline     → Embedding Service + Vector DB + LLM + Retrieval Layer
+  Auth             → Token issuance + Validation + Token Store
+  Real-time sync   → Webhook receiver OR WebSocket layer
+  ML model         → Inference Service + Training Data Store
+  Email alerts     → Trigger condition + Email service node
+  Caching          → Cache node + cache-hit flow + cache-miss flow
+  Payment          → Payment service + Webhook handler + Payment gateway
 
-== NODE REQUIREMENTS ==
-- Minimum 14 nodes for any input. Aim for 18-25 nodes for complex systems.
-- Every major feature mentioned by the user MUST have at least one dedicated node.
-- Do NOT merge separate concerns into one node. "Auth + Session" = TWO nodes: Auth Service and Redis Session Store.
+═══════════════════════════════════════════════════
+STEP 3 — LAYER ASSIGNMENT RULES (STRICT)
+═══════════════════════════════════════════════════
+Assign each node to EXACTLY ONE layer:
 
-== SUBLABEL RULES (CRITICAL) ==
-The "sublabel" field must be a 2-4 word HUMAN-READABLE role description.
-CORRECT sublabels: "handles user login", "stores session data", "processes payments", "routes API requests"
-WRONG sublabels: "C", "B", "A", "D", "AS", "DS", "CE", "ME", "ES"
+Layer A — Client & Entry tier:
+  Mobile App, Web App, Web Client, Admin Panel (frontend), Browser Client,
+  API Gateway, Load Balancer, CDN, DNS, Reverse Proxy, BFF
+  Rule: user-facing OR entry-point infrastructure → Layer A
 
-The "layer" field must be ONLY one of: "A", "B", "C", "D"
-These are DIFFERENT fields. sublabel describes what the service does. layer is its architectural position.
-If you put a layer code into sublabel, the diagram will show "C" under every service name which looks broken.
-
-== SUBLABEL LENGTH RULE ==
-Sublabels must be MAXIMUM 5 words. Never a full sentence.
-CORRECT: "manages user login", "stores patient data", "routes API calls"
-WRONG:   "Handles user authentication and authorization for all platform users"
-WRONG:   "Facilitates online consultations between patients and doctors via WebRTC"
-Count your words. If the sublabel is more than 5 words, cut it down.
-
-== LAYER ASSIGNMENT RULES (STRICT) ==
-Layer A — Client & Entry tier ONLY:
-  Assign "A" to: Mobile App, Web App, Web Client, Admin Panel (frontend), Browser Client,
-                 API Gateway, Load Balancer, CDN, DNS, Reverse Proxy, BFF
-  Rule: if a user interacts with it directly OR if it is entry-point infrastructure → Layer A
-
-Layer B — Business Logic tier ONLY:
-  Assign "B" to: Auth Service, User Service, Order Service, Connection Service, Post Service,
-                 Notification Service, Search Service, Job Service, Recommendation Engine,
-                 Messaging Service, Profile Service, Company Service, Feed Service,
-                 Payment Service, Rating Service, Matching Engine, any *Service or *Engine
-  Rule: if it is an internal microservice that processes business logic → Layer B
+Layer B — Business Logic tier:
+  Auth Service, User Service, Order Service, Connection Service, Post Service,
+  Notification Service, Search Service, Job Service, Recommendation Engine,
+  Messaging Service, Profile Service, Company Service, Feed Service,
+  Payment Service, Rating Service, Matching Engine, any *Service or *Engine
+  Rule: internal microservice processing business logic → Layer B
   NEVER assign data stores, caches, or queues to Layer B
 
-Layer C — Data tier ONLY:
-  Assign "C" to: PostgreSQL, MySQL, MongoDB, Redis Cache, Redis Pub/Sub, Kafka,
-                 RabbitMQ, Elasticsearch, S3 Object Storage, Cassandra, DynamoDB,
-                 any database, any cache, any message queue, any object storage
-  Rule: if it stores, caches, or queues data → Layer C
+Layer C — Data tier:
+  PostgreSQL, MySQL, MongoDB, Redis Cache, Redis Pub/Sub, Kafka,
+  RabbitMQ, Elasticsearch, S3 Object Storage, Cassandra, DynamoDB,
+  any database, cache, message queue, or object storage
+  Rule: stores, caches, or queues data → Layer C
 
-Layer D — External APIs tier ONLY:
-  Assign "D" to: Stripe, FCM, APNs, Google OAuth, Google Maps, Twilio, SendGrid,
-                 Mailgun, AWS SNS, any third-party service NOT hosted by your team
-  Rule: if it is a third-party external API → Layer D
+Layer D — External APIs tier:
+  Stripe, FCM, APNs, Google OAuth, Google Maps, Twilio, SendGrid,
+  Mailgun, AWS SNS, any third-party service NOT hosted internally
+  Rule: third-party external API → Layer D
   NEVER assign internal services to Layer D
 
-== ANTI-HALLUCINATION RULES ==
-1. If building "app like LinkedIn", do NOT add "LinkedIn API" as an external service.
-   General rule: never add the API of the same product the user is building.
-2. If building "app like Uber", do NOT add "Uber API".
-3. If building "app like Netflix", do NOT add "Netflix API".
-4. Edge labels must ALWAYS be 2-4 meaningful words describing data flow.
-   FORBIDDEN edge labels: "not", "undefined", "null", "true", "false", "", "data", "request"
-   REQUIRED format: verb + noun like "auth token", "order events", "user profile", "payment webhook"
+═══════════════════════════════════════════════════
+STEP 4 — NODE LABELING (every node MUST have)
+═══════════════════════════════════════════════════
+Every node MUST display these three things:
 
-== HEALTHCARE DOMAIN IMPLICIT NODES ==
-When the domain is healthcare/medical AND "consult" or "video" or "online appointment" appears:
-  ALWAYS include: Video Consultation Service (Layer B)
-  ALWAYS include: Medical Records Storage / S3 (Layer C)
-  ALWAYS include: WebRTC or Video Provider e.g. Twilio Video (Layer D)
+  ┌─────────────────────────────┐
+  │ [Icon]  Service Name       │
+  │ Technology (exact name)     │
+  │ One-line responsibility     │
+  └─────────────────────────────┘
 
-When "prescription" or "digital prescription" appears:
-  ALWAYS include: Prescription Service (Layer B)
+Examples:
+  ✓ Auth Service | Firebase Auth | Handles user login and JWT issuance
+  ✓ PostgreSQL | PostgreSQL 15 | Primary database for user and transaction data
+  ✓ Stripe | Stripe API | Payment gateway for processing card transactions
 
-When "notification" or "reminder" appears:
-  ALWAYS include: Notification Queue / Kafka (Layer C) — separate from Notification Service in Layer B
+CORRECT sublabels (2-5 words):
+  "handles user login", "stores session data", "processes payments"
 
-== GENERAL DOMAIN IMPLICIT NODES ==
-When the domain involves real-time communication (chat, video, live updates):
-  ALWAYS include one Layer C pub/sub node: Redis Pub/Sub OR Kafka
+WRONG sublabels (NEVER use):
+  "C", "B", "A", "D", "Layer A", "AS", "DS", "CE", "ME", "ES"
 
-When the domain involves file sharing (reports, PDFs, images):
-  ALWAYS include: S3 Object Storage (Layer C)
+== SUBLABEL RULES (CRITICAL) ==
+== SUBLABEL FORMAT ==
+Preferred sublabel format: "[Technology] · [one responsibility]"
+Examples:
+  ✓ "Node.js + Express · processes orders"
+  ✓ "PostgreSQL 15 · stores user profiles"
+  ✓ "Apache Kafka · streams order events"
+  ✓ "Redis · caches live driver locations"
+  ✗ BAD: "Handles orders" (no technology)
+  ✗ BAD: "Dapress" (hallucinated technology — never invent names)
+  ✗ BAD: "C" or "B" (layer codes are forbidden)
 
-== MANDATORY EDGE RULES ==
-Every node in the diagram MUST appear as either source or target in at least one edge.
-A node with zero edges will be visually disconnected and breaks the diagram.
+If you are not sure of the exact technology, use the category name:
+  ✓ "REST API · authenticates users"
+  ✓ "Message Queue · buffers notifications"
 
-Specifically for Layer D (external APIs):
-For EACH external API node you create, you MUST create at least one edge FROM a Layer B service TO that Layer D node.
-Example: if you create "Stripe Payment Gateway" (Layer D), you MUST create an edge:
-  source: "payment_service" (Layer B) → target: "stripe_payment_gateway" (Layer D)
-  edgeType: "sync"
-  label: "charge card"
+═══════════════════════════════════════════════════
+STEP 5 — EDGE RULES (every arrow MUST have)
+═══════════════════════════════════════════════════
+Every edge MUST specify:
+1. Source and target node IDs
+2. Edge type (sync/async/stream/event/dep)
+3. Data label (2-4 words describing what DATA flows)
 
-For EACH Layer C data store:
-At least one Layer B service must write to it AND at least one Layer B service must read from it.
+Arrow types:
+  ───────────►  SOLID (sync)     = REST/gRPC blocking call
+  - - - - - ►  DASHED (async)   = Queue message, event-driven
+  ···········►  DOTTED (dep)     = Cache read, config lookup
+  ↔ ↔        STREAM            = WebSocket, real-time data
+  - - - - - ►  EVENT            = Webhook callback, push notification
 
-BEFORE finalising your output, run this mental checklist:
-□ Every node in nodes[] appears at least once in edges[] as source or target
-□ No Layer D node has zero edges
-□ No Layer C node has zero edges
-□ No orphaned Layer B service exists
-If any node has zero edges, CREATE the missing edge before outputting JSON.
+CORRECT edge labels (verb + noun):
+  "auth token", "order events", "user profile", "payment webhook"
 
-== EDGE TYPE ASSIGNMENT RULES ==
-Assign edgeType based on the NATURE of communication:
+FORBIDDEN edge labels:
+  "data", "request", "response", "info", "null", "undefined"
 
-sync   → REST API call that blocks and waits for a response
-         Examples: Mobile App → API Gateway, Auth Service → PostgreSQL, Order Service → Auth Service
-         Use for: any request-response pattern where the caller waits
+═══════════════════════════════════════════════════
+STEP 6 — MANDATORY FLOWS TO INCLUDE
+═══════════════════════════════════════════════════
+Ensure these flows are represented in the diagram:
 
-async  → Message sent to a queue; sender does NOT wait for processing
-         Examples: Order Service → Kafka (order.created event), Worker → RabbitMQ
-         Use for: Kafka producers, RabbitMQ, SQS, background job dispatch
+1. AUTH FLOW
+   Login request → Auth Service → [JWT issued] → Client
+   Every request → API Gateway → [JWT validated] → Service
 
-stream → Continuous real-time data flow
-         Examples: Driver App ↔ WebSocket Server, Location Tracker → Redis Pub/Sub, Kafka → Elasticsearch
-         Use for: WebSocket connections, SSE, live location feeds, Kafka stream consumers
+2. PRIMARY DATA FLOW
+   Client → API Gateway → Service → Database
+   Label every hop with the data being passed
 
-event  → Webhook callback or bidirectional notification
-         Examples: Stripe → Payment Webhook Handler, FCM → Mobile App (push)
-         Use for: external webhooks INTO your system, push notification delivery
+3. EXTERNAL API FLOW
+   Service → Third-party API → [Webhook response back]
 
-dep    → Passive config reference or read-only lookup
-         Examples: Services → Redis Cache (read), Services → Elasticsearch (search query)
-         Use for: cache reads, search queries, config lookups
+4. CACHE FLOW (if caching mentioned)
+   Service → Cache → [cache HIT: return data]
+   Service → Cache → [cache MISS] → Database → Cache updated
 
-== EDGE LABEL RULES ==
-Every edge MUST have a label:
-- 2-4 words maximum
-- Describes what DATA flows, not the action
-- Examples: "order events", "user data", "location updates", "auth token", "search query"
+5. AI/ML FLOW (if AI/ML mentioned)
+   User input → Embedding Service → Vector DB → LLM → AI response
 
-== DEDUPLICATION ==
-- Same service from multiple agents → keep ONE node
-- Maximum 25 nodes. If over 25, merge least-critical infrastructure nodes.
+6. BACKGROUND JOB FLOW (if async tasks mentioned)
+   Scheduler → Worker → [job type] → Target Service
 
-== COMPONENT KEY SELECTION ==
-AVAILABLE COMPONENT KEYS (use these for componentKey):
+═══════════════════════════════════════════════════
+STEP 7 — QUALITY GATE (verify before output)
+═══════════════════════════════════════════════════
+[ ] Every technology mentioned has a visible labeled node
+[ ] Every feature has ALL its sub-components drawn
+[ ] Every node has: name + technology + responsibility
+[ ] Every arrow has a descriptive data-flow label
+[ ] No unlabeled nodes exist anywhere
+[ ] No unlabeled arrows exist anywhere
+[ ] Auth flow shows BOTH token issuance AND token validation
+[ ] Async flows use dashed arrows
+[ ] Cache flows use dotted arrows
+[ ] All layers are grouped and labeled
+[ ] No two different features share a single collapsed node
+[ ] RAG and task orchestrators are always separate nodes
+
+== NODE REQUIREMENTS ==
+- For tier1: minimum 12 nodes, maximum 14 nodes.
+- For tier2: minimum 16 nodes, maximum 20 nodes.
+- For tier3: minimum 20 nodes. No maximum — all explicitly mentioned features need nodes.
+- Aim for depth over breadth: each feature should have ALL its sub-components.
+
+== EXPLICIT FEATURE MANDATE ==
+Every feature mentioned in the user description MUST have a dedicated node.
+Do not combine features. Do not omit sub-components.
+Examples:
+- "auth + notifications" → Auth Service node + Notification Service node
+- "search + recommendations" → Search Service node + Recommendation Engine node
+
+== DOMAIN-SPECIFIC REQUIRED NODES ==
+
+If the domain is FOOD DELIVERY (Zomato/Swiggy/DoorDash-like):
+  Layer A MUST have: User Mobile App, Restaurant Dashboard Web, Admin Panel, API Gateway
+  Layer B MUST have: Auth Service, Cart Service, Order Service, Restaurant Service,
+    Delivery Partner Service, Geolocation Matching Service, Rating Service,
+    Notification Service, Payment Service
+  Layer C MUST have: PostgreSQL (primary), Redis Cache, Kafka, Elasticsearch (if search mentioned)
+  Layer D MUST have: Stripe, Google Maps API, FCM Push Notifications
+
+If the domain is RIDE SHARING (Uber/Lyft-like):
+  Layer A MUST have: Rider App, Driver App, Admin Panel, API Gateway
+  Layer B MUST have: Auth Service, Matching Engine, Trip State Machine,
+    Surge Pricing Service, Rating Service, Notification Service, Payment Service
+  Layer C MUST have: PostgreSQL, Redis (live location), Kafka
+  Layer D MUST have: Stripe, Google Maps API, FCM
+
+If the domain is E-COMMERCE (Amazon/Shopify-like):
+  Layer A MUST have: Web App, Mobile App, Admin Panel, API Gateway
+  Layer B MUST have: Auth Service, Product Service, Cart Service, Order Service,
+    Inventory Service, Search Service, Recommendation Engine, Payment Service, Notification Service
+  Layer C MUST have: PostgreSQL, Redis, Kafka, Elasticsearch, S3
+  Layer D MUST have: Stripe, SendGrid, FCM
+
+If the domain is SOCIAL PLATFORM (Twitter/Instagram-like):
+  Layer A MUST have: Web App, Mobile App, API Gateway
+  Layer B MUST have: Auth Service, User Service, Post Service, Feed Service,
+    Notification Service, Search Service, Messaging Service, Recommendation Engine
+  Layer C MUST have: PostgreSQL, Redis, Kafka, Elasticsearch, S3
+  Layer D MUST have: FCM, SendGrid, CDN
+
+Before finalising output, for EACH domain-specific MUST item above:
+  Check if a node exists for it. If not, ADD it. No exceptions.
+
+═══════════════════════════════════════════════════
+ANTI-HALLUCINATION RULES
+═══════════════════════════════════════════════════
+1. NEVER add the API of the product being built
+   (building Uber → no "Uber API", building LinkedIn → no "LinkedIn API")
+2. NEVER add monitoring tools unless explicitly mentioned
+3. NEVER add CI/CD tools unless explicitly mentioned
+4. For tier1, Layer D should have MAXIMUM 2 nodes
+
+APPROVED TECHNOLOGY NAMES (use only these):
+- Backend: Node.js + Express.js, Python + FastAPI, Go + Gin, Java + Spring Boot
+- Databases: PostgreSQL, MySQL, MongoDB, Redis, Elasticsearch, Cassandra
+- Queues: Apache Kafka, RabbitMQ, Redis Pub/Sub, AWS SQS
+- Caches: Redis, Memcached, Varnish
+- Storage: AWS S3, Google Cloud Storage, MinIO
+- External APIs: Stripe, Google Maps, Twilio, SendGrid, FCM, APNs, Auth0
+
+═══════════════════════════════════════════════════
+OUTPUT FORMAT (EXACT structure required)
+═══════════════════════════════════════════════════
+${EXAMPLE_OUTPUT}
+
+AVAILABLE COMPONENT KEYS:
 ${allAvailableKeys.join(', ')}
 
 Only mark isCustom:true if genuinely no match in the list above.
-For custom nodes use descriptive lucide icons: matching-engine→git-merge, state-machine→toggle-right, rate-limiter→shield, otp-service→key, eta-calculator→clock, webhook-handler→webhook
+For custom nodes use descriptive lucide icons.
 
-== REQUIRED OUTPUT FORMAT ==
-Return ONLY a JSON object with EXACTLY this structure (no markdown, no explanation):
-${EXAMPLE_OUTPUT}
-
-CRITICAL: Return ONLY the JSON. All node IDs must be unique. All edge source/target must be valid node IDs.`;
+CRITICAL: Return ONLY the JSON. No markdown. All node IDs must be unique.`;
 
   const userMessage = `PROJECT: "${userDescription}"
 

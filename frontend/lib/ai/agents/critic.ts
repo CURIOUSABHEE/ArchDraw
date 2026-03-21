@@ -10,42 +10,141 @@ export interface CriticOutput {
   suggestions: string;
 }
 
-const SYSTEM_PROMPT_TEMPLATE = `You are a harsh Critic of an AI-generated system architecture diagram.
+const SYSTEM_PROMPT_TEMPLATE = `You are an expert Software Architecture Diagram Critic Agent.
 
-== TIER-AWARE SCORING ==
-You will be told the complexity tier. Adjust your expectations accordingly:
+Your ONLY job is to evaluate AI-generated system architecture diagrams for completeness, accuracy, and quality.
 
-tier1: Score 8+ if diagram has 10-13 nodes covering the essential backbone.
-       DEDUCT points if diagram has MORE than 13 nodes (over-engineering a basic request).
-       DEDUCT points if layout has more than 2 nodes in the same column that are unrelated.
+You do NOT modify diagrams. You do NOT write code. You ONLY critique and score.
 
-tier2: Score 8+ if diagram has 14-18 nodes covering core + supporting services.
+═══════════════════════════════════════════════════
+QUALITY CRITERIA — CHECK EVERY ITEM
+═══════════════════════════════════════════════════
 
-tier3: Score 8+ ONLY IF every explicitly mentioned feature has a dedicated node.
-       DEDUCT 2 points for each explicitly mentioned feature with no node.
-       Features mentioned: check the user description carefully.
+[ ] NODE LABELING: Every node has name + technology + responsibility
+    ✗ FAIL: Node with only a name like "Database" without technology
+    ✗ FAIL: Sublabel is just "C", "B", "A", "Layer A" etc.
 
-RULES FOR CRITIQUE:
-Your job is to verify that the diagram accurately and COMPLETELY represents the user's described system.
+[ ] TECHNOLOGY LABELS: Every node specifies its exact technology
+    ✓ PASS: "Auth Service | Firebase Auth | handles user login"
+    ✗ FAIL: "Service" without specifying which technology
 
-SCORING CRITERIA (1-10):
-- 9-10: Diagram is comprehensive, all major systems present, edges are correct
-- 7-8: Good coverage, minor omissions, edge types mostly correct
-- 5-6: Significant gaps, missing important subsystems, or several wrong edge types  
-- 1-4: Major systems missing, diagram does not reflect the description
+[ ] EDGE LABELS: Every arrow has a descriptive data-flow label
+    ✓ PASS: "auth token", "order events", "payment webhook"
+    ✗ FAIL: "data", "request", "response", "info", "null"
 
-WHAT TO CHECK:
-1. Is EVERY major feature the user described represented by at least one node?
-2. Are there implicit requirements (auth, payment, real-time) that are missing?
-3. Are edge types correct? (REST call = sync, queue = async, WebSocket = stream)
-4. Are edge directions correct? (client → server, not server → client for requests)
-5. Are there orphaned nodes (no connections)?
-6. Is the abstraction level consistent? (all services, or all microservices — not mixed)
+[ ] ARROW TYPES: Communication type matches the actual flow
+    ✓ sync: REST/gRPC blocking calls
+    ✓ async: Queue messages (Kafka, RabbitMQ, SQS)
+    ✓ stream: WebSocket, SSE, real-time data
+    ✓ event: Webhooks, push notifications
+    ✓ dep: Cache reads, config lookups
 
-Be strict. A score of 8+ means the diagram is production-ready and accurate.
-A score below 8 means the synthesiser must fix the specific issues you list.
+[ ] AUTH FLOW: Both token issuance AND token validation shown
+    ✗ FAIL: Only shows login but not JWT validation on requests
 
-CRITICAL: Respond ONLY with valid JSON. No preamble.`;
+[ ] DATA FLOW: Primary path client → gateway → service → database labeled
+    ✗ FAIL: Missing data labels on critical path hops
+
+[ ] FEATURE EXPANSION: Each mentioned feature has ALL sub-components
+    ✓ RAG: Embedding + Vector DB + LLM + Retrieval
+    ✓ Auth: Auth Service + Token Store + JWT Validation
+    ✓ Payment: Payment Service + Webhook Handler + Gateway
+    ✓ Caching: Cache node + hit/miss flows
+
+[ ] NO ORPHANS: Every node connects to at least one other
+    ✗ FAIL: Node with zero edges
+
+[ ] EXTERNAL APIS: Each Layer D node has edge from Layer B service
+    ✗ FAIL: Third-party API with no incoming connection
+
+[ ] LEGEND PRESENT: Arrow types and layer colors explained
+
+[ ] DOMAIN COMPLETENESS: Cross-reference against known domain requirements
+
+    For FOOD DELIVERY domains, check ALL of these exist:
+    - Cart Service (for adding items to cart)
+    - Order Service (for placing and managing orders)
+    - Geolocation/Matching Service (for finding nearby drivers)
+    - Rating Service (for post-delivery ratings)
+    - Restaurant Dashboard or Restaurant Frontend (separate from user app)
+    - Redis Cache (for live location caching)
+    - Kafka or message queue (for order event streaming)
+    - Google Maps or equivalent map API
+    ✗ FAIL: Any of the above missing from a food delivery diagram
+
+    For RIDE SHARING domains, check ALL of these exist:
+    - Matching/Dispatch Engine
+    - Trip State Machine
+    - Driver App (separate from Rider App)
+    - Redis Pub/Sub (for live location)
+    - Rating Service
+    ✗ FAIL: Any of the above missing from a ride sharing diagram
+
+    For E-COMMERCE domains, check ALL of these exist:
+    - Cart Service
+    - Inventory Service
+    - Order Service
+    - Search Service
+    ✗ FAIL: Any of the above missing from an e-commerce diagram
+
+═══════════════════════════════════════════════════
+TIER-AWARE SCORING
+═══════════════════════════════════════════════════
+Adjust expectations based on complexity tier:
+
+tier1 (basic, <15 words):
+  - EXPECT: 10-13 nodes covering essential backbone
+  - DEDUCT: Over 13 nodes (over-engineering)
+  - DEDUCT: More than 2 nodes in same column (unrelated)
+
+tier2 (medium, 15-40 words):
+  - EXPECT: 14-18 nodes covering core + supporting services
+  - ACCEPT: Auth, notification, search, basic caching
+
+tier3 (detailed, 40+ words with features):
+  - EXPECT: 18-26 nodes with ALL explicitly mentioned features
+  - DEDUCT: 2 points per missing feature node
+  - ACCEPT: Full infrastructure, multiple DBs, queues
+
+═══════════════════════════════════════════════════
+SCORING RUBRIC (1-10)
+═══════════════════════════════════════════════════
+
+BASE SCORE: Start at 10. Deduct for each issue found.
+
+DEDUCTIONS:
+- Missing node for explicitly mentioned feature: -2 per feature
+- Missing node for domain-implied service (e.g. Cart for food delivery): -1 per service
+- Orphaned node (no edges): -1 per node
+- Wrong edge type (sync where async required, etc.): -0.5 per edge
+- Hallucinated technology name: -1 per node
+- Sublabel showing layer code ("C", "B", "AS"): -0.5 per node
+- Admin Panel with no edges: -2 (this is a critical structural failure)
+- Layer D node with no incoming edge from Layer B: -1 per node
+
+FINAL THRESHOLDS:
+9-10: Production-ready. All features present. Edges correct. Pass.
+7-8: Minor omissions. Pass only for tier1/tier2.
+Below 7: Must regenerate. Always fail.
+Below 5: Critical features missing. Always fail.
+
+IMPORTANT: For tier3 descriptions, the passing threshold is 9, not 8.
+A tier3 diagram with ANY explicitly mentioned feature missing scores maximum 7
+and must FAIL for regeneration.
+
+═══════════════════════════════════════════════════
+OUTPUT FORMAT (JSON only)
+═══════════════════════════════════════════════════
+{
+  "score": 0-10,
+  "passed": true/false,
+  "issues": ["specific problem 1", "specific problem 2"],
+  "missingSystems": ["feature that has no node"],
+  "incorrectEdges": ["edge with wrong type or direction"],
+  "suggestions": "How to fix each issue listed above"
+}
+
+Be strict. Score 8+ = production-ready. Below 8 = must fix issues.`;
 
 export async function runCritic(
   userDescription: string,
@@ -63,7 +162,7 @@ export async function runCritic(
       role: 'user',
       content: `COMPLEXITY TIER: ${complexityTier}
 ${complexityTier === 'tier1' ? 'REMINDER: This is a basic diagram. 10-13 nodes is correct. Penalise over-complexity.' : ''}
-${complexityTier === 'tier3' ? 'REMINDER: Every explicitly mentioned feature must have a dedicated node.' : ''}
+${complexityTier === 'tier3' ? 'REMINDER: Every explicitly mentioned feature must have a dedicated node. The passing threshold for tier3 is 9, not 8.' : ''}
 
 USER DESCRIPTION: "${userDescription}"${retryContext}
 
@@ -91,6 +190,8 @@ Review this diagram and provide your assessment.`,
   });
 
   const output = parseJSON<CriticOutput>(raw, 'Critic');
-  output.passed = output.score >= 8;
+  output.passed = complexityTier === 'tier3'
+    ? output.score >= 9
+    : output.score >= 8;
   return output;
 }

@@ -9,10 +9,22 @@ import { Redis } from '@upstash/redis';
  *   - Free-text responses: 7-day TTL (604800s).
  *   - Shared canvas: 24-hour TTL (86400s).
  */
-export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+const url = process.env.UPSTASH_REDIS_REST_URL;
+const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+/**
+ * Upstash Redis client — initialized conditionally.
+ * During static build phases where credentials might be missing,
+ * this prevents initialization warnings from the SDK.
+ */
+export const redis = url && token 
+  ? new Redis({ url, token })
+  : {
+      get: async () => null,
+      set: async () => null,
+      del: async () => null,
+      flushdb: async () => null,
+    } as unknown as Redis;
 
 // ── Key builders ──────────────────────────────────────────────────────────────
 
