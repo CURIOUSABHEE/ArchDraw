@@ -78,7 +78,7 @@ export function CompletionCardFlow({
       content: (
         <div className="space-y-4">
           <p className="text-slate-400 text-sm leading-relaxed">
-            Most engineers can describe what a system looks like. You're now one of the few who understands <em className="text-slate-300 not-italic">why</em> it works the way it does.
+            Most engineers can describe what a system looks like. You&apos;re now one of the few who understands <em className="text-slate-300 not-italic">why</em> it works the way it does.
           </p>
           <div
             className="rounded-xl p-4"

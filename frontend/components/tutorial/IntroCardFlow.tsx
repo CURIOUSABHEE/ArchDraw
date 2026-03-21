@@ -51,17 +51,19 @@ export function IntroCardFlow({
   tutorialColor = '#6366f1',
 }: IntroCardFlowProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [canShow, setCanShow] = useState(false);
+  const [showCount, setShowCount] = useState<number | null>(null);
 
   useEffect(() => {
     const count = getIntroShownCount();
-    if (count < MAX_INTRO_SHOWS) {
-      setCanShow(true);
-      incrementIntroShownCount();
-    } else {
+    setShowCount(count);
+    if (count >= MAX_INTRO_SHOWS) {
       onSkip?.();
+    } else {
+      incrementIntroShownCount();
     }
   }, [onSkip]);
+
+  const canShow = showCount !== null && showCount < MAX_INTRO_SHOWS;
 
   const cards: IntroCard[] = [
     {

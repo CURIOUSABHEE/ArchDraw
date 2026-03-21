@@ -69,7 +69,7 @@ function LevelCompleteScreen({
         <div>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Ready for Level {nextLevel.level}?</p>
           <p className="text-sm text-slate-300">{nextLevel.description}</p>
-          <p className="text-xs text-slate-500 mt-2">You'll add {nextLevel.steps.length} more components on top of what you built.</p>
+          <p className="text-xs text-slate-500 mt-2">You&apos;ll add {nextLevel.steps.length} more components on top of what you built.</p>
         </div>
         <div className="flex flex-col gap-2">
           <button
