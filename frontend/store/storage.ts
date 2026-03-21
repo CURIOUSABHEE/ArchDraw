@@ -12,6 +12,8 @@
 
 type WriteTask = () => void;
 
+const isBrowser = typeof window !== "undefined";
+
 const writeQueue: WriteTask[] = [];
 let writing = false;
 
@@ -23,7 +25,6 @@ function flushQueue() {
     task();
   } finally {
     writing = false;
-    // Use setTimeout to yield to the event loop between writes
     if (writeQueue.length > 0) {
       setTimeout(flushQueue, 0);
     }
@@ -31,6 +32,7 @@ function flushQueue() {
 }
 
 function queuedSetItem(key: string, value: string): void {
+  if (!isBrowser) return;
   writeQueue.push(() => {
     try {
       localStorage.setItem(key, value);
@@ -43,6 +45,7 @@ function queuedSetItem(key: string, value: string): void {
 
 export const serializedStorage = {
   getItem: (key: string): string | null => {
+    if (!isBrowser) return null;
     try {
       return localStorage.getItem(key);
     } catch {
@@ -53,6 +56,7 @@ export const serializedStorage = {
     queuedSetItem(key, value);
   },
   removeItem: (key: string): void => {
+    if (!isBrowser) return;
     try {
       localStorage.removeItem(key);
     } catch (e) {
