@@ -224,16 +224,18 @@ export function GenerateDiagramPanel({ onClose }: Props) {
 
   return (
     <motion.div
-      initial={{ x: '100%', opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: '100%', opacity: 0 }}
+      initial={{ y: '100%', opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: '100%', opacity: 0 }}
       transition={{ type: 'spring', stiffness: 280, damping: 28 }}
       style={{
-        position: 'fixed', top: 0, right: 0, width: 370, height: '100vh',
-        background: '#09090b', borderLeft: '1px solid #18181b',
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: '100%', maxWidth: 600, height: 'auto', maxHeight: '80vh',
+        background: '#09090b', borderTop: '1px solid #18181b', borderLeft: '1px solid #18181b', borderRight: '1px solid #18181b',
+        borderRadius: '16px 16px 0 0',
         zIndex: 1000, display: 'flex', flexDirection: 'column',
         fontFamily: 'system-ui, -apple-system, sans-serif',
-        boxShadow: '-20px 0 60px rgba(0,0,0,.5)',
+        boxShadow: '0 -20px 60px rgba(0,0,0,.5)',
       }}
     >
       {/* Header */}

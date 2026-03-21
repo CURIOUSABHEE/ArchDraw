@@ -306,7 +306,6 @@ export function ComponentSidebar() {
 
     return (
       <aside className="w-60 border-r border-border bg-sidebar flex flex-col h-full shrink-0">
-        <SearchBar value={search} onChange={setSearch} />
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {filtered.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-8">No components found</p>
