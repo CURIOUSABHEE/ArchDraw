@@ -3,6 +3,8 @@ import {
   buildAction,
   buildFirstStepAction,
   buildOpeningL1,
+  buildOpeningL2,
+  buildOpeningL3,
   buildCelebration,
 } from '@/lib/tutorial/defaults';
 import type { Tutorial } from '@/lib/tutorial/types';
@@ -441,6 +443,832 @@ const l1 = level({
   ],
 });
 
+const l2 = level({
+  level: 2,
+  title: "GitHub at Scale",
+  subtitle: "Scale GitHub to handle billions of events and petabytes of Git storage",
+  description:
+    "Add event streaming, real-time notifications, CDC pipelines, and observability to GitHub's core architecture. Handle billions of webhook events, track SLOs with error budgets, and mirror data to analytics.",
+  estimatedTime: "~28 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's scale GitHub. Billions of events per day, petabytes of Git storage, and 99.99% uptime for the world's code. This requires event streaming, change data capture, and enterprise-grade observability.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Kafka Streaming",
+      explanation:
+        "GitHub's Event Bus handles billions of events daily: push events, PR events, CI completion events. Kafka handles peak throughput during popular repository releases.",
+      action: buildAction(
+        "Kafka / Streaming",
+        "Load Balancer",
+        "Kafka Streaming",
+        "Git operations and API events being streamed to notification and analytics consumers in real time"
+      ),
+      why: "Without Kafka, every webhook delivery would be synchronous — slowing down push operations. Kafka decouples event producers from consumers.",
+      component: component("kafka_streaming", "Kafka / Streaming"),
+      openingMessage: buildOpeningL2(
+        "GitHub",
+        "Kafka",
+        "stream push events, PR events, and CI completion to notification and analytics consumers in real time",
+        "Without Kafka, every webhook delivery would be synchronous — slowing down push operations.",
+        "Kafka / Streaming"
+      ),
+      celebrationMessage: buildCelebration(
+        "Kafka Streaming",
+        "Load Balancer",
+        "GitHub's Kafka handles billions of events daily — push events, PR events, CI completion events. Peak throughput during popular open-source releases is handled gracefully.",
+        "Notification Worker"
+      ),
+      messages: [
+        msg(
+          "Level 2 — GitHub at Scale. Kafka handles billions of events daily: push events, PR events, CI completion events."
+        ),
+        msg(
+          "When a popular open-source project releases a new version, thousands of CI systems and integrations consume webhook events simultaneously. Kafka handles this peak throughput without slowing down push operations."
+        ),
+        msg(
+          'Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'
+        ),
+      ],
+      requiredNodes: ["kafka_streaming"],
+      requiredEdges: [edge("load_balancer", "kafka_streaming")],
+      successMessage: "Events streaming. Now notifications.",
+      errorMessage: "Add Kafka Streaming connected from the Load Balancer.",
+    }),
+    step({
+      id: 2,
+      title: "Add Notification Worker",
+      explanation:
+        "GitHub's Notification Worker processes email, push, and in-app notifications. When you push code, it notifies all watchers, mentioned users, and CI subscribers.",
+      action: buildAction(
+        "Worker",
+        "Kafka",
+        "Notification Worker",
+        "notifications being sent for watch updates, @mentions, and CI completion — batched for viral repository spikes"
+      ),
+      why: "If every push notified all watchers synchronously, push operations would be slow. The notification worker handles this asynchronously.",
+      component: component("worker_job", "Worker"),
+      openingMessage: buildOpeningL2(
+        "GitHub",
+        "Notification Worker",
+        "process email, push, and in-app notifications asynchronously — batching for viral repository spikes",
+        "If every push notified all watchers synchronously, push operations would crawl.",
+        "Worker"
+      ),
+      celebrationMessage: buildCelebration(
+        "Notification Worker",
+        "Kafka Streaming",
+        "GitHub's Notification Worker processes email, push, and in-app notifications. When you push code, it notifies all watchers, mentioned users, and CI subscribers. Notifications are batched to prevent notification storms.",
+        "CDC Connector"
+      ),
+      messages: [
+        msg(
+          "The Notification Worker processes email, push, and in-app notifications asynchronously."
+        ),
+        msg(
+          "When you push code, GitHub notifies all watchers, mentioned users, and CI subscribers. For repositories with millions of watchers, notifications are batched to prevent device overwhelm."
+        ),
+        msg(
+          'Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'
+        ),
+      ],
+      requiredNodes: ["worker_job"],
+      requiredEdges: [edge("kafka_streaming", "worker_job")],
+      successMessage: "Notifications added. Now CDC pipelines.",
+      errorMessage: "Add a Worker connected from Kafka Streaming.",
+    }),
+    step({
+      id: 3,
+      title: "Add CDC Connector",
+      explanation:
+        "GitHub's CDC Connector mirrors repository data to the Analytics Platform. Every commit, PR, and issue change streams to ClickHouse for real-time analytics.",
+      action: buildAction(
+        "CDC Connector",
+        "Microservice",
+        "CDC Connector",
+        "every commit, PR, and issue change being mirrored to ClickHouse for real-time analytics"
+      ),
+      why: "Real-time analytics on Git operations requires streaming data changes. CDC captures every mutation without polling.",
+      component: component("cdc_connector", "CDC Connector"),
+      openingMessage: buildOpeningL2(
+        "GitHub",
+        "CDC Connector",
+        "stream every commit, PR, and issue change to ClickHouse for real-time analytics",
+        "Real-time analytics on Git operations requires streaming data changes — CDC captures every mutation.",
+        "CDC Connector"
+      ),
+      celebrationMessage: buildCelebration(
+        "CDC Connector",
+        "Repository Service",
+        "GitHub's CDC Connector mirrors repository data to ClickHouse. Every commit, PR, and issue change streams in real time for analytics — enabling contributor graphs, commit frequency analysis, and code churn metrics.",
+        "SQL Database"
+      ),
+      messages: [
+        msg(
+          "The CDC Connector mirrors repository data to the Analytics Platform."
+        ),
+        msg(
+          "Every commit, PR, and issue change streams to ClickHouse for real-time analytics. GitHub Engineering uses this data to understand code churn, contributor patterns, and repository health."
+        ),
+        msg(
+          'Press ⌘K, search for "CDC Connector", add it, then connect Repository Service → CDC Connector.'
+        ),
+      ],
+      requiredNodes: ["cdc_connector"],
+      requiredEdges: [edge("microservice", "cdc_connector")],
+      successMessage: "CDC pipeline added. Now SQL database.",
+      errorMessage: "Add a CDC Connector connected from the Repository Service.",
+    }),
+    step({
+      id: 4,
+      title: "Add SQL Database",
+      explanation:
+        "GitHub's main SQL database (MySQL) stores user accounts, repository metadata, and access control. GitHub famously runs MySQL at scale — all forks share storage with the parent via content-addressable Git storage.",
+      action: buildAction(
+        "SQL Database",
+        "Auth Service",
+        "SQL Database",
+        "user accounts, repository metadata, and access control being stored with ACID guarantees"
+      ),
+      why: "GitHub's relational data (users, permissions, billing) requires ACID transactions. Fork storage efficiency comes from Git's content-addressable storage.",
+      component: component("sql_db", "SQL Database"),
+      openingMessage: buildOpeningL2(
+        "GitHub",
+        "SQL Database",
+        "store user accounts and access control with ACID guarantees — forks share storage via Git's content-addressable storage",
+        "GitHub's relational data requires ACID transactions — forks share storage via Git's content-addressable storage.",
+        "SQL Database"
+      ),
+      celebrationMessage: buildCelebration(
+        "SQL Database",
+        "Auth Service",
+        "GitHub's MySQL stores user accounts, repository metadata, and access control. GitHub famously runs MySQL at massive scale — all forks share storage with the parent via content-addressable Git storage.",
+        "Structured Logger"
+      ),
+      messages: [
+        msg(
+          "GitHub's main SQL database (MySQL) stores user accounts, repository metadata, and access control."
+        ),
+        msg(
+          "GitHub famously runs MySQL at scale — all forks share storage with the parent via content-addressable Git storage. This is why forking a repository is nearly instant."
+        ),
+        msg(
+          'Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'
+        ),
+      ],
+      requiredNodes: ["sql_db"],
+      requiredEdges: [edge("auth_service", "sql_db")],
+      successMessage: "SQL database added. Now structured logging.",
+      errorMessage: "Add a SQL Database connected from the Auth Service.",
+    }),
+    step({
+      id: 5,
+      title: "Add Structured Logger",
+      explanation:
+        "GitHub's Structured Logger captures every API request, Git operation, and system event with JSON logs. Logs flow to Splunk for analysis — GitHub processes billions of log lines daily.",
+      action: buildAction(
+        "Structured Logger",
+        "Load Balancer",
+        "Structured Logger",
+        "every API request and Git operation being logged with JSON schemas for Splunk analysis"
+      ),
+      why: "Text logs require regex parsing — structured JSON enables fast aggregation across billions of entries.",
+      component: component("structured_logger", "Structured Logger"),
+      openingMessage: buildOpeningL2(
+        "GitHub",
+        "Structured Logger",
+        "emit JSON logs with consistent schemas for API requests and Git operations across all services",
+        "Text logs require regex parsing — structured JSON enables fast Splunk queries across billions of entries.",
+        "Structured Logger"
+      ),
+      celebrationMessage: buildCelebration(
+        "Structured Logger",
+        "Load Balancer",
+        "GitHub's Structured Logger captures every API request, Git operation, and system event with JSON logs. Logs flow to Splunk for analysis — GitHub processes billions of log lines daily.",
+        "SLO/SLI Tracker"
+      ),
+      messages: [
+        msg(
+          "Structured Logger captures every API request, Git operation, and system event with JSON logs."
+        ),
+        msg(
+          "Logs flow to Splunk for analysis — GitHub processes billions of log lines daily. Structured JSON enables fast queries across all services."
+        ),
+        msg(
+          'Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'
+        ),
+      ],
+      requiredNodes: ["structured_logger"],
+      requiredEdges: [edge("load_balancer", "structured_logger")],
+      successMessage: "Structured logging added. Now SLO tracking.",
+      errorMessage: "Add a Structured Logger connected from the Load Balancer.",
+    }),
+    step({
+      id: 6,
+      title: "Add SLO/SLI Tracker",
+      explanation:
+        "GitHub's SLO Tracker monitors API availability, Git operation latency, and Actions pipeline completion. GitHub tracks SLOs for hundreds of services with 99.99% targets for critical paths.",
+      action: buildAction(
+        "SLO/SLI Tracker",
+        "Structured Logger",
+        "SLO/SLI Tracker",
+        "API availability and Git operation latency being tracked against SLO targets — alerting when error budgets burn"
+      ),
+      why: "Without SLOs, engineering teams argue about what acceptable performance means. GitHub's 99.99% target for critical paths requires precise measurement.",
+      component: component("slo_tracker", "SLO/SLI Tracker"),
+      openingMessage: buildOpeningL2(
+        "GitHub",
+        "SLO/SLI Tracker",
+        "monitor API availability, Git operation latency, and Actions pipeline completion against defined SLO targets",
+        "Without SLOs, engineering teams argue about what acceptable performance means.",
+        "SLO/SLI Tracker"
+      ),
+      celebrationMessage: buildCelebration(
+        "SLO/SLI Tracker",
+        "Structured Logger",
+        "GitHub's SLO Tracker monitors API availability, Git operation latency, and Actions pipeline completion. GitHub tracks SLOs for hundreds of services with 99.99% targets for critical paths.",
+        "Error Budget Monitor"
+      ),
+      messages: [
+        msg(
+          "The SLO Tracker monitors API availability, Git operation latency, and Actions pipeline completion."
+        ),
+        msg(
+          "GitHub tracks SLOs for hundreds of services with 99.99% targets for critical paths. When latency exceeds SLOs, the on-call team is alerted before users notice."
+        ),
+        msg(
+          'Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Structured Logger → SLO/SLI Tracker.'
+        ),
+      ],
+      requiredNodes: ["slo_tracker"],
+      requiredEdges: [edge("structured_logger", "slo_tracker")],
+      successMessage: "SLO tracking added. Now error budgets.",
+      errorMessage: "Add an SLO/SLI Tracker connected from the Structured Logger.",
+    }),
+    step({
+      id: 7,
+      title: "Add Error Budget Monitor",
+      explanation:
+        "GitHub's Error Budget Monitor tracks how much SLO budget has been consumed. When the budget is depleted, GitHub automatically reduces non-critical deployments to protect service reliability.",
+      action: buildAction(
+        "Error Budget Monitor",
+        "SLO/SLI Tracker",
+        "Error Budget Monitor",
+        "error budget burn rate being tracked — pausing feature deployments when budget depletes to protect reliability"
+      ),
+      why: "The error budget is the reliability buffer — when depleted, feature launches pause until reliability improves.",
+      component: component("error_budget_alert", "Error Budget Monitor"),
+      openingMessage: buildOpeningL2(
+        "GitHub",
+        "Error Budget Monitor",
+        "track error budget burn rate — pausing deployments when budget depletes to protect service reliability",
+        "The error budget is the reliability buffer — when depleted, feature launches pause for reliability work.",
+        "Error Budget Monitor"
+      ),
+      celebrationMessage: buildCelebration(
+        "Error Budget Monitor",
+        "SLO/SLI Tracker",
+        "GitHub's Error Budget Monitor tracks how much SLO budget has been consumed. When the budget is depleted, GitHub automatically reduces non-critical deployments to protect service reliability.",
+        "In-Memory Cache"
+      ),
+      messages: [
+        msg(
+          "The Error Budget Monitor tracks how much SLO budget has been consumed."
+        ),
+        msg(
+          "When the budget is depleted, GitHub automatically reduces non-critical deployments to protect service reliability. This prevents reliability from being sacrificed for velocity."
+        ),
+        msg(
+          'Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'
+        ),
+      ],
+      requiredNodes: ["error_budget_alert"],
+      requiredEdges: [edge("slo_tracker", "error_budget_alert")],
+      successMessage: "Error budget monitoring added. Now caching.",
+      errorMessage: "Add an Error Budget Monitor connected from the SLO/SLI Tracker.",
+    }),
+    step({
+      id: 8,
+      title: "Add In-Memory Cache",
+      explanation:
+        "GitHub's Redis Cache serves hot repository metadata and rate limit counters. GitHub's cache hit rate exceeds 95% for repository metadata — reducing MySQL load by orders of magnitude.",
+      action: buildAction(
+        "In-Memory Cache",
+        "Load Balancer",
+        "In-Memory Cache",
+        "hot repository metadata and rate limit counters being cached for sub-millisecond reads"
+      ),
+      why: "Querying MySQL for every repository metadata request is slow and expensive. Redis caches hot data — 95% hit rate reduces MySQL load dramatically.",
+      component: component("in_memory_cache", "In-Memory Cache"),
+      openingMessage: buildOpeningL2(
+        "GitHub",
+        "Redis (In-Memory Cache)",
+        "cache repository metadata and rate limit counters for sub-millisecond reads — reducing MySQL load by orders of magnitude",
+        "Querying MySQL for every metadata request is slow — Redis caches hot data with 95%+ hit rate.",
+        "In-Memory Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "In-Memory Cache",
+        "Load Balancer",
+        "GitHub's Redis Cache serves hot repository metadata and rate limit counters. GitHub's cache hit rate exceeds 95% for repository metadata — reducing MySQL load by orders of magnitude. GitHub is now scaled to handle billions of events.",
+        "nothing — GitHub is now scaled"
+      ),
+      messages: [
+        msg(
+          "Redis Cache serves hot repository metadata and rate limit counters with 95%+ hit rate."
+        ),
+        msg(
+          "This reduces MySQL load by orders of magnitude. When a popular repository is accessed, metadata is served from Redis instead of MySQL for subsequent requests."
+        ),
+        msg(
+          'Press ⌘K, search for "In-Memory Cache", add it, then connect Load Balancer → In-Memory Cache.'
+        ),
+      ],
+      requiredNodes: ["in_memory_cache"],
+      requiredEdges: [edge("load_balancer", "in_memory_cache")],
+      successMessage: "In-memory cache added. GitHub is now scaled to handle billions of events.",
+      errorMessage: "Add an In-Memory Cache connected from the Load Balancer.",
+    }),
+  ],
+});
+
+const l3 = level({
+  level: 3,
+  title: "GitHub Enterprise",
+  subtitle: "Add enterprise-grade security, observability, and analytics",
+  description:
+    "Implement zero-trust networking with mTLS, distributed tracing across all Git operations, and petabyte-scale analytics. GitHub Enterprise requires SPIFFE certificates, GraphQL Federation, and change data capture at scale.",
+  estimatedTime: "~29 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's make GitHub enterprise-grade. Zero-trust networking, petabyte-scale analytics, and sub-millisecond observability. GitHub Enterprise Cloud serves Fortune 500 companies with compliance requirements that shape the architecture.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Service Mesh",
+      explanation:
+        "GitHub's Service Mesh (Envoy) handles mutual TLS between all services, circuit breaking, and retries. Every internal service call is encrypted and authenticated — zero-trust networking.",
+      action: buildAction(
+        "Service Mesh (Istio)",
+        "Load Balancer",
+        "Service Mesh",
+        "mTLS, circuit breaking, and retries being enforced at the sidecar proxy level for all service-to-service communication"
+      ),
+      why: "Without a service mesh, each service implements TLS differently — inconsistent and a security risk. Envoy handles this transparently.",
+      component: component("service_mesh", "Service Mesh (Istio)"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "Service Mesh (Envoy)",
+        "enforce mTLS, circuit breaking, and retries at the sidecar proxy level — zero-trust networking",
+        "Without a service mesh, each service implements TLS differently — inconsistent and a security risk.",
+        "Service Mesh (Istio)"
+      ),
+      celebrationMessage: buildCelebration(
+        "Service Mesh",
+        "Load Balancer",
+        "GitHub's Service Mesh (Envoy) handles mutual TLS between all services. Every internal service call is encrypted and authenticated — zero-trust networking. Circuit breaking prevents cascade failures.",
+        "GraphQL Federation Gateway"
+      ),
+      messages: [
+        msg(
+          "Level 3 — GitHub Enterprise. The Service Mesh adds sidecar proxies handling mTLS, retries, circuit breaking, and load balancing transparently."
+        ),
+        msg(
+          "Every internal service call is encrypted and authenticated — zero-trust networking. Envoy sidecars handle circuit breaking to prevent cascade failures."
+        ),
+        msg(
+          'Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'
+        ),
+      ],
+      requiredNodes: ["service_mesh"],
+      requiredEdges: [edge("load_balancer", "service_mesh")],
+      successMessage: "Service mesh added. Now GraphQL Federation.",
+      errorMessage: "Add a Service Mesh connected from the Load Balancer.",
+    }),
+    step({
+      id: 2,
+      title: "Add GraphQL Federation Gateway",
+      explanation:
+        "GitHub's GraphQL Federation composes the API from multiple services: Repositories, Users, Actions, Packages. Each domain owns its schema, and the gateway composes them into a unified API.",
+      action: buildAction(
+        "GraphQL Federation Gateway",
+        "API Gateway",
+        "GraphQL Federation Gateway",
+        "API being composed from Repositories, Users, Actions, and Packages services with a unified schema"
+      ),
+      why: "Without federation, the API Gateway would own all data fetching logic — a monolith. Federation lets each domain own its schema while the gateway composes them.",
+      component: component("graphql_federation", "GraphQL Federation Gateway"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "GraphQL Federation Gateway",
+        "compose the API from Repositories, Users, Actions, and Packages services — each domain owns its schema",
+        "Without federation, the API Gateway would own all data fetching logic — a monolith.",
+        "GraphQL Federation Gateway"
+      ),
+      celebrationMessage: buildCelebration(
+        "GraphQL Federation Gateway",
+        "API Gateway",
+        "GitHub's GraphQL Federation composes the API from multiple services: Repositories, Users, Actions, Packages. Each domain owns its schema — enabling independent deployments and schema evolution.",
+        "Token Bucket Rate Limiter"
+      ),
+      messages: [
+        msg(
+          "GraphQL Federation composes the API from multiple services."
+        ),
+        msg(
+          "Each domain (Repositories, Users, Actions, Packages) owns its schema. The gateway composes them into a unified API — enabling independent deployments and schema evolution."
+        ),
+        msg(
+          'Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'
+        ),
+      ],
+      requiredNodes: ["graphql_federation"],
+      requiredEdges: [edge("api_gateway", "graphql_federation")],
+      successMessage: "GraphQL Federation added. Now rate limiting.",
+      errorMessage: "Add a GraphQL Federation Gateway connected from the API Gateway.",
+    }),
+    step({
+      id: 3,
+      title: "Add Token Bucket Rate Limiter",
+      explanation:
+        "GitHub's Rate Limiter uses token buckets per authenticated user. GitHub's free tier allows 60 requests/hour for unauthenticated, 5,000 for authenticated, and 15,000 for GitHub Apps.",
+      action: buildAction(
+        "Token Bucket Rate Limiter",
+        "API Gateway",
+        "Token Bucket Rate Limiter",
+        "per-user rate limits being enforced: 60/hour unauthenticated, 5,000/hour authenticated, 15,000/hour for GitHub Apps"
+      ),
+      why: "Rate limiting protects GitHub's API from abuse while enabling fair access. Token buckets allow burst traffic while enforcing average rate limits.",
+      component: component("token_bucket_limiter", "Token Bucket Rate Limiter"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "Token Bucket Rate Limiter",
+        "enforce per-user rate limits with token buckets: 60/hour unauthenticated, 5,000/hour authenticated, 15,000/hour GitHub Apps",
+        "Rate limiting protects the API from abuse while enabling fair access — token buckets allow bursts.",
+        "Token Bucket Rate Limiter"
+      ),
+      celebrationMessage: buildCelebration(
+        "Token Bucket Rate Limiter",
+        "API Gateway",
+        "GitHub's Rate Limiter uses token buckets per authenticated user. Free tier: 60/hour unauthenticated, 5,000/hour authenticated, 15,000/hour for GitHub Apps. Token buckets allow burst traffic while enforcing average limits.",
+        "OpenTelemetry Collector"
+      ),
+      messages: [
+        msg(
+          "Rate Limiter uses token buckets per authenticated user."
+        ),
+        msg(
+          "GitHub's free tier: 60 requests/hour for unauthenticated, 5,000 for authenticated, 15,000 for GitHub Apps. Token buckets allow burst traffic while enforcing average rate limits."
+        ),
+        msg(
+          'Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'
+        ),
+      ],
+      requiredNodes: ["token_bucket_limiter"],
+      requiredEdges: [edge("api_gateway", "token_bucket_limiter")],
+      successMessage: "Rate limiting added. Now distributed tracing.",
+      errorMessage: "Add a Token Bucket Rate Limiter connected from the API Gateway.",
+    }),
+    step({
+      id: 4,
+      title: "Add OpenTelemetry Collector",
+      explanation:
+        "GitHub's OTel Collector aggregates traces from all Git operations and API requests. With 100+ services, distributed tracing is essential to understand latency across the Git operation pipeline.",
+      action: buildAction(
+        "OpenTelemetry Collector",
+        "Structured Logger",
+        "OpenTelemetry Collector",
+        "traces being aggregated from all Git operations and API requests for distributed tracing"
+      ),
+      why: "With 100+ services, a single API request spans dozens of services. Distributed tracing links these spans to understand end-to-end latency.",
+      component: component("otel_collector", "OpenTelemetry Collector"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "OpenTelemetry Collector",
+        "aggregate traces from all Git operations and API requests — understanding latency across the Git operation pipeline",
+        "With 100+ services, a single request spans dozens of services — distributed tracing links spans.",
+        "OpenTelemetry Collector"
+      ),
+      celebrationMessage: buildCelebration(
+        "OpenTelemetry Collector",
+        "Structured Logger",
+        "GitHub's OTel Collector aggregates traces from all Git operations and API requests. With 100+ services, distributed tracing is essential to understand latency across the Git operation pipeline.",
+        "Correlation ID Handler"
+      ),
+      messages: [
+        msg(
+          "OTel Collector aggregates traces from all Git operations and API requests."
+        ),
+        msg(
+          "With 100+ services, a single push spans dozens of services: webhook reception, auth validation, Git object storage, notification dispatch. Distributed tracing links these spans to understand end-to-end latency."
+        ),
+        msg(
+          'Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'
+        ),
+      ],
+      requiredNodes: ["otel_collector"],
+      requiredEdges: [edge("structured_logger", "otel_collector")],
+      successMessage: "OTel Collector added. Now correlation IDs.",
+      errorMessage: "Add an OpenTelemetry Collector connected from the Structured Logger.",
+    }),
+    step({
+      id: 5,
+      title: "Add Correlation ID Handler",
+      explanation:
+        "GitHub's Correlation ID Injector adds a trace ID to every Git operation and API request. When a push triggers Actions CI, the correlation ID links the webhook delivery, CI trigger, and build logs.",
+      action: buildAction(
+        "Correlation ID Handler",
+        "Load Balancer",
+        "Correlation ID Handler",
+        "trace IDs being injected into every Git operation and API request — linking webhook delivery, CI triggers, and build logs"
+      ),
+      why: "Without correlation IDs, debugging a push that triggers a failed CI run requires manually linking webhook logs, CI triggers, and build logs. Correlation IDs automate this.",
+      component: component("correlation_id_handler", "Correlation ID Handler"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "Correlation ID Handler",
+        "inject trace IDs into every Git operation and API request — linking webhook delivery, CI triggers, and build logs",
+        "Without correlation IDs, debugging cross-service issues requires manual log linking.",
+        "Correlation ID Handler"
+      ),
+      celebrationMessage: buildCelebration(
+        "Correlation ID Handler",
+        "Load Balancer",
+        "GitHub's Correlation ID Injector adds a trace ID to every Git operation and API request. When a push triggers Actions CI, the correlation ID links the webhook delivery, CI trigger, and build logs for end-to-end debugging.",
+        "mTLS Certificate Authority"
+      ),
+      messages: [
+        msg(
+          "Correlation ID Injector adds trace IDs to every Git operation and API request."
+        ),
+        msg(
+          "When a push triggers Actions CI, the correlation ID links webhook delivery, CI trigger, and build logs. Without this, debugging a failed CI run requires manually correlating dozens of log entries."
+        ),
+        msg(
+          'Press ⌘K, search for "Correlation ID Handler", add it, then connect Load Balancer → Correlation ID Handler.'
+        ),
+      ],
+      requiredNodes: ["correlation_id_handler"],
+      requiredEdges: [edge("load_balancer", "correlation_id_handler")],
+      successMessage: "Correlation IDs added. Now mTLS CA.",
+      errorMessage: "Add a Correlation ID Handler connected from the Load Balancer.",
+    }),
+    step({
+      id: 6,
+      title: "Add mTLS Certificate Authority",
+      explanation:
+        "GitHub's SPIFFE/SPIRE CA issues short-lived certificates to every service. Certificates rotate every 24 hours — if a service is compromised, its certificate is revoked within minutes.",
+      action: buildAction(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "mTLS Certificate Authority",
+        "short-lived SPIFFE certificates being issued to every service — rotating every 24 hours with automatic revocation"
+      ),
+      why: "Long-lived credentials are a security risk — if stolen, they work forever. Short-lived certificates rotate automatically, limiting the blast radius of a compromised service.",
+      component: component("mtls_certificate_authority", "mTLS Certificate Authority"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "SPIFFE/SPIRE CA",
+        "issue short-lived certificates to every service — rotating every 24 hours with automatic revocation on compromise",
+        "Long-lived credentials are a security risk — short-lived certificates rotate automatically.",
+        "mTLS Certificate Authority"
+      ),
+      celebrationMessage: buildCelebration(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "GitHub's SPIFFE/SPIRE CA issues short-lived certificates to every service. Certificates rotate every 24 hours — if a service is compromised, its certificate is revoked within minutes. This is zero-trust networking at scale.",
+        "Cache Stampede Guard"
+      ),
+      messages: [
+        msg(
+          "SPIFFE/SPIRE CA issues short-lived certificates to every service."
+        ),
+        msg(
+          "Certificates rotate every 24 hours. If a service is compromised, its certificate is revoked within minutes — limiting the blast radius of the security incident."
+        ),
+        msg(
+          'Press ⌘K, search for "mTLS Certificate Authority", add it, then connect Service Mesh → mTLS Certificate Authority.'
+        ),
+      ],
+      requiredNodes: ["mtls_certificate_authority"],
+      requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
+      successMessage: "mTLS CA added. Now cache stampede protection.",
+      errorMessage: "Add an mTLS Certificate Authority connected from the Service Mesh.",
+    }),
+    step({
+      id: 7,
+      title: "Add Cache Stampede Guard",
+      explanation:
+        "GitHub's Cache Stampede Guard prevents thundering herds when a popular repository's cache expires. Lock-assisted cache refresh ensures only one worker refreshes while others serve stale data.",
+      action: buildAction(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "Cache Stampede Guard",
+        "thundering herd prevention being enforced with lock-assisted cache refresh — only one worker refreshes while others serve stale data"
+      ),
+      why: "When a cache expires for a popular repository, thousands of requests hit the database simultaneously. Lock-assisted refresh ensures only one worker refreshes — protecting the database.",
+      component: component("cache_stampede_guard", "Cache Stampede Guard"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "Cache Stampede Guard",
+        "prevent thundering herds when cache expires — lock-assisted refresh ensures only one worker refreshes",
+        "When cache expires for a popular repo, thousands of requests hit the database — lock-assisted refresh protects it.",
+        "Cache Stampede Guard"
+      ),
+      celebrationMessage: buildCelebration(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "GitHub's Cache Stampede Guard prevents thundering herds when a popular repository's cache expires. Lock-assisted cache refresh ensures only one worker refreshes while others serve stale data — protecting the database from cascade failures.",
+        "Change Data Cache"
+      ),
+      messages: [
+        msg(
+          "Cache Stampede Guard prevents thundering herds when popular repository caches expire."
+        ),
+        msg(
+          "When a cache expires for a popular repository, thousands of requests hit the database simultaneously. Lock-assisted refresh ensures only one worker refreshes while others serve stale data."
+        ),
+        msg(
+          'Press ⌘K, search for "Cache Stampede Guard", add it, then connect In-Memory Cache → Cache Stampede Guard.'
+        ),
+      ],
+      requiredNodes: ["cache_stampede_guard"],
+      requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
+      successMessage: "Cache stampede protection added. Now CDC cache.",
+      errorMessage: "Add a Cache Stampede Guard connected from the In-Memory Cache.",
+    }),
+    step({
+      id: 8,
+      title: "Add Change Data Cache",
+      explanation:
+        "GitHub's CDC pipeline caches materialized views of the social graph: 'who starred this repo', 'who contributes to this org'. These views are precomputed and cached for sub-10ms queries.",
+      action: buildAction(
+        "Change Data Cache",
+        "CDC Connector",
+        "Change Data Cache",
+        "materialized views of the social graph being precomputed and cached — 'who starred this repo', 'who contributes to this org'"
+      ),
+      why: "Social graph queries (who starred this repo) require scanning millions of records. Materialized views precompute these results for sub-10ms queries.",
+      component: component("change_data_cache", "Change Data Cache"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "Change Data Cache",
+        "cache materialized views of the social graph: 'who starred this repo', 'who contributes to this org' — sub-10ms queries",
+        "Social graph queries require scanning millions of records — materialized views precompute results.",
+        "Change Data Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "Change Data Cache",
+        "CDC Connector",
+        "GitHub's CDC pipeline caches materialized views of the social graph: 'who starred this repo', 'who contributes to this org'. These views are precomputed and cached for sub-10ms queries.",
+        "Data Warehouse"
+      ),
+      messages: [
+        msg(
+          "CDC pipeline caches materialized views of the social graph."
+        ),
+        msg(
+          "Queries like 'who starred this repo' and 'who contributes to this org' would require scanning millions of records. Materialized views precompute these results for sub-10ms queries."
+        ),
+        msg(
+          'Press ⌘K, search for "Change Data Cache", add it, then connect CDC Connector → Change Data Cache.'
+        ),
+      ],
+      requiredNodes: ["change_data_cache"],
+      requiredEdges: [edge("cdc_connector", "change_data_cache")],
+      successMessage: "CDC cache added. Now data warehouse.",
+      errorMessage: "Add a Change Data Cache connected from the CDC Connector.",
+    }),
+    step({
+      id: 9,
+      title: "Add Data Warehouse",
+      explanation:
+        "GitHub's Data Warehouse (ClickHouse) stores all Git activity for analytics: commit frequency, contributor graphs, and code churn. Petabyte-scale analytics on Git operations inform engineering decisions.",
+      action: buildAction(
+        "Data Warehouse",
+        "CDC Connector",
+        "Data Warehouse",
+        "all Git activity being stored for analytics: commit frequency, contributor graphs, and code churn at petabyte scale"
+      ),
+      why: "GitHub's engineering decisions are informed by data: which languages are growing, which repositories have high code churn, where CI times are increasing. The data warehouse enables this analysis.",
+      component: component("data_warehouse", "Data Warehouse"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "Data Warehouse (ClickHouse)",
+        "store all Git activity for analytics: commit frequency, contributor graphs, and code churn at petabyte scale",
+        "GitHub's engineering decisions are informed by data — which languages are growing, where CI times increase.",
+        "Data Warehouse"
+      ),
+      celebrationMessage: buildCelebration(
+        "Data Warehouse",
+        "CDC Connector",
+        "GitHub's Data Warehouse (ClickHouse) stores all Git activity for analytics: commit frequency, contributor graphs, and code churn. Petabyte-scale analytics on Git operations inform engineering decisions.",
+        "Event Store"
+      ),
+      messages: [
+        msg(
+          "Data Warehouse stores all Git activity for analytics at petabyte scale."
+        ),
+        msg(
+          "Commit frequency, contributor graphs, and code churn inform GitHub's engineering decisions. Which languages are growing? Where are CI times increasing? The data warehouse enables this analysis."
+        ),
+        msg(
+          'Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'
+        ),
+      ],
+      requiredNodes: ["data_warehouse"],
+      requiredEdges: [edge("cdc_connector", "data_warehouse")],
+      successMessage: "Data warehouse added. Now event store.",
+      errorMessage: "Add a Data Warehouse connected from the CDC Connector.",
+    }),
+    step({
+      id: 10,
+      title: "Add Event Store",
+      explanation:
+        "GitHub's Event Store stores every audit event: repository creation, access grants, billing changes. Immutable audit logs are critical for enterprise compliance and security investigations.",
+      action: buildAction(
+        "Event Store",
+        "Kafka",
+        "Event Store",
+        "every audit event being stored immutably: repository creation, access grants, billing changes — for compliance and security"
+      ),
+      why: "Enterprise customers require immutable audit logs for compliance. When a security incident occurs, auditors need to replay exactly what happened.",
+      component: component("event_store", "Event Store"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "Event Store",
+        "store every audit event immutably: repository creation, access grants, billing changes — for enterprise compliance",
+        "Enterprise customers require immutable audit logs — auditors need to replay exactly what happened.",
+        "Event Store"
+      ),
+      celebrationMessage: buildCelebration(
+        "Event Store",
+        "Kafka Streaming",
+        "GitHub's Event Store stores every audit event immutably: repository creation, access grants, billing changes. Immutable audit logs are critical for enterprise compliance and security investigations.",
+        "BFF Gateway"
+      ),
+      messages: [
+        msg(
+          "Event Store stores every audit event immutably for enterprise compliance."
+        ),
+        msg(
+          "Repository creation, access grants, billing changes — every action is recorded. When a security incident occurs, auditors can replay exactly what happened."
+        ),
+        msg(
+          'Press ⌘K, search for "Event Store", add it, then connect Kafka Streaming → Event Store.'
+        ),
+      ],
+      requiredNodes: ["event_store"],
+      requiredEdges: [edge("kafka_streaming", "event_store")],
+      successMessage: "Event store added. Now BFF gateway.",
+      errorMessage: "Add an Event Store connected from the Kafka Streaming.",
+    }),
+    step({
+      id: 11,
+      title: "Add BFF Gateway",
+      explanation:
+        "GitHub's BFF Gateway (Node.js) serves the web client with domain-specific APIs. The BFF aggregates data from multiple GraphQL resolvers, handles SSR hydration, and manages OAuth session state.",
+      action: buildAction(
+        "BFF Gateway",
+        "Web",
+        "BFF Gateway",
+        "web client being served with domain-specific APIs — aggregating GraphQL resolvers, handling SSR hydration, and managing OAuth sessions"
+      ),
+      why: "The web client has specific needs: server-side rendering hydration, OAuth session management, and optimized API calls. A BFF tailors the API to the client.",
+      component: component("bff_gateway", "BFF Gateway"),
+      openingMessage: buildOpeningL3(
+        "GitHub",
+        "BFF Gateway (Node.js)",
+        "serve the web client with domain-specific APIs — aggregating GraphQL resolvers, handling SSR hydration, managing OAuth sessions",
+        "The web client has specific needs: SSR hydration, OAuth sessions, optimized API calls.",
+        "BFF Gateway"
+      ),
+      celebrationMessage: buildCelebration(
+        "BFF Gateway",
+        "Web Client",
+        "GitHub's BFF Gateway (Node.js) serves the web client with domain-specific APIs. The BFF aggregates data from multiple GraphQL resolvers, handles SSR hydration, and manages OAuth session state. You have built GitHub Enterprise.",
+        "nothing — you have built GitHub Enterprise"
+      ),
+      messages: [
+        msg(
+          "BFF Gateway serves the web client with domain-specific APIs."
+        ),
+        msg(
+          "The BFF aggregates data from multiple GraphQL resolvers, handles SSR hydration, and manages OAuth session state. This is the final piece of GitHub Enterprise Cloud."
+        ),
+        msg(
+          'Press ⌘K, search for "BFF Gateway", add it, then connect Web Client → BFF Gateway.'
+        ),
+      ],
+      requiredNodes: ["bff_gateway"],
+      requiredEdges: [edge("client_web", "bff_gateway")],
+      successMessage: "BFF Gateway added. You have built GitHub Enterprise.",
+      errorMessage: "Add a BFF Gateway connected from the Web Client.",
+    }),
+  ],
+});
+
 export const githubTutorial: Tutorial = tutorial({
   id: 'github-architecture',
   title: 'How to Design GitHub Architecture',
@@ -452,6 +1280,6 @@ export const githubTutorial: Tutorial = tutorial({
   icon: 'Github',
   color: '#333333',
   tags: ['Git Storage', 'CI/CD', 'Code Search', 'Webhooks'],
-  estimatedTime: '~30 mins',
-  levels: [l1],
+  estimatedTime: '~87 mins',
+  levels: [l1, l2, l3],
 });

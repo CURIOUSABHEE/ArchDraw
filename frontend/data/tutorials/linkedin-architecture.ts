@@ -3,6 +3,8 @@ import {
   buildAction,
   buildFirstStepAction,
   buildOpeningL1,
+  buildOpeningL2,
+  buildOpeningL3,
   buildCelebration,
 } from '@/lib/tutorial/defaults';
 import type { Tutorial } from '@/lib/tutorial/types';
@@ -406,6 +408,762 @@ const l1 = level({
   ],
 });
 
+// ── Level 2 — LinkedIn at Scale (8 steps) ─────────────────────────────────────
+
+const l2 = level({
+  level: 2,
+  title: "LinkedIn at Scale",
+  subtitle: "Scale to 1 billion members with event streaming and graph caching",
+  description:
+    "Add Kafka event streaming, Redis graph caching, CDC pipelines, and SLO tracking to LinkedIn's architecture. Handle 5 trillion events per day and serve the social graph with sub-100ms latency.",
+  estimatedTime: "~28 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's scale LinkedIn. 1 billion members, 5 trillion events per day, and a social graph with billions of connections. This requires Kafka for event streaming, Redis for graph caching, and CDC to mirror data for analytics.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Kafka Streaming",
+      explanation:
+        "LinkedIn's Event Bus streams profile updates, connection requests, and feed events. Kafka handles 5 trillion events per day — every view, click, and connection streams to analytics.",
+      action: buildAction(
+        "Kafka / Streaming",
+        "API Gateway",
+        "Kafka Streaming",
+        "profile updates, connection requests, and feed events being streamed to multiple consumers for analytics"
+      ),
+      why: "At 5 trillion events per day, synchronous processing is impossible. Kafka decouples producers from consumers — profile updates, feed events, and analytics all consume the same stream.",
+      component: component("kafka_streaming", "Kafka / Streaming", "Kafka / Streaming"),
+      openingMessage: buildOpeningL2(
+        "LinkedIn",
+        "Kafka Streaming",
+        "stream 5 trillion events per day for profile updates, connection requests, and feed analytics",
+        "At 5 trillion events per day, synchronous processing is impossible — Kafka decouples producers from consumers.",
+        "Kafka / Streaming"
+      ),
+      celebrationMessage: buildCelebration(
+        "Kafka Streaming",
+        "API Gateway",
+        "LinkedIn's Kafka streams 5 trillion events per day — every profile view, connection request, and feed interaction. Multiple consumers process events independently: analytics, notifications, and search indexing.",
+        "Notification Worker"
+      ),
+      messages: [
+        msg(
+          "Level 2 — LinkedIn at Scale. Kafka handles 5 trillion events per day — every view, click, and connection."
+        ),
+        msg(
+          "Profile updates, feed events, and analytics all consume the same Kafka stream. This decouples producers from consumers — the feed service doesn't wait for analytics to process."
+        ),
+        msg("Press ⌘K, search for \"Kafka / Streaming\", add it, then connect API Gateway → Kafka Streaming."),
+      ],
+      requiredNodes: ["kafka_streaming"],
+      requiredEdges: [edge("api_gateway", "kafka_streaming")],
+      successMessage: "Event streaming added. Now notifications.",
+      errorMessage: "Add a Kafka Streaming component connected from the API Gateway.",
+    }),
+    step({
+      id: 2,
+      title: "Add Notification Worker",
+      explanation:
+        "LinkedIn's Notification Worker handles email, push, and inMail notifications. When you get a connection request, it notifies via email, push, and in-app simultaneously.",
+      action: buildAction(
+        "Worker",
+        "Kafka",
+        "Notification Worker",
+        "email, push, and inMail notifications being sent simultaneously when connection requests arrive"
+      ),
+      why: "Notification delivery must be fast and reliable. When you get a connection request, you want to know immediately via push, email, and in-app — all delivered from the same worker.",
+      component: component("worker_job", "Worker"),
+      openingMessage: buildOpeningL2(
+        "LinkedIn",
+        "Notification Worker",
+        "send email, push, and inMail notifications simultaneously when connection requests arrive",
+        "Notification delivery must be fast and reliable — push, email, and in-app all from one worker.",
+        "Worker"
+      ),
+      celebrationMessage: buildCelebration(
+        "Notification Worker",
+        "Kafka Streaming",
+        "LinkedIn's Notification Worker delivers email, push, and inMail simultaneously when you get a connection request. When you get a job recommendation, it notifies via all three channels.",
+        "In-Memory Cache"
+      ),
+      messages: [
+        msg("Notification workers consume Kafka events to send email, push, and inMail notifications."),
+        msg(
+          "When you get a connection request, all three channels fire simultaneously. The worker batches notifications during peak times to prevent email provider rate limits."
+        ),
+        msg("Press ⌘K, search for \"Worker / Background Job\", add it, then connect Kafka Streaming → Notification Worker."),
+      ],
+      requiredNodes: ["worker_job"],
+      requiredEdges: [edge("kafka_streaming", "worker_job")],
+      successMessage: "Notifications added. Now Redis caching.",
+      errorMessage: "Add a Worker connected from Kafka Streaming.",
+    }),
+    step({
+      id: 3,
+      title: "Add In-Memory Cache",
+      explanation:
+        "LinkedIn's Redis Cache serves the social graph with 95%+ cache hit rate. Profile data, connection lists, and feed content are cached aggressively — MySQL can't handle direct queries at this scale.",
+      action: buildAction(
+        "In-Memory Cache",
+        "Graph Database",
+        "In-Memory Cache",
+        "social graph with 95%+ cache hit rate being served from Redis instead of expensive graph traversal"
+      ),
+      why: "Graph traversal is expensive even with a graph database. Redis caches your first-degree connections — 'people you may know' suggestions compute without graph queries 95% of the time.",
+      component: component("in_memory_cache", "In-Memory Cache"),
+      openingMessage: buildOpeningL2(
+        "LinkedIn",
+        "Redis Cache",
+        "serve the social graph with 95%+ cache hit rate instead of expensive graph database traversal",
+        "Graph traversal is expensive — Redis caches your connection graph for sub-10ms reads.",
+        "In-Memory Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "In-Memory Cache",
+        "Graph Database",
+        "LinkedIn's Redis cache serves the social graph with 95%+ hit rate. Profile data, connection lists, and feed content are cached aggressively — MySQL can't handle direct queries at this scale.",
+        "CDC Connector"
+      ),
+      messages: [
+        msg("LinkedIn's Redis Cache serves the social graph with 95%+ hit rate."),
+        msg(
+          "Profile data, connection lists, and feed content are cached aggressively. When a viral profile's connections are cached, sub-10ms reads replace expensive graph traversal."
+        ),
+        msg("Press ⌘K, search for \"In-Memory Cache\", add it, then connect Graph Database → In-Memory Cache."),
+      ],
+      requiredNodes: ["in_memory_cache"],
+      requiredEdges: [edge("graph_database", "in_memory_cache")],
+      successMessage: "Graph caching added. Now CDC pipelines.",
+      errorMessage: "Add an In-Memory Cache connected from the Graph Database.",
+    }),
+    step({
+      id: 4,
+      title: "Add CDC Connector",
+      explanation:
+        "LinkedIn's CDC Connector mirrors data to the analytics platform. Profile changes, job views, and connection graphs stream to Kafka for real-time analytics and ML training.",
+      action: buildAction(
+        "CDC Connector",
+        "Graph Database",
+        "CDC Connector",
+        "profile changes and connection graphs being mirrored to Kafka for real-time analytics and ML training"
+      ),
+      why: "Analytics queries on the production database would degrade user-facing performance. CDC streams changes to a separate analytics platform — no impact on production traffic.",
+      component: component("cdc_connector", "CDC Connector"),
+      openingMessage: buildOpeningL2(
+        "LinkedIn",
+        "CDC Connector",
+        "mirror profile changes and connection graphs to Kafka for real-time analytics and ML training",
+        "Analytics queries on the production database would degrade performance — CDC streams changes to analytics.",
+        "CDC Connector"
+      ),
+      celebrationMessage: buildCelebration(
+        "CDC Connector",
+        "Graph Database",
+        "LinkedIn's CDC Connector mirrors data to the analytics platform. Profile changes, job views, and connection graphs stream to Kafka for real-time analytics and ML training data.",
+        "SQL Database"
+      ),
+      messages: [
+        msg("CDC Connector mirrors production data to the analytics platform without impacting user-facing performance."),
+        msg(
+          "Profile changes, job views, and connection graphs stream to Kafka. Analytics consumers and ML training pipelines consume the CDC stream independently."
+        ),
+        msg("Press ⌘K, search for \"CDC Connector\", add it, then connect Graph Database → CDC Connector."),
+      ],
+      requiredNodes: ["cdc_connector"],
+      requiredEdges: [edge("graph_database", "cdc_connector")],
+      successMessage: "CDC pipelines added. Now SQL for profiles.",
+      errorMessage: "Add a CDC Connector connected from the Graph Database.",
+    }),
+    step({
+      id: 5,
+      title: "Add SQL Database",
+      explanation:
+        "LinkedIn's MySQL cluster stores profiles, job listings, and company pages. LinkedIn famously runs MySQL at scale — they even wrote their own storage engine (HeidiDB) on top of MySQL.",
+      action: buildAction(
+        "SQL Database",
+        "Graph Database",
+        "SQL Database",
+        "profiles, job listings, and company pages being stored in MySQL with LinkedIn's custom HeidiDB storage engine"
+      ),
+      why: "LinkedIn's relational data — job listings, company info, billing records — requires ACID transactions. MySQL handles this with LinkedIn's custom storage engine optimized for their access patterns.",
+      component: component("sql_db", "SQL Database"),
+      openingMessage: buildOpeningL2(
+        "LinkedIn",
+        "MySQL Cluster",
+        "store profiles, job listings, and company pages with ACID guarantees using LinkedIn's custom HeidiDB storage engine",
+        "LinkedIn runs MySQL at scale — they wrote their own storage engine for optimal performance.",
+        "SQL Database"
+      ),
+      celebrationMessage: buildCelebration(
+        "SQL Database",
+        "Graph Database",
+        "LinkedIn's MySQL cluster stores profiles, job listings, and company pages. LinkedIn famously runs MySQL at scale — they even wrote their own storage engine (HeidiDB) on top of MySQL.",
+        "Structured Logger"
+      ),
+      messages: [
+        msg("LinkedIn's MySQL cluster stores profiles, job listings, and company pages."),
+        msg(
+          "LinkedIn famously runs MySQL at scale — they even wrote their own storage engine (HeidiDB). ACID transactions ensure billing records and job applications are reliable."
+        ),
+        msg("Press ⌘K, search for \"SQL Database\", add it, then connect Graph Database → SQL Database."),
+      ],
+      requiredNodes: ["sql_db"],
+      requiredEdges: [edge("graph_database", "sql_db")],
+      successMessage: "SQL added. Now structured logging.",
+      errorMessage: "Add a SQL Database connected from the Graph Database.",
+    }),
+    step({
+      id: 6,
+      title: "Add Structured Logger",
+      explanation:
+        "LinkedIn's Structured Logger captures every feed impression, job view, and message sent. Logs flow to Kafka and then to the data lake — LinkedIn processes petabytes of logs daily.",
+      action: buildAction(
+        "Structured Logger",
+        "API Gateway",
+        "Structured Logger",
+        "every feed impression, job view, and message being captured in structured JSON logs flowing to Kafka"
+      ),
+      why: "At petabyte scale, text logs are impossible to query. Structured JSON logs with consistent schemas enable fast LogQL aggregation across billions of events per day.",
+      component: component("structured_logger", "Structured Logger"),
+      openingMessage: buildOpeningL2(
+        "LinkedIn",
+        "Structured Logger",
+        "capture every feed impression, job view, and message in structured JSON logs flowing to Kafka",
+        "At petabyte scale, text logs are impossible to query — structured JSON enables fast LogQL aggregation.",
+        "Structured Logger"
+      ),
+      celebrationMessage: buildCelebration(
+        "Structured Logger",
+        "API Gateway",
+        "LinkedIn's Structured Logger captures every feed impression, job view, and message sent. Logs flow to Kafka and then to the data lake — LinkedIn processes petabytes of logs daily.",
+        "SLO Tracker"
+      ),
+      messages: [
+        msg("LinkedIn's Structured Logger captures every feed impression, job view, and message sent."),
+        msg(
+          "Logs flow to Kafka and then to the data lake. Structured JSON with consistent schemas enables fast aggregation across billions of events per day."
+        ),
+        msg("Press ⌘K, search for \"Structured Logger\", add it, then connect API Gateway → Structured Logger."),
+      ],
+      requiredNodes: ["structured_logger"],
+      requiredEdges: [edge("api_gateway", "structured_logger")],
+      successMessage: "Structured logging added. Now SLO tracking.",
+      errorMessage: "Add a Structured Logger connected from the API Gateway.",
+    }),
+    step({
+      id: 7,
+      title: "Add SLO Tracker",
+      explanation:
+        "LinkedIn's SLO Tracker monitors feed ranking latency, search response time, and InMail delivery. Feed ranking must complete in <200ms — tracked as a top-tier SLO.",
+      action: buildAction(
+        "SLO/SLI Tracker",
+        "Feed Ranker",
+        "SLO Tracker",
+        "feed ranking latency, search response time, and InMail delivery being tracked against defined SLO targets"
+      ),
+      why: "With 1 billion members, even a 10ms regression in feed ranking impacts engagement. SLOs define what 'good enough' means — without them, teams argue about priorities.",
+      component: component("slo_tracker", "SLO/SLI Tracker"),
+      openingMessage: buildOpeningL2(
+        "LinkedIn",
+        "SLO Tracker",
+        "monitor feed ranking latency, search response time, and InMail delivery against defined SLO targets",
+        "With 1 billion members, even a 10ms regression impacts engagement — SLOs define acceptable performance.",
+        "SLO/SLI Tracker"
+      ),
+      celebrationMessage: buildCelebration(
+        "SLO Tracker",
+        "Feed Ranker",
+        "LinkedIn's SLO Tracker monitors feed ranking latency, search response time, and InMail delivery. Feed ranking must complete in <200ms — tracked as a top-tier SLO.",
+        "Error Budget Alert"
+      ),
+      messages: [
+        msg("SLO Tracker monitors feed ranking latency, search response time, and InMail delivery."),
+        msg(
+          "Feed ranking must complete in <200ms — tracked as a top-tier SLO. Search response time SLO: <100ms for 95% of queries. When these SLOs are violated, on-call is paged."
+        ),
+        msg("Press ⌘K, search for \"SLO/SLI Tracker\", add it, then connect Feed Ranker → SLO Tracker."),
+      ],
+      requiredNodes: ["slo_tracker"],
+      requiredEdges: [edge("feed_ranker", "slo_tracker")],
+      successMessage: "SLO tracking added. Now error budgets.",
+      errorMessage: "Add an SLO/SLI Tracker connected from the Feed Ranker.",
+    }),
+    step({
+      id: 8,
+      title: "Add Error Budget Alert",
+      explanation:
+        "LinkedIn's Error Budget Monitor ensures reliability investments balance feature velocity. When the feed SLO budget is consumed, deployments are halted until reliability recovers.",
+      action: buildAction(
+        "Error Budget Monitor",
+        "SLO Tracker",
+        "Error Budget Alert",
+        "error budget burn rate being tracked — halting deployments when the feed SLO budget is consumed"
+      ),
+      why: "Without error budgets, reliability is sacrificed for velocity. When the error budget burns faster than acceptable, feature launches pause until reliability recovers.",
+      component: component("error_budget_alert", "Error Budget Monitor"),
+      openingMessage: buildOpeningL2(
+        "LinkedIn",
+        "Error Budget Monitor",
+        "track error budget burn rate — halting deployments when the feed SLO budget is consumed",
+        "Without error budgets, reliability is sacrificed for velocity — deployments pause when budget depletes.",
+        "Error Budget Monitor"
+      ),
+      celebrationMessage: buildCelebration(
+        "Error Budget Alert",
+        "SLO Tracker",
+        "LinkedIn's Error Budget Monitor ensures reliability investments balance feature velocity. When the feed SLO budget is consumed, deployments are halted until reliability recovers.",
+        "Level 3"
+      ),
+      messages: [
+        msg("Error Budget Monitor tracks remaining reliability budget for the feed ranking SLO."),
+        msg(
+          "When the error budget burns faster than acceptable, feature launches pause until reliability improves. This prevents reliability from being sacrificed for velocity."
+        ),
+        msg("Press ⌘K, search for \"Error Budget Monitor\", add it, then connect SLO Tracker → Error Budget Alert."),
+      ],
+      requiredNodes: ["error_budget_alert"],
+      requiredEdges: [edge("slo_tracker", "error_budget_alert")],
+      successMessage: "Error budget monitoring added. LinkedIn is now scaled.",
+      errorMessage: "Add an Error Budget Monitor connected from the SLO Tracker.",
+    }),
+  ],
+});
+
+// ── Level 3 — LinkedIn Enterprise (11 steps) ──────────────────────────────────
+
+const l3 = level({
+  level: 3,
+  title: "LinkedIn Enterprise",
+  subtitle: "Add zero-trust networking, distributed tracing, and real-time analytics",
+  description:
+    "Implement zero-trust networking with SPIFFE mTLS, distributed tracing across 1000+ microservices, and real-time analytics with Pinot. LinkedIn Enterprise serves Fortune 500 companies with compliance-grade observability.",
+  estimatedTime: "~29 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's make LinkedIn enterprise-grade. Zero-trust networking, 1000+ microservices with distributed tracing, and real-time analytics. LinkedIn Enterprise serves companies with compliance requirements that drive every architectural decision.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Service Mesh",
+      explanation:
+        "LinkedIn's Service Mesh (Envoy) handles mTLS between 1000+ microservices. Every internal call is encrypted — LinkedIn's zero-trust architecture ensures compromised services can't impersonate others.",
+      action: buildAction(
+        "Service Mesh (Istio)",
+        "API Gateway",
+        "Service Mesh",
+        "mTLS encryption being enforced between 1000+ microservices with zero-trust architecture"
+      ),
+      why: "At 1000+ microservices, manual TLS certificate management is impossible. The service mesh handles certificate rotation and mTLS transparently — compromised containers are ejected from the mesh within minutes.",
+      component: component("service_mesh", "Service Mesh (Istio)"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "Service Mesh (Envoy)",
+        "handle mTLS between 1000+ microservices with zero-trust architecture — compromised services can't impersonate others",
+        "At 1000+ microservices, manual TLS management is impossible — the service mesh handles it transparently.",
+        "Service Mesh (Istio)"
+      ),
+      celebrationMessage: buildCelebration(
+        "Service Mesh",
+        "API Gateway",
+        "LinkedIn's Service Mesh (Envoy) handles mTLS between 1000+ microservices. Every internal call is encrypted — LinkedIn's zero-trust architecture ensures compromised services can't impersonate others.",
+        "GraphQL Federation"
+      ),
+      messages: [
+        msg("Level 3 — LinkedIn Enterprise. Service Mesh adds zero-trust networking across 1000+ microservices."),
+        msg(
+          "Every internal call is encrypted with mTLS. Compromised containers are ejected from the mesh within minutes — they can't impersonate other services."
+        ),
+        msg("Press ⌘K, search for \"Service Mesh (Istio)\", add it, then connect API Gateway → Service Mesh."),
+      ],
+      requiredNodes: ["service_mesh"],
+      requiredEdges: [edge("api_gateway", "service_mesh")],
+      successMessage: "Service mesh added. Now GraphQL Federation.",
+      errorMessage: "Add a Service Mesh connected from the API Gateway.",
+    }),
+    step({
+      id: 2,
+      title: "Add GraphQL Federation",
+      explanation:
+        "LinkedIn's GraphQL Federation composes the API from domain services: Profiles, Jobs, Companies, Messaging. Each team owns their schema while the gateway provides a unified API.",
+      action: buildAction(
+        "GraphQL Federation Gateway",
+        "Service Mesh",
+        "GraphQL Federation",
+        "Profiles, Jobs, Companies, and Messaging schemas being composed into a unified API from domain subgraphs"
+      ),
+      why: "With 1000+ microservices, clients making multiple REST calls is inefficient. GraphQL Federation lets clients fetch all needed data in one query — the gateway fans out to multiple subgraphs.",
+      component: component("graphql_federation", "GraphQL Federation Gateway"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "GraphQL Federation",
+        "compose Profiles, Jobs, Companies, and Messaging schemas into a unified API from domain subgraphs",
+        "With 1000+ microservices, clients making multiple REST calls is inefficient — GraphQL composes them.",
+        "GraphQL Federation Gateway"
+      ),
+      celebrationMessage: buildCelebration(
+        "GraphQL Federation",
+        "Service Mesh",
+        "LinkedIn's GraphQL Federation composes the API from domain services: Profiles, Jobs, Companies, Messaging. Each team owns their schema while the gateway provides a unified API.",
+        "Token Bucket Rate Limiter"
+      ),
+      messages: [
+        msg("GraphQL Federation composes the API from domain services: Profiles, Jobs, Companies, Messaging."),
+        msg(
+          "Each team owns their schema while the gateway provides a unified API. Mobile clients query one endpoint — the gateway fans out to multiple subgraphs and composes the response."
+        ),
+        msg("Press ⌘K, search for \"GraphQL Federation Gateway\", add it, then connect Service Mesh → GraphQL Federation."),
+      ],
+      requiredNodes: ["graphql_federation"],
+      requiredEdges: [edge("service_mesh", "graphql_federation")],
+      successMessage: "GraphQL Federation added. Now rate limiting.",
+      errorMessage: "Add a GraphQL Federation Gateway connected from the Service Mesh.",
+    }),
+    step({
+      id: 3,
+      title: "Add Token Bucket Rate Limiter",
+      explanation:
+        "LinkedIn's Rate Limiter uses token buckets per tier: free users get 100 API calls/day, Premium gets 500, Sales Navigator gets 5,000. Token buckets prevent abuse while allowing legitimate usage spikes.",
+      action: buildAction(
+        "Token Bucket Rate Limiter",
+        "API Gateway",
+        "Token Bucket Rate Limiter",
+        "token buckets per tier being enforced — free users get 100 calls/day, Premium 500, Sales Navigator 5,000"
+      ),
+      why: "Token buckets smooth out burst traffic while enforcing daily limits. A user scraping 10,000 profiles in an hour can't exhaust resources meant for legitimate premium users.",
+      component: component("token_bucket_limiter", "Token Bucket Rate Limiter"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "Token Bucket Rate Limiter",
+        "enforce token buckets per tier — free users 100 calls/day, Premium 500, Sales Navigator 5,000",
+        "Token buckets smooth burst traffic while enforcing daily limits — preventing resource exhaustion.",
+        "Token Bucket Rate Limiter"
+      ),
+      celebrationMessage: buildCelebration(
+        "Token Bucket Rate Limiter",
+        "API Gateway",
+        "LinkedIn's Rate Limiter uses token buckets per tier: free users get 100 API calls/day, Premium gets 500, Sales Navigator gets 5,000. Token buckets prevent abuse while allowing legitimate usage spikes.",
+        "OpenTelemetry Collector"
+      ),
+      messages: [
+        msg("Token Bucket Rate Limiter enforces per-tier API limits: free 100/day, Premium 500, Sales Navigator 5,000."),
+        msg(
+          "Token buckets smooth out burst traffic while enforcing daily limits. A user scraping 10,000 profiles in an hour can't exhaust resources meant for legitimate premium users."
+        ),
+        msg("Press ⌘K, search for \"Token Bucket Rate Limiter\", add it, then connect API Gateway → Token Bucket Rate Limiter."),
+      ],
+      requiredNodes: ["token_bucket_limiter"],
+      requiredEdges: [edge("api_gateway", "token_bucket_limiter")],
+      successMessage: "Rate limiting added. Now distributed tracing.",
+      errorMessage: "Add a Token Bucket Rate Limiter connected from the API Gateway.",
+    }),
+    step({
+      id: 4,
+      title: "Add OpenTelemetry Collector",
+      explanation:
+        "LinkedIn's OTel Collector traces feed ranking, search, and messaging pipelines. With 1000+ microservices, distributed tracing is essential — a single request touches 50+ services.",
+      action: buildAction(
+        "OTel Collector",
+        "Service Mesh",
+        "OpenTelemetry Collector",
+        "distributed traces being collected across feed ranking, search, and messaging pipelines spanning 50+ services"
+      ),
+      why: "Without distributed tracing, debugging a slow request at this scale is impossible. OTel automatically instruments every service call — a single trace links all 50+ services a request touches.",
+      component: component("otel_collector", "OTel Collector"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "OpenTelemetry Collector",
+        "collect distributed traces across 1000+ microservices — a single request touches 50+ services",
+        "Without distributed tracing, debugging a slow request is impossible — OTel links all 50+ services.",
+        "OTel Collector"
+      ),
+      celebrationMessage: buildCelebration(
+        "OpenTelemetry Collector",
+        "Service Mesh",
+        "LinkedIn's OTel Collector traces feed ranking, search, and messaging pipelines. With 1000+ microservices, distributed tracing is essential — a single request touches 50+ services.",
+        "Correlation ID Handler"
+      ),
+      messages: [
+        msg("OTel Collector traces feed ranking, search, and messaging pipelines across 1000+ microservices."),
+        msg(
+          "A single request touches 50+ services. Without distributed tracing, debugging a slow request is impossible — OTel automatically instruments every service call."
+        ),
+        msg("Press ⌘K, search for \"OTel Collector\", add it, then connect Service Mesh → OpenTelemetry Collector."),
+      ],
+      requiredNodes: ["otel_collector"],
+      requiredEdges: [edge("service_mesh", "otel_collector")],
+      successMessage: "Distributed tracing added. Now correlation IDs.",
+      errorMessage: "Add an OTel Collector connected from the Service Mesh.",
+    }),
+    step({
+      id: 5,
+      title: "Add Correlation ID Handler",
+      explanation:
+        "LinkedIn's Correlation ID links a user action (viewing a profile) to every service it touches: feed service, search service, InMail service. Debugging without correlation IDs at this scale would be impossible.",
+      action: buildAction(
+        "Correlation ID Handler",
+        "Load Balancer",
+        "Correlation ID Handler",
+        "correlation IDs linking user actions to every service they touch for end-to-end request tracing"
+      ),
+      why: "Correlation IDs are the thread that ties distributed traces together. Without them, correlating logs from 50+ services during an incident would require manual guesswork.",
+      component: component("correlation_id_handler", "Correlation ID Handler"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "Correlation ID Handler",
+        "link user actions to every service they touch — feed service, search service, InMail service — for end-to-end debugging",
+        "Correlation IDs tie distributed traces together — without them, correlating logs from 50+ services is impossible.",
+        "Correlation ID Handler"
+      ),
+      celebrationMessage: buildCelebration(
+        "Correlation ID Handler",
+        "Load Balancer",
+        "LinkedIn's Correlation ID links a user action (viewing a profile) to every service it touches: feed service, search service, InMail service. Debugging without correlation IDs at this scale would be impossible.",
+        "mTLS Certificate Authority"
+      ),
+      messages: [
+        msg("Correlation IDs link a user action to every service it touches: feed, search, InMail."),
+        msg(
+          "When debugging an incident, you search for the correlation ID and see the complete request timeline across all 50+ services — invaluable for diagnosing latency issues."
+        ),
+        msg("Press ⌘K, search for \"Correlation ID Handler\", add it, then connect Load Balancer → Correlation ID Handler."),
+      ],
+      requiredNodes: ["correlation_id_handler"],
+      requiredEdges: [edge("load_balancer", "correlation_id_handler")],
+      successMessage: "Correlation IDs added. Now certificate management.",
+      errorMessage: "Add a Correlation ID Handler connected from the Load Balancer.",
+    }),
+    step({
+      id: 6,
+      title: "Add mTLS Certificate Authority",
+      explanation:
+        "LinkedIn's SPIFFE CA issues certificates to every service pod. LinkedIn rotates certificates every 24 hours — compromised containers are ejected from the mesh within minutes.",
+      action: buildAction(
+        "SPIFFE CA",
+        "Service Mesh",
+        "mTLS Certificate Authority",
+        "SPIFFE certificates being issued to every service pod with 24-hour rotation and mesh ejection for compromised containers"
+      ),
+      why: "Manual certificate management doesn't scale to 1000+ services. SPIFFE automates certificate issuance and rotation — certificates expire in 24 hours so compromised containers can't impersonate services long.",
+      component: component("mtls_certificate_authority", "SPIFFE CA"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "SPIFFE CA",
+        "issue SPIFFE certificates to every service pod with 24-hour rotation — compromised containers ejected within minutes",
+        "Manual certificate management doesn't scale — SPIFFE automates issuance and rotation.",
+        "SPIFFE CA"
+      ),
+      celebrationMessage: buildCelebration(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "LinkedIn's SPIFFE CA issues certificates to every service pod. LinkedIn rotates certificates every 24 hours — compromised containers are ejected from the mesh within minutes.",
+        "Cache Stampede Guard"
+      ),
+      messages: [
+        msg("SPIFFE CA issues certificates to every service pod with 24-hour rotation."),
+        msg(
+          "Compromised containers are ejected from the mesh within minutes — they can't impersonate other services. This zero-trust networking is essential for enterprise compliance."
+        ),
+        msg("Press ⌘K, search for \"SPIFFE CA\", add it, then connect Service Mesh → mTLS Certificate Authority."),
+      ],
+      requiredNodes: ["mtls_certificate_authority"],
+      requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
+      successMessage: "Certificate authority added. Now cache protection.",
+      errorMessage: "Add an SPIFFE CA connected from the Service Mesh.",
+    }),
+    step({
+      id: 7,
+      title: "Add Cache Stampede Guard",
+      explanation:
+        "LinkedIn's Cache Stampede Guard protects the social graph cache from thundering herds when a viral profile's cache expires. Lock-assisted refresh ensures only one worker computes the expensive graph.",
+      action: buildAction(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "Cache Stampede Guard",
+        "lock-assisted cache refresh being used when viral profile caches expire — preventing thundering herd stampedes"
+      ),
+      why: "When a viral profile's cache expires, thousands of requests simultaneously try to recompute the graph — a thundering herd. Lock-assisted refresh ensures only one worker computes while others wait.",
+      component: component("cache_stampede_guard", "Cache Stampede Guard"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "Cache Stampede Guard",
+        "protect the social graph cache from thundering herds when viral profile caches expire using lock-assisted refresh",
+        "When a viral profile's cache expires, thousands of requests simultaneously try to recompute — lock-assisted refresh prevents this.",
+        "Cache Stampede Guard"
+      ),
+      celebrationMessage: buildCelebration(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "LinkedIn's Cache Stampede Guard protects the social graph cache from thundering herds when a viral profile's cache expires. Lock-assisted refresh ensures only one worker computes the expensive graph.",
+        "Change Data Cache"
+      ),
+      messages: [
+        msg("Cache Stampede Guard protects the social graph cache from thundering herds when viral profile caches expire."),
+        msg(
+          "Lock-assisted refresh ensures only one worker computes the expensive graph while others wait. Without this guard, thousands of simultaneous recomputations would overwhelm the database."
+        ),
+        msg("Press ⌘K, search for \"Cache Stampede Guard\", add it, then connect In-Memory Cache → Cache Stampede Guard."),
+      ],
+      requiredNodes: ["cache_stampede_guard"],
+      requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
+      successMessage: "Cache protection added. Now CDC-driven cache.",
+      errorMessage: "Add a Cache Stampede Guard connected from the In-Memory Cache.",
+    }),
+    step({
+      id: 8,
+      title: "Add Change Data Cache",
+      explanation:
+        "LinkedIn's CDC pipeline precomputes graph views: 'People You May Know', 'Jobs You May Like'. These ML features are materialized in Redis for sub-10ms retrieval.",
+      action: buildAction(
+        "CDC Connector",
+        "Graph Database",
+        "Change Data Cache",
+        "precomputed 'People You May Know' and 'Jobs You May Like' views being materialized in Redis from CDC pipeline"
+      ),
+      why: "ML features like 'People You May Know' are expensive to compute on-the-fly. CDC precomputes these features and materializes them in Redis — serving recommendations in sub-10ms instead of seconds.",
+      component: component("cdc_connector", "CDC Connector"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "Change Data Cache",
+        "precompute 'People You May Know' and 'Jobs You May Like' views in Redis from CDC pipeline for sub-10ms retrieval",
+        "ML features are expensive to compute on-the-fly — CDC precomputes them in Redis for sub-10ms serving.",
+        "CDC Connector"
+      ),
+      celebrationMessage: buildCelebration(
+        "Change Data Cache",
+        "Graph Database",
+        "LinkedIn's CDC pipeline precomputes graph views: 'People You May Know', 'Jobs You May Like'. These ML features are materialized in Redis for sub-10ms retrieval.",
+        "Data Warehouse"
+      ),
+      messages: [
+        msg("CDC pipeline precomputes 'People You May Know' and 'Jobs You May Like' views in Redis."),
+        msg(
+          "ML features are expensive to compute on-the-fly. CDC streams graph changes and recomputes recommendations in advance — serving in sub-10ms instead of seconds."
+        ),
+        msg("Press ⌘K, search for \"CDC Connector\", add another one, then connect Graph Database → Change Data Cache."),
+      ],
+      requiredNodes: ["cdc_connector"],
+      requiredEdges: [edge("graph_database", "cdc_connector")],
+      successMessage: "CDC-driven cache added. Now real-time analytics.",
+      errorMessage: "Add another CDC Connector connected from the Graph Database.",
+    }),
+    step({
+      id: 9,
+      title: "Add Data Warehouse",
+      explanation:
+        "LinkedIn's Data Warehouse (Pinot) stores activity streams for analytics: who viewed your profile, who messaged you, which jobs you clicked. Real-time analytics power the 'Who Viewed My Profile' feature.",
+      action: buildAction(
+        "Data Warehouse",
+        "Kafka",
+        "Data Warehouse",
+        "activity streams for analytics being stored in Pinot — profile views, messages, job clicks powering real-time features"
+      ),
+      why: "The 'Who Viewed My Profile' feature requires real-time analytics on profile view events. Pinot is LinkedIn's OLAP database — built for exactly this use case with sub-second query latency.",
+      component: component("data_warehouse", "Data Warehouse"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "Data Warehouse (Pinot)",
+        "store activity streams for real-time analytics — profile views, messages, job clicks powering 'Who Viewed My Profile'",
+        "The 'Who Viewed My Profile' feature requires real-time analytics — Pinot handles this with sub-second queries.",
+        "Data Warehouse"
+      ),
+      celebrationMessage: buildCelebration(
+        "Data Warehouse",
+        "Kafka",
+        "LinkedIn's Data Warehouse (Pinot) stores activity streams for analytics: who viewed your profile, who messaged you, which jobs you clicked. Real-time analytics power the 'Who Viewed My Profile' feature.",
+        "Event Store"
+      ),
+      messages: [
+        msg("Data Warehouse (Pinot) stores activity streams for real-time analytics: profile views, messages, job clicks."),
+        msg(
+          "The 'Who Viewed My Profile' feature requires real-time analytics on profile view events. Pinot is LinkedIn's OLAP database — built for exactly this use case with sub-second query latency."
+        ),
+        msg("Press ⌘K, search for \"Data Warehouse\", add it, then connect Kafka Streaming → Data Warehouse."),
+      ],
+      requiredNodes: ["data_warehouse"],
+      requiredEdges: [edge("kafka_streaming", "data_warehouse")],
+      successMessage: "Data warehouse added. Now audit logging.",
+      errorMessage: "Add a Data Warehouse connected from Kafka Streaming.",
+    }),
+    step({
+      id: 10,
+      title: "Add Event Store",
+      explanation:
+        "LinkedIn's Event Store stores every audit event: profile edits, connection requests, InMail sends. Immutable audit logs are required for GDPR compliance and legal discovery.",
+      action: buildAction(
+        "Event Store",
+        "Kafka",
+        "Event Store",
+        "immutable audit events being stored for GDPR compliance — profile edits, connection requests, InMail sends"
+      ),
+      why: "GDPR requires LinkedIn to delete user data on request — the Event Store enables compliance by providing a complete audit trail of every action taken on user data.",
+      component: component("event_store", "Event Store"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "Event Store",
+        "store immutable audit events for GDPR compliance — profile edits, connection requests, InMail sends",
+        "GDPR requires complete audit trails of user data actions — immutable event logs enable compliance.",
+        "Event Store"
+      ),
+      celebrationMessage: buildCelebration(
+        "Event Store",
+        "Kafka",
+        "LinkedIn's Event Store stores every audit event: profile edits, connection requests, InMail sends. Immutable audit logs are required for GDPR compliance and legal discovery.",
+        "BFF Gateway"
+      ),
+      messages: [
+        msg("Event Store stores immutable audit events: profile edits, connection requests, InMail sends."),
+        msg(
+          "GDPR requires LinkedIn to delete user data on request — the Event Store provides a complete audit trail of every action taken on user data for legal discovery."
+        ),
+        msg("Press ⌘K, search for \"Event Store\", add it, then connect Kafka Streaming → Event Store."),
+      ],
+      requiredNodes: ["event_store"],
+      requiredEdges: [edge("kafka_streaming", "event_store")],
+      successMessage: "Event store added. Now BFF for mobile.",
+      errorMessage: "Add an Event Store connected from Kafka Streaming.",
+    }),
+    step({
+      id: 11,
+      title: "Add BFF Gateway",
+      explanation:
+        "LinkedIn's BFF Gateway serves the mobile app with optimized APIs. The BFF aggregates data from multiple GraphQL resolvers, handles pagination, and manages session state for mobile clients.",
+      action: buildAction(
+        "BFF Gateway",
+        "GraphQL Federation",
+        "BFF Gateway",
+        "mobile-optimized APIs being aggregated from multiple GraphQL resolvers with pagination and session management"
+      ),
+      why: "Mobile clients have different requirements than web — smaller screens, offline support, battery constraints. The BFF adapts the GraphQL API for mobile-specific needs without changing the core API.",
+      component: component("bff_gateway", "BFF Gateway"),
+      openingMessage: buildOpeningL3(
+        "LinkedIn",
+        "BFF Gateway",
+        "serve mobile app with optimized APIs — aggregating GraphQL resolvers, handling pagination, managing session state",
+        "Mobile clients have different requirements — the BFF adapts the API without changing the core GraphQL schema.",
+        "BFF Gateway"
+      ),
+      celebrationMessage: buildCelebration(
+        "BFF Gateway",
+        "GraphQL Federation",
+        "LinkedIn's BFF Gateway serves the mobile app with optimized APIs. The BFF aggregates data from multiple GraphQL resolvers, handles pagination, and manages session state for mobile clients.",
+        "nothing — you have built LinkedIn Enterprise"
+      ),
+      messages: [
+        msg("BFF Gateway serves the mobile app with optimized APIs."),
+        msg(
+          "The BFF aggregates data from multiple GraphQL resolvers, handles pagination for mobile screens, and manages session state. Mobile-specific logic lives here without polluting the core API."
+        ),
+        msg("Press ⌘K, search for \"BFF Gateway\", add it, then connect GraphQL Federation → BFF Gateway."),
+      ],
+      requiredNodes: ["bff_gateway"],
+      requiredEdges: [edge("graphql_federation", "bff_gateway")],
+      successMessage: "BFF Gateway added. You have built LinkedIn Enterprise.",
+      errorMessage: "Add a BFF Gateway connected from the GraphQL Federation.",
+    }),
+  ],
+});
+
 export const linkedinTutorial: Tutorial = tutorial({
   id: 'linkedin-architecture',
   title: 'How to Design LinkedIn Architecture',
@@ -417,6 +1175,6 @@ export const linkedinTutorial: Tutorial = tutorial({
   icon: 'Linkedin',
   color: '#0a66c2',
   tags: ['Social Graph', 'Feed Ranking', 'Graph DB', 'Connections'],
-  estimatedTime: '~30 mins',
-  levels: [l1],
+  levels: [l1, l2, l3],
+  estimatedTime: '~87 mins',
 });

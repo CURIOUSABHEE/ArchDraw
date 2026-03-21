@@ -3,6 +3,8 @@ import {
   buildAction,
   buildFirstStepAction,
   buildOpeningL1,
+  buildOpeningL2,
+  buildOpeningL3,
   buildCelebration,
 } from '@/lib/tutorial/defaults';
 import type { Tutorial } from '@/lib/tutorial/types';
@@ -376,8 +378,720 @@ const l1 = level({
   ],
 });
 
+const l2 = level({
+  level: 2,
+  title: "RAG at Scale",
+  subtitle: "Stream document ingestion with embedding pipeline monitoring",
+  description:
+    "Add Kafka event streaming, Redis caching for frequent queries, CDC pipelines, and quality SLO tracking. Handle thousands of concurrent users and monitor retrieval precision alongside latency.",
+  estimatedTime: "~28 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's scale the RAG system. Thousands of concurrent users, millions of vector embeddings, and retrieval quality that must be monitored like any production service. This requires Kafka for ingestion streaming, Redis for query caching, and quality-grade observability.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Kafka Streaming",
+      explanation:
+        "RAG's Event Bus streams document ingestion events, embedding generation tasks, and query events. Every new document uploaded triggers an embedding pipeline that streams through Kafka.",
+      action: buildAction(
+        "Kafka Streaming",
+        "API Gateway",
+        "Kafka Streaming",
+        "document ingestion events, embedding generation tasks, and query events being streamed for async processing"
+      ),
+      why: "Kafka decouples document ingestion from embedding generation and query processing. Each component scales independently — ingestion bursts don't block query latency.",
+      component: component("kafka_streaming", "Kafka"),
+      openingMessage: buildOpeningL2(
+        "RAG",
+        "Kafka Streaming",
+        "stream document ingestion events, embedding generation tasks, and query events through an event bus",
+        "RAG's Event Bus streams document ingestion events, embedding generation tasks, and query events. Every new document uploaded triggers an embedding pipeline that streams through Kafka.",
+        "Kafka Streaming"
+      ),
+      celebrationMessage: buildCelebration(
+        "Kafka Streaming",
+        "API Gateway",
+        "Kafka decouples document ingestion from embedding generation and query processing. Each component scales independently — ingestion bursts don't block query latency.",
+        "Notification Worker"
+      ),
+      messages: [
+        msg("Kafka is the event bus for RAG's ingestion pipeline."),
+        msg("Every document uploaded triggers embedding generation tasks that stream through Kafka. Query events also stream through for async processing."),
+        msg('Press ⌘K, search for "Kafka Streaming", add it, then connect API Gateway → Kafka Streaming.'),
+      ],
+      requiredNodes: ["kafka_streaming"],
+      requiredEdges: [edge("api_gateway", "kafka_streaming")],
+      successMessage: "Kafka streaming added. Now the notification worker.",
+      errorMessage: "Add a Kafka Streaming node and connect API Gateway → Kafka Streaming.",
+    }),
+    step({
+      id: 2,
+      title: "Add Notification Worker",
+      explanation:
+        "RAG's Notification Worker sends alerts when document ingestion completes, embedding generation finishes, or query results are ready. Users need to know when their knowledge base is updated.",
+      action: buildAction(
+        "Worker",
+        "Kafka Streaming",
+        "Notification Worker",
+        "alerts being sent when document ingestion completes, embedding generation finishes, or query results are ready"
+      ),
+      why: "Asynchronous processing means users don't wait for ingestion to complete. Notification workers keep users informed — trust requires transparency in RAG systems.",
+      component: component("worker_job", "Worker"),
+      openingMessage: buildOpeningL2(
+        "RAG",
+        "Notification Worker",
+        "send alerts when document ingestion completes, embedding generation finishes, or query results are ready",
+        "RAG's Notification Worker sends alerts when document ingestion completes, embedding generation finishes, or query results are ready. Users need to know when their knowledge base is updated.",
+        "Worker"
+      ),
+      celebrationMessage: buildCelebration(
+        "Notification Worker",
+        "Kafka Streaming",
+        "Asynchronous processing means users don't wait for ingestion. Notification workers keep users informed — trust requires transparency in RAG systems.",
+        "In-Memory Cache"
+      ),
+      messages: [
+        msg("Notification workers keep users informed about RAG system state."),
+        msg("When document ingestion completes, embeddings finish generating, or query results are ready — users receive notifications. Trust requires transparency in RAG systems."),
+        msg('Press ⌘K, search for "Worker / Background Job", add it for Notification Worker, then connect Kafka Streaming → Notification Worker.'),
+      ],
+      requiredNodes: ["worker_job"],
+      requiredEdges: [edge("kafka_streaming", "worker_job")],
+      successMessage: "Notification worker added. Now the Redis cache.",
+      errorMessage: "Add a Worker for Notification and connect Kafka Streaming → Notification Worker.",
+    }),
+    step({
+      id: 3,
+      title: "Add Redis Cache",
+      explanation:
+        "RAG's Redis Cache stores active query results and embedding caches. Frequently asked questions get cached embedding results — avoiding expensive vector search for repeated queries.",
+      action: buildAction(
+        "In-Memory Cache",
+        "RAG Pipeline",
+        "Redis Cache",
+        "active query results and embedding caches being stored in Redis for fast retrieval"
+      ),
+      why: "RAG queries are expensive — embedding + vector search + LLM synthesis. Redis caching avoids re-running the same questions, saving 30-60% of compute on common queries.",
+      component: component("in_memory_cache", "Redis"),
+      openingMessage: buildOpeningL2(
+        "RAG",
+        "In-Memory Cache",
+        "store active query results and embedding caches in Redis to avoid expensive re-computation",
+        "RAG's Redis Cache stores active query results and embedding caches. Frequently asked questions get cached embedding results — avoiding expensive vector search for repeated queries.",
+        "Redis Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "Redis Cache",
+        "RAG Pipeline",
+        "RAG queries are expensive: embedding + vector search + LLM synthesis. Redis caching avoids re-running the same questions, saving 30-60% of compute on common queries.",
+        "CDC Connector"
+      ),
+      messages: [
+        msg("Redis caches query results and embeddings."),
+        msg("Frequently asked questions get cached embedding results — avoiding expensive vector search for repeated queries. This saves significant compute on common RAG queries."),
+        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect RAG Pipeline → Redis Cache.'),
+      ],
+      requiredNodes: ["in_memory_cache"],
+      requiredEdges: [edge("rag_pipeline", "in_memory_cache")],
+      successMessage: "Redis cache added. Now the CDC connector.",
+      errorMessage: "Add an In-Memory Cache and connect RAG Pipeline → Redis Cache.",
+    }),
+    step({
+      id: 4,
+      title: "Add CDC Connector",
+      explanation:
+        "RAG's CDC Connector mirrors ingestion metadata to the analytics platform. Document usage, query patterns, and relevance feedback stream to the data warehouse for continuous improvement.",
+      action: buildAction(
+        "CDC Connector",
+        "SQL Database",
+        "CDC Connector",
+        "ingestion metadata being mirrored to the analytics platform for query patterns and feedback analysis"
+      ),
+      why: "CDC enables analytics without querying the production database. Document usage, query patterns, and relevance feedback stream to the data warehouse — data drives RAG improvement.",
+      component: component("cdc_connector", "CDC"),
+      openingMessage: buildOpeningL2(
+        "RAG",
+        "CDC Connector",
+        "mirror ingestion metadata to the analytics platform for continuous improvement and feedback analysis",
+        "RAG's CDC Connector mirrors ingestion metadata to the analytics platform. Document usage, query patterns, and relevance feedback stream to the data warehouse for continuous improvement.",
+        "CDC Connector"
+      ),
+      celebrationMessage: buildCelebration(
+        "CDC Connector",
+        "SQL Database",
+        "CDC enables analytics without querying production. Document usage and relevance feedback stream to the data warehouse — data drives RAG improvement.",
+        "SQL Database"
+      ),
+      messages: [
+        msg("CDC Connector mirrors ingestion metadata to analytics."),
+        msg("Document usage, query patterns, and relevance feedback stream to the data warehouse. This data drives continuous improvement of chunking and retrieval strategies."),
+        msg('Press ⌘K, search for "CDC Connector", add it, then connect SQL Database → CDC Connector.'),
+      ],
+      requiredNodes: ["cdc_connector"],
+      requiredEdges: [edge("sql_db", "cdc_connector")],
+      successMessage: "CDC connector added. Now the SQL database.",
+      errorMessage: "Add a CDC Connector and connect SQL Database → CDC Connector.",
+    }),
+    step({
+      id: 5,
+      title: "Add SQL Database",
+      explanation:
+        "RAG's PostgreSQL stores user accounts, document metadata, and chunk mappings. Chunk-to-document mappings are stored alongside metadata — enabling source tracing for generated answers.",
+      action: buildAction(
+        "SQL Database",
+        "API Gateway",
+        "PostgreSQL",
+        "user accounts, document metadata, and chunk-to-document mappings being stored for source tracing"
+      ),
+      why: "SQL provides ACID guarantees for user data and document metadata. Chunk-to-document mappings enable citation — the core value proposition of RAG.",
+      component: component("sql_db", "PostgreSQL"),
+      openingMessage: buildOpeningL2(
+        "RAG",
+        "SQL Database",
+        "store user accounts, document metadata, and chunk-to-document mappings for source tracing in answers",
+        "RAG's PostgreSQL stores user accounts, document metadata, and chunk mappings. Chunk-to-document mappings are stored alongside metadata — enabling source tracing for generated answers.",
+        "SQL Database"
+      ),
+      celebrationMessage: buildCelebration(
+        "PostgreSQL",
+        "API Gateway",
+        "SQL provides ACID guarantees for user data and document metadata. Chunk-to-document mappings enable citation — the core value proposition of RAG.",
+        "Structured Logger"
+      ),
+      messages: [
+        msg("PostgreSQL stores user accounts, document metadata, and chunk mappings."),
+        msg("Chunk-to-document mappings enable source tracing for generated answers — the core value proposition of RAG. Users can verify which documents informed the answer."),
+        msg('Press ⌘K, search for "SQL Database", add it, then connect API Gateway → PostgreSQL.'),
+      ],
+      requiredNodes: ["sql_db"],
+      requiredEdges: [edge("api_gateway", "sql_db")],
+      successMessage: "SQL database added. Now the structured logger.",
+      errorMessage: "Add a SQL Database and connect API Gateway → PostgreSQL.",
+    }),
+    step({
+      id: 6,
+      title: "Add Structured Logger",
+      explanation:
+        "RAG's Structured Logger captures query latency, embedding generation time, and retrieval quality metrics. Logs flow to the observability platform — RAG quality depends on understanding retrieval performance.",
+      action: buildAction(
+        "Logger",
+        "RAG Pipeline",
+        "Structured Logger",
+        "query latency, embedding generation time, and retrieval quality metrics being captured for observability"
+      ),
+      why: "RAG quality depends on understanding retrieval performance. Structured logs with query latency, embedding time, and retrieval precision enable debugging and optimization.",
+      component: component("structured_logger", "Logger"),
+      openingMessage: buildOpeningL2(
+        "RAG",
+        "Structured Logger",
+        "capture query latency, embedding generation time, and retrieval quality metrics for observability",
+        "RAG's Structured Logger captures query latency, embedding generation time, and retrieval quality metrics. Logs flow to the observability platform — RAG quality depends on understanding retrieval performance.",
+        "Structured Logger"
+      ),
+      celebrationMessage: buildCelebration(
+        "Structured Logger",
+        "RAG Pipeline",
+        "RAG quality depends on understanding retrieval performance. Structured logs with query latency, embedding time, and retrieval precision enable debugging.",
+        "SLO Tracker"
+      ),
+      messages: [
+        msg("Structured Logger captures RAG system metrics."),
+        msg("Query latency, embedding generation time, and retrieval quality metrics flow to the observability platform. Understanding retrieval performance is essential for RAG quality."),
+        msg('Press ⌘K, search for "Logger", add it, then connect RAG Pipeline → Structured Logger.'),
+      ],
+      requiredNodes: ["structured_logger"],
+      requiredEdges: [edge("rag_pipeline", "structured_logger")],
+      successMessage: "Structured logger added. Now the SLO tracker.",
+      errorMessage: "Add a Logger and connect RAG Pipeline → Structured Logger.",
+    }),
+    step({
+      id: 7,
+      title: "Add SLO Tracker",
+      explanation:
+        "RAG's SLO Tracker monitors query latency, retrieval precision, and answer quality. Query latency must complete in <3 seconds — tracked alongside quality metrics like retrieval precision@k.",
+      action: buildAction(
+        "Metrics Collector",
+        "Structured Logger",
+        "SLO Tracker",
+        "query latency, retrieval precision, and answer quality being monitored against SLO targets"
+      ),
+      why: "SLOs define what's acceptable performance. Query latency <3s with retrieval precision@k tracked — degrading quality triggers alerts before users notice.",
+      component: component("slo_tracker", "SLO"),
+      openingMessage: buildOpeningL2(
+        "RAG",
+        "SLO Tracker",
+        "monitor query latency, retrieval precision, and answer quality against SLO targets like <3s latency",
+        "RAG's SLO Tracker monitors query latency, retrieval precision, and answer quality. Query latency must complete in <3 seconds — tracked alongside quality metrics like retrieval precision@k.",
+        "SLO Tracker"
+      ),
+      celebrationMessage: buildCelebration(
+        "SLO Tracker",
+        "Structured Logger",
+        "SLOs define acceptable performance. Query latency <3s with retrieval precision@k tracked — degrading quality triggers alerts before users notice.",
+        "Error Budget Alert"
+      ),
+      messages: [
+        msg("SLO Tracker monitors query latency and retrieval quality."),
+        msg("Query latency must complete in <3 seconds. Retrieval precision@k is tracked alongside latency — quality matters as much as speed."),
+        msg('Press ⌘K, search for "Metrics Collector", add it for SLO Tracker, then connect Structured Logger → SLO Tracker.'),
+      ],
+      requiredNodes: ["slo_tracker"],
+      requiredEdges: [edge("structured_logger", "slo_tracker")],
+      successMessage: "SLO tracker added. Now the error budget monitor.",
+      errorMessage: "Add a Metrics Collector and connect Structured Logger → SLO Tracker.",
+    }),
+    step({
+      id: 8,
+      title: "Add Error Budget Alert",
+      explanation:
+        "RAG's Error Budget Monitor tracks answer quality SLO. When retrieval precision drops (e.g., after a bad embedding model update), the error budget alerts the team before serving degraded answers to users.",
+      action: buildAction(
+        "Alert Manager",
+        "SLO Tracker",
+        "Error Budget Alert",
+        "answer quality SLO being monitored with alerts triggering when precision drops below threshold"
+      ),
+      why: "Error budgets quantify acceptable degradation. When precision drops after an embedding model update, the error budget alerts the team before degraded answers reach users.",
+      component: component("error_budget_alert", "Alert"),
+      openingMessage: buildOpeningL2(
+        "RAG",
+        "Error Budget Alert",
+        "track answer quality SLO with alerts triggering when retrieval precision drops below threshold",
+        "RAG's Error Budget Monitor tracks answer quality SLO. When retrieval precision drops (e.g., after a bad embedding model update), the error budget alerts the team before serving degraded answers to users.",
+        "Error Budget Alert"
+      ),
+      celebrationMessage: buildCelebration(
+        "Error Budget Alert",
+        "SLO Tracker",
+        "Error budgets quantify acceptable degradation. When precision drops after an embedding update, the error budget alerts the team before degraded answers reach users.",
+        "completion"
+      ),
+      messages: [
+        msg("Error Budget Monitor tracks answer quality SLO."),
+        msg("When retrieval precision drops (e.g., after a bad embedding model update), the error budget alerts the team before degraded answers reach users."),
+        msg('Press ⌘K, search for "Alert Manager", add it, then connect SLO Tracker → Error Budget Alert. This completes the RAG at Scale architecture!'),
+      ],
+      requiredNodes: ["error_budget_alert"],
+      requiredEdges: [edge("slo_tracker", "error_budget_alert")],
+      successMessage: "Error budget added. RAG at Scale is complete!",
+      errorMessage: "Add an Alert Manager and connect SLO Tracker → Error Budget Alert.",
+    }),
+  ],
+});
+
+const l3 = level({
+  level: 3,
+  title: "RAG Enterprise",
+  subtitle: "Add zero-trust AI pipelines, quality tracing, and audit logging",
+  description:
+    "Implement zero-trust networking for LLM APIs, distributed tracing for hallucination debugging, and audit logging for compliance. RAG Enterprise serves enterprises with data governance and answer quality requirements.",
+  estimatedTime: "~29 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's make RAG enterprise-grade. Zero-trust AI pipelines, distributed tracing for hallucination debugging, and immutable audit logs. RAG Enterprise serves enterprises with data governance requirements that drive every architectural decision.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Service Mesh",
+      explanation:
+        "RAG's Service Mesh (Envoy) handles mTLS between the query pipeline, embedding service, and vector database. Zero-trust networking ensures LLM API keys and document content are protected in transit.",
+      action: buildAction(
+        "Service Mesh",
+        "Load Balancer",
+        "Service Mesh",
+        "mTLS being enforced between query pipeline, embedding service, and vector database for zero-trust security"
+      ),
+      why: "Service mesh provides zero-trust networking. LLM API keys and document content are protected in transit — essential for enterprise compliance.",
+      component: component("service_mesh", "Service Mesh"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "Service Mesh (Envoy)",
+        "enforce mTLS between services for zero-trust networking, protecting LLM API keys and document content",
+        "RAG's Service Mesh (Envoy) handles mTLS between the query pipeline, embedding service, and vector database. Zero-trust networking ensures LLM API keys and document content are protected in transit.",
+        "Service Mesh"
+      ),
+      celebrationMessage: buildCelebration(
+        "Service Mesh",
+        "Load Balancer",
+        "Service mesh provides zero-trust networking. LLM API keys and document content are protected in transit — essential for enterprise compliance.",
+        "BFF Gateway"
+      ),
+      messages: [
+        msg("Service Mesh handles mTLS between services."),
+        msg("Zero-trust networking ensures LLM API keys and document content are protected in transit. Envoy-based service mesh is the standard for enterprise RAG."),
+        msg('Press ⌘K, search for "Service Mesh", add it, then connect Load Balancer → Service Mesh.'),
+      ],
+      requiredNodes: ["service_mesh"],
+      requiredEdges: [edge("load_balancer", "service_mesh")],
+      successMessage: "Service mesh added. Now the BFF gateway.",
+      errorMessage: "Add a Service Mesh and connect Load Balancer → Service Mesh.",
+    }),
+    step({
+      id: 2,
+      title: "Add BFF Gateway",
+      explanation:
+        "RAG's BFF Gateway serves the client with optimized query APIs. The BFF handles query preprocessing, result ranking, and citation formatting — aggregating multiple retrieval results into a coherent response.",
+      action: buildAction(
+        "API Gateway",
+        "Service Mesh",
+        "BFF Gateway",
+        "query preprocessing, result ranking, and citation formatting being handled for optimized client responses"
+      ),
+      why: "BFF (Backend for Frontend) optimizes API for client needs. Query preprocessing, ranking, and citation formatting — clients receive coherent responses.",
+      component: component("bff_gateway", "BFF"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "BFF Gateway",
+        "serve optimized query APIs with preprocessing, result ranking, and citation formatting for clients",
+        "RAG's BFF Gateway serves the client with optimized query APIs. The BFF handles query preprocessing, result ranking, and citation formatting — aggregating multiple retrieval results into a coherent response.",
+        "BFF Gateway"
+      ),
+      celebrationMessage: buildCelebration(
+        "BFF Gateway",
+        "Service Mesh",
+        "BFF optimizes API for client needs. Query preprocessing, ranking, and citation formatting — clients receive coherent responses.",
+        "Token Bucket Limiter"
+      ),
+      messages: [
+        msg("BFF Gateway optimizes API for client needs."),
+        msg("The BFF handles query preprocessing, result ranking, and citation formatting — aggregating multiple retrieval results into a coherent response for the client."),
+        msg('Press ⌘K, search for "API Gateway", add it for BFF, then connect Service Mesh → BFF Gateway.'),
+      ],
+      requiredNodes: ["bff_gateway"],
+      requiredEdges: [edge("service_mesh", "bff_gateway")],
+      successMessage: "BFF gateway added. Now the rate limiter.",
+      errorMessage: "Add an API Gateway and connect Service Mesh → BFF Gateway.",
+    }),
+    step({
+      id: 3,
+      title: "Add Token Bucket Rate Limiter",
+      explanation:
+        "RAG's Rate Limiter uses token buckets per API key: free tier (10 queries/min), pro tier (100/min), enterprise (unlimited). Token buckets prevent expensive embedding generation from being abused.",
+      action: buildAction(
+        "Rate Limiter",
+        "BFF Gateway",
+        "Token Bucket Limiter",
+        "queries being rate-limited per API key with token buckets: free (10/min), pro (100/min), enterprise (unlimited)"
+      ),
+      why: "Token buckets prevent abuse of expensive embedding generation. Different tiers have different limits — free tier caps costs, enterprise tier enables unlimited usage.",
+      component: component("token_bucket_limiter", "Rate Limiter"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "Token Bucket Rate Limiter",
+        "enforce per-API-key rate limits with token buckets: free tier (10/min), pro tier (100/min), enterprise (unlimited)",
+        "RAG's Rate Limiter uses token buckets per API key: free tier (10 queries/min), pro tier (100/min), enterprise (unlimited). Token buckets prevent expensive embedding generation from being abused.",
+        "Token Bucket Limiter"
+      ),
+      celebrationMessage: buildCelebration(
+        "Token Bucket Limiter",
+        "BFF Gateway",
+        "Token buckets prevent abuse of expensive embedding generation. Different tiers have different limits — free tier caps costs, enterprise tier enables unlimited.",
+        "OpenTelemetry Collector"
+      ),
+      messages: [
+        msg("Token Bucket Rate Limiter enforces tier-based limits."),
+        msg("Free tier: 10 queries/min, Pro tier: 100/min, Enterprise: unlimited. Token buckets prevent expensive embedding generation abuse."),
+        msg('Press ⌘K, search for "Rate Limiter", add it, then connect BFF Gateway → Token Bucket Limiter.'),
+      ],
+      requiredNodes: ["token_bucket_limiter"],
+      requiredEdges: [edge("bff_gateway", "token_bucket_limiter")],
+      successMessage: "Rate limiter added. Now the OTel collector.",
+      errorMessage: "Add a Rate Limiter and connect BFF Gateway → Token Bucket Limiter.",
+    }),
+    step({
+      id: 4,
+      title: "Add OpenTelemetry Collector",
+      explanation:
+        "RAG's OTel Collector traces queries through embedding lookup, vector search, reranking, and LLM synthesis. A single query touches 10+ services — tracing is essential for debugging hallucinated answers.",
+      action: buildAction(
+        "Metrics Collector",
+        "RAG Pipeline",
+        "OpenTelemetry Collector",
+        "queries being traced through embedding lookup, vector search, reranking, and LLM synthesis for debugging"
+      ),
+      why: "A single RAG query touches 10+ services. Distributed tracing through OTel is essential for debugging hallucinated answers — you must trace the entire retrieval pipeline.",
+      component: component("otel_collector", "OTel"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "OpenTelemetry Collector",
+        "trace queries through embedding lookup, vector search, reranking, and LLM synthesis for debugging",
+        "RAG's OTel Collector traces queries through embedding lookup, vector search, reranking, and LLM synthesis. A single query touches 10+ services — tracing is essential for debugging hallucinated answers.",
+        "OpenTelemetry Collector"
+      ),
+      celebrationMessage: buildCelebration(
+        "OpenTelemetry Collector",
+        "RAG Pipeline",
+        "A single RAG query touches 10+ services. Distributed tracing through OTel is essential for debugging hallucinated answers.",
+        "Correlation ID Handler"
+      ),
+      messages: [
+        msg("OpenTelemetry Collector traces queries end-to-end."),
+        msg("A single RAG query touches embedding lookup, vector search, reranking, and LLM synthesis — 10+ services. Tracing is essential for debugging hallucinated answers."),
+        msg('Press ⌘K, search for "Metrics Collector", add it for OTel, then connect RAG Pipeline → OpenTelemetry Collector.'),
+      ],
+      requiredNodes: ["otel_collector"],
+      requiredEdges: [edge("rag_pipeline", "otel_collector")],
+      successMessage: "OTel collector added. Now the correlation ID handler.",
+      errorMessage: "Add a Metrics Collector and connect RAG Pipeline → OpenTelemetry Collector.",
+    }),
+    step({
+      id: 5,
+      title: "Add Correlation ID Handler",
+      explanation:
+        "RAG's Correlation ID links a query to every step: embedding lookup, vector search, reranking, LLM call, and citation generation. Debugging a hallucinated answer requires tracing the entire retrieval pipeline.",
+      action: buildAction(
+        "Trace Context",
+        "BFF Gateway",
+        "Correlation ID Handler",
+        "correlation IDs linking a query to embedding lookup, vector search, reranking, LLM call, and citation generation"
+      ),
+      why: "Correlation IDs enable end-to-end tracing. A hallucinated answer requires tracing the entire retrieval pipeline — correlation IDs link every step.",
+      component: component("correlation_id_handler", "Correlation ID"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "Correlation ID Handler",
+        "link queries to every step: embedding lookup, vector search, reranking, LLM call, and citation generation",
+        "RAG's Correlation ID links a query to every step: embedding lookup, vector search, reranking, LLM call, and citation generation. Debugging a hallucinated answer requires tracing the entire retrieval pipeline.",
+        "Correlation ID Handler"
+      ),
+      celebrationMessage: buildCelebration(
+        "Correlation ID Handler",
+        "BFF Gateway",
+        "Correlation IDs enable end-to-end tracing. A hallucinated answer requires tracing the entire retrieval pipeline.",
+        "mTLS Certificate Authority"
+      ),
+      messages: [
+        msg("Correlation ID Handler links queries to every step."),
+        msg("Embedding lookup, vector search, reranking, LLM call, and citation generation — all linked by correlation ID for complete traceability."),
+        msg('Press ⌘K, search for "Trace Context", add it, then connect BFF Gateway → Correlation ID Handler.'),
+      ],
+      requiredNodes: ["correlation_id_handler"],
+      requiredEdges: [edge("bff_gateway", "correlation_id_handler")],
+      successMessage: "Correlation ID handler added. Now the mTLS CA.",
+      errorMessage: "Add a Trace Context and connect BFF Gateway → Correlation ID Handler.",
+    }),
+    step({
+      id: 6,
+      title: "Add mTLS Certificate Authority",
+      explanation:
+        "RAG's SPIFFE CA issues certificates to every service. LLM API keys are stored in secrets management — services authenticate with mTLS before retrieving API keys.",
+      action: buildAction(
+        "Certificate Authority",
+        "Service Mesh",
+        "mTLS Certificate Authority",
+        "SPIFFE certificates being issued to every service with secrets management for LLM API keys"
+      ),
+      why: "SPIFFE CA provides identity for zero-trust. Services authenticate with mTLS before retrieving LLM API keys from secrets management.",
+      component: component("mtls_certificate_authority", "SPIFFE CA"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "mTLS Certificate Authority",
+        "issue SPIFFE certificates to every service with secrets management for LLM API key retrieval",
+        "RAG's SPIFFE CA issues certificates to every service. LLM API keys are stored in secrets management — services authenticate with mTLS before retrieving API keys.",
+        "mTLS Certificate Authority"
+      ),
+      celebrationMessage: buildCelebration(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "SPIFFE CA provides identity for zero-trust. Services authenticate with mTLS before retrieving LLM API keys from secrets management.",
+        "Cache Stampede Guard"
+      ),
+      messages: [
+        msg("mTLS Certificate Authority issues SPIFFE certificates."),
+        msg("Every service authenticates with mTLS before retrieving LLM API keys from secrets management. This is zero-trust security."),
+        msg('Press ⌘K, search for "Certificate Authority", add it, then connect Service Mesh → mTLS Certificate Authority.'),
+      ],
+      requiredNodes: ["mtls_certificate_authority"],
+      requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
+      successMessage: "mTLS CA added. Now the cache stampede guard.",
+      errorMessage: "Add a Certificate Authority and connect Service Mesh → mTLS Certificate Authority.",
+    }),
+    step({
+      id: 7,
+      title: "Add Cache Stampede Guard",
+      explanation:
+        "RAG's Cache Stampede Guard prevents embedding cache stampedes when a popular document's embeddings expire. Lock-assisted refresh ensures only one worker regenerates expensive embeddings.",
+      action: buildAction(
+        "Cache Stampede Prevention",
+        "In-Memory Cache",
+        "Cache Stampede Guard",
+        "embedding cache stampedes being prevented with lock-assisted refresh when popular document embeddings expire"
+      ),
+      why: "When cache expires for popular documents, thousands of requests could regenerate embeddings simultaneously. Lock-assisted refresh ensures only one worker regenerates.",
+      component: component("cache_stampede_guard", "Cache Stampede"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "Cache Stampede Guard",
+        "prevent embedding cache stampedes with lock-assisted refresh when popular document embeddings expire",
+        "RAG's Cache Stampede Guard prevents embedding cache stampedes when a popular document's embeddings expire. Lock-assisted refresh ensures only one worker regenerates expensive embeddings.",
+        "Cache Stampede Guard"
+      ),
+      celebrationMessage: buildCelebration(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "When cache expires for popular documents, thousands of requests could regenerate embeddings simultaneously. Lock-assisted refresh ensures only one worker regenerates.",
+        "Change Data Cache"
+      ),
+      messages: [
+        msg("Cache Stampede Guard prevents thundering herd."),
+        msg("When a popular document's embeddings expire, lock-assisted refresh ensures only one worker regenerates expensive embeddings — not thousands."),
+        msg('Press ⌘K, search for "Cache Stampede Prevention", add it, then connect In-Memory Cache → Cache Stampede Guard.'),
+      ],
+      requiredNodes: ["cache_stampede_guard"],
+      requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
+      successMessage: "Cache stampede guard added. Now the CDC cache.",
+      errorMessage: "Add a Cache Stampede Prevention and connect In-Memory Cache → Cache Stampede Guard.",
+    }),
+    step({
+      id: 8,
+      title: "Add Change Data Cache",
+      explanation:
+        "RAG's CDC pipeline precomputes query result caches and frequently accessed document embeddings. These are materialized in Redis for sub-10ms retrieval during query time.",
+      action: buildAction(
+        "Change Data Cache",
+        "CDC Connector",
+        "Change Data Cache",
+        "query result caches and document embeddings being precomputed and materialized in Redis for fast retrieval"
+      ),
+      why: "CDC captures data changes and precomputes caches. Materialized in Redis for sub-10ms retrieval — query time doesn't pay the compute cost.",
+      component: component("change_data_cache", "CDC Cache"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "Change Data Cache",
+        "precompute query result caches and document embeddings in Redis for sub-10ms retrieval at query time",
+        "RAG's CDC pipeline precomputes query result caches and frequently accessed document embeddings. These are materialized in Redis for sub-10ms retrieval during query time.",
+        "Change Data Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "Change Data Cache",
+        "CDC Connector",
+        "CDC captures data changes and precomputes caches. Materialized in Redis for sub-10ms retrieval — query time doesn't pay the compute cost.",
+        "Data Warehouse"
+      ),
+      messages: [
+        msg("Change Data Cache precomputes caches from CDC."),
+        msg("Query result caches and frequently accessed document embeddings are materialized in Redis for sub-10ms retrieval. Query time doesn't pay the compute cost."),
+        msg('Press ⌘K, search for "Change Data Cache", add it, then connect CDC Connector → Change Data Cache.'),
+      ],
+      requiredNodes: ["change_data_cache"],
+      requiredEdges: [edge("cdc_connector", "change_data_cache")],
+      successMessage: "CDC cache added. Now the data warehouse.",
+      errorMessage: "Add a Change Data Cache and connect CDC Connector → Change Data Cache.",
+    }),
+    step({
+      id: 9,
+      title: "Add Data Warehouse",
+      explanation:
+        "RAG's Data Warehouse (ClickHouse) stores query logs, retrieval quality metrics, and user feedback. This data trains reranking models, improves chunking strategies, and identifies knowledge gaps.",
+      action: buildAction(
+        "Data Warehouse",
+        "Kafka Streaming",
+        "ClickHouse",
+        "query logs, retrieval quality metrics, and user feedback being stored for training reranking models"
+      ),
+      why: "Data warehouse stores query logs and quality metrics. This data trains reranking models, improves chunking strategies, and identifies knowledge gaps.",
+      component: component("data_warehouse", "ClickHouse"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "Data Warehouse",
+        "store query logs, retrieval quality metrics, and user feedback for reranking model training and improvement",
+        "RAG's Data Warehouse (ClickHouse) stores query logs, retrieval quality metrics, and user feedback. This data trains reranking models, improves chunking strategies, and identifies knowledge gaps.",
+        "Data Warehouse"
+      ),
+      celebrationMessage: buildCelebration(
+        "Data Warehouse",
+        "Kafka Streaming",
+        "Data warehouse stores query logs and quality metrics. This data trains reranking models, improves chunking, and identifies knowledge gaps.",
+        "Event Store"
+      ),
+      messages: [
+        msg("Data Warehouse stores query logs and quality metrics."),
+        msg("Query logs, retrieval quality metrics, and user feedback train reranking models, improve chunking strategies, and identify knowledge gaps."),
+        msg('Press ⌘K, search for "Data Warehouse", add it, then connect Kafka Streaming → Data Warehouse.'),
+      ],
+      requiredNodes: ["data_warehouse"],
+      requiredEdges: [edge("kafka_streaming", "data_warehouse")],
+      successMessage: "Data warehouse added. Now the event store.",
+      errorMessage: "Add a Data Warehouse and connect Kafka Streaming → Data Warehouse.",
+    }),
+    step({
+      id: 10,
+      title: "Add Event Store",
+      explanation:
+        "RAG's Event Store stores every document ingestion event and query event. Immutable event logs enable audit trails for compliance — critical for enterprise RAG deployments on sensitive documents.",
+      action: buildAction(
+        "Event Store",
+        "Kafka Streaming",
+        "Event Store",
+        "every document ingestion event and query event being stored for immutable audit trails"
+      ),
+      why: "Event store provides immutable audit trails. Enterprise RAG on sensitive documents requires compliance — who accessed what document and when.",
+      component: component("event_store", "Event Store"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "Event Store",
+        "store every document ingestion and query event for immutable audit trails critical for compliance",
+        "RAG's Event Store stores every document ingestion event and query event. Immutable event logs enable audit trails for compliance — critical for enterprise RAG deployments on sensitive documents.",
+        "Event Store"
+      ),
+      celebrationMessage: buildCelebration(
+        "Event Store",
+        "Kafka Streaming",
+        "Event store provides immutable audit trails. Enterprise RAG on sensitive documents requires compliance — who accessed what document and when.",
+        "Prefetch Cache"
+      ),
+      messages: [
+        msg("Event Store maintains immutable audit logs."),
+        msg("Every document ingestion event and query event is stored. Immutable logs enable audit trails for compliance — critical for enterprise RAG on sensitive documents."),
+        msg('Press ⌘K, search for "Event Store", add it, then connect Kafka Streaming → Event Store.'),
+      ],
+      requiredNodes: ["event_store"],
+      requiredEdges: [edge("kafka_streaming", "event_store")],
+      successMessage: "Event store added. Now the prefetch cache.",
+      errorMessage: "Add an Event Store and connect Kafka Streaming → Event Store.",
+    }),
+    step({
+      id: 11,
+      title: "Add Prefetch Cache",
+      explanation:
+        "RAG's Prefetch Cache anticipates queries based on document similarity. When a user queries about a document, embeddings for semantically similar documents are preloaded into cache.",
+      action: buildAction(
+        "Prefetch Cache",
+        "Vector DB",
+        "Prefetch Cache",
+        "semantically similar document embeddings being preloaded into cache based on document similarity"
+      ),
+      why: "Prefetching based on document similarity reduces query latency. When a user queries about a document, similar documents are pre-cached for fast retrieval.",
+      component: component("prefetch_cache", "Prefetch"),
+      openingMessage: buildOpeningL3(
+        "RAG",
+        "Prefetch Cache",
+        "preload semantically similar document embeddings into cache based on document similarity for faster retrieval",
+        "RAG's Prefetch Cache anticipates queries based on document similarity. When a user queries about a document, embeddings for semantically similar documents are preloaded into cache.",
+        "Prefetch Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "Prefetch Cache",
+        "Vector DB",
+        "Prefetching based on document similarity reduces query latency. When a user queries about a document, similar documents are pre-cached.",
+        "completion"
+      ),
+      messages: [
+        msg("Prefetch Cache anticipates queries."),
+        msg("Based on document similarity, embeddings for semantically similar documents are preloaded into cache. This reduces query latency for related topics."),
+        msg('Press ⌘K, search for "Prefetch Cache", add it, then connect Vector DB → Prefetch Cache. This completes the RAG Enterprise architecture!'),
+      ],
+      requiredNodes: ["prefetch_cache"],
+      requiredEdges: [edge("vector_db", "prefetch_cache")],
+      successMessage: "Prefetch cache added. RAG Enterprise is complete!",
+      errorMessage: "Add a Prefetch Cache and connect Vector DB → Prefetch Cache.",
+    }),
+  ],
+});
+
 export const ragTutorial: Tutorial = tutorial({
-  id: 'rag-application',
+  id: 'rag-application-architecture',
   title: 'How to Design a RAG Application',
   description:
     'Build a production RAG (Retrieval-Augmented Generation) system. Learn document ingestion, chunking strategies, vector embeddings, semantic search, and LLM synthesis at scale.',
@@ -387,6 +1101,6 @@ export const ragTutorial: Tutorial = tutorial({
   icon: 'Brain',
   color: '#ec4899',
   tags: ['Vector DB', 'Embeddings', 'LLM', 'Retrieval'],
-  estimatedTime: '~25 mins',
-  levels: [l1],
+  estimatedTime: '~87 mins',
+  levels: [l1, l2, l3],
 });

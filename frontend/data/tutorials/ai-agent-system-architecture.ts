@@ -3,6 +3,8 @@ import {
   buildAction,
   buildFirstStepAction,
   buildOpeningL1,
+  buildOpeningL2,
+  buildOpeningL3,
   buildCelebration,
 } from '@/lib/tutorial/defaults';
 import type { Tutorial } from '@/lib/tutorial/types';
@@ -412,8 +414,720 @@ const l1 = level({
   ],
 });
 
+const l2 = level({
+  level: 2,
+  title: "AI Agent at Scale",
+  subtitle: "Stream agent executions with memory and tool observability",
+  description:
+    "Add Kafka event streaming, Redis memory caching, CDC pipelines, and SLO tracking to the AI agent architecture. Handle thousands of concurrent agents with full reasoning trace observability.",
+  estimatedTime: "~28 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's scale the AI Agent system. Thousands of concurrent agents, millions of tool calls, and full reasoning trace observability. This requires Kafka for execution streaming, Redis for session state, and reasoning-grade observability.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Kafka Streaming",
+      explanation:
+        "AI Agent's Event Bus streams agent execution events, tool call results, and memory updates. Every agent action generates an event that streams to the observability and memory systems.",
+      action: buildAction(
+        "Kafka / Streaming",
+        "Agent Orchestrator",
+        "Kafka Streaming",
+        "agent execution events, tool call results, and memory updates being streamed to observability and memory systems"
+      ),
+      why: "Without event streaming, every agent action would require synchronous calls to observability and memory systems — slowing down execution. Kafka decouples agents from their dependencies.",
+      component: component("kafka_streaming", "Kafka / Streaming", "Kafka / Streaming"),
+      openingMessage: buildOpeningL2(
+        "AI Agent",
+        "Kafka",
+        "stream agent execution events, tool call results, and memory updates to observability and memory systems",
+        "Without Kafka, agent actions require synchronous calls to every downstream system.",
+        "Kafka / Streaming"
+      ),
+      celebrationMessage: buildCelebration(
+        "Kafka Streaming",
+        "Agent Orchestrator",
+        "Kafka streams every agent action event to observability and memory consumers. Tool call results, planning decisions, memory retrievals — all flow through the event bus without slowing agent execution.",
+        "Notification Worker"
+      ),
+      messages: [
+        msg("Let's scale the AI Agent system. Thousands of concurrent agents, millions of tool calls — this requires Kafka for execution streaming."),
+        msg("Every agent action generates an event: tool called, result received, decision made. Kafka streams these events to the observability platform and memory system in real time."),
+        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Agent Orchestrator → Kafka Streaming.'),
+      ],
+      requiredNodes: ["kafka_streaming"],
+      requiredEdges: [edge("agent_orchestrator", "kafka_streaming")],
+      successMessage: "Kafka added. Now notifications.",
+      errorMessage: "Add Kafka Streaming connected from the Agent Orchestrator.",
+    }),
+    step({
+      id: 2,
+      title: "Add Notification Worker",
+      explanation:
+        "AI Agent's Notification Worker sends alerts when long-running agents complete, when human-in-the-loop approval is needed, or when agents encounter errors requiring intervention.",
+      action: buildAction(
+        "Worker",
+        "Kafka",
+        "Notification Worker",
+        "alerts being sent when agents complete, approval is needed, or errors require human intervention"
+      ),
+      why: "Agents can run for hours. Without notification workers, users would have to poll for completion. Workers send alerts when agents need attention.",
+      component: component("worker_job", "Worker"),
+      openingMessage: buildOpeningL2(
+        "AI Agent",
+        "Notification Worker",
+        "send alerts when agents complete, human approval is needed, or errors require intervention",
+        "Agents can run for hours — notification workers alert users when intervention is needed.",
+        "Worker"
+      ),
+      celebrationMessage: buildCelebration(
+        "Notification Worker",
+        "Kafka Streaming",
+        "Notification workers consume Kafka events to alert users: long-running agents completed, human-in-the-loop approval is needed, or agents encountered errors requiring intervention.",
+        "In-Memory Cache"
+      ),
+      messages: [
+        msg("Long-running agents need notification workers to alert users when action is required."),
+        msg("Workers consume Kafka events to send notifications: agent completed, approval needed, or error encountered. This prevents users from having to poll for agent status."),
+        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+      ],
+      requiredNodes: ["worker_job"],
+      requiredEdges: [edge("kafka_streaming", "worker_job")],
+      successMessage: "Notification worker added. Now memory caching.",
+      errorMessage: "Add a Worker connected from Kafka Streaming.",
+    }),
+    step({
+      id: 3,
+      title: "Add In-Memory Cache",
+      explanation:
+        "AI Agent's Redis Cache stores agent session state, tool outputs, and conversation history. Long-running agents maintain state across thousands of tool calls — cached in Redis for sub-millisecond retrieval.",
+      action: buildAction(
+        "In-Memory Cache",
+        "Agent Orchestrator",
+        "In-Memory Cache",
+        "agent session state, tool outputs, and conversation history being cached for sub-millisecond retrieval"
+      ),
+      why: "Without Redis, agent session state would require database queries on every tool call. Redis caches session state — agents can retrieve context across thousands of tool calls without slowing down.",
+      component: component("in_memory_cache", "In-Memory Cache"),
+      openingMessage: buildOpeningL2(
+        "AI Agent",
+        "Redis (In-Memory Cache)",
+        "cache agent session state, tool outputs, and conversation history for sub-millisecond retrieval",
+        "Without Redis, every tool call would query the database for session state — Redis keeps agents fast.",
+        "In-Memory Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "In-Memory Cache",
+        "Agent Orchestrator",
+        "Redis caches agent session state across thousands of tool calls. Tool outputs, conversation history, and planning context are retrieved in under 1ms — keeping long-running agents responsive.",
+        "CDC Connector"
+      ),
+      messages: [
+        msg("Long-running agents maintain state across thousands of tool calls — Redis caches this session state."),
+        msg("Without Redis, every tool call would query the database for context. Redis stores session state, tool outputs, and conversation history for sub-millisecond retrieval."),
+        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect Agent Orchestrator → In-Memory Cache.'),
+      ],
+      requiredNodes: ["in_memory_cache"],
+      requiredEdges: [edge("agent_orchestrator", "in_memory_cache")],
+      successMessage: "Cache added. Now CDC pipeline.",
+      errorMessage: "Add an In-Memory Cache connected from the Agent Orchestrator.",
+    }),
+    step({
+      id: 4,
+      title: "Add CDC Connector",
+      explanation:
+        "AI Agent's CDC Connector mirrors agent execution data to the analytics platform. Tool usage patterns, agent success rates, and memory retrieval effectiveness stream to the data warehouse.",
+      action: buildAction(
+        "CDC Connector",
+        "Agent Memory",
+        "CDC Connector",
+        "agent execution data being mirrored to the analytics platform for tool usage patterns and success rate analysis"
+      ),
+      why: "CDC (Change Data Capture) streams database changes to the analytics platform without impacting agent performance. Tool usage patterns, success rates, and memory effectiveness are analyzed without slowing the agent path.",
+      component: component("cdc_connector", "CDC Connector"),
+      openingMessage: buildOpeningL2(
+        "AI Agent",
+        "CDC Connector",
+        "mirror agent execution data to the analytics platform for tool usage and success rate analysis",
+        "CDC streams database changes to analytics without impacting agent performance.",
+        "CDC Connector"
+      ),
+      celebrationMessage: buildCelebration(
+        "CDC Connector",
+        "Agent Memory",
+        "CDC Connector mirrors agent execution data to the analytics platform. Tool usage patterns, agent success rates, and memory retrieval effectiveness stream to the data warehouse for analysis.",
+        "SQL Database"
+      ),
+      messages: [
+        msg("CDC Connector mirrors agent execution data to the analytics platform for tool usage and success rate analysis."),
+        msg("Change Data Capture streams database changes to analytics without impacting agent performance. Tool patterns, success rates, and memory effectiveness are analyzed in the data warehouse."),
+        msg('Press ⌘K, search for "CDC Connector", add it, then connect Agent Memory → CDC Connector.'),
+      ],
+      requiredNodes: ["cdc_connector"],
+      requiredEdges: [edge("agent_memory", "cdc_connector")],
+      successMessage: "CDC added. Now SQL database.",
+      errorMessage: "Add a CDC Connector connected from the Agent Memory.",
+    }),
+    step({
+      id: 5,
+      title: "Add SQL Database",
+      explanation:
+        "AI Agent's PostgreSQL stores user accounts, agent definitions, tool configurations, and execution logs. Agent definitions include tool permissions and resource limits — stored in PostgreSQL with fine-grained access control.",
+      action: buildAction(
+        "SQL Database",
+        "API Gateway",
+        "SQL Database",
+        "user accounts, agent definitions, tool configurations, and execution logs being stored with fine-grained access control"
+      ),
+      why: "Agent definitions and tool permissions require ACID transactions. PostgreSQL stores user accounts, agent configurations, and execution logs with the consistency required for access control.",
+      component: component("sql_db", "SQL Database"),
+      openingMessage: buildOpeningL2(
+        "AI Agent",
+        "SQL Database",
+        "store user accounts, agent definitions, tool permissions, and execution logs with ACID guarantees",
+        "Agent definitions and tool permissions require ACID transactions — PostgreSQL handles access control.",
+        "SQL Database"
+      ),
+      celebrationMessage: buildCelebration(
+        "SQL Database",
+        "API Gateway",
+        "PostgreSQL stores user accounts, agent definitions, tool configurations, and execution logs. Agent definitions include tool permissions and resource limits — stored with fine-grained access control.",
+        "Structured Logger"
+      ),
+      messages: [
+        msg("User accounts, agent definitions, and tool configurations require ACID compliance. PostgreSQL stores these with fine-grained access control."),
+        msg("Agent definitions include tool permissions and resource limits — these must be consistent and auditable. PostgreSQL handles the access control that keeps agents secure."),
+        msg('Press ⌘K, search for "SQL Database", add it, then connect API Gateway → SQL Database.'),
+      ],
+      requiredNodes: ["sql_db"],
+      requiredEdges: [edge("api_gateway", "sql_db")],
+      successMessage: "SQL added. Now structured logging.",
+      errorMessage: "Add a SQL Database connected from the API Gateway.",
+    }),
+    step({
+      id: 6,
+      title: "Add Structured Logger",
+      explanation:
+        "AI Agent's Structured Logger captures agent reasoning chains, tool call inputs/outputs, and decision points. Logs flow to the observability platform — agent debugging requires full reasoning trace logging.",
+      action: buildAction(
+        "Structured Logger",
+        "Agent Orchestrator",
+        "Structured Logger",
+        "agent reasoning chains, tool call inputs/outputs, and decision points being captured for full observability"
+      ),
+      why: "Agent systems are notoriously hard to debug. Every reasoning step, tool call, and decision must be logged. Structured JSON logs enable fast aggregation and debugging of agent failures.",
+      component: component("structured_logger", "Structured Logger"),
+      openingMessage: buildOpeningL2(
+        "AI Agent",
+        "Structured Logger",
+        "capture agent reasoning chains, tool call inputs/outputs, and decision points for full observability",
+        "Agent debugging requires full reasoning trace logging — structured logs enable fast debugging.",
+        "Structured Logger"
+      ),
+      celebrationMessage: buildCelebration(
+        "Structured Logger",
+        "Agent Orchestrator",
+        "Structured Logger captures every reasoning step, tool call, and decision. Logs flow to the observability platform — agent debugging requires full reasoning trace logging.",
+        "SLO Tracker"
+      ),
+      messages: [
+        msg("Structured Logger captures agent reasoning chains, tool call inputs/outputs, and decision points for debugging."),
+        msg("Agent systems are notoriously hard to debug. Every reasoning step, tool call, and decision must be logged. Structured JSON logs enable fast aggregation and debugging of agent failures."),
+        msg('Press ⌘K, search for "Structured Logger", add it, then connect Agent Orchestrator → Structured Logger.'),
+      ],
+      requiredNodes: ["structured_logger"],
+      requiredEdges: [edge("agent_orchestrator", "structured_logger")],
+      successMessage: "Structured logging added. Now SLO tracking.",
+      errorMessage: "Add a Structured Logger connected from the Agent Orchestrator.",
+    }),
+    step({
+      id: 7,
+      title: "Add SLO Tracker",
+      explanation:
+        "AI Agent's SLO Tracker monitors agent execution time, tool call success rate, and memory retrieval quality. Long-running agents must complete within timeout — tracked as a critical SLO.",
+      action: buildAction(
+        "SLO/SLI Tracker",
+        "Metrics Collector",
+        "SLO Tracker",
+        "agent execution time, tool call success rate, and memory retrieval quality being tracked against defined SLOs"
+      ),
+      why: "Without SLOs, engineering teams can't measure agent reliability. SLO tracking monitors tool call success rates and memory retrieval quality — alerting when agents fall below acceptable thresholds.",
+      component: component("slo_tracker", "SLO/SLI Tracker"),
+      openingMessage: buildOpeningL2(
+        "AI Agent",
+        "SLO Tracker",
+        "monitor agent execution time, tool call success rate, and memory retrieval quality against defined SLOs",
+        "Without SLOs, engineering teams can't measure agent reliability.",
+        "SLO/SLI Tracker"
+      ),
+      celebrationMessage: buildCelebration(
+        "SLO Tracker",
+        "Metrics Collector",
+        "SLO Tracker monitors agent execution time, tool call success rate, and memory retrieval quality. Long-running agents must complete within timeout — tracked as a critical SLO.",
+        "Error Budget Alert"
+      ),
+      messages: [
+        msg("SLO Tracker monitors agent execution time, tool call success rate, and memory retrieval quality against defined SLOs."),
+        msg("Long-running agents must complete within timeout — tracked as a critical SLO. When tool call success rates fall or memory retrieval degrades, the SLO tracker alerts the team."),
+        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO Tracker.'),
+      ],
+      requiredNodes: ["slo_tracker"],
+      requiredEdges: [edge("metrics_collector", "slo_tracker")],
+      successMessage: "SLO tracking added. Now error budgets.",
+      errorMessage: "Add an SLO/SLI Tracker connected from the Metrics Collector.",
+    }),
+    step({
+      id: 8,
+      title: "Add Error Budget Alert",
+      explanation:
+        "AI Agent's Error Budget Monitor tracks tool call success rate SLO. When a tool API degrades, the error budget alerts the team to switch to fallback tools before agents start failing.",
+      action: buildAction(
+        "Error Budget Monitor",
+        "SLO/SLI Tracker",
+        "Error Budget Alert",
+        "tool call success rate SLO being tracked with alerts when error budget burns from tool API degradation"
+      ),
+      why: "The error budget quantifies how much unreliability is acceptable. When a tool API degrades and starts failing, the error budget alerts the team to switch to fallback tools before agents fail.",
+      component: component("error_budget_alert", "Error Budget Monitor"),
+      openingMessage: buildOpeningL2(
+        "AI Agent",
+        "Error Budget Monitor",
+        "track tool call success rate SLO and alert when error budget burns from tool API degradation",
+        "Error budgets quantify acceptable unreliability — alerting teams before agents start failing.",
+        "Error Budget Monitor"
+      ),
+      celebrationMessage: buildCelebration(
+        "Error Budget Monitor",
+        "SLO Tracker",
+        "Error Budget Monitor tracks tool call success rate SLO. When a tool API degrades, the error budget alerts the team to switch to fallback tools before agents start failing.",
+        "Level 3"
+      ),
+      messages: [
+        msg("Error Budget Monitor tracks tool call success rate SLO. When error budget burns from tool API degradation, the team gets alerted to switch to fallback tools."),
+        msg("The error budget quantifies acceptable unreliability. When a tool API degrades, alerts prompt the team to switch to fallback tools before agents start failing."),
+        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO Tracker → Error Budget Alert.'),
+      ],
+      requiredNodes: ["error_budget_alert"],
+      requiredEdges: [edge("slo_tracker", "error_budget_alert")],
+      successMessage: "Error budget monitoring added. AI Agent at Scale is complete.",
+      errorMessage: "Add an Error Budget Monitor connected from the SLO Tracker.",
+    }),
+  ],
+});
+
+const l3 = level({
+  level: 3,
+  title: "AI Agent Enterprise",
+  subtitle: "Add zero-trust tool execution, reasoning tracing, and saga orchestration",
+  description:
+    "Implement zero-trust networking for tool execution, distributed tracing for agent reasoning, and saga orchestration for multi-step workflows. AI Agent Enterprise serves enterprises with audit and safety requirements.",
+  estimatedTime: "~29 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's make AI Agent enterprise-grade. Zero-trust tool execution, reasoning trace tracing, and saga-based workflow orchestration. AI Agent Enterprise serves enterprises with safety, audit, and compliance requirements that drive every architectural decision.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Service Mesh",
+      explanation:
+        "AI Agent's Service Mesh (Envoy) handles mTLS between agent orchestrators, tool services, and memory stores. Agents execute external tools — zero-trust networking ensures tool outputs are authenticated and not tampered with.",
+      action: buildAction(
+        "Service Mesh (Istio)",
+        "API Gateway",
+        "Service Mesh",
+        "mTLS being enforced between agent orchestrators, tool services, and memory stores for zero-trust tool execution"
+      ),
+      why: "Agents execute external tools — tool outputs must be authenticated and not tampered with. Service mesh provides zero-trust networking: every service-to-service call is encrypted and verified.",
+      component: component("service_mesh", "Service Mesh (Istio)"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "Service Mesh (Envoy)",
+        "enforce mTLS between agent orchestrators, tool services, and memory stores for zero-trust networking",
+        "Agents execute external tools — zero-trust networking ensures tool outputs are authenticated.",
+        "Service Mesh (Istio)"
+      ),
+      celebrationMessage: buildCelebration(
+        "Service Mesh",
+        "API Gateway",
+        "Service mesh handles mTLS between agent orchestrators, tool services, and memory stores. Zero-trust networking ensures tool outputs are authenticated and not tampered with.",
+        "BFF Gateway"
+      ),
+      messages: [
+        msg("Let's make AI Agent enterprise-grade. Zero-trust tool execution requires a service mesh for mTLS between all services."),
+        msg("Agents execute external tools — tool outputs must be authenticated and not tampered with. Service mesh provides zero-trust networking: every service-to-service call is encrypted and verified."),
+        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect API Gateway → Service Mesh.'),
+      ],
+      requiredNodes: ["service_mesh"],
+      requiredEdges: [edge("api_gateway", "service_mesh")],
+      successMessage: "Service mesh added. Now BFF gateway.",
+      errorMessage: "Add a Service Mesh connected from the API Gateway.",
+    }),
+    step({
+      id: 2,
+      title: "Add BFF Gateway",
+      explanation:
+        "AI Agent's BFF Gateway serves the client with agent management APIs. The BFF handles agent deployment, streaming responses, and human-in-the-loop approval flows for sensitive operations.",
+      action: buildAction(
+        "BFF Gateway",
+        "Service Mesh",
+        "BFF Gateway",
+        "agent management APIs being served to clients including deployment, streaming responses, and human-in-the-loop approval"
+      ),
+      why: "The BFF (Backend for Frontend) handles client-specific requirements: streaming responses, session management, and human-in-the-loop approval flows for sensitive agent operations.",
+      component: component("bff_gateway", "BFF Gateway"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "BFF Gateway",
+        "serve client-specific APIs: agent deployment, streaming responses, and human-in-the-loop approval flows",
+        "BFF handles client-specific requirements: streaming, session management, and approval flows.",
+        "BFF Gateway"
+      ),
+      celebrationMessage: buildCelebration(
+        "BFF Gateway",
+        "Service Mesh",
+        "BFF Gateway serves client-specific APIs: agent deployment, streaming responses, and human-in-the-loop approval flows for sensitive operations.",
+        "Token Bucket Rate Limiter"
+      ),
+      messages: [
+        msg("BFF Gateway serves client-specific APIs for agent management."),
+        msg("The BFF handles agent deployment, streaming responses, and human-in-the-loop approval flows for sensitive operations. This separates client logic from core agent logic."),
+        msg('Press ⌘K, search for "BFF Gateway", add it, then connect Service Mesh → BFF Gateway.'),
+      ],
+      requiredNodes: ["bff_gateway"],
+      requiredEdges: [edge("service_mesh", "bff_gateway")],
+      successMessage: "BFF gateway added. Now rate limiting.",
+      errorMessage: "Add a BFF Gateway connected from the Service Mesh.",
+    }),
+    step({
+      id: 3,
+      title: "Add Token Bucket Rate Limiter",
+      explanation:
+        "AI Agent's Rate Limiter uses token buckets per tenant: free tier (100 tool calls/min), pro tier (1000/min), enterprise (unlimited). Token buckets prevent runaway agents from exhausting tool APIs.",
+      action: buildAction(
+        "Token Bucket Rate Limiter",
+        "BFF Gateway",
+        "Token Bucket Rate Limiter",
+        "tenant-based rate limiting being enforced with token buckets per tier: free (100/min), pro (1000/min), enterprise (unlimited)"
+      ),
+      why: "Without rate limiting, one runaway agent could exhaust a tool API's rate limit in seconds. Token buckets per tenant prevent this while allowing legitimate high-volume usage.",
+      component: component("token_bucket_limiter", "Token Bucket Rate Limiter"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "Token Bucket Rate Limiter",
+        "enforce tenant-based rate limits: free tier (100/min), pro tier (1000/min), enterprise (unlimited)",
+        "Without rate limiting, one runaway agent could exhaust tool APIs in seconds.",
+        "Token Bucket Rate Limiter"
+      ),
+      celebrationMessage: buildCelebration(
+        "Token Bucket Rate Limiter",
+        "BFF Gateway",
+        "Rate Limiter uses token buckets per tenant: free tier (100 tool calls/min), pro tier (1000/min), enterprise (unlimited). Token buckets prevent runaway agents from exhausting tool APIs.",
+        "OpenTelemetry Collector"
+      ),
+      messages: [
+        msg("Token Bucket Rate Limiter enforces tenant-based rate limits: free tier (100/min), pro tier (1000/min), enterprise (unlimited)."),
+        msg("Without rate limiting, one runaway agent could exhaust a tool API's rate limit in seconds. Token buckets prevent this while allowing legitimate high-volume usage."),
+        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect BFF Gateway → Token Bucket Rate Limiter.'),
+      ],
+      requiredNodes: ["token_bucket_limiter"],
+      requiredEdges: [edge("bff_gateway", "token_bucket_limiter")],
+      successMessage: "Rate limiter added. Now distributed tracing.",
+      errorMessage: "Add a Token Bucket Rate Limiter connected from the BFF Gateway.",
+    }),
+    step({
+      id: 4,
+      title: "Add OpenTelemetry Collector",
+      explanation:
+        "AI Agent's OTel Collector traces agent reasoning chains across orchestrator, tool calls, and memory retrieval. A single agent task can trigger 50+ tool calls — tracing is essential for debugging agent failures.",
+      action: buildAction(
+        "OpenTelemetry Collector",
+        "Agent Orchestrator",
+        "OpenTelemetry Collector",
+        "agent reasoning chains being traced across orchestrator, tool calls, and memory retrieval with full distributed tracing"
+      ),
+      why: "A single agent task can trigger 50+ tool calls across multiple services. Without distributed tracing, debugging agent failures is nearly impossible — OTel traces every step.",
+      component: component("otel_collector", "OpenTelemetry Collector"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "OTel Collector",
+        "trace agent reasoning chains across orchestrator, tool calls, and memory retrieval with full distributed tracing",
+        "A single agent task triggers 50+ tool calls — tracing is essential for debugging failures.",
+        "OpenTelemetry Collector"
+      ),
+      celebrationMessage: buildCelebration(
+        "OpenTelemetry Collector",
+        "Agent Orchestrator",
+        "OTel Collector traces agent reasoning chains across orchestrator, tool calls, and memory retrieval. A single agent task can trigger 50+ tool calls — tracing is essential for debugging agent failures.",
+        "Correlation ID Handler"
+      ),
+      messages: [
+        msg("OpenTelemetry Collector traces agent reasoning chains across orchestrator, tool calls, and memory retrieval."),
+        msg("A single agent task can trigger 50+ tool calls across multiple services. Without distributed tracing, debugging agent failures is nearly impossible — OTel traces every step."),
+        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Agent Orchestrator → OpenTelemetry Collector.'),
+      ],
+      requiredNodes: ["otel_collector"],
+      requiredEdges: [edge("agent_orchestrator", "otel_collector")],
+      successMessage: "OTel collector added. Now correlation IDs.",
+      errorMessage: "Add an OpenTelemetry Collector connected from the Agent Orchestrator.",
+    }),
+    step({
+      id: 5,
+      title: "Add Correlation ID Handler",
+      explanation:
+        "AI Agent's Correlation ID links an agent task to every tool call, memory retrieval, and LLM response. Debugging a failed agent task requires tracing through dozens of tool executions.",
+      action: buildAction(
+        "Correlation ID Handler",
+        "Agent Executor",
+        "Correlation ID Handler",
+        "agent task correlation IDs being linked to every tool call, memory retrieval, and LLM response for end-to-end debugging"
+      ),
+      why: "Without correlation IDs, tracing a failed agent task through dozens of tool executions is impossible. Correlation IDs link every action to the originating task.",
+      component: component("correlation_id_handler", "Correlation ID Handler"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "Correlation ID Handler",
+        "link agent task correlation IDs to every tool call, memory retrieval, and LLM response for end-to-end debugging",
+        "Without correlation IDs, tracing failed agent tasks through dozens of executions is impossible.",
+        "Correlation ID Handler"
+      ),
+      celebrationMessage: buildCelebration(
+        "Correlation ID Handler",
+        "Agent Executor",
+        "Correlation ID links an agent task to every tool call, memory retrieval, and LLM response. Debugging a failed agent task requires tracing through dozens of tool executions.",
+        "mTLS Certificate Authority"
+      ),
+      messages: [
+        msg("Correlation ID Handler links an agent task to every tool call, memory retrieval, and LLM response."),
+        msg("Debugging a failed agent task requires tracing through dozens of tool executions. Correlation IDs enable end-to-end debugging of the full agent reasoning chain."),
+        msg('Press ⌘K, search for "Correlation ID Handler", add it, then connect Agent Executor → Correlation ID Handler.'),
+      ],
+      requiredNodes: ["correlation_id_handler"],
+      requiredEdges: [edge("agent_executor", "correlation_id_handler")],
+      successMessage: "Correlation IDs added. Now mTLS CA.",
+      errorMessage: "Add a Correlation ID Handler connected from the Agent Executor.",
+    }),
+    step({
+      id: 6,
+      title: "Add mTLS Certificate Authority",
+      explanation:
+        "AI Agent's SPIFFE CA issues certificates to every agent pod, tool service, and memory store. Compromised agent pods must not be able to access other tenants' data.",
+      action: buildAction(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "mTLS Certificate Authority",
+        "SPIFFE CA issuing certificates to every agent pod, tool service, and memory store for workload identity"
+      ),
+      why: "Multi-tenant agent systems require workload identity. SPIFFE CA issues short-lived certificates to every service — compromised pods can't access other tenants' data.",
+      component: component("mtls_certificate_authority", "mTLS Certificate Authority"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "SPIFFE CA",
+        "issue certificates to every agent pod, tool service, and memory store for multi-tenant workload identity",
+        "Multi-tenant agents require workload identity — SPIFFE CA issues short-lived certificates.",
+        "mTLS Certificate Authority"
+      ),
+      celebrationMessage: buildCelebration(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "SPIFFE CA issues certificates to every agent pod, tool service, and memory store. Compromised agent pods must not be able to access other tenants' data.",
+        "Cache Stampede Guard"
+      ),
+      messages: [
+        msg("SPIFFE CA issues certificates to every agent pod, tool service, and memory store for workload identity."),
+        msg("Multi-tenant agent systems require workload identity. Compromised agent pods must not be able to access other tenants' data — SPIFFE CA provides the identity layer."),
+        msg('Press ⌘K, search for "mTLS Certificate Authority", add it, then connect Service Mesh → mTLS Certificate Authority.'),
+      ],
+      requiredNodes: ["mtls_certificate_authority"],
+      requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
+      successMessage: "mTLS CA added. Now cache stampede protection.",
+      errorMessage: "Add an mTLS Certificate Authority connected from the Service Mesh.",
+    }),
+    step({
+      id: 7,
+      title: "Add Cache Stampede Guard",
+      explanation:
+        "AI Agent's Cache Stampede Guard prevents memory cache stampedes when popular agent sessions expire. Lock-assisted refresh ensures only one worker retrieves the memory state.",
+      action: buildAction(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "Cache Stampede Guard",
+        "memory cache stampedes being prevented with lock-assisted refresh when popular agent sessions expire"
+      ),
+      why: "When a popular agent session expires, thousands of concurrent requests try to refresh the cache simultaneously. Lock-assisted refresh ensures only one worker retrieves the memory state.",
+      component: component("cache_stampede_guard", "Cache Stampede Guard"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "Cache Stampede Guard",
+        "prevent memory cache stampedes with lock-assisted refresh when popular agent sessions expire",
+        "When popular sessions expire, thousands of requests try to refresh — lock-assisted refresh prevents stampedes.",
+        "Cache Stampede Guard"
+      ),
+      celebrationMessage: buildCelebration(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "Cache Stampede Guard prevents memory cache stampedes when popular agent sessions expire. Lock-assisted refresh ensures only one worker retrieves the memory state.",
+        "Change Data Cache"
+      ),
+      messages: [
+        msg("Cache Stampede Guard prevents memory cache stampedes when popular agent sessions expire."),
+        msg("When a popular agent session expires, thousands of concurrent requests try to refresh the cache simultaneously. Lock-assisted refresh ensures only one worker retrieves the memory state."),
+        msg('Press ⌘K, search for "Cache Stampede Guard", add it, then connect In-Memory Cache → Cache Stampede Guard.'),
+      ],
+      requiredNodes: ["cache_stampede_guard"],
+      requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
+      successMessage: "Cache stampede guard added. Now CDC cache.",
+      errorMessage: "Add a Cache Stampede Guard connected from the In-Memory Cache.",
+    }),
+    step({
+      id: 8,
+      title: "Add Change Data Cache",
+      explanation:
+        "AI Agent's CDC pipeline precomputes agent session summaries and knowledge base lookups. These are materialized in Redis for instant retrieval during agent reasoning.",
+      action: buildAction(
+        "Change Data Cache",
+        "CDC Connector",
+        "Change Data Cache",
+        "agent session summaries and knowledge base lookups being precomputed and materialized in Redis for instant retrieval"
+      ),
+      why: "Agents frequently need session summaries and knowledge lookups during reasoning. CDC precomputes these and materializes them in Redis — agents get instant results without waiting for computation.",
+      component: component("change_data_cache", "Change Data Cache"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "Change Data Cache",
+        "precompute agent session summaries and knowledge base lookups materialized in Redis for instant retrieval",
+        "CDC precomputes session summaries — agents get instant results during reasoning.",
+        "Change Data Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "Change Data Cache",
+        "CDC Connector",
+        "CDC pipeline precomputes agent session summaries and knowledge base lookups materialized in Redis. Agents get instant retrieval during reasoning without waiting for computation.",
+        "Data Warehouse"
+      ),
+      messages: [
+        msg("Change Data Cache precomputes agent session summaries and knowledge base lookups materialized in Redis."),
+        msg("Agents frequently need session summaries during reasoning. CDC precomputes these and materializes them in Redis — agents get instant results without waiting for computation."),
+        msg('Press ⌘K, search for "Change Data Cache", add it, then connect CDC Connector → Change Data Cache.'),
+      ],
+      requiredNodes: ["change_data_cache"],
+      requiredEdges: [edge("cdc_connector", "change_data_cache")],
+      successMessage: "Change data cache added. Now data warehouse.",
+      errorMessage: "Add a Change Data Cache connected from the CDC Connector.",
+    }),
+    step({
+      id: 9,
+      title: "Add Data Warehouse",
+      explanation:
+        "AI Agent's Data Warehouse (ClickHouse) stores agent execution traces, tool performance metrics, and success rates. This data trains agent optimization models and identifies failure patterns.",
+      action: buildAction(
+        "Data Warehouse",
+        "CDC Connector",
+        "Data Warehouse",
+        "agent execution traces, tool performance metrics, and success rates being stored for ML training and failure analysis"
+      ),
+      why: "Agent optimization requires historical data: which tools succeed? Which fail? What patterns predict failure? Data warehouse stores this for ML training and failure pattern identification.",
+      component: component("data_warehouse", "Data Warehouse"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "Data Warehouse (ClickHouse)",
+        "store agent execution traces, tool performance metrics, and success rates for ML training and failure analysis",
+        "Agent optimization requires historical data — data warehouse stores execution traces for ML training.",
+        "Data Warehouse"
+      ),
+      celebrationMessage: buildCelebration(
+        "Data Warehouse",
+        "CDC Connector",
+        "Data Warehouse (ClickHouse) stores agent execution traces, tool performance metrics, and success rates. This data trains agent optimization models and identifies failure patterns.",
+        "Event Store"
+      ),
+      messages: [
+        msg("Data Warehouse stores agent execution traces, tool performance metrics, and success rates for ML training and failure analysis."),
+        msg("Agent optimization requires historical data: which tools succeed, which fail, what patterns predict failure. Data warehouse enables ML training and failure pattern identification."),
+        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+      ],
+      requiredNodes: ["data_warehouse"],
+      requiredEdges: [edge("cdc_connector", "data_warehouse")],
+      successMessage: "Data warehouse added. Now event store.",
+      errorMessage: "Add a Data Warehouse connected from the CDC Connector.",
+    }),
+    step({
+      id: 10,
+      title: "Add Event Store",
+      explanation:
+        "AI Agent's Event Store stores every agent action as an immutable event: task started, tool called, decision made, task completed. Event sourcing enables agent replay, debugging, and audit trails.",
+      action: buildAction(
+        "Event Store",
+        "Kafka",
+        "Event Store",
+        "every agent action being stored as immutable events: task started, tool called, decision made, task completed"
+      ),
+      why: "Event sourcing provides complete audit trails and enables agent replay. Every action is stored as an immutable event — debugging failures and auditing agent behavior is trivial.",
+      component: component("event_store", "Event Store"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "Event Store",
+        "store every agent action as an immutable event for replay, debugging, and audit trails",
+        "Event sourcing provides complete audit trails and enables agent replay.",
+        "Event Store"
+      ),
+      celebrationMessage: buildCelebration(
+        "Event Store",
+        "Kafka",
+        "Event Store stores every agent action as an immutable event: task started, tool called, decision made, task completed. Event sourcing enables agent replay, debugging, and audit trails.",
+        "Saga Orchestrator"
+      ),
+      messages: [
+        msg("Event Store stores every agent action as an immutable event for replay, debugging, and audit trails."),
+        msg("Event sourcing provides complete audit trails and enables agent replay. Every action is stored as an immutable event — debugging failures and auditing agent behavior is trivial."),
+        msg('Press ⌘K, search for "Event Store", add it, then connect Kafka → Event Store.'),
+      ],
+      requiredNodes: ["event_store"],
+      requiredEdges: [edge("kafka_streaming", "event_store")],
+      successMessage: "Event store added. Now saga orchestrator.",
+      errorMessage: "Add an Event Store connected from the Kafka Streaming.",
+    }),
+    step({
+      id: 11,
+      title: "Add Saga Orchestrator",
+      explanation:
+        "AI Agent's Saga Orchestrator manages multi-step agent workflows: plan task, execute tools, validate results, and commit or compensate. Each step can fail and requires rollback.",
+      action: buildAction(
+        "Saga Orchestrator",
+        "Agent Supervisor",
+        "Saga Orchestrator",
+        "multi-step agent workflows being managed with plan, execute, validate, and compensate steps for each failure"
+      ),
+      why: "Multi-step agent workflows require saga patterns: each step can fail and requires compensation. The Saga Orchestrator manages plan, execute, validate, and rollback across the entire workflow.",
+      component: component("saga_orchestrator", "Saga Orchestrator"),
+      openingMessage: buildOpeningL3(
+        "AI Agent",
+        "Saga Orchestrator",
+        "manage multi-step agent workflows: plan, execute, validate, and compensate for each failure",
+        "Multi-step agent workflows require saga patterns with compensation for each failure.",
+        "Saga Orchestrator"
+      ),
+      celebrationMessage: buildCelebration(
+        "Saga Orchestrator",
+        "Agent Supervisor",
+        "Saga Orchestrator manages multi-step agent workflows: plan, execute, validate, and commit or compensate. Each step can fail and requires rollback. AI Agent Enterprise is complete.",
+        "nothing — you have built AI Agent Enterprise"
+      ),
+      messages: [
+        msg("Saga Orchestrator manages multi-step agent workflows: plan, execute, validate, and compensate for each failure."),
+        msg("Multi-step agent workflows require saga patterns: each step can fail and requires compensation. The Saga Orchestrator manages the entire workflow with rollback capabilities."),
+        msg('Press ⌘K, search for "Saga Orchestrator", add it, then connect Agent Supervisor → Saga Orchestrator.'),
+      ],
+      requiredNodes: ["saga_orchestrator"],
+      requiredEdges: [edge("agent_supervisor", "saga_orchestrator")],
+      successMessage: "Saga orchestrator added. You have built AI Agent Enterprise.",
+      errorMessage: "Add a Saga Orchestrator connected from the Agent Supervisor.",
+    }),
+  ],
+});
+
 export const aiAgentTutorial: Tutorial = tutorial({
-  id: 'ai-agent-system',
+  id: 'ai-agent-system-architecture',
   title: 'How to Design an AI Agent System',
   description:
     'Build a production AI agent system. Learn multi-agent orchestration, tool calling, memory systems, agent supervision, and LangGraph-style workflows that power autonomous AI systems.',
@@ -423,6 +1137,6 @@ export const aiAgentTutorial: Tutorial = tutorial({
   icon: 'Bot',
   color: '#10b981',
   tags: ['LangGraph', 'Tool Use', 'Memory', 'Agents'],
-  estimatedTime: '~30 mins',
-  levels: [l1],
+  estimatedTime: '~87 mins',
+  levels: [l1, l2, l3],
 });

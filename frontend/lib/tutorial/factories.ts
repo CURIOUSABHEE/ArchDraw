@@ -122,6 +122,62 @@ export const EDGE_LABEL: Record<string, string> = {
   agent_supervisor: 'Supervisor',
   tool_registry: 'Tool',
   llm_gateway: 'LLM',
+  // Service Mesh
+  sidecar_proxy: 'Sidecar',
+  service_mesh: 'Mesh',
+  control_plane: 'Control',
+  // Rate Limiting
+  token_bucket_limiter: 'Token',
+  sliding_window_limiter: 'Sliding',
+  leaky_bucket_limiter: 'Leaky',
+  rate_limit_redis: 'Rate',
+  // Data Pipelines
+  cdc_connector: 'CDC',
+  event_store: 'Event',
+  cqrs_command_handler: 'Command',
+  cqrs_query_handler: 'Query',
+  saga_orchestrator: 'Saga',
+  saga_participant: 'Saga',
+  // Distributed Coordination
+  raft_consensus: 'Raft',
+  distributed_lock: 'Lock',
+  leader_election: 'Leader',
+  service_discovery: 'Discovery',
+  configuration_sync: 'Config',
+  consistent_hash_ring: 'Hash',
+  virtual_nodes: 'Virtual',
+  // API Patterns
+  bff_gateway: 'BFF',
+  graphql_federation: 'GraphQL',
+  graphql_subgraph: 'Subgraph',
+  api_composition: 'API',
+  // Security
+  mtls_certificate_authority: 'mTLS',
+  oauth_pkce_flow: 'OAuth',
+  jwt_validator: 'JWT',
+  token_rotation: 'Token',
+  zero_trust_proxy: 'Zero',
+  // Observability Advanced
+  otel_collector: 'OTel',
+  correlation_id_handler: 'Correlation',
+  slo_tracker: 'SLO',
+  error_budget_alert: 'Budget',
+  structured_logger: 'Structured',
+  // Database Advanced
+  read_replica: 'Replica',
+  write_shard: 'Shard',
+  connection_pooler: 'Pooler',
+  // Caching Advanced
+  change_data_cache: 'CDC',
+  cache_stampede_guard: 'Stampede',
+  write_through_cache: 'Write',
+  cache_aside: 'Cache',
+  // Networking
+  cdn_anycast: 'Anycast',
+  ddos_mitigation: 'DDoS',
+  prefetch_cache: 'Prefetch',
+  cdn_tiered_cache: 'Tiered',
+  surrogate_key_purge: 'Surrogate',
 };
 
 /** Resolve a component ID to its edge label (first word of canvas label).

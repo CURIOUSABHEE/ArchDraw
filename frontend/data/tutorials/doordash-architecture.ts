@@ -3,6 +3,8 @@ import {
   buildAction,
   buildFirstStepAction,
   buildOpeningL1,
+  buildOpeningL2,
+  buildOpeningL3,
   buildCelebration,
 } from '@/lib/tutorial/defaults';
 import type { Tutorial } from '@/lib/tutorial/types';
@@ -406,6 +408,756 @@ const l1 = level({
   ],
 });
 
+const l2 = level({
+  level: 2,
+  title: "DoorDash at Scale",
+  subtitle: "Stream order events with real-time tracking and ETA prediction",
+  description:
+    "Add Kafka event streaming, Redis live tracking, CDC pipelines, and ML-driven SLO tracking to DoorDash's architecture. Handle millions of orders and predict delivery times with ML models.",
+  estimatedTime: "~28 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's scale DoorDash. 2 billion deliveries annually, real-time dasher tracking, and ML-driven ETA prediction. This requires Kafka for order event streaming, Redis for live tracking, and ML-grade observability.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Kafka Streaming",
+      explanation:
+        "DoorDash's Event Bus streams order events: placed, accepted, picked up, delivered. During peak meal times, thousands of orders stream through Kafka — every event triggers downstream notifications and analytics.",
+      action: buildAction(
+        "Kafka / Streaming",
+        "Order",
+        "Kafka Streaming",
+        "order events being streamed: placed, accepted, picked up, delivered — during peak hours thousands of orders flow through Kafka"
+      ),
+      why: "Without Kafka, order status updates would require synchronous calls to every downstream system. Kafka decouples producers from consumers — the order service stays fast regardless of how many systems need updates.",
+      component: component("kafka_streaming", "Kafka / Streaming", "Kafka / Streaming"),
+      openingMessage: buildOpeningL2(
+        "DoorDash",
+        "Kafka Streaming",
+        "stream order events: placed, accepted, picked up, delivered — during peak hours thousands of orders flow through Kafka",
+        "Without Kafka, order status updates would require synchronous calls to every downstream system.",
+        "Kafka / Streaming"
+      ),
+      celebrationMessage: buildCelebration(
+        "Kafka Streaming",
+        "Order Service",
+        "DoorDash's Event Bus streams order events: placed, accepted, picked up, delivered. During peak meal times, thousands of orders stream through Kafka — every event triggers downstream notifications and analytics.",
+        "Notification Worker"
+      ),
+      messages: [
+        msg("DoorDash's Event Bus streams order events to multiple downstream consumers in real time."),
+        msg(
+          "During peak meal times, thousands of orders flow through Kafka every minute. Each event — placed, accepted, picked up, delivered — triggers notifications, analytics, and billing independently."
+        ),
+        msg("Press ⌘K, search for \"Kafka / Streaming\", add it, then connect Order Service → Kafka Streaming."),
+      ],
+      requiredNodes: ["kafka_streaming"],
+      requiredEdges: [edge("order_service", "kafka_streaming")],
+      successMessage: "Kafka streaming added. Now notifications.",
+      errorMessage: "Add Kafka Streaming connected from the Order Service.",
+    }),
+    step({
+      id: 2,
+      title: "Add Notification Worker",
+      explanation:
+        "DoorDash's Notification Worker handles push notifications, SMS, and email for order updates. When a dasher picks up your order, you need to know immediately — notifications must be delivered in under 5 seconds.",
+      action: buildAction(
+        "Worker",
+        "Kafka",
+        "Notification Worker",
+        "push notifications, SMS, and email being sent for order updates — delivered in under 5 seconds"
+      ),
+      why: "Customers expect instant updates when their order status changes. The Notification Worker consumes Kafka events and delivers updates through multiple channels — push, SMS, email — with <5 second latency.",
+      component: component("worker_job", "Worker"),
+      openingMessage: buildOpeningL2(
+        "DoorDash",
+        "Notification Worker",
+        "deliver push notifications, SMS, and email in under 5 seconds when dasher picks up your order",
+        "Customers expect instant updates when their order status changes.",
+        "Worker"
+      ),
+      celebrationMessage: buildCelebration(
+        "Notification Worker",
+        "Kafka Streaming",
+        "DoorDash's Notification Worker handles push notifications, SMS, and email for order updates. When a dasher picks up your order, you need to know immediately — notifications must be delivered in under 5 seconds.",
+        "In-Memory Cache"
+      ),
+      messages: [
+        msg("DoorDash's Notification Worker handles push notifications, SMS, and email for order updates."),
+        msg(
+          "When a dasher picks up your order, you need to know immediately. Notifications are delivered in under 5 seconds through the fastest available channel — push, SMS, or email."
+        ),
+        msg("Press ⌘K, search for \"Worker / Background Job\", add it, then connect Kafka Streaming → Notification Worker."),
+      ],
+      requiredNodes: ["worker_job"],
+      requiredEdges: [edge("kafka_streaming", "worker_job")],
+      successMessage: "Notifications added. Now live tracking.",
+      errorMessage: "Add a Worker connected from Kafka Streaming.",
+    }),
+    step({
+      id: 3,
+      title: "Add In-Memory Cache",
+      explanation:
+        "DoorDash's Redis Cache stores active order state and dasher locations. Live tracking requires sub-second location updates from dashers and instant retrieval of order status.",
+      action: buildAction(
+        "In-Memory Cache",
+        "Dasher Service",
+        "In-Memory Cache",
+        "active order state and dasher locations being cached for sub-second location updates and instant order status retrieval"
+      ),
+      why: "Live tracking requires real-time dasher locations — sub-second updates from the app and instant retrieval for the customer. Redis stores this hot data with millisecond latency.",
+      component: component("in_memory_cache", "In-Memory Cache"),
+      openingMessage: buildOpeningL2(
+        "DoorDash",
+        "Redis Cache",
+        "store dasher locations and order state for sub-second live tracking updates",
+        "Live tracking requires real-time dasher locations — sub-second updates from the app and instant retrieval.",
+        "In-Memory Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "In-Memory Cache",
+        "Dasher Service",
+        "DoorDash's Redis Cache stores active order state and dasher locations. Live tracking requires sub-second location updates from dashers and instant retrieval of order status.",
+        "CDC Connector"
+      ),
+      messages: [
+        msg("DoorDash's Redis Cache stores active order state and dasher locations for live tracking."),
+        msg(
+          "Live tracking requires sub-second location updates from dashers and instant retrieval of order status. Redis handles this with millisecond latency — the customer sees their dasher move in real time."
+        ),
+        msg("Press ⌘K, search for \"In-Memory Cache\", add it, then connect Dasher Service → In-Memory Cache."),
+      ],
+      requiredNodes: ["in_memory_cache"],
+      requiredEdges: [edge("dasher_service", "in_memory_cache")],
+      successMessage: "Live tracking cache added. Now CDC pipelines.",
+      errorMessage: "Add an In-Memory Cache connected from the Dasher Service.",
+    }),
+    step({
+      id: 4,
+      title: "Add CDC Connector",
+      explanation:
+        "DoorDash's CDC Connector mirrors order data to the analytics platform. Delivery times, dasher efficiency, and consumer behavior stream to the data warehouse for ML training.",
+      action: buildAction(
+        "CDC Connector",
+        "Order",
+        "CDC Connector",
+        "order data being mirrored to the analytics platform for ML training on delivery times and dasher efficiency"
+      ),
+      why: "Change Data Capture streams database changes to the analytics platform in real time. This feeds the ML pipeline — delivery predictions improve when the model trains on fresh operational data.",
+      component: component("cdc_connector", "CDC Connector"),
+      openingMessage: buildOpeningL2(
+        "DoorDash",
+        "CDC Connector",
+        "mirror order data to the analytics platform for ML training on delivery times and dasher efficiency",
+        "Change Data Capture streams database changes to the analytics platform in real time.",
+        "CDC Connector"
+      ),
+      celebrationMessage: buildCelebration(
+        "CDC Connector",
+        "Order Service",
+        "DoorDash's CDC Connector mirrors order data to the analytics platform. Delivery times, dasher efficiency, and consumer behavior stream to the data warehouse for ML training.",
+        "SQL Database"
+      ),
+      messages: [
+        msg("DoorDash's CDC Connector mirrors order data to the analytics platform in real time."),
+        msg(
+          "Delivery times, dasher efficiency, and consumer behavior stream to the data warehouse. This data trains DoorDash's ML models for dispatch and ETA prediction."
+        ),
+        msg("Press ⌘K, search for \"CDC Connector\", add it, then connect Order Service → CDC Connector."),
+      ],
+      requiredNodes: ["cdc_connector"],
+      requiredEdges: [edge("order_service", "cdc_connector")],
+      successMessage: "CDC pipeline added. Now the SQL database.",
+      errorMessage: "Add a CDC Connector connected from the Order Service.",
+    }),
+    step({
+      id: 5,
+      title: "Add SQL Database",
+      explanation:
+        "DoorDash's MySQL stores user accounts, merchant listings, and order history. Delivery orders have complex schemas — merchant fees, dasher pay, and consumer charges are stored together.",
+      action: buildAction(
+        "SQL Database",
+        "Auth",
+        "SQL Database",
+        "user accounts, merchant listings, and order history being stored with ACID guarantees for financial compliance"
+      ),
+      why: "DoorDash's financial data — merchant fees, dasher pay, consumer charges — requires ACID transactions. Splitting this across systems would complicate reconciliation. MySQL stores the authoritative financial record.",
+      component: component("sql_db", "SQL Database"),
+      openingMessage: buildOpeningL2(
+        "DoorDash",
+        "MySQL",
+        "store user accounts, merchant listings, and order history with ACID guarantees for financial compliance",
+        "DoorDash's financial data requires ACID transactions — merchant fees, dasher pay, consumer charges.",
+        "SQL Database"
+      ),
+      celebrationMessage: buildCelebration(
+        "SQL Database",
+        "Auth Service",
+        "DoorDash's MySQL stores user accounts, merchant listings, and order history. Delivery orders have complex schemas — merchant fees, dasher pay, and consumer charges are stored together.",
+        "Structured Logger"
+      ),
+      messages: [
+        msg("DoorDash's MySQL stores user accounts, merchant listings, and order history with ACID compliance."),
+        msg(
+          "Delivery orders have complex schemas — merchant fees, dasher pay, and consumer charges are stored together. Financial reconciliation requires consistent, auditable records."
+        ),
+        msg("Press ⌘K, search for \"SQL Database\", add it, then connect Auth Service → SQL Database."),
+      ],
+      requiredNodes: ["sql_db"],
+      requiredEdges: [edge("auth_service", "sql_db")],
+      successMessage: "Financial data secured. Now structured logging.",
+      errorMessage: "Add a SQL Database connected from the Auth Service.",
+    }),
+    step({
+      id: 6,
+      title: "Add Structured Logger",
+      explanation:
+        "DoorDash's Structured Logger captures order placement, dasher dispatch, and delivery completion. Logs flow to the ML platform — DoorDash's ETA prediction model trains on delivery event logs.",
+      action: buildAction(
+        "Structured Logger",
+        "Order",
+        "Structured Logger",
+        "order placement, dasher dispatch, and delivery completion being logged with consistent JSON schemas for ML training"
+      ),
+      why: "ML models need training data. Structured logs capture every order lifecycle event — these become training examples for ETA prediction and dispatch optimization.",
+      component: component("structured_logger", "Structured Logger"),
+      openingMessage: buildOpeningL2(
+        "DoorDash",
+        "Structured Logger",
+        "capture order placement, dasher dispatch, and delivery completion with JSON schemas for ML training",
+        "ML models need training data — structured logs capture every order lifecycle event.",
+        "Structured Logger"
+      ),
+      celebrationMessage: buildCelebration(
+        "Structured Logger",
+        "Order Service",
+        "DoorDash's Structured Logger captures order placement, dasher dispatch, and delivery completion. Logs flow to the ML platform — DoorDash's ETA prediction model trains on delivery event logs.",
+        "SLO Tracker"
+      ),
+      messages: [
+        msg("DoorDash's Structured Logger captures order placement, dasher dispatch, and delivery completion."),
+        msg(
+          "Logs flow to the ML platform — DoorDash's ETA prediction model trains on delivery event logs. Every successful delivery improves prediction accuracy."
+        ),
+        msg("Press ⌘K, search for \"Structured Logger\", add it, then connect Order Service → Structured Logger."),
+      ],
+      requiredNodes: ["structured_logger"],
+      requiredEdges: [edge("order_service", "structured_logger")],
+      successMessage: "Structured logging added. Now SLO tracking.",
+      errorMessage: "Add a Structured Logger connected from the Order Service.",
+    }),
+    step({
+      id: 7,
+      title: "Add SLO Tracker",
+      explanation:
+        "DoorDash's SLO Tracker monitors order acceptance time, dasher dispatch latency, and delivery ETA accuracy. Order acceptance must complete in <30 seconds — tracked as a critical SLO.",
+      action: buildAction(
+        "SLO/SLI Tracker",
+        "Order",
+        "SLO Tracker",
+        "order acceptance time, dasher dispatch latency, and delivery ETA accuracy being tracked against defined SLO targets"
+      ),
+      why: "DoorDash's critical SLOs: order acceptance <30 seconds, dispatch latency <2 minutes, ETA accuracy within 5 minutes. These directly impact customer satisfaction and retention.",
+      component: component("slo_tracker", "SLO/SLI Tracker"),
+      openingMessage: buildOpeningL2(
+        "DoorDash",
+        "SLO Tracker",
+        "monitor order acceptance time, dasher dispatch latency, and delivery ETA accuracy against defined SLOs",
+        "DoorDash's critical SLOs: order acceptance <30 seconds, dispatch latency <2 minutes, ETA accuracy.",
+        "SLO/SLI Tracker"
+      ),
+      celebrationMessage: buildCelebration(
+        "SLO Tracker",
+        "Order Service",
+        "DoorDash's SLO Tracker monitors order acceptance time, dasher dispatch latency, and delivery ETA accuracy. Order acceptance must complete in <30 seconds — tracked as a critical SLO.",
+        "Error Budget Alert"
+      ),
+      messages: [
+        msg("DoorDash's SLO Tracker monitors order acceptance time, dasher dispatch latency, and delivery ETA accuracy."),
+        msg(
+          "Order acceptance must complete in <30 seconds. Dispatch latency must be <2 minutes. ETA accuracy within 5 minutes. These are critical SLOs tracked in real time."
+        ),
+        msg("Press ⌘K, search for \"SLO/SLI Tracker\", add it, then connect Order Service → SLO Tracker."),
+      ],
+      requiredNodes: ["slo_tracker"],
+      requiredEdges: [edge("order_service", "slo_tracker")],
+      successMessage: "SLO tracking added. Now error budgets.",
+      errorMessage: "Add an SLO/SLI Tracker connected from the Order Service.",
+    }),
+    step({
+      id: 8,
+      title: "Add Error Budget Alert",
+      explanation:
+        "DoorDash's Error Budget Monitor tracks ETA accuracy SLO. When delivery predictions degrade during bad weather, on-call teams use the error budget to decide whether to adjust ETA models or add dasher capacity.",
+      action: buildAction(
+        "Error Budget Monitor",
+        "SLO",
+        "Error Budget Alert",
+        "ETA accuracy error budget being tracked — on-call teams use it to decide whether to adjust models or add capacity"
+      ),
+      why: "The error budget tells on-call teams when to act. During bad weather, ETA predictions degrade — the error budget signals when to switch to simpler models or increase dasher supply.",
+      component: component("error_budget_alert", "Error Budget Monitor"),
+      openingMessage: buildOpeningL2(
+        "DoorDash",
+        "Error Budget Monitor",
+        "track ETA accuracy error budget — on-call teams use it to decide whether to adjust models or add dasher capacity",
+        "The error budget tells on-call teams when to act during weather events or system degradation.",
+        "Error Budget Monitor"
+      ),
+      celebrationMessage: buildCelebration(
+        "Error Budget Alert",
+        "SLO Tracker",
+        "DoorDash's Error Budget Monitor tracks ETA accuracy SLO. When delivery predictions degrade during bad weather, on-call teams use the error budget to decide whether to adjust ETA models or add dasher capacity.",
+        "DoorDash is now production-ready"
+      ),
+      messages: [
+        msg("DoorDash's Error Budget Monitor tracks ETA accuracy SLO."),
+        msg(
+          "When delivery predictions degrade during bad weather, on-call teams use the error budget to decide whether to adjust ETA models or add dasher capacity."
+        ),
+        msg("Press ⌘K, search for \"Error Budget Monitor\", add it, then connect SLO Tracker → Error Budget Monitor."),
+      ],
+      requiredNodes: ["error_budget_alert"],
+      requiredEdges: [edge("slo_tracker", "error_budget_alert")],
+      successMessage: "Error budget monitoring added. DoorDash is now production-ready.",
+      errorMessage: "Add an Error Budget Monitor connected from the SLO Tracker.",
+    }),
+  ],
+});
+
+const l3 = level({
+  level: 3,
+  title: "DoorDash Enterprise",
+  subtitle: "Add zero-trust marketplace, dispatch tracing, and saga-based fulfillment",
+  description:
+    "Implement zero-trust networking for the three-sided marketplace, distributed tracing for dispatch, and saga-based order fulfillment. DoorDash Enterprise serves enterprise merchants with SLA requirements.",
+  estimatedTime: "~29 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's make DoorDash enterprise-grade. Zero-trust marketplace networking, dispatch distributed tracing, and saga-based order fulfillment. DoorDash Enterprise serves enterprise merchants with compliance and SLA requirements.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Service Mesh",
+      explanation:
+        "DoorDash's Service Mesh (Envoy) handles mTLS between the consumer app, dasher app, and merchant systems. The three-sided marketplace requires secure communication across all three parties.",
+      action: buildAction(
+        "Service Mesh (Istio)",
+        "API Gateway",
+        "Service Mesh",
+        "mTLS being enforced between consumer app, dasher app, and merchant systems across the three-sided marketplace"
+      ),
+      why: "The three-sided marketplace has three client types communicating with each other. mTLS ensures every service authenticates before accepting requests — compromised services cannot impersonate other parties.",
+      component: component("service_mesh", "Service Mesh (Istio)"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "Service Mesh (Envoy)",
+        "enforce mTLS between consumer app, dasher app, and merchant systems across the three-sided marketplace",
+        "The three-sided marketplace requires secure communication across all three parties.",
+        "Service Mesh (Istio)"
+      ),
+      celebrationMessage: buildCelebration(
+        "Service Mesh",
+        "API Gateway",
+        "DoorDash's Service Mesh (Envoy) handles mTLS between the consumer app, dasher app, and merchant systems. The three-sided marketplace requires secure communication across all three parties.",
+        "BFF Gateway"
+      ),
+      messages: [
+        msg("Level 3 — DoorDash Enterprise. The Service Mesh (Envoy) adds mTLS between all three parties."),
+        msg(
+          "The three-sided marketplace has three client types: consumers, dashers, and merchants. Every service-to-service call is authenticated — compromised services cannot impersonate other parties."
+        ),
+        msg("Press ⌘K, search for \"Service Mesh (Istio)\", add it, then connect API Gateway → Service Mesh."),
+      ],
+      requiredNodes: ["service_mesh"],
+      requiredEdges: [edge("api_gateway", "service_mesh")],
+      successMessage: "Service mesh added. Now the BFF Gateway.",
+      errorMessage: "Add a Service Mesh connected from the API Gateway.",
+    }),
+    step({
+      id: 2,
+      title: "Add BFF Gateway",
+      explanation:
+        "DoorDash's BFF Gateway serves the consumer and dasher apps with optimized APIs. The BFF aggregates order state, dasher location, and merchant data for real-time tracking.",
+      action: buildAction(
+        "BFF Gateway",
+        "Service Mesh",
+        "BFF Gateway",
+        "consumer and dasher apps being served with optimized APIs that aggregate order state, dasher location, and merchant data"
+      ),
+      why: "The consumer app and dasher app have different data needs. The BFF tailors responses for each — the consumer sees menu and order tracking; the dasher sees navigation and pickup details.",
+      component: component("bff_gateway", "BFF Gateway"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "BFF Gateway",
+        "serve consumer and dasher apps with optimized APIs aggregating order state, dasher location, and merchant data",
+        "The consumer app and dasher app have different data needs — the BFF tailors responses for each.",
+        "BFF Gateway"
+      ),
+      celebrationMessage: buildCelebration(
+        "BFF Gateway",
+        "Service Mesh",
+        "DoorDash's BFF Gateway serves the consumer and dasher apps with optimized APIs. The BFF aggregates order state, dasher location, and merchant data for real-time tracking.",
+        "Token Bucket Limiter"
+      ),
+      messages: [
+        msg("DoorDash's BFF Gateway serves the consumer and dasher apps with optimized APIs."),
+        msg(
+          "The BFF aggregates order state, dasher location, and merchant data for real-time tracking. The consumer sees menu and order tracking; the dasher sees navigation and pickup details."
+        ),
+        msg("Press ⌘K, search for \"BFF Gateway\", add it, then connect Service Mesh → BFF Gateway."),
+      ],
+      requiredNodes: ["bff_gateway"],
+      requiredEdges: [edge("service_mesh", "bff_gateway")],
+      successMessage: "BFF Gateway added. Now rate limiting.",
+      errorMessage: "Add a BFF Gateway connected from the Service Mesh.",
+    }),
+    step({
+      id: 3,
+      title: "Add Token Bucket Rate Limiter",
+      explanation:
+        "DoorDash's Rate Limiter uses token buckets per consumer: rate-limited at the API gateway to prevent order spam. Token buckets also protect the dispatch system from burst requests during peak hours.",
+      action: buildAction(
+        "Token Bucket Rate Limiter",
+        "BFF Gateway",
+        "Token Bucket Rate Limiter",
+        "token buckets per consumer being used to prevent order spam and protect dispatch from burst requests during peak hours"
+      ),
+      why: "Token buckets prevent abuse while allowing legitimate burst traffic. During lunch rush, many customers place orders quickly — the rate limiter allows bursts up to the bucket size without blocking real users.",
+      component: component("token_bucket_limiter", "Token Bucket Rate Limiter"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "Token Bucket Rate Limiter",
+        "prevent order spam with token buckets per consumer while allowing legitimate burst traffic during lunch and dinner rushes",
+        "Token buckets prevent abuse while allowing legitimate bursts during peak hours.",
+        "Token Bucket Rate Limiter"
+      ),
+      celebrationMessage: buildCelebration(
+        "Token Bucket Rate Limiter",
+        "BFF Gateway",
+        "DoorDash's Rate Limiter uses token buckets per consumer: rate-limited at the API gateway to prevent order spam. Token buckets also protect the dispatch system from burst requests during peak hours.",
+        "OpenTelemetry Collector"
+      ),
+      messages: [
+        msg("DoorDash's Rate Limiter uses token buckets per consumer to prevent order spam."),
+        msg(
+          "Token buckets also protect the dispatch system from burst requests during peak hours. During lunch rush, the rate limiter allows bursts up to the bucket size without blocking real users."
+        ),
+        msg("Press ⌘K, search for \"Token Bucket Rate Limiter\", add it, then connect BFF Gateway → Token Bucket Rate Limiter."),
+      ],
+      requiredNodes: ["token_bucket_limiter"],
+      requiredEdges: [edge("bff_gateway", "token_bucket_limiter")],
+      successMessage: "Rate limiting added. Now distributed tracing.",
+      errorMessage: "Add a Token Bucket Rate Limiter connected from the BFF Gateway.",
+    }),
+    step({
+      id: 4,
+      title: "Add OpenTelemetry Collector",
+      explanation:
+        "DoorDash's OTel Collector traces order placement through dispatch, dasher acceptance, and delivery. A single order touches 20+ services — distributed tracing is essential for debugging late deliveries.",
+      action: buildAction(
+        "OpenTelemetry Collector",
+        "Order",
+        "OpenTelemetry Collector",
+        "order placement being traced through dispatch, dasher acceptance, and delivery across 20+ services"
+      ),
+      why: "Debugging a late delivery means tracing a single order across 20+ services. Without distributed tracing, finding the bottleneck is like finding a needle in a haystack.",
+      component: component("otel_collector", "OpenTelemetry Collector"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "OTel Collector",
+        "trace order placement through dispatch, dasher acceptance, and delivery across 20+ services",
+        "A single order touches 20+ services — distributed tracing is essential for debugging late deliveries.",
+        "OpenTelemetry Collector"
+      ),
+      celebrationMessage: buildCelebration(
+        "OpenTelemetry Collector",
+        "Order Service",
+        "DoorDash's OTel Collector traces order placement through dispatch, dasher acceptance, and delivery. A single order touches 20+ services — distributed tracing is essential for debugging late deliveries.",
+        "Correlation ID Handler"
+      ),
+      messages: [
+        msg("DoorDash's OTel Collector traces order placement through dispatch, dasher acceptance, and delivery."),
+        msg(
+          "A single order touches 20+ services. Distributed tracing links spans across all services — debugging a late delivery means tracing a single order from placement to delivery."
+        ),
+        msg("Press ⌘K, search for \"OpenTelemetry Collector\", add it, then connect Order Service → OpenTelemetry Collector."),
+      ],
+      requiredNodes: ["otel_collector"],
+      requiredEdges: [edge("order_service", "otel_collector")],
+      successMessage: "Distributed tracing added. Now correlation IDs.",
+      errorMessage: "Add an OpenTelemetry Collector connected from the Order Service.",
+    }),
+    step({
+      id: 5,
+      title: "Add Correlation ID Handler",
+      explanation:
+        "DoorDash's Correlation ID links an order from placement to delivery: cart service, delivery estimation, merchant acceptance, dasher dispatch, and tracking. Debugging a late delivery requires tracing across all these steps.",
+      action: buildAction(
+        "Correlation ID Handler",
+        "OpenTelemetry",
+        "Correlation ID Handler",
+        "correlation IDs linking orders across cart, delivery estimation, merchant acceptance, dasher dispatch, and tracking services"
+      ),
+      why: "Every service in the order lifecycle generates logs. Correlation IDs link them together — searching for a correlation ID returns the complete order journey.",
+      component: component("correlation_id_handler", "Correlation ID Handler"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "Correlation ID Handler",
+        "link orders across cart, delivery estimation, merchant acceptance, dasher dispatch, and tracking with correlation IDs",
+        "Correlation IDs link logs across the entire order lifecycle for end-to-end debugging.",
+        "Correlation ID Handler"
+      ),
+      celebrationMessage: buildCelebration(
+        "Correlation ID Handler",
+        "OpenTelemetry Collector",
+        "DoorDash's Correlation ID links an order from placement to delivery: cart service, delivery estimation, merchant acceptance, dasher dispatch, and tracking. Debugging a late delivery requires tracing across all these steps.",
+        "mTLS Certificate Authority"
+      ),
+      messages: [
+        msg("DoorDash's Correlation ID links an order from placement to delivery across all services."),
+        msg(
+          "Cart service, delivery estimation, merchant acceptance, dasher dispatch, and tracking all participate in the order lifecycle. Correlation IDs link logs across all these steps."
+        ),
+        msg("Press ⌘K, search for \"Correlation ID Handler\", add it, then connect OpenTelemetry Collector → Correlation ID Handler."),
+      ],
+      requiredNodes: ["correlation_id_handler"],
+      requiredEdges: [edge("otel_collector", "correlation_id_handler")],
+      successMessage: "Correlation IDs added. Now mTLS certificates.",
+      errorMessage: "Add a Correlation ID Handler connected from the OpenTelemetry Collector.",
+    }),
+    step({
+      id: 6,
+      title: "Add mTLS Certificate Authority",
+      explanation:
+        "DoorDash's SPIFFE CA issues certificates to every delivery service, dispatch worker, and merchant integration. Compromised services must not be able to impersonate other parties in the marketplace.",
+      action: buildAction(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "mTLS Certificate Authority",
+        "SPIFFE CA issuing certificates to every delivery service, dispatch worker, and merchant integration for workload identity"
+      ),
+      why: "SPIFFE workload identity proves service identity without shared secrets. A compromised service cannot obtain certificates for other services — limiting blast radius of breaches.",
+      component: component("mtls_certificate_authority", "mTLS Certificate Authority"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "SPIFFE CA",
+        "issue certificates to every delivery service, dispatch worker, and merchant integration for workload identity",
+        "SPIFFE workload identity proves service identity without shared secrets.",
+        "mTLS Certificate Authority"
+      ),
+      celebrationMessage: buildCelebration(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "DoorDash's SPIFFE CA issues certificates to every delivery service, dispatch worker, and merchant integration. Compromised services must not be able to impersonate other parties in the marketplace.",
+        "Cache Stampede Guard"
+      ),
+      messages: [
+        msg("DoorDash's SPIFFE CA issues certificates to every delivery service, dispatch worker, and merchant integration."),
+        msg(
+          "Compromised services cannot obtain certificates for other services — limiting the blast radius of breaches. Every workload has cryptographic identity."
+        ),
+        msg("Press ⌘K, search for \"mTLS Certificate Authority\", add it, then connect Service Mesh → mTLS Certificate Authority."),
+      ],
+      requiredNodes: ["mtls_certificate_authority"],
+      requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
+      successMessage: "mTLS CA added. Now cache stampede protection.",
+      errorMessage: "Add an mTLS Certificate Authority connected from the Service Mesh.",
+    }),
+    step({
+      id: 7,
+      title: "Add Cache Stampede Guard",
+      explanation:
+        "DoorDash's Cache Stampede Guard protects menu caches from stampedes when a popular restaurant updates its menu. Lock-assisted refresh ensures only one worker updates the menu cache.",
+      action: buildAction(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "Cache Stampede Guard",
+        "menu caches being protected from stampedes with lock-assisted refresh — only one worker updates the cache during popular restaurant updates"
+      ),
+      why: "When a cache entry expires, many requests simultaneously miss the cache and hit the database. Lock-assisted refresh ensures only one worker refreshes while others wait.",
+      component: component("cache_stampede_guard", "Cache Stampede Guard"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "Cache Stampede Guard",
+        "protect menu caches from stampedes when a popular restaurant updates its menu with lock-assisted refresh",
+        "When a cache entry expires, many requests simultaneously miss the cache and hit the database.",
+        "Cache Stampede Guard"
+      ),
+      celebrationMessage: buildCelebration(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "DoorDash's Cache Stampede Guard protects menu caches from stampedes when a popular restaurant updates its menu. Lock-assisted refresh ensures only one worker updates the menu cache.",
+        "Change Data Cache"
+      ),
+      messages: [
+        msg("DoorDash's Cache Stampede Guard protects menu caches from stampedes during popular restaurant updates."),
+        msg(
+          "When a cache entry expires, many requests simultaneously miss the cache and hit the database. Lock-assisted refresh ensures only one worker refreshes while others wait for the result."
+        ),
+        msg("Press ⌘K, search for \"Cache Stampede Guard\", add it, then connect In-Memory Cache → Cache Stampede Guard."),
+      ],
+      requiredNodes: ["cache_stampede_guard"],
+      requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
+      successMessage: "Cache stampede protection added. Now ML inference caching.",
+      errorMessage: "Add a Cache Stampede Guard connected from the In-Memory Cache.",
+    }),
+    step({
+      id: 8,
+      title: "Add Change Data Cache",
+      explanation:
+        "DoorDash's CDC pipeline precomputes delivery predictions and dasher assignment scores. ML inference results are cached in Redis for sub-10ms retrieval during dispatch.",
+      action: buildAction(
+        "Change Data Cache",
+        "CDC Connector",
+        "Change Data Cache",
+        "delivery predictions and dasher assignment scores being precomputed and cached in Redis for sub-10ms ML inference during dispatch"
+      ),
+      why: "Dispatch decisions must happen in milliseconds. Precomputing ML inference results and caching them eliminates the latency of running the model during peak order volume.",
+      component: component("change_data_cache", "Change Data Cache"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "CDC Cache",
+        "precompute delivery predictions and dasher assignment scores cached in Redis for sub-10ms ML inference during dispatch",
+        "Dispatch decisions must happen in milliseconds — precomputing ML results eliminates model latency.",
+        "Change Data Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "Change Data Cache",
+        "CDC Connector",
+        "DoorDash's CDC pipeline precomputes delivery predictions and dasher assignment scores. ML inference results are cached in Redis for sub-10ms retrieval during dispatch.",
+        "Data Warehouse"
+      ),
+      messages: [
+        msg("DoorDash's CDC pipeline precomputes delivery predictions and dasher assignment scores."),
+        msg(
+          "ML inference results are cached in Redis for sub-10ms retrieval during dispatch. This eliminates the latency of running the ML model during peak order volume."
+        ),
+        msg("Press ⌘K, search for \"Change Data Cache\", add it, then connect CDC Connector → Change Data Cache."),
+      ],
+      requiredNodes: ["change_data_cache"],
+      requiredEdges: [edge("cdc_connector", "change_data_cache")],
+      successMessage: "ML inference caching added. Now the data warehouse.",
+      errorMessage: "Add a Change Data Cache connected from the CDC Connector.",
+    }),
+    step({
+      id: 9,
+      title: "Add Data Warehouse",
+      explanation:
+        "DoorDash's Data Warehouse stores delivery analytics: fulfillment rates, dasher efficiency, and demand forecasting. This data trains DoorDash's ML models for dispatch and ETA prediction.",
+      action: buildAction(
+        "Data Warehouse",
+        "CDC Connector",
+        "Data Warehouse",
+        "delivery analytics — fulfillment rates, dasher efficiency, and demand forecasting — being stored for ML model training"
+      ),
+      why: "ML models improve with more training data. The data warehouse aggregates analytics from all delivery operations — this becomes the training set for dispatch and ETA models.",
+      component: component("data_warehouse", "Data Warehouse"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "Data Warehouse",
+        "store delivery analytics for ML model training: fulfillment rates, dasher efficiency, and demand forecasting",
+        "ML models improve with more training data — the data warehouse aggregates analytics from all delivery operations.",
+        "Data Warehouse"
+      ),
+      celebrationMessage: buildCelebration(
+        "Data Warehouse",
+        "CDC Connector",
+        "DoorDash's Data Warehouse stores delivery analytics: fulfillment rates, dasher efficiency, and demand forecasting. This data trains DoorDash's ML models for dispatch and ETA prediction.",
+        "Event Store"
+      ),
+      messages: [
+        msg("DoorDash's Data Warehouse stores delivery analytics for ML model training."),
+        msg(
+          "Fulfillment rates, dasher efficiency, and demand forecasting data becomes the training set for dispatch and ETA models. Better data means more accurate predictions."
+        ),
+        msg("Press ⌘K, search for \"Data Warehouse\", add it, then connect CDC Connector → Data Warehouse."),
+      ],
+      requiredNodes: ["data_warehouse"],
+      requiredEdges: [edge("cdc_connector", "data_warehouse")],
+      successMessage: "Data warehouse added. Now the event store.",
+      errorMessage: "Add a Data Warehouse connected from the CDC Connector.",
+    }),
+    step({
+      id: 10,
+      title: "Add Event Store",
+      explanation:
+        "DoorDash's Event Store stores every order lifecycle event: placed, accepted, picked up, delivered, cancelled. Event sourcing enables dispute resolution and fraud detection.",
+      action: buildAction(
+        "Event Store",
+        "Order",
+        "Event Store",
+        "every order lifecycle event being stored: placed, accepted, picked up, delivered, cancelled — enabling dispute resolution and fraud detection"
+      ),
+      why: "Event sourcing provides an immutable audit trail. For dispute resolution, DoorDash can replay the exact sequence of events. For fraud detection, anomalies in the event sequence indicate suspicious activity.",
+      component: component("event_store", "Event Store"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "Event Store",
+        "store every order lifecycle event for dispute resolution and fraud detection",
+        "Event sourcing provides an immutable audit trail — replay the exact sequence for disputes.",
+        "Event Store"
+      ),
+      celebrationMessage: buildCelebration(
+        "Event Store",
+        "Order Service",
+        "DoorDash's Event Store stores every order lifecycle event: placed, accepted, picked up, delivered, cancelled. Event sourcing enables dispute resolution and fraud detection.",
+        "Saga Orchestrator"
+      ),
+      messages: [
+        msg("DoorDash's Event Store stores every order lifecycle event for dispute resolution and fraud detection."),
+        msg(
+          "Event sourcing provides an immutable audit trail. For dispute resolution, DoorDash can replay the exact sequence. For fraud detection, anomalies in the event sequence indicate suspicious activity."
+        ),
+        msg("Press ⌘K, search for \"Event Store\", add it, then connect Order Service → Event Store."),
+      ],
+      requiredNodes: ["event_store"],
+      requiredEdges: [edge("order_service", "event_store")],
+      successMessage: "Event store added. Now saga orchestration.",
+      errorMessage: "Add an Event Store connected from the Order Service.",
+    }),
+    step({
+      id: 11,
+      title: "Add Saga Orchestrator",
+      explanation:
+        "DoorDash's Saga Orchestrator manages the order fulfillment saga: validate order, reserve dasher, notify merchant, charge consumer, update dasher earnings. Each step can fail and requires compensating transactions.",
+      action: buildAction(
+        "Saga Orchestrator",
+        "Order",
+        "Saga Orchestrator",
+        "order fulfillment saga being orchestrated: validate order, reserve dasher, notify merchant, charge consumer, update dasher earnings"
+      ),
+      why: "The order fulfillment saga has 5 steps that can fail independently. If dasher reservation fails after merchant notification, the saga must roll back — compensating transactions undo the notification.",
+      component: component("saga_orchestrator", "Saga Orchestrator"),
+      openingMessage: buildOpeningL3(
+        "DoorDash",
+        "Saga Orchestrator",
+        "manage order fulfillment saga: validate order, reserve dasher, notify merchant, charge consumer, update dasher earnings",
+        "The order fulfillment saga has 5 steps that can fail independently — compensating transactions handle rollbacks.",
+        "Saga Orchestrator"
+      ),
+      celebrationMessage: buildCelebration(
+        "Saga Orchestrator",
+        "Order Service",
+        "DoorDash's Saga Orchestrator manages the order fulfillment saga: validate order, reserve dasher, notify merchant, charge consumer, update dasher earnings. Each step can fail and requires compensating transactions.",
+        "You have built DoorDash Enterprise"
+      ),
+      messages: [
+        msg("DoorDash's Saga Orchestrator manages the order fulfillment saga across 5 steps."),
+        msg(
+          "Validate order, reserve dasher, notify merchant, charge consumer, update dasher earnings. Each step can fail independently and requires compensating transactions for rollback."
+        ),
+        msg("Press ⌘K, search for \"Saga Orchestrator\", add it, then connect Order Service → Saga Orchestrator."),
+      ],
+      requiredNodes: ["saga_orchestrator"],
+      requiredEdges: [edge("order_service", "saga_orchestrator")],
+      successMessage: "Saga orchestration added. You have built DoorDash Enterprise.",
+      errorMessage: "Add a Saga Orchestrator connected from the Order Service.",
+    }),
+  ],
+});
+
 export const doordashTutorial: Tutorial = tutorial({
   id: 'doordash-architecture',
   title: 'How to Design DoorDash Architecture',
@@ -417,6 +1169,6 @@ export const doordashTutorial: Tutorial = tutorial({
   icon: 'Bike',
   color: '#ff3008',
   tags: ['Real-time Routing', 'ETA', 'Geofencing', 'Dispatch'],
-  estimatedTime: '~30 mins',
-  levels: [l1],
+  estimatedTime: '~87 mins',
+  levels: [l1, l2, l3],
 });

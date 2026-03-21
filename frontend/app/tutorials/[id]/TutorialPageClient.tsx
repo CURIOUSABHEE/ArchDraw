@@ -161,13 +161,15 @@ export default function TutorialPage() {
   });
 
   const levels: TutorialLevelData[] = isLeveled && tutorial ? (tutorial as Tutorial).levels ?? [] : [];
-  // Handle both old flat format (tutorial.steps) and new factory format (tutorial.levels[0].steps)
+  // Handle both old flat format (tutorial.steps) and new factory format (tutorial.levels[].steps)
+  // Also handle case where tutorial has levels but wasn't detected as leveled yet
+  const hasLevelsArray = tutorial && 'levels' in tutorial && (tutorial as Tutorial).levels?.length > 0;
   const allSteps = tutorial
-    ? (isLeveled
+    ? (isLeveled || hasLevelsArray
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? (tutorial as any).levels?.flatMap((l: { steps: unknown[] }) => l.steps) ?? []
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      : ((tutorial as any).steps ?? (tutorial as Tutorial).levels?.[0]?.steps ?? []))
+      : ((tutorial as any).steps ?? []))
     : [];
   const currentLevelData = levels[currentLevel - 1] ?? null;
   const currentLevelSteps = currentLevelData?.steps ?? allSteps;
@@ -355,8 +357,8 @@ export default function TutorialPage() {
   const step = currentLevelSteps[currentStep - 1];
   const nextLevelData = isLeveled ? (levels[currentLevel] ?? null) : null;
   const stepLabel = isLeveled && currentLevelData
-    ? `Level ${currentLevel} · Step ${currentStep}/${totalSteps}`
-    : `Step ${currentStep} of ${totalSteps}`;
+    ? `Level ${currentLevel} · Step ${currentStep}/${totalSteps || '?'}`
+    : `Step ${currentStep} of ${totalSteps || '?'}`;
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: '#080c14' }}>
@@ -374,9 +376,9 @@ export default function TutorialPage() {
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <div className="hidden sm:flex items-center gap-2">
-            <span className="text-xs text-slate-500">{Math.round((currentStep / totalSteps) * 100)}%</span>
+            <span className="text-xs text-slate-500">{totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0}%</span>
             <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-              <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
+              <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0}%` }} />
             </div>
           </div>
           <button

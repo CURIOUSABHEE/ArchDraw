@@ -3,6 +3,8 @@ import {
   buildAction,
   buildFirstStepAction,
   buildOpeningL1,
+  buildOpeningL2,
+  buildOpeningL3,
   buildCelebration,
 } from '@/lib/tutorial/defaults';
 import type { Tutorial } from '@/lib/tutorial/types';
@@ -450,6 +452,723 @@ const l1 = level({
   ],
 });
 
+// ── Level 2 — Production Ready (9 steps) ─────────────────────────────────────
+
+const l2 = level({
+  level: 2,
+  title: 'Production Ready',
+  subtitle: 'Scale to millions of concurrent users',
+  description:
+    "Your fan-out architecture works. Now add what Twitter actually ships: Kafka for events, notification workers, SQL for user data, write-through cache for engagement, CDC for analytics, and structured logging.",
+  estimatedTime: '~25 mins',
+  unlocks: 'Expert Architecture',
+  prerequisite: 'Builds on your Level 1 diagram',
+  contextMessage:
+    "Level 2: Production Ready. Your fan-out architecture serves timelines at scale. Now add Kafka event streaming, notifications, SQL, write-through caching, CDC, and structured logging.",
+  steps: [
+    step({
+      id: 1,
+      title: 'Add Kafka Streaming',
+      explanation:
+        "Every tweet, like, retweet, and follow is published to Kafka. The trending algorithm consumes tweet events in real time. Analytics pipelines consume engagement data to train the recommendation model.",
+      action: buildAction(
+        'Kafka / Streaming',
+        'Load Balancer',
+        'Kafka Streaming',
+        'every tweet, like, and follow being streamed to trending and analytics consumers in real time'
+      ),
+      why: "Without Kafka, computing trending topics would require synchronous database queries. Kafka decouples event producers from consumers — the tweet path stays fast regardless of how many downstream systems consume events.",
+      component: component('kafka_streaming', 'Kafka / Streaming', 'Kafka / Streaming'),
+      openingMessage: buildOpeningL2(
+        'Twitter',
+        'Kafka',
+        'stream every tweet, like, and follow to trending and analytics consumers in real time',
+        'Without Kafka, trending computation would require synchronous calls — slowing down every tweet.',
+        'Kafka / Streaming'
+      ),
+      celebrationMessage: buildCelebration(
+        'Kafka Streaming',
+        'Load Balancer',
+        "Twitter publishes billions of events per day to Kafka — every tweet, like, retweet, and follow. The trending algorithm reacts within 30 seconds. Analytics pipelines consume engagement data to retrain recommendation models daily.",
+        'Notification Worker'
+      ),
+      messages: [
+        msg("Level 2 — Production Ready. Every tweet, like, and follow is published to Kafka for downstream consumers."),
+        msg("The trending algorithm consumes tweet events to compute trending topics. Analytics pipelines consume engagement data to train recommendation models."),
+        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'),
+      ],
+      requiredNodes: ['kafka_streaming'],
+      requiredEdges: [edge('load_balancer', 'kafka_streaming')],
+      successMessage: 'Events streaming. Now notifications.',
+      errorMessage: 'Add Kafka Streaming connected from the Load Balancer.',
+    }),
+    step({
+      id: 2,
+      title: 'Add Notification Worker',
+      explanation:
+        "Notification workers consume Kafka events to send push notifications — mentions, replies, followers, and trending alerts. They batch notifications to avoid notification storms during viral tweets.",
+      action: buildAction(
+        'Worker',
+        'Kafka',
+        'Notification Worker',
+        'push notifications being sent for mentions, replies, and followers — batched to prevent notification storms during viral tweets'
+      ),
+      why: "If Twitter sent a notification to 150 million followers the instant a celebrity tweets, devices would crash. Notification batching prevents storms while keeping users informed.",
+      component: component('worker_job', 'Worker'),
+      openingMessage: buildOpeningL2(
+        'Twitter',
+        'Notification Worker',
+        'batch push notifications for viral tweets to prevent device overwhelm while keeping users informed',
+        'If Twitter notified 150M followers instantly when a celebrity tweets, devices would crash.',
+        'Worker'
+      ),
+      celebrationMessage: buildCelebration(
+        'Notification Worker',
+        'Kafka Streaming',
+        "Twitter's notification workers batch alerts for viral tweets — sending in waves to prevent device overwhelm. When a celebrity tweets to 150M followers, notifications go out in batches over 30 minutes.",
+        'Write-Through Cache'
+      ),
+      messages: [
+        msg("Notification workers consume Kafka events to send push notifications — mentions, replies, followers, trending alerts."),
+        msg("Notifications are batched to prevent notification storms. When a celebrity tweets to 150M followers, notifications go out in waves over 30 minutes."),
+        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+      ],
+      requiredNodes: ['worker_job'],
+      requiredEdges: [edge('kafka_streaming', 'worker_job')],
+      successMessage: 'Notifications added. Now write-through cache.',
+      errorMessage: 'Add a Worker connected from Kafka Streaming.',
+    }),
+    step({
+      id: 3,
+      title: 'Add Write-Through Cache',
+      explanation:
+        "Twitter's Write-Through Cache synchronously updates both Redis and the NoSQL database on every like, retweet, and follow. Engagement counts are immediately consistent — no stale counts displayed to users.",
+      action: buildAction(
+        'Write-Through Cache',
+        'Load Balancer',
+        'Write-Through Cache',
+        'engagement counts being synchronously updated in both Redis and NoSQL on every like and retweet — immediately consistent'
+      ),
+      why: "Without write-through caching, like counts would be eventually consistent — users might see stale counts. For engagement metrics, immediate consistency matters — a tweet with 1M likes must show 1M immediately.",
+      component: component('write_through_cache', 'Write-Through Cache'),
+      openingMessage: buildOpeningL2(
+        'Twitter',
+        'Write-Through Cache',
+        'synchronously update engagement counts in Redis and NoSQL on every like and retweet — immediately consistent',
+        'Without write-through caching, like counts would be stale — immediate consistency matters for engagement.',
+        'Write-Through Cache'
+      ),
+      celebrationMessage: buildCelebration(
+        'Write-Through Cache',
+        'Load Balancer',
+        "Twitter's Write-Through Cache synchronously updates both Redis and NoSQL on every like and retweet. Engagement counts are immediately consistent — no stale counts displayed. A tweet with 1M likes shows 1M instantly.",
+        'CDC Connector'
+      ),
+      messages: [
+        msg("Write-Through Cache synchronously updates both Redis and NoSQL on every like and retweet."),
+        msg("Engagement counts are immediately consistent — a tweet with 1M likes shows 1M instantly. No stale counts displayed to users."),
+        msg('Press ⌘K, search for "Write-Through Cache", add it, then connect Load Balancer → Write-Through Cache.'),
+      ],
+      requiredNodes: ['write_through_cache'],
+      requiredEdges: [edge('load_balancer', 'write_through_cache')],
+      successMessage: 'Write-through cache added. Now CDC for analytics.',
+      errorMessage: 'Add a Write-Through Cache connected from the Load Balancer.',
+    }),
+    step({
+      id: 4,
+      title: 'Add CDC Connector (Debezium)',
+      explanation:
+        "The CDC Connector captures row-level changes from Twitter's NoSQL database transaction log — streaming tweet creations, profile updates, and engagement changes to Kafka for analytics without database query overhead.",
+      action: buildAction(
+        'CDC Connector (Debezium)',
+        'NoSQL Database',
+        'CDC Connector',
+        'row-level changes being captured from the NoSQL transaction log and streamed to Kafka for analytics'
+      ),
+      why: "Without CDC, analytics queries would require direct database reads that add load to the production database. CDC captures changes from the transaction log — zero production query overhead.",
+      component: component('cdc_connector', 'CDC Connector (Debezium)'),
+      openingMessage: buildOpeningL2(
+        'Twitter',
+        'CDC Connector (Debezium)',
+        'capture row-level changes from the NoSQL transaction log and stream to Kafka — zero production query overhead',
+        'Without CDC, analytics queries add load to production database — CDC captures changes from the transaction log.',
+        'CDC Connector (Debezium)'
+      ),
+      celebrationMessage: buildCelebration(
+        'CDC Connector',
+        'NoSQL Database',
+        "Twitter's CDC Connector captures every tweet creation and engagement update from the NoSQL transaction log — streaming to Kafka for analytics without adding load to the production database.",
+        'SQL Database'
+      ),
+      messages: [
+        msg("CDC Connector captures row-level changes from the NoSQL transaction log and streams them to Kafka for analytics."),
+        msg("Without CDC, analytics queries would add load to the production database. CDC captures changes from the transaction log — zero query overhead."),
+        msg('Press ⌘K, search for "CDC Connector (Debezium)", add it, then connect NoSQL Database → CDC Connector.'),
+      ],
+      requiredNodes: ['cdc_connector'],
+      requiredEdges: [edge('nosql_db', 'cdc_connector')],
+      successMessage: 'CDC added. Now SQL for user data.',
+      errorMessage: 'Add a CDC Connector connected from the NoSQL Database.',
+    }),
+    step({
+      id: 5,
+      title: 'Add SQL Database',
+      explanation:
+        "Twitter stores user profiles, direct messages, and advertising data in PostgreSQL. Direct messages require ACID transactions — a dropped message is a support ticket.",
+      action: buildAction(
+        'SQL Database',
+        'Auth Service',
+        'SQL Database',
+        'user profiles, DMs, and advertising data being stored with ACID guarantees for message delivery'
+      ),
+      why: "Direct messages must be delivered exactly once. ACID transactions ensure every message is recorded exactly once — a dropped message is a support ticket.",
+      component: component('sql_db', 'SQL Database'),
+      openingMessage: buildOpeningL2(
+        'Twitter',
+        'SQL Database',
+        'store user profiles, DMs, and advertising data with ACID guarantees for message delivery',
+        'Direct messages require ACID transactions — a dropped message is a support ticket.',
+        'SQL Database'
+      ),
+      celebrationMessage: buildCelebration(
+        'SQL Database',
+        'Auth Service',
+        "Twitter stores direct messages in PostgreSQL with full ACID compliance. Every message delivered exactly once — a dropped DM is a support ticket. User profiles and advertising data also require ACID guarantees.",
+        'Structured Logger'
+      ),
+      messages: [
+        msg("User profiles, direct messages, and advertising data need ACID compliance. PostgreSQL stores the authoritative records."),
+        msg("Direct messages must be delivered exactly once. ACID transactions ensure every message is recorded — a dropped message is a support ticket."),
+        msg('Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'),
+      ],
+      requiredNodes: ['sql_db'],
+      requiredEdges: [edge('auth_service', 'sql_db')],
+      successMessage: 'SQL added. Now structured logging.',
+      errorMessage: 'Add a SQL Database connected from the Auth Service.',
+    }),
+    step({
+      id: 6,
+      title: 'Add Structured Logger',
+      explanation:
+        "Twitter's Structured Logger emits JSON-formatted logs with consistent field schemas — user_id, tweet_id, event_type, engagement_count. LogQL queries aggregate metrics across billions of logs per day.",
+      action: buildAction(
+        'Structured Logger',
+        'Load Balancer',
+        'Structured Logger',
+        'JSON-formatted logs being emitted with consistent schemas for user_id, tweet_id, and event_type across all services'
+      ),
+      why: "Text logs require regex parsing — slow and error-prone at scale. Structured JSON logs enable LogQL queries that aggregate metrics across billions of entries in seconds.",
+      component: component('structured_logger', 'Structured Logger'),
+      openingMessage: buildOpeningL2(
+        'Twitter',
+        'Structured Logger',
+        'emit JSON logs with consistent field schemas for user_id, tweet_id, and event_type across all services',
+        'Text logs require regex parsing — structured JSON enables fast LogQL aggregation across billions of entries.',
+        'Structured Logger'
+      ),
+      celebrationMessage: buildCelebration(
+        'Structured Logger',
+        'Load Balancer',
+        "Twitter's Structured Logger emits JSON with consistent schemas: user_id, tweet_id, event_type, engagement_count. LogQL queries aggregate trending detection across billions of entries — enabling real-time trending alerts.",
+        'SLO/SLI Tracker'
+      ),
+      messages: [
+        msg("Structured Logger emits JSON-formatted logs with consistent schemas — user_id, tweet_id, event_type, engagement_count."),
+        msg("LogQL queries aggregate metrics across billions of logs per day in seconds. Trending detection and anomaly alerts use structured log queries."),
+        msg('Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'),
+      ],
+      requiredNodes: ['structured_logger'],
+      requiredEdges: [edge('load_balancer', 'structured_logger')],
+      successMessage: 'Structured logging added. Now SLO tracking.',
+      errorMessage: 'Add a Structured Logger connected from the Load Balancer.',
+    }),
+    step({
+      id: 7,
+      title: 'Add SLO/SLI Tracker',
+      explanation:
+        "Twitter's SLO/SLI Tracker monitors tweet delivery latency, timeline load time, and API availability against defined Service Level Objectives. Timeline load time SLO: 99.9% of timelines load within 500ms.",
+      action: buildAction(
+        'SLO/SLI Tracker',
+        'Metrics Collector',
+        'SLO/SLI Tracker',
+        'tweet delivery latency and timeline load time being tracked against SLOs — alerting when error budgets burn'
+      ),
+      why: "Without SLOs, engineering teams argue about what 'good' means. With SLOs, there's a clear contractual target — timeline load must be under 500ms for 99.9% of requests.",
+      component: component('slo_tracker', 'SLO/SLI Tracker'),
+      openingMessage: buildOpeningL2(
+        'Twitter',
+        'SLO/SLI Tracker',
+        'monitor tweet delivery latency and timeline load time against defined SLO targets',
+        'Without SLOs, engineering teams argue about what acceptable performance means.',
+        'SLO/SLI Tracker'
+      ),
+      celebrationMessage: buildCelebration(
+        'SLO/SLI Tracker',
+        'Metrics Collector',
+        "Twitter's SLO: 99.9% of timelines load within 500ms. The SLO/SLI Tracker alerts when error budgets burn — pages on-call before users notice degradation in tweet delivery.",
+        'Error Budget Monitor'
+      ),
+      messages: [
+        msg("The SLO/SLI Tracker monitors tweet delivery latency, timeline load time, and API availability against defined Service Level Objectives."),
+        msg("Twitter's timeline load time SLO: 99.9% of timelines load within 500ms. When latency exceeds the error budget, on-call is paged."),
+        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO/SLI Tracker.'),
+      ],
+      requiredNodes: ['slo_tracker'],
+      requiredEdges: [edge('metrics_collector', 'slo_tracker')],
+      successMessage: 'SLO tracking added. Now error budgets.',
+      errorMessage: 'Add an SLO/SLI Tracker connected from the Metrics Collector.',
+    }),
+    step({
+      id: 8,
+      title: 'Add Error Budget Monitor',
+      explanation:
+        "Twitter's Error Budget Monitor tracks remaining reliability budget for timeline load time SLO. When the error budget burns faster than acceptable, feature launches pause until reliability improves.",
+      action: buildAction(
+        'Error Budget Monitor',
+        'SLO/SLI Tracker',
+        'Error Budget Monitor',
+        'error budget burn rate being tracked — pausing feature launches when budget depletes faster than acceptable'
+      ),
+      why: "The error budget is the 'spare' reliability — the difference between the SLO target and 100%. When it's depleted, feature launches pause until reliability improves.",
+      component: component('error_budget_alert', 'Error Budget Monitor'),
+      openingMessage: buildOpeningL2(
+        'Twitter',
+        'Error Budget Monitor',
+        'track error budget burn rate — pausing feature launches when budget depletes to protect reliability',
+        'The error budget is the reliability buffer — when depleted, feature launches pause for reliability work.',
+        'Error Budget Monitor'
+      ),
+      celebrationMessage: buildCelebration(
+        'Error Budget Monitor',
+        'SLO/SLI Tracker',
+        "Twitter's error budget policy: when more than 10% of the monthly budget burns in a week, feature launches pause. Engineering prioritizes reliability until the budget recovers — protecting user experience.",
+        'Level 3'
+      ),
+      messages: [
+        msg("The Error Budget Monitor tracks remaining reliability budget for timeline load time SLO."),
+        msg("When the error budget burns faster than acceptable, feature launches pause until reliability improves. This prevents reliability from being sacrificed for velocity."),
+        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'),
+      ],
+      requiredNodes: ['error_budget_alert'],
+      requiredEdges: [edge('slo_tracker', 'error_budget_alert')],
+      successMessage: 'Error budget monitoring added. Twitter is now production-ready.',
+      errorMessage: 'Add an Error Budget Monitor connected from the SLO/SLI Tracker.',
+    }),
+  ],
+});
+
+// ── Level 3 — Expert Architecture (11 steps) ───────────────────────────────────
+
+const l3 = level({
+  level: 3,
+  title: 'Expert Architecture',
+  subtitle: 'Design like a Twitter senior engineer',
+  description:
+    "You have production Twitter. Now add what separates senior engineers — service mesh, GraphQL Federation, token bucket rate limiting, distributed tracing with correlation IDs, SLO tracking, CDC analytics, leader election for trending, and event sourcing.",
+  estimatedTime: '~30 mins',
+  prerequisite: 'Builds on your Level 2 diagram',
+  contextMessage:
+    "Level 3: Expert Architecture. Add service mesh, GraphQL Federation, advanced rate limiting, distributed tracing, CDC analytics, leader election, and event sourcing for tweets.",
+  steps: [
+    step({
+      id: 1,
+      title: 'Add Service Mesh (Istio)',
+      explanation:
+        "Twitter's Service Mesh uses Istio to manage all east-west traffic between services — automatic mTLS encryption, circuit breaking, retries, and load balancing at the sidecar proxy level.",
+      action: buildAction(
+        'Service Mesh (Istio)',
+        'Load Balancer',
+        'Service Mesh',
+        'automatic mTLS and traffic management being enforced at the sidecar proxy level for all service-to-service communication'
+      ),
+      why: "Without a service mesh, each service implements TLS, circuit breaking, and retries differently. Istio handles this transparently at the infrastructure layer.",
+      component: component('service_mesh', 'Service Mesh (Istio)'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'Service Mesh (Istio)',
+        'automatic mTLS, circuit breaking, and traffic policies enforced at the sidecar proxy level across all services',
+        'Without a service mesh, each service implements TLS, retries, and circuit breaking differently.',
+        'Service Mesh (Istio)'
+      ),
+      celebrationMessage: buildCelebration(
+        'Service Mesh',
+        'Load Balancer',
+        "Twitter's service mesh handles billions of service-to-service calls per day. Every call is encrypted with mTLS — no service code changes required. The Control Plane pushes traffic policies across the cluster instantly.",
+        'GraphQL Federation Gateway'
+      ),
+      messages: [
+        msg("Level 3 — Expert Architecture. The Service Mesh (Istio) adds sidecar proxies to every pod — handling mTLS, retries, circuit breaking, and load balancing transparently."),
+        msg("With automatic mTLS, every service-to-service call is encrypted. The Control Plane distributes traffic policies across all sidecars instantly."),
+        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'),
+      ],
+      requiredNodes: ['service_mesh'],
+      requiredEdges: [edge('load_balancer', 'service_mesh')],
+      successMessage: 'Service mesh added. Now GraphQL Federation.',
+      errorMessage: 'Add a Service Mesh connected from the Load Balancer.',
+    }),
+    step({
+      id: 2,
+      title: 'Add GraphQL Federation Gateway',
+      explanation:
+        "Twitter's GraphQL Federation Gateway combines tweet, user, and timeline schemas into a unified supergraph. Mobile clients query one endpoint — the gateway fans out to multiple subgraphs and composes the response.",
+      action: buildAction(
+        'GraphQL Federation Gateway',
+        'API Gateway',
+        'GraphQL Federation Gateway',
+        'tweet, user, and timeline schemas being composed into a unified API from multiple subgraphs'
+      ),
+      why: "Without Federation, clients make multiple round trips to different REST endpoints. GraphQL Federation lets clients fetch all needed data in a single query.",
+      component: component('graphql_federation', 'GraphQL Federation Gateway'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'GraphQL Federation Gateway',
+        'compose tweet, user, and timeline schemas into a unified supergraph from multiple subgraphs',
+        'Without Federation, clients make multiple round trips to different REST endpoints.',
+        'GraphQL Federation Gateway'
+      ),
+      celebrationMessage: buildCelebration(
+        'GraphQL Federation Gateway',
+        'API Gateway',
+        "Twitter's GraphQL Federation Gateway serves the mobile app with a unified API — one query fetches tweets, user profiles, and timeline data. Mobile API calls reduced by 60%, latency reduced by 40%.",
+        'Token Bucket Rate Limiter'
+      ),
+      messages: [
+        msg("GraphQL Federation combines tweet, user, and timeline schemas into a unified supergraph."),
+        msg("Mobile clients query one endpoint — the gateway fans out to multiple subgraphs and composes the response. Mobile API calls reduced by 60%."),
+        msg('Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'),
+      ],
+      requiredNodes: ['graphql_federation'],
+      requiredEdges: [edge('api_gateway', 'graphql_federation')],
+      successMessage: 'GraphQL Federation added. Now rate limiting.',
+      errorMessage: 'Add a GraphQL Federation Gateway connected from the API Gateway.',
+    }),
+    step({
+      id: 3,
+      title: 'Add Token Bucket Rate Limiter',
+      explanation:
+        "Twitter's Token Bucket Rate Limiter enforces API quotas using the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate. Developers with premium API access get larger buckets.",
+      action: buildAction(
+        'Token Bucket Rate Limiter',
+        'API Gateway',
+        'Token Bucket Rate Limiter',
+        'API quotas being enforced with burst allowance using the token bucket algorithm — premium developers get larger buckets'
+      ),
+      why: "Fixed rate limiting can't handle legitimate bursts. API developers uploading batches of tweets need burst capacity — the token bucket allows this while maintaining average limits.",
+      component: component('token_bucket_limiter', 'Token Bucket Rate Limiter'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'Token Bucket Rate Limiter',
+        'enforce API quotas with burst allowance — premium developers get larger token buckets for batch operations',
+        'Fixed rate limiting cannot handle legitimate bursts — token bucket allows bursts while maintaining average limits.',
+        'Token Bucket Rate Limiter'
+      ),
+      celebrationMessage: buildCelebration(
+        'Token Bucket Rate Limiter',
+        'API Gateway',
+        "Twitter's token bucket rate limiter allows developers to burst API requests — a premium developer uploading a batch of tweets can use their full bucket. Casual users get smaller buckets. The steady average rate prevents abuse.",
+        'OpenTelemetry Collector'
+      ),
+      messages: [
+        msg("Token Bucket Rate Limiter uses the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate."),
+        msg("Premium API developers get larger buckets for batch operations. The steady average rate prevents abuse while enabling legitimate bursts."),
+        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'),
+      ],
+      requiredNodes: ['token_bucket_limiter'],
+      requiredEdges: [edge('api_gateway', 'token_bucket_limiter')],
+      successMessage: 'Rate limiting added. Now distributed tracing.',
+      errorMessage: 'Add a Token Bucket Rate Limiter connected from the API Gateway.',
+    }),
+    step({
+      id: 4,
+      title: 'Add OpenTelemetry Collector',
+      explanation:
+        "Twitter's OpenTelemetry Collector receives traces, metrics, and logs from all services — processing and exporting to Jaeger for tracing, Prometheus for metrics, and Elasticsearch for logs.",
+      action: buildAction(
+        'OpenTelemetry Collector',
+        'Structured Logger',
+        'OpenTelemetry Collector',
+        'traces, metrics, and logs being aggregated and exported to multiple backends from a single unified collector'
+      ),
+      why: "Without OTel, each service uses different tracing libraries. The OTel Collector normalizes everything — one instrumentation, multiple backends.",
+      component: component('otel_collector', 'OpenTelemetry Collector'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'OpenTelemetry Collector',
+        'unified telemetry pipeline for traces, metrics, and logs with multi-backend export to Jaeger, Prometheus, and Elasticsearch',
+        'Without OTel, each service uses different tracing libraries — the OTel Collector normalizes everything.',
+        'OpenTelemetry Collector'
+      ),
+      celebrationMessage: buildCelebration(
+        'OpenTelemetry Collector',
+        'Structured Logger',
+        "Twitter's OTel Collector processes billions of spans per day. One instrumentation exports to Jaeger for tracing, Prometheus for metrics, and Elasticsearch for logs — three backends, zero per-service configuration.",
+        'Correlation ID Injector'
+      ),
+      messages: [
+        msg("The OpenTelemetry Collector is the unified observability pipeline — receiving spans, metrics, and logs from all services, normalizing the format, and exporting to multiple backends."),
+        msg("Without OTel, adding a new tracing backend requires changing every service. With OTel, services instrument once and the collector routes to any backend."),
+        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'),
+      ],
+      requiredNodes: ['otel_collector'],
+      requiredEdges: [edge('structured_logger', 'otel_collector')],
+      successMessage: 'OTel Collector added. Now correlation IDs.',
+      errorMessage: 'Add an OpenTelemetry Collector connected from the Structured Logger.',
+    }),
+    step({
+      id: 5,
+      title: 'Add Correlation ID Injector',
+      explanation:
+        "The Correlation ID Injector assigns a unique trace ID to every request that propagates via HTTP headers across all service calls — enabling end-to-end request tracing from the mobile client through tweet creation, fan-out, and timeline assembly.",
+      action: buildAction(
+        'Correlation ID Injector',
+        'otel_collector',
+        'Correlation ID Injector',
+        'unique trace IDs being propagated across all service calls for end-to-end request visibility'
+      ),
+      why: "Without correlation IDs, debugging a slow tweet delivery requires checking logs from the API gateway, tweet service, fan-out service, and timeline service separately. Correlation IDs link all logs under one trace.",
+      component: component('correlation_id_handler', 'Correlation ID Injector'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'Correlation ID Injector',
+        'propagate unique trace IDs across all service calls for instant cross-service log correlation',
+        'Without correlation IDs, debugging slow tweets requires checking logs from 5+ services separately.',
+        'Correlation ID Injector'
+      ),
+      celebrationMessage: buildCelebration(
+        'Correlation ID Injector',
+        'OpenTelemetry Collector',
+        "Twitter's correlation IDs flow through every service call: API Gateway → Tweet Service → Fan-out Service → Timeline Service. All logs under one trace ID — instant debugging of tweet delivery latency.",
+        'Leader Election'
+      ),
+      messages: [
+        msg("The Correlation ID Injector generates a unique trace ID at request entry and propagates it via HTTP headers through every service call."),
+        msg("All logs for a request share one correlation ID — instant debugging across Tweet Service, Fan-out Service, and Timeline Service."),
+        msg('Press ⌘K, search for "Correlation ID Injector", add it, then connect OpenTelemetry Collector → Correlation ID Injector.'),
+      ],
+      requiredNodes: ['correlation_id_handler'],
+      requiredEdges: [edge('otel_collector', 'correlation_id_handler')],
+      successMessage: 'Correlation IDs added. Now leader election.',
+      errorMessage: 'Add a Correlation ID Injector connected from the OpenTelemetry Collector.',
+    }),
+    step({
+      id: 6,
+      title: 'Add Leader Election',
+      explanation:
+        "Twitter's Leader Election ensures exactly one Trending Service instance processes trending counter updates — preventing split-brain scenarios where two instances compute different trending lists simultaneously.",
+      action: buildAction(
+        'Leader Election',
+        'Kafka Streaming',
+        'Leader Election',
+        'exactly one Trending Service instance being elected to process trending counter updates — preventing split-brain scenarios'
+      ),
+      why: "Without leader election, multiple Trending Service instances might process the same hashtag counters, leading to inconsistent trending lists. Leader election ensures serial processing.",
+      component: component('leader_election', 'Leader Election'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'Leader Election',
+        'elect exactly one Trending Service instance to process counters — preventing split-brain inconsistent trending lists',
+        'Without leader election, multiple instances process counters simultaneously — inconsistent trending lists.',
+        'Leader Election'
+      ),
+      celebrationMessage: buildCelebration(
+        'Leader Election',
+        'Kafka Streaming',
+        "Twitter's Leader Election ensures exactly one Trending Service instance processes trending counters. If the leader fails, a new leader is elected within seconds — trending computation never stops.",
+        'CQRS Command Handler'
+      ),
+      messages: [
+        msg("Leader Election ensures exactly one Trending Service instance processes trending counter updates."),
+        msg("Without leader election, multiple instances might process the same counters, leading to inconsistent trending lists. The leader processes all updates — no split-brain scenarios."),
+        msg('Press ⌘K, search for "Leader Election", add it, then connect Kafka Streaming → Leader Election.'),
+      ],
+      requiredNodes: ['leader_election'],
+      requiredEdges: [edge('kafka_streaming', 'leader_election')],
+      successMessage: 'Leader election added. Now CQRS pattern.',
+      errorMessage: 'Add a Leader Election connected from Kafka Streaming.',
+    }),
+    step({
+      id: 7,
+      title: 'Add CQRS Command Handler',
+      explanation:
+        "Twitter's CQRS Command Handler processes write operations — tweet creation, likes, follows. Commands are validated and persisted to the write model with strict consistency guarantees before acknowledgment.",
+      action: buildAction(
+        'CQRS Command Handler',
+        'Auth Service',
+        'CQRS Command Handler',
+        'write operations being validated and persisted to the write model with strict consistency — tweet creation, likes, follows'
+      ),
+      why: "CQRS separates read and write models — writes go through strict validation and consistency checks, reads go through optimized query paths. This prevents stale reads from blocking writes.",
+      component: component('cqrs_command_handler', 'CQRS Command Handler'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'CQRS Command Handler',
+        'process write operations with strict consistency — tweet creation, likes, follows validated before persistence',
+        'CQRS separates read and write models — writes go through strict validation, reads go through optimized paths.',
+        'CQRS Command Handler'
+      ),
+      celebrationMessage: buildCelebration(
+        'CQRS Command Handler',
+        'Auth Service',
+        "Twitter's CQRS Command Handler processes tweet creation, likes, and follows with strict consistency. Commands are validated and persisted to the write model before acknowledgment — no partial writes.",
+        'CQRS Query Handler'
+      ),
+      messages: [
+        msg("CQRS Command Handler processes write operations — tweet creation, likes, follows."),
+        msg("Commands are validated and persisted to the write model with strict consistency before acknowledgment. Reads go through an optimized query path separately."),
+        msg('Press ⌘K, search for "CQRS Command Handler", add it, then connect Auth Service → CQRS Command Handler.'),
+      ],
+      requiredNodes: ['cqrs_command_handler'],
+      requiredEdges: [edge('auth_service', 'cqrs_command_handler')],
+      successMessage: 'CQRS Command Handler added. Now the query handler.',
+      errorMessage: 'Add a CQRS Command Handler connected from the Auth Service.',
+    }),
+    step({
+      id: 8,
+      title: 'Add CQRS Query Handler',
+      explanation:
+        "Twitter's CQRS Query Handler serves read operations from a denormalized read model — optimized for fast queries without the overhead of translating from a normalized write model. Timeline reads use this optimized path.",
+      action: buildAction(
+        'CQRS Query Handler',
+        'Timeline Service',
+        'CQRS Query Handler',
+        'read operations being served from a denormalized read model optimized for fast queries — timeline reads'
+      ),
+      why: "Without CQRS, every read requires translating from the normalized write model. The Query Handler serves reads from a pre-computed denormalized model — sub-millisecond timeline reads.",
+      component: component('cqrs_query_handler', 'CQRS Query Handler'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'CQRS Query Handler',
+        'serve read operations from a denormalized read model — sub-millisecond timeline reads without write model translation',
+        'Without CQRS, every read requires translating from the normalized write model — slower queries.',
+        'CQRS Query Handler'
+      ),
+      celebrationMessage: buildCelebration(
+        'CQRS Query Handler',
+        'Timeline Service',
+        "Twitter's CQRS Query Handler serves timeline reads from a denormalized read model — pre-computed tweet IDs sorted by time. Timeline reads are sub-millisecond without any write model translation.",
+        'Data Warehouse'
+      ),
+      messages: [
+        msg("CQRS Query Handler serves read operations from a denormalized read model."),
+        msg("Timeline reads use the pre-computed denormalized model — sub-millisecond queries without translating from the normalized write model."),
+        msg('Press ⌘K, search for "CQRS Query Handler", add it, then connect Timeline Service → CQRS Query Handler.'),
+      ],
+      requiredNodes: ['cqrs_query_handler'],
+      requiredEdges: [edge('timeline_service', 'cqrs_query_handler')],
+      successMessage: 'CQRS Query Handler added. Now the analytics pipeline.',
+      errorMessage: 'Add a CQRS Query Handler connected from the Timeline Service.',
+    }),
+    step({
+      id: 9,
+      title: 'Add Data Warehouse',
+      explanation:
+        "Twitter's Data Warehouse stores all historical engagement data — tweet performance, user growth, advertising metrics. It powers the business intelligence that guides product decisions and ad targeting.",
+      action: buildAction(
+        'Data Warehouse',
+        'CDC Connector',
+        'Data Warehouse',
+        'all historical engagement data being stored for business intelligence, ad targeting, and ML training'
+      ),
+      why: "The NoSQL database answers 'what is the current like count for this tweet?' The Data Warehouse answers 'what are the engagement trends for political content over the past year?' — different query patterns requiring different storage.",
+      component: component('data_warehouse', 'Data Warehouse'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'Data Warehouse',
+        'columnar analytics storage for engagement trends and ad targeting performance across years of data',
+        'The NoSQL database cannot answer multi-year trend questions — that needs a data warehouse.',
+        'Data Warehouse'
+      ),
+      celebrationMessage: buildCelebration(
+        'Data Warehouse',
+        'CDC Connector',
+        "Twitter's data warehouse processes petabytes of engagement data. Ad targeting models, content moderation policies, and recommendation training all use this data — guiding what 500M users see.",
+        'Event Store'
+      ),
+      messages: [
+        msg("Data Warehouse stores all historical engagement data for business intelligence, ad targeting, and ML training."),
+        msg("The NoSQL database cannot answer multi-year engagement trend questions — columnar storage optimized for analytics is required."),
+        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+      ],
+      requiredNodes: ['data_warehouse'],
+      requiredEdges: [edge('cdc_connector', 'data_warehouse')],
+      successMessage: 'Analytics pipeline added. Now event sourcing.',
+      errorMessage: 'Add a Data Warehouse connected from the CDC Connector.',
+    }),
+    step({
+      id: 10,
+      title: 'Add Saga Orchestrator',
+      explanation:
+        "Twitter's Saga Orchestrator coordinates multi-service distributed transactions — when a tweet is deleted, the saga coordinates deletion across tweet storage, timeline caches, trending counters, and notification queues using compensating actions.",
+      action: buildAction(
+        'Saga Orchestrator',
+        'Tweet Service',
+        'Saga Orchestrator',
+        'multi-service tweet deletion being coordinated across storage, timelines, trending, and notifications using compensating actions'
+      ),
+      why: "Without saga orchestration, deleting a tweet would require manual compensation across multiple services when one fails. The saga coordinates rollback automatically.",
+      component: component('saga_orchestrator', 'Saga Orchestrator'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'Saga Orchestrator',
+        'coordinate multi-service tweet deletion across storage, timelines, trending, and notifications using compensating actions',
+        'Without saga orchestration, multi-service deletions require manual compensation when failures occur.',
+        'Saga Orchestrator'
+      ),
+      celebrationMessage: buildCelebration(
+        'Saga Orchestrator',
+        'Tweet Service',
+        "Twitter's Saga Orchestrator coordinates tweet deletion across tweet storage, timeline caches, trending counters, and notification queues. If one service fails, compensating actions roll back the entire operation atomically.",
+        'Event Store'
+      ),
+      messages: [
+        msg("Saga Orchestrator coordinates multi-service distributed transactions — tweet deletion across storage, timelines, trending, and notifications."),
+        msg("If one service fails during deletion, compensating actions roll back the entire operation automatically. No partial state left behind."),
+        msg('Press ⌘K, search for "Saga Orchestrator", add it, then connect Tweet Service → Saga Orchestrator.'),
+      ],
+      requiredNodes: ['saga_orchestrator'],
+      requiredEdges: [edge('microservice', 'saga_orchestrator')],
+      successMessage: 'Saga orchestration added. Now event sourcing.',
+      errorMessage: 'Add a Saga Orchestrator connected from the Tweet Service.',
+    }),
+    step({
+      id: 11,
+      title: 'Add Event Store',
+      explanation:
+        "Twitter's Event Store (EventStoreDB) maintains an immutable log of all tweet lifecycle events — created, liked, retweeted, deleted, moderated. The entire tweet history can be reconstructed by replaying events for audit and compliance.",
+      action: buildAction(
+        'Event Store (EventStoreDB)',
+        'Tweet Service',
+        'Event Store',
+        'immutable event log being maintained for tweet lifecycle — enabling audit trails and state reconstruction by replay'
+      ),
+      why: "Content moderation decisions require a complete audit trail — who deleted what, when, why. The Event Store provides immutable evidence for legal and compliance requirements.",
+      component: component('event_store', 'Event Store (EventStoreDB)'),
+      openingMessage: buildOpeningL3(
+        'Twitter',
+        'Event Store (EventStoreDB)',
+        'immutable event log for tweet lifecycle enabling audit trails and state reconstruction for legal compliance',
+        'Content moderation decisions require a complete audit trail — the Event Store provides immutable evidence.',
+        'Event Store (EventStoreDB)'
+      ),
+      celebrationMessage: buildCelebration(
+        'Event Store',
+        'Tweet Service',
+        "Twitter's Event Store maintains an immutable log of every tweet lifecycle event — created, liked, retweeted, deleted, moderated. Legal teams can reconstruct exactly what happened and when. This completes the expert architecture.",
+        'completion'
+      ),
+      messages: [
+        msg("Event Store (EventStoreDB) maintains an immutable log of all tweet lifecycle events — created, liked, retweeted, deleted, moderated."),
+        msg("The entire tweet history can be reconstructed by replaying events. Content moderation decisions require a complete audit trail — the Event Store provides immutable evidence for legal and compliance."),
+        msg('Press ⌘K, search for "Event Store (EventStoreDB)", add it, then connect Tweet Service → Event Store. This completes the expert architecture!'),
+      ],
+      requiredNodes: ['event_store'],
+      requiredEdges: [edge('microservice', 'event_store')],
+      successMessage: "Expert architecture complete! You've designed Twitter at the senior engineer level.",
+      errorMessage: 'Add an Event Store connected from the Tweet Service.',
+    }),
+  ],
+});
+
 export const twitterTutorial: Tutorial = tutorial({
   id: 'twitter-architecture',
   title: 'How to Design Twitter/X Architecture',
@@ -461,6 +1180,6 @@ export const twitterTutorial: Tutorial = tutorial({
   icon: 'Twitter',
   color: '#1da1f2',
   tags: ['Fan-out', 'Timeline', 'Trending', 'Cache', 'Graph'],
-  estimatedTime: '~32 mins',
-  levels: [l1],
+  estimatedTime: '~87 mins',
+  levels: [l1, l2, l3],
 });

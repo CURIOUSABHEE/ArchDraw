@@ -3,6 +3,8 @@ import {
   buildAction,
   buildFirstStepAction,
   buildOpeningL1,
+  buildOpeningL2,
+  buildOpeningL3,
   buildCelebration,
 } from '@/lib/tutorial/defaults';
 import type { Tutorial } from '@/lib/tutorial/types';
@@ -406,6 +408,722 @@ const l1 = level({
   ],
 });
 
+const l2 = level({
+  level: 2,
+  title: "Zoom at Scale",
+  subtitle: "Stream billions of meeting events with quality-of-experience tracking",
+  description:
+    "Add Kafka event streaming, real-time quality monitoring, and CDC pipelines to Zoom's architecture. Handle millions of concurrent meeting events and track SLA compliance for 300 million daily participants.",
+  estimatedTime: "~28 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's scale Zoom. 300 million daily participants, millions of concurrent meetings, and 99.99% uptime guarantees. This requires event streaming, quality-of-experience monitoring, and real-time analytics.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Kafka Streaming",
+      explanation:
+        "Zoom's Event Bus streams meeting events: participant joins, screen shares, chat messages. Kafka handles millions of concurrent events — when a 1000-person webinar starts, all participant events stream to analytics.",
+      action: buildAction(
+        "Kafka / Streaming",
+        "API Gateway",
+        "Kafka Streaming",
+        "meeting events being streamed to analytics: participant joins, screen shares, and chat messages"
+      ),
+      why: "Without Kafka, computing analytics would require synchronous database queries that slow down every meeting join. Kafka decouples event producers from consumers — the meeting path stays fast regardless of how many downstream systems consume events.",
+      component: component("kafka_streaming", "Kafka / Streaming", "Kafka / Streaming"),
+      openingMessage: buildOpeningL2(
+        "Zoom",
+        "Kafka Streaming",
+        "stream meeting events: participant joins, screen shares, and chat messages to analytics pipelines",
+        "Kafka handles millions of concurrent events — when a 1000-person webinar starts, all participant events stream to analytics.",
+        "Kafka / Streaming"
+      ),
+      celebrationMessage: buildCelebration(
+        "Kafka Streaming",
+        "API Gateway",
+        "Zoom's Event Bus streams meeting events: participant joins, screen shares, chat messages. Kafka handles millions of concurrent events — when a 1000-person webinar starts, all participant events stream to analytics.",
+        "Notification Worker"
+      ),
+      messages: [
+        msg(
+          "Let's scale Zoom. 300 million daily participants, millions of concurrent meetings, and 99.99% uptime guarantees."
+        ),
+        msg(
+          "Kafka streams meeting events: participant joins, screen shares, chat messages. When a 1000-person webinar starts, all participant events stream to analytics."
+        ),
+        msg("Press ⌘K, search for \"Kafka / Streaming\", add it, then connect API Gateway → Kafka Streaming."),
+      ],
+      requiredNodes: ["kafka_streaming"],
+      requiredEdges: [edge("api_gateway", "kafka_streaming")],
+      successMessage: "Kafka streaming added. Now notifications.",
+      errorMessage: "Add Kafka Streaming connected from the API Gateway.",
+    }),
+    step({
+      id: 2,
+      title: "Add Notification Worker",
+      explanation:
+        "Zoom's Notification Worker sends meeting reminders, recording available alerts, and calendar sync notifications. It integrates with Google Calendar, Outlook, and iCal for seamless scheduling.",
+      action: buildAction(
+        "Worker",
+        "Kafka",
+        "Notification Worker",
+        "meeting reminders and calendar sync notifications being sent via Google Calendar, Outlook, and iCal integration"
+      ),
+      why: "Without notification workers, Zoom would need to send notifications synchronously during meeting joins — slowing down the meeting experience. Async workers handle notifications without impacting meeting performance.",
+      component: component("worker_job", "Worker"),
+      openingMessage: buildOpeningL2(
+        "Zoom",
+        "Notification Worker",
+        "send meeting reminders, recording alerts, and calendar sync notifications",
+        "Integrates with Google Calendar, Outlook, and iCal for seamless scheduling.",
+        "Worker"
+      ),
+      celebrationMessage: buildCelebration(
+        "Notification Worker",
+        "Kafka Streaming",
+        "Zoom's Notification Worker sends meeting reminders, recording available alerts, and calendar sync notifications. It integrates with Google Calendar, Outlook, and iCal for seamless scheduling.",
+        "In-Memory Cache"
+      ),
+      messages: [
+        msg("Notification workers send meeting reminders, recording alerts, and calendar sync notifications."),
+        msg("Integrates with Google Calendar, Outlook, and iCal for seamless scheduling across platforms."),
+        msg("Press ⌘K, search for \"Worker / Background Job\", add it, then connect Kafka Streaming → Notification Worker."),
+      ],
+      requiredNodes: ["worker_job"],
+      requiredEdges: [edge("kafka_streaming", "worker_job")],
+      successMessage: "Notifications added. Now caching.",
+      errorMessage: "Add a Worker connected from Kafka Streaming.",
+    }),
+    step({
+      id: 3,
+      title: "Add In-Memory Cache",
+      explanation:
+        "Zoom's Redis Cache serves active meeting state: participant lists, chat history, and polling results. In-meeting state is ephemeral — cached in Redis with TTL matching the meeting duration.",
+      action: buildAction(
+        "In-Memory Cache",
+        "API Gateway",
+        "In-Memory Cache",
+        "active meeting state being cached: participant lists, chat history, and polling results with TTL matching meeting duration"
+      ),
+      why: "Querying the database for participant lists on every frame update would be slow and expensive. Redis caches ephemeral meeting state — reducing database load by 95% during peak meeting hours.",
+      component: component("in_memory_cache", "In-Memory Cache"),
+      openingMessage: buildOpeningL2(
+        "Zoom",
+        "Redis Cache",
+        "serve active meeting state with TTL matching meeting duration: participant lists, chat history, and polling results",
+        "In-meeting state is ephemeral — cached in Redis with TTL matching the meeting duration.",
+        "In-Memory Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "In-Memory Cache",
+        "API Gateway",
+        "Zoom's Redis Cache serves active meeting state: participant lists, chat history, and polling results. In-meeting state is ephemeral — cached in Redis with TTL matching the meeting duration.",
+        "CDC Connector"
+      ),
+      messages: [
+        msg("Redis Cache serves active meeting state: participant lists, chat history, and polling results."),
+        msg("In-meeting state is ephemeral — cached in Redis with TTL matching the meeting duration."),
+        msg("Press ⌘K, search for \"In-Memory Cache\", add it, then connect API Gateway → In-Memory Cache."),
+      ],
+      requiredNodes: ["in_memory_cache"],
+      requiredEdges: [edge("api_gateway", "in_memory_cache")],
+      successMessage: "Cache added. Now CDC pipelines.",
+      errorMessage: "Add an In-Memory Cache connected from the API Gateway.",
+    }),
+    step({
+      id: 4,
+      title: "Add CDC Connector",
+      explanation:
+        "Zoom's CDC Connector mirrors meeting metadata to the analytics platform. Meeting quality metrics, participant engagement scores, and network quality data stream to ClickHouse for SLA reporting.",
+      action: buildAction(
+        "CDC Connector",
+        "Meeting Service",
+        "CDC Connector",
+        "meeting metadata mirroring to analytics: quality metrics, engagement scores, and network quality data flowing to ClickHouse"
+      ),
+      why: "CDC captures meeting quality metrics without impacting the live meeting path. Meeting metadata streams to ClickHouse for SLA reporting without adding latency to the meeting experience.",
+      component: component("cdc_connector", "CDC Connector"),
+      openingMessage: buildOpeningL2(
+        "Zoom",
+        "CDC Connector",
+        "mirror meeting metadata to the analytics platform: quality metrics, engagement scores, and network quality data",
+        "Streaming to ClickHouse for SLA reporting.",
+        "CDC Connector"
+      ),
+      celebrationMessage: buildCelebration(
+        "CDC Connector",
+        "Meeting Service",
+        "Zoom's CDC Connector mirrors meeting metadata to the analytics platform. Meeting quality metrics, participant engagement scores, and network quality data stream to ClickHouse for SLA reporting.",
+        "SQL Database"
+      ),
+      messages: [
+        msg("CDC Connector mirrors meeting metadata to the analytics platform."),
+        msg("Meeting quality metrics, participant engagement scores, and network quality data stream to ClickHouse for SLA reporting."),
+        msg("Press ⌘K, search for \"CDC Connector\", add it, then connect Meeting Service → CDC Connector."),
+      ],
+      requiredNodes: ["cdc_connector"],
+      requiredEdges: [edge("microservice", "cdc_connector")],
+      successMessage: "CDC added. Now SQL database.",
+      errorMessage: "Add a CDC Connector connected from the Meeting Service.",
+    }),
+    step({
+      id: 5,
+      title: "Add SQL Database",
+      explanation:
+        "Zoom's MySQL stores user accounts, meeting templates, and billing information. PostgreSQL handles reporting and analytics queries — separate from the real-time meeting data.",
+      action: buildAction(
+        "SQL Database",
+        "Auth Service",
+        "SQL Database",
+        "user accounts, meeting templates, and billing information being stored with ACID compliance"
+      ),
+      why: "User accounts and billing require ACID transactions — eventual consistency is unacceptable for financial data. PostgreSQL stores the authoritative financial records with full compliance.",
+      component: component("sql_db", "SQL Database"),
+      openingMessage: buildOpeningL2(
+        "Zoom",
+        "SQL Database",
+        "store user accounts, meeting templates, and billing information with ACID guarantees",
+        "PostgreSQL handles reporting and analytics queries — separate from real-time meeting data.",
+        "SQL Database"
+      ),
+      celebrationMessage: buildCelebration(
+        "SQL Database",
+        "Auth Service",
+        "Zoom's MySQL stores user accounts, meeting templates, and billing information. PostgreSQL handles reporting and analytics queries — separate from the real-time meeting data.",
+        "Structured Logger"
+      ),
+      messages: [
+        msg("MySQL stores user accounts, meeting templates, and billing information."),
+        msg("PostgreSQL handles reporting and analytics queries — separate from real-time meeting data."),
+        msg("Press ⌘K, search for \"SQL Database\", add it, then connect Auth Service → SQL Database."),
+      ],
+      requiredNodes: ["sql_db"],
+      requiredEdges: [edge("auth_service", "sql_db")],
+      successMessage: "SQL database added. Now structured logging.",
+      errorMessage: "Add a SQL Database connected from the Auth Service.",
+    }),
+    step({
+      id: 6,
+      title: "Add Structured Logger",
+      explanation:
+        "Zoom's Structured Logger captures meeting quality metrics: packet loss, jitter, latency per participant. These logs flow to the SLA reporting system — Zoom promises 99.99% meeting availability.",
+      action: buildAction(
+        "Structured Logger",
+        "API Gateway",
+        "Structured Logger",
+        "meeting quality metrics being captured: packet loss, jitter, and latency per participant for SLA reporting"
+      ),
+      why: "Text logs require regex parsing — slow and error-prone at scale. Structured JSON logs enable fast queries that aggregate metrics across billions of entries for SLA reporting.",
+      component: component("structured_logger", "Structured Logger"),
+      openingMessage: buildOpeningL2(
+        "Zoom",
+        "Structured Logger",
+        "capture meeting quality metrics: packet loss, jitter, latency per participant for SLA reporting",
+        "Zoom promises 99.99% meeting availability — these logs track every quality metric.",
+        "Structured Logger"
+      ),
+      celebrationMessage: buildCelebration(
+        "Structured Logger",
+        "API Gateway",
+        "Zoom's Structured Logger captures meeting quality metrics: packet loss, jitter, latency per participant. These logs flow to the SLA reporting system — Zoom promises 99.99% meeting availability.",
+        "SLO Tracker"
+      ),
+      messages: [
+        msg("Structured Logger captures meeting quality metrics: packet loss, jitter, latency per participant."),
+        msg("These logs flow to the SLA reporting system — Zoom promises 99.99% meeting availability."),
+        msg("Press ⌘K, search for \"Structured Logger\", add it, then connect API Gateway → Structured Logger."),
+      ],
+      requiredNodes: ["structured_logger"],
+      requiredEdges: [edge("api_gateway", "structured_logger")],
+      successMessage: "Structured logging added. Now SLO tracking.",
+      errorMessage: "Add a Structured Logger connected from the API Gateway.",
+    }),
+    step({
+      id: 7,
+      title: "Add SLO Tracker",
+      explanation:
+        "Zoom's SLO Tracker monitors meeting connection time, video quality, and audio clarity. Connection time SLO: <3 seconds for 99% of meetings. Video quality SLO: 720p minimum for 95% of participants.",
+      action: buildAction(
+        "SLO/SLI Tracker",
+        "Metrics Collector",
+        "SLO Tracker",
+        "meeting connection time, video quality, and audio clarity being monitored against SLO targets"
+      ),
+      why: "Without SLOs, engineering teams argue about what 'good' means for meeting quality. With SLOs, there's a clear contractual target — connection time must be under 3 seconds for 99% of meetings.",
+      component: component("slo_tracker", "SLO/SLI Tracker"),
+      openingMessage: buildOpeningL2(
+        "Zoom",
+        "SLO Tracker",
+        "monitor meeting connection time, video quality, and audio clarity against defined SLO targets",
+        "Connection time SLO: <3 seconds for 99% of meetings. Video quality SLO: 720p minimum for 95% of participants.",
+        "SLO/SLI Tracker"
+      ),
+      celebrationMessage: buildCelebration(
+        "SLO Tracker",
+        "Metrics Collector",
+        "Zoom's SLO Tracker monitors meeting connection time, video quality, and audio clarity. Connection time SLO: <3 seconds for 99% of meetings. Video quality SLO: 720p minimum for 95% of participants.",
+        "Error Budget Alert"
+      ),
+      messages: [
+        msg("SLO Tracker monitors meeting connection time, video quality, and audio clarity against defined SLO targets."),
+        msg("Connection time SLO: <3 seconds for 99% of meetings. Video quality SLO: 720p minimum for 95% of participants."),
+        msg("Press ⌘K, search for \"SLO/SLI Tracker\", add it, then connect Metrics Collector → SLO Tracker."),
+      ],
+      requiredNodes: ["slo_tracker"],
+      requiredEdges: [edge("metrics_collector", "slo_tracker")],
+      successMessage: "SLO tracking added. Now error budgets.",
+      errorMessage: "Add an SLO/SLI Tracker connected from the Metrics Collector.",
+    }),
+    step({
+      id: 8,
+      title: "Add Error Budget Alert",
+      explanation:
+        "Zoom's Error Budget Monitor tracks SLA consumption in real-time. When meeting quality degrades during a viral webinar, on-call engineers are paged before the budget is depleted.",
+      action: buildAction(
+        "Error Budget Monitor",
+        "SLO/SLI Tracker",
+        "Error Budget Alert",
+        "SLA consumption being tracked in real-time with on-call alerts before budget depletion"
+      ),
+      why: "The error budget is the reliability buffer — when depleted, feature launches pause until reliability improves. This prevents reliability from being sacrificed for velocity during peak usage.",
+      component: component("error_budget_alert", "Error Budget Monitor"),
+      openingMessage: buildOpeningL2(
+        "Zoom",
+        "Error Budget Monitor",
+        "track SLA consumption in real-time with on-call alerts before the budget is depleted",
+        "When meeting quality degrades during a viral webinar, on-call engineers are paged before the budget is depleted.",
+        "Error Budget Monitor"
+      ),
+      celebrationMessage: buildCelebration(
+        "Error Budget Alert",
+        "SLO Tracker",
+        "Zoom's Error Budget Monitor tracks SLA consumption in real-time. When meeting quality degrades during a viral webinar, on-call engineers are paged before the budget is depleted.",
+        "Level 3"
+      ),
+      messages: [
+        msg("Error Budget Monitor tracks SLA consumption in real-time."),
+        msg("When meeting quality degrades during a viral webinar, on-call engineers are paged before the budget is depleted."),
+        msg("Press ⌘K, search for \"Error Budget Monitor\", add it, then connect SLO Tracker → Error Budget Alert."),
+      ],
+      requiredNodes: ["error_budget_alert"],
+      requiredEdges: [edge("slo_tracker", "error_budget_alert")],
+      successMessage: "Error budget monitoring added. Zoom is now at scale.",
+      errorMessage: "Add an Error Budget Monitor connected from the SLO Tracker.",
+    }),
+  ],
+});
+
+const l3 = level({
+  level: 3,
+  title: "Zoom Enterprise",
+  subtitle: "Add zero-trust media routing, WebRTC tracing, and SLA-grade analytics",
+  description:
+    "Implement zero-trust networking for WebRTC media, distributed tracing across signaling and media servers, and SLA-grade analytics. Zoom Enterprise requires SPIFFE certificates, OTel for WebRTC debugging, and event sourcing for recording replay.",
+  estimatedTime: "~29 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's make Zoom enterprise-grade. Zero-trust media routing, WebRTC distributed tracing, and SLA-grade quality monitoring. Zoom Enterprise serves Fortune 500 companies with compliance requirements that drive every architectural decision.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Service Mesh",
+      explanation:
+        "Zoom's Service Mesh (Envoy) handles mTLS between media servers and signaling services. WebRTC media streams traverse SFUs (Selective Forwarding Units) that are independently scaled and meshed for redundancy.",
+      action: buildAction(
+        "Service Mesh (Istio)",
+        "Load Balancer",
+        "Service Mesh",
+        "mTLS between media servers and signaling services with SFUs independently scaled and meshed for redundancy"
+      ),
+      why: "Without a service mesh, each service implements TLS, circuit breaking, and retries differently — inconsistent and hard to maintain. Envoy handles this transparently at the infrastructure layer for enterprise-grade security.",
+      component: component("service_mesh", "Service Mesh (Istio)"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "Service Mesh",
+        "handle mTLS between media servers and signaling services with SFUs independently scaled and meshed for redundancy",
+        "WebRTC media streams traverse SFUs (Selective Forwarding Units) that are independently scaled.",
+        "Service Mesh (Istio)"
+      ),
+      celebrationMessage: buildCelebration(
+        "Service Mesh",
+        "Load Balancer",
+        "Zoom's Service Mesh (Envoy) handles mTLS between media servers and signaling services. WebRTC media streams traverse SFUs (Selective Forwarding Units) that are independently scaled and meshed for redundancy.",
+        "BFF Gateway"
+      ),
+      messages: [
+        msg("Let's make Zoom enterprise-grade. Zero-trust media routing, WebRTC distributed tracing, and SLA-grade quality monitoring."),
+        msg("Service Mesh handles mTLS between media servers and signaling services. WebRTC media streams traverse SFUs independently scaled."),
+        msg("Press ⌘K, search for \"Service Mesh (Istio)\", add it, then connect Load Balancer → Service Mesh."),
+      ],
+      requiredNodes: ["service_mesh"],
+      requiredEdges: [edge("load_balancer", "service_mesh")],
+      successMessage: "Service mesh added. Now BFF gateway.",
+      errorMessage: "Add a Service Mesh connected from the Load Balancer.",
+    }),
+    step({
+      id: 2,
+      title: "Add BFF Gateway",
+      explanation:
+        "Zoom's BFF Gateway serves the mobile and web clients with optimized signaling APIs. The BFF aggregates meeting state, handles WebSocket connections, and manages participant lists for the client.",
+      action: buildAction(
+        "BFF Gateway",
+        "API Gateway",
+        "BFF Gateway",
+        "mobile and web clients being served with optimized signaling APIs aggregating meeting state and managing WebSocket connections"
+      ),
+      why: "Without a BFF, mobile clients would need to aggregate data from multiple services — slower and more complex. The BFF optimizes for each client platform independently.",
+      component: component("bff_gateway", "BFF Gateway"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "BFF Gateway",
+        "serve mobile and web clients with optimized signaling APIs aggregating meeting state and managing participant lists",
+        "The BFF aggregates meeting state, handles WebSocket connections, and manages participant lists for the client.",
+        "BFF Gateway"
+      ),
+      celebrationMessage: buildCelebration(
+        "BFF Gateway",
+        "API Gateway",
+        "Zoom's BFF Gateway serves the mobile and web clients with optimized signaling APIs. The BFF aggregates meeting state, handles WebSocket connections, and manages participant lists for the client.",
+        "Token Bucket Rate Limiter"
+      ),
+      messages: [
+        msg("BFF Gateway serves mobile and web clients with optimized signaling APIs."),
+        msg("The BFF aggregates meeting state, handles WebSocket connections, and manages participant lists for the client."),
+        msg("Press ⌘K, search for \"BFF Gateway\", add it, then connect API Gateway → BFF Gateway."),
+      ],
+      requiredNodes: ["bff_gateway"],
+      requiredEdges: [edge("api_gateway", "bff_gateway")],
+      successMessage: "BFF gateway added. Now rate limiting.",
+      errorMessage: "Add a BFF Gateway connected from the API Gateway.",
+    }),
+    step({
+      id: 3,
+      title: "Add Token Bucket Rate Limiter",
+      explanation:
+        "Zoom's Rate Limiter enforces meeting participant limits per plan: Free (100), Pro (300), Business (1000). Token buckets prevent meeting bombing by rate-limiting join requests per IP.",
+      action: buildAction(
+        "Token Bucket Rate Limiter",
+        "API Gateway",
+        "Token Bucket Rate Limiter",
+        "meeting participant limits being enforced per plan: Free (100), Pro (300), Business (1000) with IP-based join rate limiting"
+      ),
+      why: "Token buckets burst allow temporary traffic spikes while enforcing long-term rate limits — perfect for meeting joins that spike when a webinar starts.",
+      component: component("token_bucket_limiter", "Token Bucket Rate Limiter"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "Token Bucket Rate Limiter",
+        "enforce meeting participant limits per plan: Free (100), Pro (300), Business (1000) with IP-based rate limiting",
+        "Token buckets prevent meeting bombing by rate-limiting join requests per IP.",
+        "Token Bucket Rate Limiter"
+      ),
+      celebrationMessage: buildCelebration(
+        "Token Bucket Rate Limiter",
+        "API Gateway",
+        "Zoom's Rate Limiter enforces meeting participant limits per plan: Free (100), Pro (300), Business (1000). Token buckets prevent meeting bombing by rate-limiting join requests per IP.",
+        "OpenTelemetry Collector"
+      ),
+      messages: [
+        msg("Token Bucket Rate Limiter enforces meeting participant limits per plan: Free (100), Pro (300), Business (1000)."),
+        msg("Token buckets prevent meeting bombing by rate-limiting join requests per IP."),
+        msg("Press ⌘K, search for \"Token Bucket Rate Limiter\", add it, then connect API Gateway → Token Bucket Rate Limiter."),
+      ],
+      requiredNodes: ["token_bucket_limiter"],
+      requiredEdges: [edge("api_gateway", "token_bucket_limiter")],
+      successMessage: "Rate limiting added. Now tracing.",
+      errorMessage: "Add a Token Bucket Rate Limiter connected from the API Gateway.",
+    }),
+    step({
+      id: 4,
+      title: "Add OpenTelemetry Collector",
+      explanation:
+        "Zoom's OTel Collector traces meeting connection flows: SIP signaling, TURN relay allocation, and SFU subscription. WebRTC is notoriously hard to debug — tracing is essential.",
+      action: buildAction(
+        "OpenTelemetry Collector",
+        "Metrics Collector",
+        "OpenTelemetry Collector",
+        "meeting connection flows being traced: SIP signaling, TURN relay allocation, and SFU subscription for WebRTC debugging"
+      ),
+      why: "WebRTC is notoriously hard to debug — distributed tracing across SIP, TURN, and SFU services is essential for diagnosing meeting quality issues at enterprise scale.",
+      component: component("otel_collector", "OpenTelemetry Collector"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "OTel Collector",
+        "trace meeting connection flows: SIP signaling, TURN relay allocation, and SFU subscription for WebRTC debugging",
+        "WebRTC is notoriously hard to debug — tracing is essential.",
+        "OpenTelemetry Collector"
+      ),
+      celebrationMessage: buildCelebration(
+        "OpenTelemetry Collector",
+        "Metrics Collector",
+        "Zoom's OTel Collector traces meeting connection flows: SIP signaling, TURN relay allocation, and SFU subscription. WebRTC is notoriously hard to debug — tracing is essential.",
+        "Correlation ID Handler"
+      ),
+      messages: [
+        msg("OTel Collector traces meeting connection flows: SIP signaling, TURN relay allocation, and SFU subscription."),
+        msg("WebRTC is notoriously hard to debug — tracing is essential for enterprise-grade reliability."),
+        msg("Press ⌘K, search for \"OpenTelemetry Collector\", add it, then connect Metrics Collector → OpenTelemetry Collector."),
+      ],
+      requiredNodes: ["otel_collector"],
+      requiredEdges: [edge("metrics_collector", "otel_collector")],
+      successMessage: "Tracing added. Now correlation IDs.",
+      errorMessage: "Add an OpenTelemetry Collector connected from the Metrics Collector.",
+    }),
+    step({
+      id: 5,
+      title: "Add Correlation ID Handler",
+      explanation:
+        "Zoom's Correlation ID links a meeting join to every service it touches: calendar integration, waiting room, breakout rooms, recording. Debugging a failed join requires tracing across all these services.",
+      action: buildAction(
+        "Correlation ID Handler",
+        "API Gateway",
+        "Correlation ID Handler",
+        "meeting join events being correlated across all services: calendar integration, waiting room, breakout rooms, and recording"
+      ),
+      why: "Without correlation IDs, debugging a failed meeting join requires piecing together logs from a dozen services manually — correlation IDs link the entire journey in one trace.",
+      component: component("correlation_id_handler", "Correlation ID Handler"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "Correlation ID Handler",
+        "link meeting joins to every service they touch: calendar integration, waiting room, breakout rooms, recording",
+        "Debugging a failed join requires tracing across all these services with a single correlation ID.",
+        "Correlation ID Handler"
+      ),
+      celebrationMessage: buildCelebration(
+        "Correlation ID Handler",
+        "API Gateway",
+        "Zoom's Correlation ID links a meeting join to every service it touches: calendar integration, waiting room, breakout rooms, recording. Debugging a failed join requires tracing across all these services.",
+        "mTLS Certificate Authority"
+      ),
+      messages: [
+        msg("Correlation ID links a meeting join to every service it touches: calendar integration, waiting room, breakout rooms, recording."),
+        msg("Debugging a failed join requires tracing across all these services with a single correlation ID."),
+        msg("Press ⌘K, search for \"Correlation ID Handler\", add it, then connect API Gateway → Correlation ID Handler."),
+      ],
+      requiredNodes: ["correlation_id_handler"],
+      requiredEdges: [edge("api_gateway", "correlation_id_handler")],
+      successMessage: "Correlation IDs added. Now certificate authority.",
+      errorMessage: "Add a Correlation ID Handler connected from the API Gateway.",
+    }),
+    step({
+      id: 6,
+      title: "Add mTLS Certificate Authority",
+      explanation:
+        "Zoom's SPIFFE CA issues certificates to every media server and signaling node. Zoom's scale requires automated certificate management — thousands of certificates rotate daily.",
+      action: buildAction(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "mTLS Certificate Authority",
+        "SPIFFE CA issuing certificates to every media server and signaling node with automated daily rotation"
+      ),
+      why: "At Zoom's scale, manual certificate management is impossible. SPIFFE automates certificate issuance and rotation — thousands of certificates rotate daily without human intervention.",
+      component: component("mtls_certificate_authority", "mTLS Certificate Authority"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "SPIFFE CA",
+        "issue certificates to every media server and signaling node with automated daily rotation",
+        "Zoom's scale requires automated certificate management — thousands of certificates rotate daily.",
+        "mTLS Certificate Authority"
+      ),
+      celebrationMessage: buildCelebration(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "Zoom's SPIFFE CA issues certificates to every media server and signaling node. Zoom's scale requires automated certificate management — thousands of certificates rotate daily.",
+        "Leaky Bucket Rate Limiter"
+      ),
+      messages: [
+        msg("SPIFFE CA issues certificates to every media server and signaling node."),
+        msg("Zoom's scale requires automated certificate management — thousands of certificates rotate daily."),
+        msg("Press ⌘K, search for \"mTLS Certificate Authority\", add it, then connect Service Mesh → mTLS Certificate Authority."),
+      ],
+      requiredNodes: ["mtls_certificate_authority"],
+      requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
+      successMessage: "Certificate authority added. Now leaky bucket rate limiting.",
+      errorMessage: "Add an mTLS Certificate Authority connected from the Service Mesh.",
+    }),
+    step({
+      id: 7,
+      title: "Add Leaky Bucket Rate Limiter",
+      explanation:
+        "Zoom's Leaky Bucket Rate Limiter smooths API burst traffic from meeting analytics. API calls are rate-limited to prevent thundering-herd analytics queries during peak meeting hours.",
+      action: buildAction(
+        "Leaky Bucket Rate Limiter",
+        "API Gateway",
+        "Leaky Bucket Rate Limiter",
+        "API burst traffic from meeting analytics being smoothed to prevent thundering-herd queries during peak hours"
+      ),
+      why: "Leaky buckets smooth burst traffic by releasing requests at a constant rate — preventing thundering-herd analytics queries from overwhelming the data warehouse.",
+      component: component("leaky_bucket_limiter", "Leaky Bucket Rate Limiter"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "Leaky Bucket Rate Limiter",
+        "smooth API burst traffic from meeting analytics to prevent thundering-herd queries during peak hours",
+        "API calls are rate-limited to prevent thundering-herd analytics queries during peak meeting hours.",
+        "Leaky Bucket Rate Limiter"
+      ),
+      celebrationMessage: buildCelebration(
+        "Leaky Bucket Rate Limiter",
+        "API Gateway",
+        "Zoom's Leaky Bucket Rate Limiter smooths API burst traffic from meeting analytics. API calls are rate-limited to prevent thundering-herd analytics queries during peak meeting hours.",
+        "Cache Stampede Guard"
+      ),
+      messages: [
+        msg("Leaky Bucket Rate Limiter smooths API burst traffic from meeting analytics."),
+        msg("API calls are rate-limited to prevent thundering-herd analytics queries during peak meeting hours."),
+        msg("Press ⌘K, search for \"Leaky Bucket Rate Limiter\", add it, then connect API Gateway → Leaky Bucket Rate Limiter."),
+      ],
+      requiredNodes: ["leaky_bucket_limiter"],
+      requiredEdges: [edge("api_gateway", "leaky_bucket_limiter")],
+      successMessage: "Leaky bucket rate limiting added. Now cache stampede protection.",
+      errorMessage: "Add a Leaky Bucket Rate Limiter connected from the API Gateway.",
+    }),
+    step({
+      id: 8,
+      title: "Add Cache Stampede Guard",
+      explanation:
+        "Zoom's Cache Stampede Guard protects meeting roster caches from stampedes when a large meeting starts. Lock-assisted refresh ensures only one worker fetches the participant list.",
+      action: buildAction(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "Cache Stampede Guard",
+        "meeting roster caches being protected from stampedes when large meetings start with lock-assisted refresh"
+      ),
+      why: "When a 1000-person webinar starts, thousands of requests hit the cache simultaneously. Without stampede protection, the cache expires and thousands of requests flood the database simultaneously.",
+      component: component("cache_stampede_guard", "Cache Stampede Guard"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "Cache Stampede Guard",
+        "protect meeting roster caches from stampedes when large meetings start with lock-assisted refresh",
+        "Lock-assisted refresh ensures only one worker fetches the participant list.",
+        "Cache Stampede Guard"
+      ),
+      celebrationMessage: buildCelebration(
+        "Cache Stampede Guard",
+        "In-Memory Cache",
+        "Zoom's Cache Stampede Guard protects meeting roster caches from stampedes when a large meeting starts. Lock-assisted refresh ensures only one worker fetches the participant list.",
+        "Data Warehouse"
+      ),
+      messages: [
+        msg("Cache Stampede Guard protects meeting roster caches from stampedes when a large meeting starts."),
+        msg("Lock-assisted refresh ensures only one worker fetches the participant list."),
+        msg("Press ⌘K, search for \"Cache Stampede Guard\", add it, then connect In-Memory Cache → Cache Stampede Guard."),
+      ],
+      requiredNodes: ["cache_stampede_guard"],
+      requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
+      successMessage: "Cache stampede protection added. Now data warehouse.",
+      errorMessage: "Add a Cache Stampede Guard connected from the In-Memory Cache.",
+    }),
+    step({
+      id: 9,
+      title: "Add Data Warehouse",
+      explanation:
+        "Zoom's Data Warehouse (ClickHouse) stores meeting quality telemetry: MOS scores, packet loss rates, and jitter per meeting. This data drives Zoom's SLA reporting and product decisions.",
+      action: buildAction(
+        "Data Warehouse",
+        "CDC Connector",
+        "Data Warehouse",
+        "meeting quality telemetry being stored: MOS scores, packet loss rates, and jitter per meeting for SLA reporting"
+      ),
+      why: "Meeting quality telemetry requires analytical queries on billions of rows — ClickHouse handles this at scale, enabling Zoom to report SLA compliance to enterprise customers.",
+      component: component("data_warehouse", "Data Warehouse"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "Data Warehouse (ClickHouse)",
+        "store meeting quality telemetry: MOS scores, packet loss rates, and jitter per meeting for SLA reporting",
+        "This data drives Zoom's SLA reporting and product decisions.",
+        "Data Warehouse"
+      ),
+      celebrationMessage: buildCelebration(
+        "Data Warehouse",
+        "CDC Connector",
+        "Zoom's Data Warehouse (ClickHouse) stores meeting quality telemetry: MOS scores, packet loss rates, and jitter per meeting. This data drives Zoom's SLA reporting and product decisions.",
+        "Event Store"
+      ),
+      messages: [
+        msg("Data Warehouse stores meeting quality telemetry: MOS scores, packet loss rates, and jitter per meeting."),
+        msg("This data drives Zoom's SLA reporting and product decisions."),
+        msg("Press ⌘K, search for \"Data Warehouse\", add it, then connect CDC Connector → Data Warehouse."),
+      ],
+      requiredNodes: ["data_warehouse"],
+      requiredEdges: [edge("cdc_connector", "data_warehouse")],
+      successMessage: "Data warehouse added. Now event store.",
+      errorMessage: "Add a Data Warehouse connected from the CDC Connector.",
+    }),
+    step({
+      id: 10,
+      title: "Add Event Store",
+      explanation:
+        "Zoom's Event Store stores every meeting lifecycle event: scheduled, started, ended, recording available. Event sourcing enables replay — recordings can be regenerated from event logs.",
+      action: buildAction(
+        "Event Store",
+        "CDC Connector",
+        "Event Store",
+        "every meeting lifecycle event being stored: scheduled, started, ended, recording available for event sourcing replay"
+      ),
+      why: "Event sourcing enables meeting replay and audit trails. If a recording is corrupted, Zoom can regenerate it from the event logs — critical for compliance requirements.",
+      component: component("event_store", "Event Store"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "Event Store",
+        "store every meeting lifecycle event: scheduled, started, ended, recording available for event sourcing replay",
+        "Event sourcing enables replay — recordings can be regenerated from event logs.",
+        "Event Store"
+      ),
+      celebrationMessage: buildCelebration(
+        "Event Store",
+        "CDC Connector",
+        "Zoom's Event Store stores every meeting lifecycle event: scheduled, started, ended, recording available. Event sourcing enables replay — recordings can be regenerated from event logs.",
+        "Prefetch Cache"
+      ),
+      messages: [
+        msg("Event Store stores every meeting lifecycle event: scheduled, started, ended, recording available."),
+        msg("Event sourcing enables replay — recordings can be regenerated from event logs."),
+        msg("Press ⌘K, search for \"Event Store\", add it, then connect CDC Connector → Event Store."),
+      ],
+      requiredNodes: ["event_store"],
+      requiredEdges: [edge("cdc_connector", "event_store")],
+      successMessage: "Event store added. Now prefetch cache.",
+      errorMessage: "Add an Event Store connected from the CDC Connector.",
+    }),
+    step({
+      id: 11,
+      title: "Add Prefetch Cache",
+      explanation:
+        "Zoom's Prefetch Cache preloads recording thumbnails and chat history for upcoming meetings. When a meeting ends, the next meeting's data is preloaded into cache.",
+      action: buildAction(
+        "Prefetch Cache",
+        "In-Memory Cache",
+        "Prefetch Cache",
+        "recording thumbnails and chat history being preloaded for upcoming meetings when current meeting ends"
+      ),
+      why: "Prefetching reduces perceived latency — when a meeting ends, the next meeting's data is already cached. This makes meeting transitions seamless for users.",
+      component: component("prefetch_cache", "Prefetch Cache"),
+      openingMessage: buildOpeningL3(
+        "Zoom",
+        "Prefetch Cache",
+        "preload recording thumbnails and chat history for upcoming meetings when current meeting ends",
+        "When a meeting ends, the next meeting's data is preloaded into cache for instant access.",
+        "Prefetch Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "Prefetch Cache",
+        "In-Memory Cache",
+        "Zoom's Prefetch Cache preloads recording thumbnails and chat history for upcoming meetings. When a meeting ends, the next meeting's data is preloaded into cache.",
+        "nothing — you have built Zoom Enterprise"
+      ),
+      messages: [
+        msg("Prefetch Cache preloads recording thumbnails and chat history for upcoming meetings."),
+        msg("When a meeting ends, the next meeting's data is preloaded into cache for instant access."),
+        msg("Press ⌘K, search for \"Prefetch Cache\", add it, then connect In-Memory Cache → Prefetch Cache."),
+      ],
+      requiredNodes: ["prefetch_cache"],
+      requiredEdges: [edge("in_memory_cache", "prefetch_cache")],
+      successMessage: "Prefetch cache added. You have built Zoom Enterprise.",
+      errorMessage: "Add a Prefetch Cache connected from the In-Memory Cache.",
+    }),
+  ],
+});
+
 export const zoomTutorial: Tutorial = tutorial({
   id: 'zoom-architecture',
   title: 'How to Design Zoom Architecture',
@@ -417,6 +1135,6 @@ export const zoomTutorial: Tutorial = tutorial({
   icon: 'Video',
   color: '#2d8cff',
   tags: ['WebRTC', 'TURN/STUN', 'Recording', 'Adaptive', 'Media'],
-  estimatedTime: '~32 mins',
-  levels: [l1],
+  estimatedTime: '~87 mins',
+  levels: [l1, l2, l3],
 });

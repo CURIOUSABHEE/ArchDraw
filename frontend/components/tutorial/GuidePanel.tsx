@@ -1193,7 +1193,7 @@ export function GuidePanel({
               <span className="text-xs text-slate-500">Step {currentStep} of {totalSteps}</span>
             </div>
             <div className="h-1 rounded-full overflow-hidden mb-2" style={{ background: 'rgba(255,255,255,0.08)' }}>
-              <div className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
+              <div className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0}%` }} />
             </div>
             {/* Level dots */}
             <div className="flex items-center gap-2 mt-2">
@@ -1223,10 +1223,10 @@ export function GuidePanel({
           <>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-slate-500">Step {currentStep} of {totalSteps}</span>
-              <span className="text-xs text-indigo-400 font-medium">{Math.round((currentStep / totalSteps) * 100)}%</span>
+              <span className="text-xs text-indigo-400 font-medium">{totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0}%</span>
             </div>
             <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-              <div className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
+              <div className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0}%` }} />
             </div>
           </>
         )}

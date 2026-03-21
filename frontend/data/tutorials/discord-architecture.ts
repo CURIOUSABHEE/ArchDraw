@@ -3,6 +3,8 @@ import {
   buildAction,
   buildFirstStepAction,
   buildOpeningL1,
+  buildOpeningL2,
+  buildOpeningL3,
   buildCelebration,
 } from '@/lib/tutorial/defaults';
 import type { Tutorial } from '@/lib/tutorial/types';
@@ -406,6 +408,851 @@ const l1 = level({
   ],
 });
 
+const l2 = level({
+  level: 2,
+  title: "Discord at Scale",
+  subtitle: "Stream billions of real-time events with presence and rate limiting",
+  description:
+    "Add Kafka event streaming, Redis presence caching, CDC pipelines, and SLO tracking to Discord's architecture. Handle billions of real-time events and millions of concurrent voice users.",
+  estimatedTime: "~28 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's scale Discord. 200 million users, billions of real-time events, and millions of concurrent voice connections. This requires Kafka for event streaming, Redis for presence, and enterprise-grade observability.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Kafka Streaming",
+      explanation:
+        "Discord's Event Bus streams message events, voice state changes, and presence updates. When a popular streamer goes live, millions of presence updates stream through Kafka within seconds.",
+      why:
+        "Without Kafka, presence updates would require synchronous database writes for every status change. At 200 million users, that's millions of writes per second — impossible to scale.",
+      action: buildAction(
+        "Kafka / Streaming",
+        "Load Balancer",
+        "Kafka Streaming",
+        "message events, voice state changes, and presence updates being streamed to consumers in real time"
+      ),
+      component: component("kafka_streaming", "Kafka / Streaming", "Kafka / Streaming"),
+      openingMessage: buildOpeningL2(
+        "Discord",
+        "Kafka Streaming",
+        "stream message events, voice state changes, and presence updates to consumers in real time",
+        "When a popular streamer goes live, millions of presence updates stream through Kafka within seconds.",
+        "Kafka / Streaming"
+      ),
+      celebrationMessage: buildCelebration(
+        "Kafka Streaming",
+        "Load Balancer",
+        "Discord's Event Bus streams message events, voice state changes, and presence updates. When a popular streamer goes live, millions of presence updates stream through Kafka within seconds.",
+        "Notification Worker"
+      ),
+      messages: [
+        msg(
+          "Level 2 — Discord at Scale. Now add Kafka for event streaming, Redis for presence, and enterprise-grade observability."
+        ),
+        msg(
+          "Discord's Event Bus streams message events, voice state changes, and presence updates. When a popular streamer goes live, millions of presence updates stream through Kafka within seconds."
+        ),
+        msg(
+          "Press ⌘K, search for \"Kafka / Streaming\", add it, then connect Load Balancer → Kafka Streaming."
+        ),
+      ],
+      requiredNodes: ["kafka_streaming"],
+      requiredEdges: [edge("load_balancer", "kafka_streaming")],
+      successMessage: "Kafka streaming added. Now notifications.",
+      errorMessage: "Add Kafka Streaming connected from the Load Balancer.",
+    }),
+    step({
+      id: 2,
+      title: "Add Notification Worker",
+      explanation:
+        "Discord's Notification Worker handles push notifications for mentions, DMs, and server announcements. It must route notifications to the correct device — mobile, desktop, or browser.",
+      why:
+        "Notification routing across platforms is complex — the worker must route to the correct device based on user preferences and connection state.",
+      action: buildAction(
+        "Worker",
+        "Kafka",
+        "Notification Worker",
+        "push notifications being routed to the correct device — mobile, desktop, or browser"
+      ),
+      component: component("worker_job", "Worker"),
+      openingMessage: buildOpeningL2(
+        "Discord",
+        "Notification Worker",
+        "route push notifications to the correct device — mobile, desktop, or browser",
+        "Discord's Notification Worker must route notifications to the correct device across multiple platforms.",
+        "Worker"
+      ),
+      celebrationMessage: buildCelebration(
+        "Notification Worker",
+        "Kafka Streaming",
+        "Discord's Notification Worker handles push notifications for mentions, DMs, and server announcements. It must route notifications to the correct device — mobile, desktop, or browser.",
+        "In-Memory Cache"
+      ),
+      messages: [
+        msg(
+          "Discord's Notification Worker handles push notifications for mentions, DMs, and server announcements."
+        ),
+        msg(
+          "It must route notifications to the correct device — mobile, desktop, or browser. When you're on mobile, you get a push. When you're on desktop, you get an in-app notification."
+        ),
+        msg(
+          "Press ⌘K, search for \"Worker / Background Job\", add it, then connect Kafka Streaming → Notification Worker."
+        ),
+      ],
+      requiredNodes: ["worker_job"],
+      requiredEdges: [edge("kafka_streaming", "worker_job")],
+      successMessage: "Notifications added. Now Redis caching.",
+      errorMessage: "Add a Worker connected from Kafka Streaming.",
+    }),
+    step({
+      id: 3,
+      title: "Add In-Memory Cache",
+      explanation:
+        "Discord's Redis Cache stores active voice channel state, online presence, and rate limit buckets. With 200 million users, Redis must handle millions of presence updates per second.",
+      why:
+        "Presence is the most queried data in Discord — every channel view shows online friends. Redis handles millions of presence reads per second with sub-millisecond latency.",
+      action: buildAction(
+        "In-Memory Cache",
+        "Load Balancer",
+        "In-Memory Cache",
+        "voice channel state, online presence, and rate limit buckets being cached for millions of concurrent users"
+      ),
+      component: component("in_memory_cache", "In-Memory Cache"),
+      openingMessage: buildOpeningL2(
+        "Discord",
+        "Redis Cache",
+        "cache voice channel state, online presence, and rate limit buckets for millions of concurrent users",
+        "With 200 million users, Redis must handle millions of presence updates per second.",
+        "In-Memory Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "In-Memory Cache",
+        "Load Balancer",
+        "Discord's Redis Cache stores active voice channel state, online presence, and rate limit buckets. With 200 million users, Redis must handle millions of presence updates per second.",
+        "CDC Connector"
+      ),
+      messages: [
+        msg(
+          "Discord's Redis Cache stores active voice channel state, online presence, and rate limit buckets."
+        ),
+        msg(
+          "With 200 million users, Redis must handle millions of presence updates per second. When you come online, your status fans out to all your friends' connections instantly."
+        ),
+        msg(
+          "Press ⌘K, search for \"In-Memory Cache\", add it, then connect Load Balancer → In-Memory Cache."
+        ),
+      ],
+      requiredNodes: ["in_memory_cache"],
+      requiredEdges: [edge("load_balancer", "in_memory_cache")],
+      successMessage: "Redis caching added. Now CDC pipelines.",
+      errorMessage: "Add an In-Memory Cache connected from the Load Balancer.",
+    }),
+    step({
+      id: 4,
+      title: "Add CDC Connector",
+      explanation:
+        "Discord's CDC Connector mirrors message data to the analytics platform. Message sentiment, engagement metrics, and channel activity stream to ClickHouse for real-time analytics.",
+      why:
+        "CDC (Change Data Capture) streams database changes to analytics without impacting the primary Cassandra write path — essential for real-time insights at scale.",
+      action: buildAction(
+        "CDC Connector",
+        "Microservice",
+        "CDC Connector",
+        "message data being mirrored to ClickHouse for real-time analytics on sentiment and engagement"
+      ),
+      component: component("cdc_connector", "CDC Connector"),
+      openingMessage: buildOpeningL2(
+        "Discord",
+        "CDC Connector",
+        "mirror message data to ClickHouse for real-time analytics on sentiment and engagement",
+        "Message sentiment, engagement metrics, and channel activity stream to ClickHouse for real-time analytics.",
+        "CDC Connector"
+      ),
+      celebrationMessage: buildCelebration(
+        "CDC Connector",
+        "Message Service",
+        "Discord's CDC Connector mirrors message data to the analytics platform. Message sentiment, engagement metrics, and channel activity stream to ClickHouse for real-time analytics.",
+        "SQL Database"
+      ),
+      messages: [
+        msg(
+          "Discord's CDC Connector mirrors message data to the analytics platform."
+        ),
+        msg(
+          "Message sentiment, engagement metrics, and channel activity stream to ClickHouse for real-time analytics. Discord can see trending channels within seconds of activity."
+        ),
+        msg(
+          "Press ⌘K, search for \"CDC Connector\", add it, then connect Message Service → CDC Connector."
+        ),
+      ],
+      requiredNodes: ["cdc_connector"],
+      requiredEdges: [edge("microservice", "cdc_connector")],
+      successMessage: "CDC pipeline added. Now SQL for users.",
+      errorMessage: "Add a CDC Connector connected from the Message Service.",
+    }),
+    step({
+      id: 5,
+      title: "Add SQL Database",
+      explanation:
+        "Discord's MySQL stores user accounts, server membership, and message history (for premium servers). Discord's message history is stored in Cassandra — but user and server data lives in MySQL.",
+      why:
+        "User accounts require ACID transactions for billing and Nitro subscriptions. Cassandra handles messages at scale, but MySQL is required for financial data integrity.",
+      action: buildAction(
+        "SQL Database",
+        "Auth Service",
+        "SQL Database",
+        "user accounts, server membership, and premium message history being stored with ACID guarantees"
+      ),
+      component: component("sql_db", "SQL Database"),
+      openingMessage: buildOpeningL2(
+        "Discord",
+        "SQL Database",
+        "store user accounts, server membership, and premium message history with ACID guarantees",
+        "Discord's message history is stored in Cassandra — but user and server data lives in MySQL.",
+        "SQL Database"
+      ),
+      celebrationMessage: buildCelebration(
+        "SQL Database",
+        "Auth Service",
+        "Discord's MySQL stores user accounts, server membership, and message history (for premium servers). Discord's message history is stored in Cassandra — but user and server data lives in MySQL.",
+        "Structured Logger"
+      ),
+      messages: [
+        msg(
+          "Discord's MySQL stores user accounts, server membership, and message history (for premium servers)."
+        ),
+        msg(
+          "Discord's message history is stored in Cassandra — but user and server data lives in MySQL. ACID transactions ensure consistent billing for Nitro subscriptions."
+        ),
+        msg(
+          "Press ⌘K, search for \"SQL Database\", add it, then connect Auth Service → SQL Database."
+        ),
+      ],
+      requiredNodes: ["sql_db"],
+      requiredEdges: [edge("auth_service", "sql_db")],
+      successMessage: "SQL database added. Now structured logging.",
+      errorMessage: "Add a SQL Database connected from the Auth Service.",
+    }),
+    step({
+      id: 6,
+      title: "Add Structured Logger",
+      explanation:
+        "Discord's Structured Logger captures every message sent, voice join, and moderation action. Logs flow to Datadog — Discord processes billions of log lines from millions of concurrent connections.",
+      why:
+        "Without structured logging, debugging issues across thousands of concurrent connections would be impossible. Datadog queries structured logs to find issues in seconds.",
+      action: buildAction(
+        "Structured Logger",
+        "Load Balancer",
+        "Structured Logger",
+        "every message, voice join, and moderation action being captured as structured logs flowing to Datadog"
+      ),
+      component: component("structured_logger", "Structured Logger"),
+      openingMessage: buildOpeningL2(
+        "Discord",
+        "Structured Logger",
+        "capture every message, voice join, and moderation action as structured logs flowing to Datadog",
+        "Discord processes billions of log lines from millions of concurrent connections.",
+        "Structured Logger"
+      ),
+      celebrationMessage: buildCelebration(
+        "Structured Logger",
+        "Load Balancer",
+        "Discord's Structured Logger captures every message sent, voice join, and moderation action. Logs flow to Datadog — Discord processes billions of log lines from millions of concurrent connections.",
+        "SLO Tracker"
+      ),
+      messages: [
+        msg(
+          "Discord's Structured Logger captures every message sent, voice join, and moderation action."
+        ),
+        msg(
+          "Logs flow to Datadog — Discord processes billions of log lines from millions of concurrent connections. Moderation teams can audit any action in seconds."
+        ),
+        msg(
+          "Press ⌘K, search for \"Structured Logger\", add it, then connect Load Balancer → Structured Logger."
+        ),
+      ],
+      requiredNodes: ["structured_logger"],
+      requiredEdges: [edge("load_balancer", "structured_logger")],
+      successMessage: "Structured logging added. Now SLO tracking.",
+      errorMessage: "Add a Structured Logger connected from the Load Balancer.",
+    }),
+    step({
+      id: 7,
+      title: "Add SLO Tracker",
+      explanation:
+        "Discord's SLO Tracker monitors message delivery latency, voice connection time, and gateway uptime. Message delivery must complete in <100ms — tracked as a top-tier SLO.",
+      why:
+        "Without SLOs, engineering teams argue about what 'good enough' means. With SLOs, there's a clear contractual target — message delivery under 100ms is non-negotiable.",
+      action: buildAction(
+        "SLO/SLI Tracker",
+        "Metrics Collector",
+        "SLO/SLI Tracker",
+        "message delivery latency, voice connection time, and gateway uptime being tracked as top-tier SLOs"
+      ),
+      component: component("slo_tracker", "SLO/SLI Tracker"),
+      openingMessage: buildOpeningL2(
+        "Discord",
+        "SLO Tracker",
+        "monitor message delivery latency, voice connection time, and gateway uptime as top-tier SLOs",
+        "Message delivery must complete in <100ms — tracked as a top-tier SLO.",
+        "SLO/SLI Tracker"
+      ),
+      celebrationMessage: buildCelebration(
+        "SLO/SLI Tracker",
+        "Metrics Collector",
+        "Discord's SLO Tracker monitors message delivery latency, voice connection time, and gateway uptime. Message delivery must complete in <100ms — tracked as a top-tier SLO.",
+        "Error Budget Alert"
+      ),
+      messages: [
+        msg(
+          "Discord's SLO Tracker monitors message delivery latency, voice connection time, and gateway uptime."
+        ),
+        msg(
+          "Message delivery must complete in <100ms — tracked as a top-tier SLO. When latency exceeds the SLO target, on-call is alerted."
+        ),
+        msg(
+          "Press ⌘K, search for \"SLO/SLI Tracker\", add it, then connect Metrics Collector → SLO/SLI Tracker."
+        ),
+      ],
+      requiredNodes: ["slo_tracker"],
+      requiredEdges: [edge("metrics_collector", "slo_tracker")],
+      successMessage: "SLO tracking added. Now error budgets.",
+      errorMessage: "Add an SLO/SLI Tracker connected from the Metrics Collector.",
+    }),
+    step({
+      id: 8,
+      title: "Add Error Budget Alert",
+      explanation:
+        "Discord's Error Budget Monitor tracks message delivery SLO consumption. During a DDoS attack, the error budget is consumed rapidly — on-call teams use this to make real-time capacity decisions.",
+      why:
+        "The error budget is the reliability buffer between SLO target and 100%. When depleted during an attack, feature launches pause until reliability recovers.",
+      action: buildAction(
+        "Error Budget Monitor",
+        "SLO/SLI Tracker",
+        "Error Budget Monitor",
+        "error budget burn rate being tracked for real-time capacity decisions during DDoS attacks"
+      ),
+      component: component("error_budget_alert", "Error Budget Monitor"),
+      openingMessage: buildOpeningL2(
+        "Discord",
+        "Error Budget Alert",
+        "track error budget burn rate for real-time capacity decisions during DDoS attacks",
+        "During a DDoS attack, the error budget is consumed rapidly — on-call teams use this to make real-time capacity decisions.",
+        "Error Budget Monitor"
+      ),
+      celebrationMessage: buildCelebration(
+        "Error Budget Alert",
+        "SLO/SLI Tracker",
+        "Discord's Error Budget Monitor tracks message delivery SLO consumption. During a DDoS attack, the error budget is consumed rapidly — on-call teams use this to make real-time capacity decisions.",
+        "Level 3"
+      ),
+      messages: [
+        msg(
+          "Discord's Error Budget Monitor tracks message delivery SLO consumption."
+        ),
+        msg(
+          "During a DDoS attack, the error budget is consumed rapidly — on-call teams use this to make real-time capacity decisions."
+        ),
+        msg(
+          "Press ⌘K, search for \"Error Budget Monitor\", add it, then connect SLO/SLI Tracker → Error Budget Monitor."
+        ),
+      ],
+      requiredNodes: ["error_budget_alert"],
+      requiredEdges: [edge("slo_tracker", "error_budget_alert")],
+      successMessage: "Error budget monitoring added. Discord is now at scale.",
+      errorMessage: "Add an Error Budget Monitor connected from the SLO/SLI Tracker.",
+    }),
+  ],
+});
+
+const l3 = level({
+  level: 3,
+  title: "Discord Enterprise",
+  subtitle: "Add zero-trust voice routing, gateway tracing, and audit logging",
+  description:
+    "Implement zero-trust networking for voice media, distributed tracing across gateway servers, and audit logging for moderation. Discord Enterprise serves gaming companies with compliance-grade logging requirements.",
+  estimatedTime: "~29 mins",
+  unlocks: undefined,
+  contextMessage:
+    "Let's make Discord enterprise-grade. Zero-trust voice routing, gateway distributed tracing, and immutable audit logs. Discord Enterprise serves gaming studios with compliance requirements that drive architectural decisions.",
+  steps: [
+    step({
+      id: 1,
+      title: "Add Service Mesh",
+      explanation:
+        "Discord's Service Mesh (Envoy) handles mTLS between gateway servers, voice servers, and media services. Discord's architecture uses a custom transport (Disstress) over UDP for voice — meshed separately from the REST API mesh.",
+      why:
+        "Without a service mesh, each service implements TLS differently — inconsistent and hard to maintain. Envoy handles mTLS transparently at the infrastructure layer.",
+      action: buildAction(
+        "Service Mesh (Istio)",
+        "Load Balancer",
+        "Service Mesh",
+        "mTLS being enforced between gateway servers, voice servers, and media services with separate meshes for UDP voice and REST API"
+      ),
+      component: component("service_mesh", "Service Mesh (Istio)"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "Service Mesh",
+        "enforce mTLS between gateway servers, voice servers, and media services with separate meshes for UDP voice and REST API",
+        "Discord's architecture uses a custom transport (Disstress) over UDP for voice — meshed separately from the REST API mesh.",
+        "Service Mesh (Istio)"
+      ),
+      celebrationMessage: buildCelebration(
+        "Service Mesh",
+        "Load Balancer",
+        "Discord's Service Mesh (Envoy) handles mTLS between gateway servers, voice servers, and media services. Discord's architecture uses a custom transport (Disstress) over UDP for voice — meshed separately from the REST API mesh.",
+        "BFF Gateway"
+      ),
+      messages: [
+        msg(
+          "Level 3 — Discord Enterprise. Let's add zero-trust networking for voice media, distributed tracing, and audit logging."
+        ),
+        msg(
+          "Discord's Service Mesh (Envoy) handles mTLS between gateway servers, voice servers, and media services. Discord's architecture uses a custom transport (Disstress) over UDP for voice — meshed separately from the REST API mesh."
+        ),
+        msg(
+          "Press ⌘K, search for \"Service Mesh (Istio)\", add it, then connect Load Balancer → Service Mesh."
+        ),
+      ],
+      requiredNodes: ["service_mesh"],
+      requiredEdges: [edge("load_balancer", "service_mesh")],
+      successMessage: "Service mesh added. Now the BFF gateway.",
+      errorMessage: "Add a Service Mesh connected from the Load Balancer.",
+    }),
+    step({
+      id: 2,
+      title: "Add BFF Gateway",
+      explanation:
+        "Discord's BFF Gateway serves the client with optimized gateway protocols. The BFF manages WebSocket connections, batches events, and handles the proprietary Discord Gateway protocol for real-time updates.",
+      why:
+        "Without a BFF, the client would need to manage WebSocket connections and event batching itself. The BFF abstracts this complexity and provides a cleaner API.",
+      action: buildAction(
+        "BFF Gateway",
+        "API Gateway",
+        "BFF Gateway",
+        "WebSocket connections, event batching, and the proprietary Discord Gateway protocol being handled for real-time updates"
+      ),
+      component: component("bff_gateway", "BFF Gateway"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "BFF Gateway",
+        "handle WebSocket connections, event batching, and the proprietary Discord Gateway protocol for real-time updates",
+        "The BFF manages WebSocket connections, batches events, and handles the proprietary Discord Gateway protocol for real-time updates.",
+        "BFF Gateway"
+      ),
+      celebrationMessage: buildCelebration(
+        "BFF Gateway",
+        "API Gateway",
+        "Discord's BFF Gateway serves the client with optimized gateway protocols. The BFF manages WebSocket connections, batches events, and handles the proprietary Discord Gateway protocol for real-time updates.",
+        "Leaky Bucket Rate Limiter"
+      ),
+      messages: [
+        msg(
+          "Discord's BFF Gateway serves the client with optimized gateway protocols."
+        ),
+        msg(
+          "The BFF manages WebSocket connections, batches events, and handles the proprietary Discord Gateway protocol for real-time updates. This is the protocol that keeps your Discord open in the background."
+        ),
+        msg(
+          "Press ⌘K, search for \"BFF Gateway\", add it, then connect API Gateway → BFF Gateway."
+        ),
+      ],
+      requiredNodes: ["bff_gateway"],
+      requiredEdges: [edge("api_gateway", "bff_gateway")],
+      successMessage: "BFF gateway added. Now rate limiting.",
+      errorMessage: "Add a BFF Gateway connected from the API Gateway.",
+    }),
+    step({
+      id: 3,
+      title: "Add Leaky Bucket Rate Limiter",
+      explanation:
+        "Discord's Leaky Bucket Rate Limiter enforces API rate limits: 10 requests/second globally, 120 requests/minute per channel. Leaky buckets smooth bursts while preventing sustained abuse.",
+      why:
+        "Without rate limiting, abusive clients could overwhelm Discord's services. Leaky buckets smooth traffic spikes while enforcing fair usage limits.",
+      action: buildAction(
+        "Leaky Bucket Rate Limiter",
+        "BFF Gateway",
+        "Leaky Bucket Rate Limiter",
+        "10 requests/second globally and 120 requests/minute per channel being enforced with leaky bucket smoothing"
+      ),
+      component: component("leaky_bucket_limiter", "Leaky Bucket Rate Limiter"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "Leaky Bucket Rate Limiter",
+        "enforce 10 requests/second globally and 120 requests/minute per channel with leaky bucket smoothing",
+        "Leaky buckets smooth bursts while preventing sustained abuse.",
+        "Leaky Bucket Rate Limiter"
+      ),
+      celebrationMessage: buildCelebration(
+        "Leaky Bucket Rate Limiter",
+        "BFF Gateway",
+        "Discord's Leaky Bucket Rate Limiter enforces API rate limits: 10 requests/second globally, 120 requests/minute per channel. Leaky buckets smooth bursts while preventing sustained abuse.",
+        "OpenTelemetry Collector"
+      ),
+      messages: [
+        msg(
+          "Discord's Leaky Bucket Rate Limiter enforces API rate limits: 10 requests/second globally, 120 requests/minute per channel."
+        ),
+        msg(
+          "Leaky buckets smooth bursts while preventing sustained abuse. If a bot tries to spam messages, the rate limiter kicks in — you know that 429 error you see sometimes?"
+        ),
+        msg(
+          "Press ⌘K, search for \"Leaky Bucket Rate Limiter\", add it, then connect BFF Gateway → Leaky Bucket Rate Limiter."
+        ),
+      ],
+      requiredNodes: ["leaky_bucket_limiter"],
+      requiredEdges: [edge("bff_gateway", "leaky_bucket_limiter")],
+      successMessage: "Rate limiting added. Now distributed tracing.",
+      errorMessage: "Add a Leaky Bucket Rate Limiter connected from the BFF Gateway.",
+    }),
+    step({
+      id: 4,
+      title: "Add OpenTelemetry Collector",
+      explanation:
+        "Discord's OTel Collector traces message routing, voice channel allocation, and guild shard placement. A message to a 100,000-member server touches dozens of services.",
+      why:
+        "Without distributed tracing, debugging a slow message delivery across dozens of services would be impossible. OTel makes the entire flow visible.",
+      action: buildAction(
+        "OpenTelemetry Collector",
+        "Metrics Collector",
+        "OpenTelemetry Collector",
+        "message routing, voice channel allocation, and guild shard placement being traced across dozens of services"
+      ),
+      component: component("otel_collector", "OpenTelemetry Collector"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "OpenTelemetry Collector",
+        "trace message routing, voice channel allocation, and guild shard placement across dozens of services",
+        "A message to a 100,000-member server touches dozens of services.",
+        "OpenTelemetry Collector"
+      ),
+      celebrationMessage: buildCelebration(
+        "OpenTelemetry Collector",
+        "Metrics Collector",
+        "Discord's OTel Collector traces message routing, voice channel allocation, and guild shard placement. A message to a 100,000-member server touches dozens of services.",
+        "Correlation ID Handler"
+      ),
+      messages: [
+        msg(
+          "Discord's OTel Collector traces message routing, voice channel allocation, and guild shard placement."
+        ),
+        msg(
+          "A message to a 100,000-member server touches dozens of services. Without distributed tracing, debugging a slow message delivery would be impossible."
+        ),
+        msg(
+          "Press ⌘K, search for \"OpenTelemetry Collector\", add it, then connect Metrics Collector → OpenTelemetry Collector."
+        ),
+      ],
+      requiredNodes: ["otel_collector"],
+      requiredEdges: [edge("metrics_collector", "otel_collector")],
+      successMessage: "Distributed tracing added. Now correlation IDs.",
+      errorMessage: "Add an OpenTelemetry Collector connected from the Metrics Collector.",
+    }),
+    step({
+      id: 5,
+      title: "Add Correlation ID Handler",
+      explanation:
+        "Discord's Correlation ID links a user action (posting a message) to the gateway, message processing, notification worker, and CDN upload. Debugging a lost message requires tracing across all these components.",
+      why:
+        "Without correlation IDs, tracing a message across multiple services is impossible. The correlation ID follows the message through every hop.",
+      action: buildAction(
+        "Correlation ID Handler",
+        "BFF Gateway",
+        "Correlation ID Handler",
+        "user actions being traced across gateway, message processing, notification worker, and CDN upload"
+      ),
+      component: component("correlation_id_handler", "Correlation ID Handler"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "Correlation ID Handler",
+        "trace user actions across gateway, message processing, notification worker, and CDN upload",
+        "Debugging a lost message requires tracing across all these components.",
+        "Correlation ID Handler"
+      ),
+      celebrationMessage: buildCelebration(
+        "Correlation ID Handler",
+        "BFF Gateway",
+        "Discord's Correlation ID links a user action (posting a message) to the gateway, message processing, notification worker, and CDN upload. Debugging a lost message requires tracing across all these components.",
+        "mTLS Certificate Authority"
+      ),
+      messages: [
+        msg(
+          "Discord's Correlation ID links a user action (posting a message) to the gateway, message processing, notification worker, and CDN upload."
+        ),
+        msg(
+          "Debugging a lost message requires tracing across all these components. The correlation ID follows every hop — from the client to the gateway to the notification worker."
+        ),
+        msg(
+          "Press ⌘K, search for \"Correlation ID Handler\", add it, then connect BFF Gateway → Correlation ID Handler."
+        ),
+      ],
+      requiredNodes: ["correlation_id_handler"],
+      requiredEdges: [edge("bff_gateway", "correlation_id_handler")],
+      successMessage: "Correlation IDs added. Now mTLS certificates.",
+      errorMessage: "Add a Correlation ID Handler connected from the BFF Gateway.",
+    }),
+    step({
+      id: 6,
+      title: "Add mTLS Certificate Authority",
+      explanation:
+        "Discord's SPIFFE CA issues certificates to every voice server and gateway node. Voice servers are particularly sensitive — compromised voice nodes could intercept media.",
+      why:
+        "Without automated certificate rotation, expired certificates would cause voice outages. SPIFFE automates certificate issuance and rotation across all nodes.",
+      action: buildAction(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "mTLS Certificate Authority",
+        "SPIFFE certificates being issued to every voice server and gateway node for zero-trust voice media"
+      ),
+      component: component("mtls_certificate_authority", "mTLS Certificate Authority"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "mTLS Certificate Authority",
+        "issue SPIFFE certificates to every voice server and gateway node for zero-trust voice media",
+        "Voice servers are particularly sensitive — compromised voice nodes could intercept media.",
+        "mTLS Certificate Authority"
+      ),
+      celebrationMessage: buildCelebration(
+        "mTLS Certificate Authority",
+        "Service Mesh",
+        "Discord's SPIFFE CA issues certificates to every voice server and gateway node. Voice servers are particularly sensitive — compromised voice nodes could intercept media.",
+        "Cache Stampede Guard"
+      ),
+      messages: [
+        msg(
+          "Discord's SPIFFE CA issues certificates to every voice server and gateway node."
+        ),
+        msg(
+          "Voice servers are particularly sensitive — compromised voice nodes could intercept media. SPIFFE certificates ensure every node is authenticated before handling voice traffic."
+        ),
+        msg(
+          "Press ⌘K, search for \"mTLS Certificate Authority\", add it, then connect Service Mesh → mTLS Certificate Authority."
+        ),
+      ],
+      requiredNodes: ["mtls_certificate_authority"],
+      requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
+      successMessage: "mTLS certificates added. Now cache stampede protection.",
+      errorMessage: "Add an mTLS Certificate Authority connected from the Service Mesh.",
+    }),
+    step({
+      id: 7,
+      title: "Add Cache Stampede Guard",
+      explanation:
+        "Discord's Cache Stampede Guard protects emoji and sticker CDN caches from stampedes when a viral message uses a new sticker. Lock-assisted refresh prevents origin overload.",
+      why:
+        "Without stampede protection, a viral sticker would cause millions of simultaneous cache misses, overwhelming the origin server.",
+      action: buildAction(
+        "Cache Stampede Guard",
+        "CDN",
+        "Cache Stampede Guard",
+        "emoji and sticker CDN caches being protected from stampedes with lock-assisted refresh"
+      ),
+      component: component("cache_stampede_guard", "Cache Stampede Guard"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "Cache Stampede Guard",
+        "protect emoji and sticker CDN caches from stampedes when viral messages use new stickers",
+        "Lock-assisted refresh prevents origin overload.",
+        "Cache Stampede Guard"
+      ),
+      celebrationMessage: buildCelebration(
+        "Cache Stampede Guard",
+        "CDN",
+        "Discord's Cache Stampede Guard protects emoji and sticker CDN caches from stampedes when a viral message uses a new sticker. Lock-assisted refresh prevents origin overload.",
+        "Change Data Cache"
+      ),
+      messages: [
+        msg(
+          "Discord's Cache Stampede Guard protects emoji and sticker CDN caches from stampedes when a viral message uses a new sticker."
+        ),
+        msg(
+          "Lock-assisted refresh prevents origin overload. Without it, millions of requests would hit the origin simultaneously when a cache misses during a viral moment."
+        ),
+        msg(
+          "Press ⌘K, search for \"Cache Stampede Guard\", add it, then connect CDN → Cache Stampede Guard."
+        ),
+      ],
+      requiredNodes: ["cache_stampede_guard"],
+      requiredEdges: [edge("cdn", "cache_stampede_guard")],
+      successMessage: "Cache stampede protection added. Now CDC caching.",
+      errorMessage: "Add a Cache Stampede Guard connected from the CDN.",
+    }),
+    step({
+      id: 8,
+      title: "Add Change Data Cache",
+      explanation:
+        "Discord's CDC pipeline caches guild member lists and role hierarchies. These are precomputed in Redis for fast permission checks — sub-millisecond role resolution is critical for moderation.",
+      why:
+        "Without precomputed role hierarchies, permission checks would require database joins on every message. At 4 billion messages monthly, that's millions of joins per second.",
+      action: buildAction(
+        "Change Data Cache",
+        "CDC Connector",
+        "Change Data Cache",
+        "guild member lists and role hierarchies being precomputed in Redis for sub-millisecond permission checks"
+      ),
+      component: component("change_data_cache", "Change Data Cache"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "Change Data Cache",
+        "precompute guild member lists and role hierarchies in Redis for sub-millisecond permission checks",
+        "Sub-millisecond role resolution is critical for moderation.",
+        "Change Data Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "Change Data Cache",
+        "CDC Connector",
+        "Discord's CDC pipeline caches guild member lists and role hierarchies. These are precomputed in Redis for fast permission checks — sub-millisecond role resolution is critical for moderation.",
+        "Data Warehouse"
+      ),
+      messages: [
+        msg(
+          "Discord's CDC pipeline caches guild member lists and role hierarchies."
+        ),
+        msg(
+          "These are precomputed in Redis for fast permission checks — sub-millisecond role resolution is critical for moderation. When someone with Manage Messages tries to purge spam, the permission check must be instant."
+        ),
+        msg(
+          "Press ⌘K, search for \"Change Data Cache\", add it, then connect CDC Connector → Change Data Cache."
+        ),
+      ],
+      requiredNodes: ["change_data_cache"],
+      requiredEdges: [edge("cdc_connector", "change_data_cache")],
+      successMessage: "CDC caching added. Now data warehouse.",
+      errorMessage: "Add a Change Data Cache connected from the CDC Connector.",
+    }),
+    step({
+      id: 9,
+      title: "Add Data Warehouse",
+      explanation:
+        "Discord's Data Warehouse (ClickHouse) stores message analytics, Nitro subscription metrics, and engagement funnels. This data drives Discord's product and monetization decisions.",
+      why:
+        "The operational database is optimized for writes, not analytical queries. ClickHouse handles billions of rows for product analytics without impacting live services.",
+      action: buildAction(
+        "Data Warehouse",
+        "CDC Connector",
+        "Data Warehouse",
+        "message analytics, Nitro subscription metrics, and engagement funnels being stored for product decisions"
+      ),
+      component: component("data_warehouse", "Data Warehouse"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "Data Warehouse",
+        "store message analytics, Nitro subscription metrics, and engagement funnels for product decisions",
+        "This data drives Discord's product and monetization decisions.",
+        "Data Warehouse"
+      ),
+      celebrationMessage: buildCelebration(
+        "Data Warehouse",
+        "CDC Connector",
+        "Discord's Data Warehouse (ClickHouse) stores message analytics, Nitro subscription metrics, and engagement funnels. This data drives Discord's product and monetization decisions.",
+        "Event Store"
+      ),
+      messages: [
+        msg(
+          "Discord's Data Warehouse (ClickHouse) stores message analytics, Nitro subscription metrics, and engagement funnels."
+        ),
+        msg(
+          "This data drives Discord's product and monetization decisions. Product managers query ClickHouse to understand which features drive Nitro conversions."
+        ),
+        msg(
+          "Press ⌘K, search for \"Data Warehouse\", add it, then connect CDC Connector → Data Warehouse."
+        ),
+      ],
+      requiredNodes: ["data_warehouse"],
+      requiredEdges: [edge("cdc_connector", "data_warehouse")],
+      successMessage: "Data warehouse added. Now audit logging.",
+      errorMessage: "Add a Data Warehouse connected from the CDC Connector.",
+    }),
+    step({
+      id: 10,
+      title: "Add Event Store",
+      explanation:
+        "Discord's Event Store stores audit logs for server moderation: bans, kicks, role changes. Immutable audit logs are required for server admins and legal compliance.",
+      why:
+        "Event stores provide immutable, append-only logs. Once written, audit logs cannot be modified — essential for legal compliance and server administration.",
+      action: buildAction(
+        "Event Store",
+        "Structured Logger",
+        "Event Store",
+        "immutable audit logs being stored for bans, kicks, and role changes for server admins and legal compliance"
+      ),
+      component: component("event_store", "Event Store"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "Event Store",
+        "store immutable audit logs for bans, kicks, and role changes for server admins and legal compliance",
+        "Immutable audit logs are required for server admins and legal compliance.",
+        "Event Store"
+      ),
+      celebrationMessage: buildCelebration(
+        "Event Store",
+        "Structured Logger",
+        "Discord's Event Store stores audit logs for server moderation: bans, kicks, role changes. Immutable audit logs are required for server admins and legal compliance.",
+        "Prefetch Cache"
+      ),
+      messages: [
+        msg(
+          "Discord's Event Store stores audit logs for server moderation: bans, kicks, role changes."
+        ),
+        msg(
+          "Immutable audit logs are required for server admins and legal compliance. Server admins can review who banned whom and why. Legal teams can subpoena moderation records."
+        ),
+        msg(
+          "Press ⌘K, search for \"Event Store\", add it, then connect Structured Logger → Event Store."
+        ),
+      ],
+      requiredNodes: ["event_store"],
+      requiredEdges: [edge("structured_logger", "event_store")],
+      successMessage: "Event store added. Now prefetch caching.",
+      errorMessage: "Add an Event Store connected from the Structured Logger.",
+    }),
+    step({
+      id: 11,
+      title: "Add Prefetch Cache",
+      explanation:
+        "Discord's Prefetch Cache preloads emoji packs and channel state for servers users frequently visit. When you switch channels, the next channel's state is preloaded.",
+      why:
+        "Prefetching makes channel switches feel instant. The BFF predicts where users will go next and preloads content before they click.",
+      action: buildAction(
+        "Prefetch Cache",
+        "BFF Gateway",
+        "Prefetch Cache",
+        "emoji packs and channel state being preloaded for frequently visited servers"
+      ),
+      component: component("prefetch_cache", "Prefetch Cache"),
+      openingMessage: buildOpeningL3(
+        "Discord",
+        "Prefetch Cache",
+        "preload emoji packs and channel state for frequently visited servers",
+        "When you switch channels, the next channel's state is preloaded.",
+        "Prefetch Cache"
+      ),
+      celebrationMessage: buildCelebration(
+        "Prefetch Cache",
+        "BFF Gateway",
+        "Discord's Prefetch Cache preloads emoji packs and channel state for servers users frequently visit. When you switch channels, the next channel's state is preloaded.",
+        "nothing — you have built Discord Enterprise"
+      ),
+      messages: [
+        msg(
+          "Discord's Prefetch Cache preloads emoji packs and channel state for servers users frequently visit."
+        ),
+        msg(
+          "When you switch channels, the next channel's state is preloaded. This is why channel switches feel instant — the BFF already fetched the messages before you clicked."
+        ),
+        msg(
+          "Press ⌘K, search for \"Prefetch Cache\", add it, then connect BFF Gateway → Prefetch Cache."
+        ),
+      ],
+      requiredNodes: ["prefetch_cache"],
+      requiredEdges: [edge("bff_gateway", "prefetch_cache")],
+      successMessage: "Prefetch caching added. You have built Discord Enterprise.",
+      errorMessage: "Add a Prefetch Cache connected from the BFF Gateway.",
+    }),
+  ],
+});
+
 export const discordTutorial: Tutorial = tutorial({
   id: 'discord-architecture',
   title: 'How to Design Discord Architecture',
@@ -417,6 +1264,6 @@ export const discordTutorial: Tutorial = tutorial({
   icon: 'MessageSquare',
   color: '#5865f2',
   tags: ['WebRTC', 'Voice', 'Sharding', 'Real-time', 'Guilds'],
-  estimatedTime: '~33 mins',
-  levels: [l1],
+  estimatedTime: '~87 mins',
+  levels: [l1, l2, l3],
 });

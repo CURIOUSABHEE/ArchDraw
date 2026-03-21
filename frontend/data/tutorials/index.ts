@@ -92,6 +92,23 @@ export const LEVELED_TUTORIALS = new Set([
   'netflix-architecture',
   'openclaw-architecture',
   'uber-architecture',
+  'whatsapp-architecture',
+  'stripe-architecture',
+  'youtube-architecture',
+  'notion-architecture',
+  'twitter-architecture',
+  'airbnb-architecture',
+  'discord-architecture',
+  'zoom-architecture',
+  'spotify-architecture',
+  'linkedin-architecture',
+  'figma-architecture',
+  'shopify-architecture',
+  'doordash-architecture',
+  'github-architecture',
+  'url-shortener-architecture',
+  'rag-application-architecture',
+  'ai-agent-system-architecture',
 ]);
 
 export function isLeveledTutorial(id: string): boolean {

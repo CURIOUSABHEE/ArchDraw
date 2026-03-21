@@ -3,6 +3,8 @@ import {
   buildAction,
   buildFirstStepAction,
   buildOpeningL1,
+  buildOpeningL2,
+  buildOpeningL3,
   buildCelebration,
 } from '@/lib/tutorial/defaults';
 import type { Tutorial } from '@/lib/tutorial/types';
@@ -450,6 +452,687 @@ const l1 = level({
   ],
 });
 
+// ── Level 2 — Production Ready (9 steps) ─────────────────────────────────────
+
+const l2 = level({
+  level: 2,
+  title: 'Production Ready',
+  subtitle: 'Scale to millions of concurrent bookings',
+  description:
+    "Your marketplace foundation works. Now add what Airbnb actually ships: Kafka for booking events, notification workers, SQL for user data, CDC for analytics, structured logging, and SLO tracking.",
+  estimatedTime: '~25 mins',
+  unlocks: 'Expert Architecture',
+  prerequisite: 'Builds on your Level 1 diagram',
+  contextMessage:
+    "Level 2: Production Ready. Your marketplace connects guests and hosts. Now add Kafka event streaming, notifications, SQL, CDC analytics, structured logging, and SLO tracking.",
+  steps: [
+    step({
+      id: 1,
+      title: 'Add Kafka Streaming',
+      explanation:
+        "Every booking, cancellation, review, and search is published to Kafka. The pricing ML pipeline consumes booking events to train dynamic pricing models. Analytics pipelines consume search data for demand forecasting.",
+      action: buildAction(
+        'Kafka / Streaming',
+        'Load Balancer',
+        'Kafka Streaming',
+        'every booking, cancellation, and search being streamed to pricing and analytics consumers in real time'
+      ),
+      why: "Without Kafka, pricing ML models would require synchronous database queries. Kafka decouples event producers from consumers — the booking path stays fast regardless of downstream processing.",
+      component: component('kafka_streaming', 'Kafka / Streaming', 'Kafka / Streaming'),
+      openingMessage: buildOpeningL2(
+        'Airbnb',
+        'Kafka',
+        'stream every booking and search to pricing and analytics consumers in real time',
+        'Without Kafka, pricing ML models would require synchronous database queries.',
+        'Kafka / Streaming'
+      ),
+      celebrationMessage: buildCelebration(
+        'Kafka Streaming',
+        'Load Balancer',
+        "Airbnb publishes billions of booking events per day to Kafka. Dynamic pricing models train on this data. Analytics pipelines consume search data for demand forecasting across markets.",
+        'Notification Worker'
+      ),
+      messages: [
+        msg("Level 2 — Production Ready. Every booking, cancellation, and search is published to Kafka for downstream consumers."),
+        msg("Dynamic pricing models train weekly on booking events. Analytics pipelines consume search data for demand forecasting across markets."),
+        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'),
+      ],
+      requiredNodes: ['kafka_streaming'],
+      requiredEdges: [edge('load_balancer', 'kafka_streaming')],
+      successMessage: 'Events streaming. Now notifications.',
+      errorMessage: 'Add Kafka Streaming connected from the Load Balancer.',
+    }),
+    step({
+      id: 2,
+      title: 'Add Notification Worker',
+      explanation:
+        "Notification workers consume Kafka events to send push notifications — booking confirmations, host responses, review reminders, and price drop alerts for saved listings.",
+      action: buildAction(
+        'Worker',
+        'Kafka',
+        'Notification Worker',
+        'booking confirmations and host responses being sent via push notifications asynchronously'
+      ),
+      why: "If Airbnb sent notifications synchronously, slow push delivery could delay the booking response. Background workers handle notification delivery asynchronously.",
+      component: component('worker_job', 'Worker'),
+      openingMessage: buildOpeningL2(
+        'Airbnb',
+        'Notification Worker',
+        'deliver booking confirmations and host responses asynchronously via push notifications',
+        'Synchronous notifications would delay booking responses — background workers handle delivery asynchronously.',
+        'Worker'
+      ),
+      celebrationMessage: buildCelebration(
+        'Notification Worker',
+        'Kafka Streaming',
+        "Airbnb's notification workers deliver booking confirmations, host responses, and review reminders via push notifications. All delivery is asynchronous — booking responses are never delayed by notification delivery.",
+        'CDC Connector'
+      ),
+      messages: [
+        msg("Notification workers consume Kafka events to send booking confirmations and host responses."),
+        msg("All notification delivery is asynchronous — booking responses are never delayed by slow push delivery."),
+        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+      ],
+      requiredNodes: ['worker_job'],
+      requiredEdges: [edge('kafka_streaming', 'worker_job')],
+      successMessage: 'Notifications added. Now CDC for analytics.',
+      errorMessage: 'Add a Worker connected from Kafka Streaming.',
+    }),
+    step({
+      id: 3,
+      title: 'Add CDC Connector (Debezium)',
+      explanation:
+        "The CDC Connector captures row-level changes from Airbnb's NoSQL database and streams them to Kafka for analytics — listing updates, booking changes, and review submissions without adding load to the production database.",
+      action: buildAction(
+        'CDC Connector (Debezium)',
+        'NoSQL Database',
+        'CDC Connector',
+        'listing and booking changes being captured from the NoSQL transaction log and streamed to Kafka for analytics'
+      ),
+      why: "Without CDC, analytics queries would require direct database reads that add load to the production database. CDC captures changes from the transaction log — zero production query overhead.",
+      component: component('cdc_connector', 'CDC Connector (Debezium)'),
+      openingMessage: buildOpeningL2(
+        'Airbnb',
+        'CDC Connector (Debezium)',
+        'capture listing and booking changes from the NoSQL transaction log and stream to Kafka — zero production query overhead',
+        'Without CDC, analytics queries add load to the production database — CDC captures changes from the transaction log.',
+        'CDC Connector (Debezium)'
+      ),
+      celebrationMessage: buildCelebration(
+        'CDC Connector',
+        'NoSQL Database',
+        "Airbnb's CDC Connector captures every listing update and booking change from the NoSQL transaction log — streaming to Kafka for analytics without adding load to the production database.",
+        'SQL Database'
+      ),
+      messages: [
+        msg("CDC Connector captures row-level changes from the NoSQL database and streams them to Kafka for analytics."),
+        msg("Without CDC, analytics queries would add load to the production database. CDC captures changes from the transaction log — zero query overhead."),
+        msg('Press ⌘K, search for "CDC Connector (Debezium)", add it, then connect NoSQL Database → CDC Connector.'),
+      ],
+      requiredNodes: ['cdc_connector'],
+      requiredEdges: [edge('nosql_db', 'cdc_connector')],
+      successMessage: 'CDC added. Now SQL for user data.',
+      errorMessage: 'Add a CDC Connector connected from the NoSQL Database.',
+    }),
+    step({
+      id: 4,
+      title: 'Add SQL Database',
+      explanation:
+        "Airbnb stores user profiles, payout records, and host earnings in PostgreSQL. Financial data requires ACID transactions — host earnings calculations must be accurate and auditable.",
+      action: buildAction(
+        'SQL Database',
+        'Auth Service',
+        'SQL Database',
+        'user profiles and host earnings being stored with ACID guarantees for financial compliance'
+      ),
+      why: "Host earnings and payout records require auditable, ACID-compliant records. A missing booking from a host's earnings is a legal issue.",
+      component: component('sql_db', 'SQL Database'),
+      openingMessage: buildOpeningL2(
+        'Airbnb',
+        'SQL Database',
+        'store host earnings and payout records with ACID guarantees for financial compliance',
+        'Host earnings require auditable, ACID-compliant records — eventual consistency is unacceptable.',
+        'SQL Database'
+      ),
+      celebrationMessage: buildCelebration(
+        'SQL Database',
+        'Auth Service',
+        "Airbnb stores host earnings and payout records in PostgreSQL with full ACID compliance. Every booking is recorded exactly once for the revenue calculation — auditable and legally compliant.",
+        'Structured Logger'
+      ),
+      messages: [
+        msg("User profiles, payout records, and host earnings need ACID compliance. PostgreSQL stores the authoritative financial records."),
+        msg("Host earnings calculations must be accurate and auditable. ACID transactions ensure every booking is recorded exactly once."),
+        msg('Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'),
+      ],
+      requiredNodes: ['sql_db'],
+      requiredEdges: [edge('auth_service', 'sql_db')],
+      successMessage: 'SQL added. Now structured logging.',
+      errorMessage: 'Add a SQL Database connected from the Auth Service.',
+    }),
+    step({
+      id: 5,
+      title: 'Add Structured Logger',
+      explanation:
+        "Airbnb's Structured Logger emits JSON-formatted logs with consistent field schemas — booking_id, guest_id, host_id, event_type, price. LogQL queries aggregate metrics across billions of logs per day.",
+      action: buildAction(
+        'Structured Logger',
+        'Load Balancer',
+        'Structured Logger',
+        'JSON-formatted booking traces being emitted with consistent schemas for booking_id, guest_id, and event_type'
+      ),
+      why: "Text logs require regex parsing — slow and error-prone at scale. Structured JSON logs enable LogQL queries that aggregate metrics across billions of entries in seconds.",
+      component: component('structured_logger', 'Structured Logger'),
+      openingMessage: buildOpeningL2(
+        'Airbnb',
+        'Structured Logger',
+        'emit JSON logs with consistent field schemas for booking_id, guest_id, and event_type across all services',
+        'Text logs require regex parsing — structured JSON enables fast LogQL aggregation across billions of entries.',
+        'Structured Logger'
+      ),
+      celebrationMessage: buildCelebration(
+        'Structured Logger',
+        'Load Balancer',
+        "Airbnb's Structured Logger emits JSON with consistent schemas: booking_id, guest_id, host_id, event_type, price. LogQL queries aggregate booking metrics across billions of entries — enabling real-time demand detection.",
+        'SLO/SLI Tracker'
+      ),
+      messages: [
+        msg("Structured Logger emits JSON-formatted logs with consistent schemas — booking_id, guest_id, host_id, event_type, price."),
+        msg("LogQL queries aggregate metrics across billions of logs per day in seconds. Demand forecasting and anomaly detection use structured log queries."),
+        msg('Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'),
+      ],
+      requiredNodes: ['structured_logger'],
+      requiredEdges: [edge('load_balancer', 'structured_logger')],
+      successMessage: 'Structured logging added. Now SLO tracking.',
+      errorMessage: 'Add a Structured Logger connected from the Load Balancer.',
+    }),
+    step({
+      id: 6,
+      title: 'Add SLO/SLI Tracker',
+      explanation:
+        "Airbnb's SLO/SLI Tracker monitors search latency, booking success rate, and payment processing time against defined Service Level Objectives. Search latency SLO: 99.9% of searches return results within 200ms.",
+      action: buildAction(
+        'SLO/SLI Tracker',
+        'Metrics Collector',
+        'SLO/SLI Tracker',
+        'search latency and booking success rate being tracked against SLOs — alerting when error budgets burn'
+      ),
+      why: "Without SLOs, engineering teams argue about what 'good' means. With SLOs, there's a clear contractual target — search must return within 200ms for 99.9% of requests.",
+      component: component('slo_tracker', 'SLO/SLI Tracker'),
+      openingMessage: buildOpeningL2(
+        'Airbnb',
+        'SLO/SLI Tracker',
+        'monitor search latency and booking success rate against defined SLO targets',
+        'Without SLOs, engineering teams argue about what acceptable performance means.',
+        'SLO/SLI Tracker'
+      ),
+      celebrationMessage: buildCelebration(
+        'SLO/SLI Tracker',
+        'Metrics Collector',
+        "Airbnb's SLO: 99.9% of searches return results within 200ms. The SLO/SLI Tracker alerts when error budgets burn — pages on-call before guests notice slow searches.",
+        'Error Budget Monitor'
+      ),
+      messages: [
+        msg("The SLO/SLI Tracker monitors search latency, booking success rate, and payment processing time against defined Service Level Objectives."),
+        msg("Airbnb's search latency SLO: 99.9% of searches return results within 200ms. When latency exceeds the error budget, on-call is paged."),
+        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO/SLI Tracker.'),
+      ],
+      requiredNodes: ['slo_tracker'],
+      requiredEdges: [edge('metrics_collector', 'slo_tracker')],
+      successMessage: 'SLO tracking added. Now error budgets.',
+      errorMessage: 'Add an SLO/SLI Tracker connected from the Metrics Collector.',
+    }),
+    step({
+      id: 7,
+      title: 'Add Error Budget Monitor',
+      explanation:
+        "Airbnb's Error Budget Monitor tracks remaining reliability budget for search latency SLO. When the error budget burns faster than acceptable, feature launches pause until reliability improves.",
+      action: buildAction(
+        'Error Budget Monitor',
+        'SLO/SLI Tracker',
+        'Error Budget Monitor',
+        'error budget burn rate being tracked — pausing feature launches when budget depletes faster than acceptable'
+      ),
+      why: "The error budget is the 'spare' reliability. When depleted, feature launches pause. For marketplaces, reliability is non-negotiable — a slow search means lost bookings.",
+      component: component('error_budget_alert', 'Error Budget Monitor'),
+      openingMessage: buildOpeningL2(
+        'Airbnb',
+        'Error Budget Monitor',
+        'track error budget burn rate — pausing feature launches when budget depletes to protect reliability',
+        'For marketplaces, reliability is non-negotiable — a slow search means lost bookings.',
+        'Error Budget Monitor'
+      ),
+      celebrationMessage: buildCelebration(
+        'Error Budget Monitor',
+        'SLO/SLI Tracker',
+        "Airbnb's error budget policy: when more than 10% of the monthly budget burns in a week, feature launches pause. Engineering prioritizes reliability until the budget recovers — protecting guest experience.",
+        'Level 3'
+      ),
+      messages: [
+        msg("The Error Budget Monitor tracks remaining reliability budget for search latency SLO."),
+        msg("When the error budget burns faster than acceptable, feature launches pause until reliability improves. For marketplaces, a slow search means lost bookings."),
+        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'),
+      ],
+      requiredNodes: ['error_budget_alert'],
+      requiredEdges: [edge('slo_tracker', 'error_budget_alert')],
+      successMessage: 'Error budget monitoring added. Airbnb is now production-ready.',
+      errorMessage: 'Add an Error Budget Monitor connected from the SLO/SLI Tracker.',
+    }),
+  ],
+});
+
+// ── Level 3 — Expert Architecture (11 steps) ───────────────────────────────────
+
+const l3 = level({
+  level: 3,
+  title: 'Expert Architecture',
+  subtitle: 'Design like an Airbnb senior engineer',
+  description:
+    "You have production Airbnb. Now add what separates senior engineers — service mesh, GraphQL Federation, token bucket rate limiting, distributed tracing with correlation IDs, mTLS for service authentication, cache stampede prevention, and event sourcing for bookings.",
+  estimatedTime: '~30 mins',
+  prerequisite: 'Builds on your Level 2 diagram',
+  contextMessage:
+    "Level 3: Expert Architecture. Add service mesh, GraphQL Federation, advanced rate limiting, distributed tracing, mTLS, cache stampede prevention, and event sourcing.",
+  steps: [
+    step({
+      id: 1,
+      title: 'Add Service Mesh (Istio)',
+      explanation:
+        "Airbnb's Service Mesh uses Istio to manage all east-west traffic between services — automatic mTLS encryption, circuit breaking, retries, and load balancing at the sidecar proxy level.",
+      action: buildAction(
+        'Service Mesh (Istio)',
+        'Load Balancer',
+        'Service Mesh',
+        'automatic mTLS and traffic management being enforced at the sidecar proxy level for all service-to-service communication'
+      ),
+      why: "Without a service mesh, each service implements TLS, circuit breaking, and retries differently. Istio handles this transparently at the infrastructure layer.",
+      component: component('service_mesh', 'Service Mesh (Istio)'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'Service Mesh (Istio)',
+        'automatic mTLS, circuit breaking, and traffic policies enforced at the sidecar proxy level across all services',
+        'Without a service mesh, each service implements TLS, retries, and circuit breaking differently.',
+        'Service Mesh (Istio)'
+      ),
+      celebrationMessage: buildCelebration(
+        'Service Mesh',
+        'Load Balancer',
+        "Airbnb's service mesh handles billions of service-to-service calls per day. Every call is encrypted with mTLS — no service code changes required. The Control Plane pushes traffic policies across the cluster instantly.",
+        'GraphQL Federation Gateway'
+      ),
+      messages: [
+        msg("Level 3 — Expert Architecture. The Service Mesh (Istio) adds sidecar proxies to every pod — handling mTLS, retries, circuit breaking, and load balancing transparently."),
+        msg("Automatic mTLS encrypts every service-to-service call. The Control Plane distributes traffic policies across all sidecars instantly."),
+        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'),
+      ],
+      requiredNodes: ['service_mesh'],
+      requiredEdges: [edge('load_balancer', 'service_mesh')],
+      successMessage: 'Service mesh added. Now GraphQL Federation.',
+      errorMessage: 'Add a Service Mesh connected from the Load Balancer.',
+    }),
+    step({
+      id: 2,
+      title: 'Add GraphQL Federation Gateway',
+      explanation:
+        "Airbnb's GraphQL Federation Gateway combines listing, booking, and review schemas into a unified supergraph. Mobile clients query one endpoint — the gateway fans out to multiple subgraphs and composes the response.",
+      action: buildAction(
+        'GraphQL Federation Gateway',
+        'API Gateway',
+        'GraphQL Federation Gateway',
+        'listing, booking, and review schemas being composed into a unified API from multiple subgraphs'
+      ),
+      why: "Without Federation, clients make multiple round trips to different REST endpoints. GraphQL Federation lets clients fetch all needed data in a single query.",
+      component: component('graphql_federation', 'GraphQL Federation Gateway'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'GraphQL Federation Gateway',
+        'compose listing, booking, and review schemas into a unified supergraph from multiple subgraphs',
+        'Without Federation, clients make multiple round trips — GraphQL reduces this to one.',
+        'GraphQL Federation Gateway'
+      ),
+      celebrationMessage: buildCelebration(
+        'GraphQL Federation Gateway',
+        'API Gateway',
+        "Airbnb's GraphQL Federation Gateway serves the mobile app with a unified API — one query fetches listings, bookings, and reviews. Mobile API calls reduced by 60%, latency reduced by 40%.",
+        'Token Bucket Rate Limiter'
+      ),
+      messages: [
+        msg("GraphQL Federation combines listing, booking, and review schemas into a unified supergraph."),
+        msg("Mobile clients query one endpoint — the gateway fans out to multiple subgraphs and composes the response. Mobile API calls reduced by 60%."),
+        msg('Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'),
+      ],
+      requiredNodes: ['graphql_federation'],
+      requiredEdges: [edge('api_gateway', 'graphql_federation')],
+      successMessage: 'GraphQL Federation added. Now rate limiting.',
+      errorMessage: 'Add a GraphQL Federation Gateway connected from the API Gateway.',
+    }),
+    step({
+      id: 3,
+      title: 'Add Token Bucket Rate Limiter',
+      explanation:
+        "Airbnb's Token Bucket Rate Limiter enforces API quotas using the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate. Hosts managing multiple listings get larger buckets.",
+      action: buildAction(
+        'Token Bucket Rate Limiter',
+        'API Gateway',
+        'Token Bucket Rate Limiter',
+        'API quotas being enforced with burst allowance using the token bucket algorithm — hosts get larger buckets'
+      ),
+      why: "Fixed rate limiting cannot handle legitimate bursts. Hosts updating multiple listings need burst capacity — the token bucket allows this while maintaining average limits.",
+      component: component('token_bucket_limiter', 'Token Bucket Rate Limiter'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'Token Bucket Rate Limiter',
+        'enforce API quotas with burst allowance — hosts managing multiple listings get larger token buckets',
+        'Fixed rate limiting cannot handle legitimate bursts — token bucket allows bursts while maintaining average limits.',
+        'Token Bucket Rate Limiter'
+      ),
+      celebrationMessage: buildCelebration(
+        'Token Bucket Rate Limiter',
+        'API Gateway',
+        "Airbnb's token bucket rate limiter allows hosts to burst listing update requests — a host updating 10 listings can use their full bucket. Casual users get smaller buckets. The steady average rate prevents abuse.",
+        'OpenTelemetry Collector'
+      ),
+      messages: [
+        msg("Token Bucket Rate Limiter uses the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate."),
+        msg("Hosts managing multiple listings get larger buckets. The steady average rate prevents abuse while enabling legitimate bursts."),
+        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'),
+      ],
+      requiredNodes: ['token_bucket_limiter'],
+      requiredEdges: [edge('api_gateway', 'token_bucket_limiter')],
+      successMessage: 'Rate limiting added. Now distributed tracing.',
+      errorMessage: 'Add a Token Bucket Rate Limiter connected from the API Gateway.',
+    }),
+    step({
+      id: 4,
+      title: 'Add OpenTelemetry Collector',
+      explanation:
+        "Airbnb's OpenTelemetry Collector receives traces, metrics, and logs from all services — processing and exporting to Jaeger for tracing, Prometheus for metrics, and Elasticsearch for logs.",
+      action: buildAction(
+        'OpenTelemetry Collector',
+        'Structured Logger',
+        'OpenTelemetry Collector',
+        'traces, metrics, and logs being aggregated and exported to multiple backends from a single unified collector'
+      ),
+      why: "Without OTel, each service uses different tracing libraries. The OTel Collector normalizes everything — one instrumentation, multiple backends.",
+      component: component('otel_collector', 'OpenTelemetry Collector'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'OpenTelemetry Collector',
+        'unified telemetry pipeline for traces, metrics, and logs with multi-backend export',
+        'Without OTel, each service uses different tracing libraries — the OTel Collector normalizes everything.',
+        'OpenTelemetry Collector'
+      ),
+      celebrationMessage: buildCelebration(
+        'OpenTelemetry Collector',
+        'Structured Logger',
+        "Airbnb's OTel Collector processes billions of spans per day. One instrumentation exports to Jaeger for tracing, Prometheus for metrics, and Elasticsearch for logs — three backends, zero per-service configuration.",
+        'Correlation ID Injector'
+      ),
+      messages: [
+        msg("The OpenTelemetry Collector is the unified observability pipeline — receiving spans, metrics, and logs from all services, normalizing the format, and exporting to multiple backends."),
+        msg("Without OTel, adding a new tracing backend requires changing every service. With OTel, services instrument once and the collector routes to any backend."),
+        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'),
+      ],
+      requiredNodes: ['otel_collector'],
+      requiredEdges: [edge('structured_logger', 'otel_collector')],
+      successMessage: 'OTel Collector added. Now correlation IDs.',
+      errorMessage: 'Add an OpenTelemetry Collector connected from the Structured Logger.',
+    }),
+    step({
+      id: 5,
+      title: 'Add Correlation ID Injector',
+      explanation:
+        "The Correlation ID Injector assigns a unique trace ID to every request that propagates via HTTP headers across all service calls — enabling end-to-end request tracing from the mobile client through search, booking, and payment.",
+      action: buildAction(
+        'Correlation ID Injector',
+        'otel_collector',
+        'Correlation ID Injector',
+        'unique trace IDs being propagated across all service calls for end-to-end request visibility'
+      ),
+      why: "Without correlation IDs, debugging a failed booking requires checking logs from the search service, availability service, pricing engine, and payment gateway separately. Correlation IDs link all logs under one trace.",
+      component: component('correlation_id_handler', 'Correlation ID Injector'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'Correlation ID Injector',
+        'propagate unique trace IDs across all service calls for instant cross-service log correlation',
+        'Without correlation IDs, debugging failed bookings requires checking logs from 5+ services separately.',
+        'Correlation ID Injector'
+      ),
+      celebrationMessage: buildCelebration(
+        'Correlation ID Injector',
+        'OpenTelemetry Collector',
+        "Airbnb's correlation IDs flow through every service call: API Gateway → Search Service → Availability Service → Pricing Engine → Booking Service → Payment Gateway. All logs under one trace ID — instant debugging of failed bookings.",
+        'mTLS Certificate Authority'
+      ),
+      messages: [
+        msg("The Correlation ID Injector generates a unique trace ID at request entry and propagates it via HTTP headers through every service call."),
+        msg("All logs for a booking request share one correlation ID — instant debugging across Search, Availability, Pricing, Booking, and Payment services."),
+        msg('Press ⌘K, search for "Correlation ID Injector", add it, then connect OpenTelemetry Collector → Correlation ID Injector.'),
+      ],
+      requiredNodes: ['correlation_id_handler'],
+      requiredEdges: [edge('otel_collector', 'correlation_id_handler')],
+      successMessage: 'Correlation IDs added. Now mTLS.',
+      errorMessage: 'Add a Correlation ID Injector connected from the OpenTelemetry Collector.',
+    }),
+    step({
+      id: 6,
+      title: 'Add mTLS Certificate Authority',
+      explanation:
+        "Airbnb's mTLS Certificate Authority issues and rotates TLS certificates for all service-to-service authentication — enabling mutual TLS where both client and server verify each other. Certificates rotate automatically every 24 hours.",
+      action: buildAction(
+        'mTLS Certificate Authority',
+        'Service Mesh',
+        'mTLS Certificate Authority',
+        'TLS certificates being issued and rotated automatically every 24 hours for service-to-service authentication'
+      ),
+      why: "mTLS ensures that only authorized services can communicate with each other. Automatic certificate rotation prevents expired certificates from causing outages.",
+      component: component('mtls_certificate_authority', 'mTLS Certificate Authority'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'mTLS Certificate Authority',
+        'issue and rotate TLS certificates automatically every 24 hours for mutual service-to-service authentication',
+        'mTLS ensures only authorized services communicate — automatic rotation prevents certificate expiration outages.',
+        'mTLS Certificate Authority'
+      ),
+      celebrationMessage: buildCelebration(
+        'mTLS Certificate Authority',
+        'Service Mesh',
+        "Airbnb's mTLS CA issues certificates that rotate every 24 hours automatically. Every service-to-service call verifies both client and server certificates — even if one service is compromised, it cannot impersonate another.",
+        'Cache Stampede Prevention'
+      ),
+      messages: [
+        msg("mTLS Certificate Authority issues and rotates TLS certificates for all service-to-service authentication."),
+        msg("Mutual TLS ensures both client and server verify each other. Automatic rotation every 24 hours prevents expired certificates from causing outages."),
+        msg('Press ⌘K, search for "mTLS Certificate Authority", add it, then connect Service Mesh → mTLS CA.'),
+      ],
+      requiredNodes: ['mtls_certificate_authority'],
+      requiredEdges: [edge('service_mesh', 'mtls_certificate_authority')],
+      successMessage: 'mTLS CA added. Now cache stampede prevention.',
+      errorMessage: 'Add an mTLS Certificate Authority connected from the Service Mesh.',
+    }),
+    step({
+      id: 7,
+      title: 'Add Cache Stampede Prevention',
+      explanation:
+        "When a popular listing's cache expires during high demand, Airbnb's Cache Stampede Prevention uses probabilistic early expiration and distributed locking — ensuring only one request rebuilds the cache instead of thousands causing a thundering herd.",
+      action: buildAction(
+        'Cache Stampede Prevention',
+        'In-Memory Cache',
+        'Cache Stampede Prevention',
+        'thundering herd being prevented when cache expires using probabilistic early expiration and distributed locking'
+      ),
+      why: "Without cache stampede prevention, when a popular listing's cache expires during peak booking season, thousands of concurrent requests hit the NoSQL database simultaneously — a thundering herd that can take down the database.",
+      component: component('cache_stampede_guard', 'Cache Stampede Prevention'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'Cache Stampede Prevention',
+        'prevent thundering herd when cache expires using probabilistic early expiration — only one request rebuilds cache',
+        'Without stampede prevention, cache expiration causes thousands of concurrent database requests.',
+        'Cache Stampede Prevention'
+      ),
+      celebrationMessage: buildCelebration(
+        'Cache Stampede Prevention',
+        'In-Memory Cache',
+        "Airbnb's Cache Stampede Prevention uses probabilistic early expiration — popular listing cache expires with 10% probability before the TTL. When TTL hits, 10% of requests rebuild the cache instead of 100%. Thundering herd prevented.",
+        'Change Data Cache'
+      ),
+      messages: [
+        msg("Cache Stampede Prevention uses probabilistic early expiration — when TTL approaches, requests have a 10% chance of rebuilding the cache early."),
+        msg("Instead of thousands of requests hitting NoSQL when cache expires, only ~10% rebuild — the thundering herd is prevented."),
+        msg('Press ⌘K, search for "Cache Stampede Prevention", add it, then connect In-Memory Cache → Cache Stampede Prevention.'),
+      ],
+      requiredNodes: ['cache_stampede_guard'],
+      requiredEdges: [edge('in_memory_cache', 'cache_stampede_guard')],
+      successMessage: 'Cache stampede prevention added. Now CDC-driven cache.',
+      errorMessage: 'Add a Cache Stampede Prevention connected from the In-Memory Cache.',
+    }),
+    step({
+      id: 8,
+      title: 'Add Change Data Cache',
+      explanation:
+        "Airbnb's Change Data Cache uses CDC from the NoSQL database to know exactly when listing data changes — invalidating cached entries precisely when source data changes instead of waiting for TTL expiration.",
+      action: buildAction(
+        'Change Data Cache',
+        'NoSQL Database',
+        'Change Data Cache',
+        'cache entries being invalidated precisely when source data changes using CDC from the NoSQL transaction log'
+      ),
+      why: "Without CDC, cache invalidation relies on TTL — stale data persists until expiration. CDC captures every database write and invalidates the exact corresponding cache entry — zero staleness.",
+      component: component('change_data_cache', 'Change Data Cache'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'Change Data Cache',
+        'invalidate cache entries precisely when source data changes using CDC from the NoSQL transaction log',
+        'Without CDC, cache relies on TTL — stale data persists. CDC invalidates exact entries when data changes.',
+        'Change Data Cache'
+      ),
+      celebrationMessage: buildCelebration(
+        'Change Data Cache',
+        'NoSQL Database',
+        "Airbnb's CDC connector captures every listing update from the NoSQL transaction log — immediately invalidating the corresponding cache entry. Price changes reflect instantly, no stale data.",
+        'Data Warehouse'
+      ),
+      messages: [
+        msg("Change Data Cache uses CDC from the NoSQL transaction log to know exactly when listing data changes."),
+        msg("Instead of waiting for TTL expiration, CDC captures every database write and invalidates the exact corresponding cache entry — zero staleness."),
+        msg('Press ⌘K, search for "Change Data Cache", add it, then connect NoSQL Database → Change Data Cache.'),
+      ],
+      requiredNodes: ['change_data_cache'],
+      requiredEdges: [edge('nosql_db', 'change_data_cache')],
+      successMessage: 'CDC-driven cache added. Now the analytics pipeline.',
+      errorMessage: 'Add a Change Data Cache connected from the NoSQL Database.',
+    }),
+    step({
+      id: 9,
+      title: 'Add Data Warehouse',
+      explanation:
+        "Airbnb's Data Warehouse stores all historical booking data — demand patterns, pricing trends, host performance. It powers the business intelligence that guides market expansion and pricing strategy.",
+      action: buildAction(
+        'Data Warehouse',
+        'CDC Connector',
+        'Data Warehouse',
+        'all historical booking and demand data being stored for business intelligence and pricing ML training'
+      ),
+      why: "The NoSQL database answers 'what is this listing's availability right now?' The Data Warehouse answers 'what are the booking trends in Barcelona over the past year?' — different query patterns requiring different storage.",
+      component: component('data_warehouse', 'Data Warehouse'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'Data Warehouse',
+        'columnar analytics storage for booking trends and pricing patterns across years of data',
+        'The NoSQL database cannot answer multi-year trend questions — that needs a data warehouse.',
+        'Data Warehouse'
+      ),
+      celebrationMessage: buildCelebration(
+        'Data Warehouse',
+        'CDC Connector',
+        "Airbnb's data warehouse processes petabytes of booking data. Market expansion decisions, host incentive programs, and pricing ML training all use this data — guiding what 150M guests see.",
+        'Saga Orchestrator'
+      ),
+      messages: [
+        msg("Data Warehouse stores all historical booking data for business intelligence and pricing ML training."),
+        msg("The NoSQL database cannot answer multi-year demand trend questions — columnar storage optimized for analytics is required."),
+        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+      ],
+      requiredNodes: ['data_warehouse'],
+      requiredEdges: [edge('cdc_connector', 'data_warehouse')],
+      successMessage: 'Analytics pipeline added. Now saga orchestration.',
+      errorMessage: 'Add a Data Warehouse connected from the CDC Connector.',
+    }),
+    step({
+      id: 10,
+      title: 'Add Saga Orchestrator',
+      explanation:
+        "Airbnb's Saga Orchestrator coordinates the booking saga across availability locking, pricing calculation, payment processing, and host notification — using compensating actions when any step fails.",
+      action: buildAction(
+        'Saga Orchestrator',
+        'Booking Service',
+        'Saga Orchestrator',
+        'booking saga being coordinated across availability, pricing, payment, and notifications using compensating actions'
+      ),
+      why: "Without saga orchestration, a failed payment after availability lock would leave stale locks. The saga coordinates rollback automatically across all services.",
+      component: component('saga_orchestrator', 'Saga Orchestrator'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'Saga Orchestrator',
+        'coordinate booking saga across availability, pricing, payment, and notifications using compensating actions',
+        'Without saga orchestration, failed bookings leave stale availability locks — the saga coordinates rollback.',
+        'Saga Orchestrator'
+      ),
+      celebrationMessage: buildCelebration(
+        'Saga Orchestrator',
+        'Booking Service',
+        "Airbnb's Saga Orchestrator coordinates the booking saga: lock availability → calculate price → process payment → notify host. If payment fails, compensating actions release the availability lock automatically.",
+        'Event Store'
+      ),
+      messages: [
+        msg("Saga Orchestrator coordinates the booking saga across availability, pricing, payment, and notifications."),
+        msg("If any step fails, compensating actions roll back the entire booking automatically. No stale availability locks left behind."),
+        msg('Press ⌘K, search for "Saga Orchestrator", add it, then connect Booking Service → Saga Orchestrator.'),
+      ],
+      requiredNodes: ['saga_orchestrator'],
+      requiredEdges: [edge('microservice', 'saga_orchestrator')],
+      successMessage: 'Saga orchestration added. Now event sourcing.',
+      errorMessage: 'Add a Saga Orchestrator connected from the Booking Service.',
+    }),
+    step({
+      id: 11,
+      title: 'Add Event Store',
+      explanation:
+        "Airbnb's Event Store (EventStoreDB) maintains an immutable log of all booking lifecycle events — created, modified, cancelled, refunded. The entire booking history can be reconstructed by replaying events for audit and dispute resolution.",
+      action: buildAction(
+        'Event Store (EventStoreDB)',
+        'Booking Service',
+        'Event Store',
+        'immutable event log being maintained for booking lifecycle — enabling audit trails and state reconstruction by replay'
+      ),
+      why: "Booking disputes require a complete audit trail. The Event Store provides immutable evidence of every booking decision — critical for legal and regulatory compliance.",
+      component: component('event_store', 'Event Store (EventStoreDB)'),
+      openingMessage: buildOpeningL3(
+        'Airbnb',
+        'Event Store (EventStoreDB)',
+        'immutable event log for booking lifecycle enabling audit trails and state reconstruction for dispute resolution',
+        'Booking disputes require a complete audit trail — the Event Store provides immutable evidence.',
+        'Event Store (EventStoreDB)'
+      ),
+      celebrationMessage: buildCelebration(
+        'Event Store',
+        'Booking Service',
+        "Airbnb's Event Store maintains an immutable log of every booking lifecycle event — created, modified, cancelled, refunded. The entire booking history can be reconstructed by replaying events. This completes the expert architecture.",
+        'completion'
+      ),
+      messages: [
+        msg("Event Store (EventStoreDB) maintains an immutable log of all booking lifecycle events — created, modified, cancelled, refunded."),
+        msg("The entire booking history can be reconstructed by replaying events. Booking disputes require a complete audit trail — the Event Store provides immutable evidence for legal and regulatory compliance."),
+        msg('Press ⌘K, search for "Event Store (EventStoreDB)", add it, then connect Booking Service → Event Store. This completes the expert architecture!'),
+      ],
+      requiredNodes: ['event_store'],
+      requiredEdges: [edge('microservice', 'event_store')],
+      successMessage: "Expert architecture complete! You've designed Airbnb at the senior engineer level.",
+      errorMessage: 'Add an Event Store connected from the Booking Service.',
+    }),
+  ],
+});
+
 export const airbnbTutorial: Tutorial = tutorial({
   id: 'airbnb-architecture',
   title: 'How to Design Airbnb Architecture',
@@ -461,6 +1144,6 @@ export const airbnbTutorial: Tutorial = tutorial({
   icon: 'Home',
   color: '#ff5a5f',
   tags: ['Search', 'Pricing', 'Booking', 'Trust', 'Payments'],
-  estimatedTime: '~34 mins',
-  levels: [l1],
+  estimatedTime: '~89 mins',
+  levels: [l1, l2, l3],
 });
