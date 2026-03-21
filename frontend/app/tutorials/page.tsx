@@ -179,7 +179,7 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
           </div>
 
           <div className="flex flex-wrap gap-1.5 mb-4 max-h-20 overflow-hidden">
-            {tutorial.tags.slice(0, 4).map((tag: string) => (
+            {tutorial.tags.slice(0, 3).map((tag: string) => (
               <span
                 key={tag}
                 className="text-[11px] px-2 py-1 rounded-md font-medium"
