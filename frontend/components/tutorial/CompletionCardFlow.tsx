@@ -150,13 +150,13 @@ export function CompletionCardFlow({
     if (currentIndex < cards.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     }
-  }, [currentIndex]);
+  }, [currentIndex, cards.length]);
 
   const goPrev = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
     }
-  }, [currentIndex, cards.length]);
+  }, [currentIndex]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'ArrowRight' || e.key === 'Enter') {
@@ -168,7 +168,7 @@ export function CompletionCardFlow({
       e.preventDefault();
       goPrev();
     }
-  }, [currentIndex, goNext, goPrev]);
+  }, [cards.length, currentIndex, goNext, goPrev]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);

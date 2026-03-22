@@ -51,19 +51,21 @@ export function IntroCardFlow({
   tutorialColor = '#6366f1',
 }: IntroCardFlowProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [showCount, setShowCount] = useState<number | null>(null);
-
-  useEffect(() => {
+  // Lazy initializer: reads localStorage once on first mount (SSR-safe via the guard
+  // inside getIntroShownCount). Avoids calling setState synchronously in an effect.
+  const [showCount] = useState<number>(() => {
     const count = getIntroShownCount();
-    setShowCount(count);
-    if (count >= MAX_INTRO_SHOWS) {
-      onSkip?.();
-    } else {
-      incrementIntroShownCount();
-    }
-  }, [onSkip]);
+    if (count < MAX_INTRO_SHOWS) incrementIntroShownCount();
+    return count;
+  });
 
-  const canShow = showCount !== null && showCount < MAX_INTRO_SHOWS;
+  // Only side-effect: skip the intro flow when the count threshold is already met.
+  // No setState in this effect — reads stable `showCount` from above.
+  useEffect(() => {
+    if (showCount >= MAX_INTRO_SHOWS) onSkip?.();
+  }, [showCount, onSkip]);
+
+  const canShow = showCount < MAX_INTRO_SHOWS;
 
   const cards: IntroCard[] = [
     {
@@ -100,13 +102,13 @@ export function IntroCardFlow({
     if (currentIndex < cards.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     }
-  }, [currentIndex]);
+  }, [currentIndex, cards.length]);
 
   const goPrev = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
     }
-  }, [currentIndex, cards.length]);
+  }, [currentIndex]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'ArrowRight' || e.key === 'Enter') {
@@ -122,7 +124,7 @@ export function IntroCardFlow({
     } else if (e.key === 'Escape' && onSkip) {
       onSkip();
     }
-  }, [currentIndex, goNext, goPrev, onStart, onSkip]);
+  }, [cards.length, currentIndex, goNext, goPrev, onStart, onSkip]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);

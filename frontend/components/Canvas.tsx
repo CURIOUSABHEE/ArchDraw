@@ -4,7 +4,7 @@ import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap,
   useReactFlow, ReactFlowProvider,
   NodeMouseHandler, EdgeMouseHandler, NodeDragHandler,
-  SelectionMode, ConnectionLineType,
+  SelectionMode, ConnectionLineType, MarkerType,
   type OnSelectionChangeParams,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -24,6 +24,7 @@ import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import { EdgeLegend } from '@/components/edges/EdgeLegend';
 import { EDGE_TYPE_CONFIGS, EdgeType } from '@/data/edgeTypes';
+import { useTheme } from 'next-themes';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -47,6 +48,7 @@ function CanvasInner() {
     showGrid,
     pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData,
   } = useDiagramStore();
+  const { resolvedTheme } = useTheme();
 
   const reactFlowInstance = useReactFlow();
   const { onNodeDrag, onNodeDragStop: onNodeDragStopSnap } = useSnapping();
@@ -161,6 +163,10 @@ function CanvasInner() {
     setSelectedNodeId(null);
   }, [setSelectedNodeId]);
 
+  const onEdgeDoubleClick: EdgeMouseHandler = useCallback((_e, edge) => {
+    setPendingLabelEdgeId(edge.id);
+  }, [setPendingLabelEdgeId]);
+
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
@@ -200,6 +206,7 @@ function CanvasInner() {
         onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
+        onEdgeDoubleClick={onEdgeDoubleClick}
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
@@ -214,20 +221,28 @@ function CanvasInner() {
         proOptions={{ hideAttribution: true }}
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
-          type: 'custom',
-          data: { edgeType: 'sync' },
+          type: 'smoothstep',
+          animated: true,
+          style: {
+            stroke: '#94a3b8',
+            strokeWidth: 1.5,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: '#94a3b8',
+          },
         }}
       >
         <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
           <defs>
             {Object.values(EDGE_TYPE_CONFIGS).map((cfg) => (
               <Fragment key={cfg.id}>
-                <marker id={`marker-${cfg.id}-end`} markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L9,3 z" fill={cfg.color} />
+                <marker id={`marker-${cfg.id}-end`} markerWidth="7" markerHeight="7" refX="6" refY="2.5" orient="auto" markerUnits="strokeWidth">
+                  <path d="M0,0 L0,5 L6,2.5 z" fill={cfg.color} />
                 </marker>
                 {cfg.markerStart && (
-                  <marker id={`marker-${cfg.id}-start`} markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
-                    <path d="M0,0 L0,6 L9,3 z" fill={cfg.color} />
+                  <marker id={`marker-${cfg.id}-start`} markerWidth="7" markerHeight="7" refX="0" refY="2.5" orient="auto-start-reverse" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,5 L6,2.5 z" fill={cfg.color} />
                   </marker>
                 )}
               </Fragment>
@@ -240,7 +255,7 @@ function CanvasInner() {
         {showGrid && (
           <Background
             variant={BackgroundVariant.Dots}
-            color="#334155"
+            color={resolvedTheme === 'dark' ? '#1e293b' : '#cbd5e1'}
             gap={20}
             size={1.5}
           />
@@ -257,7 +272,7 @@ function CanvasInner() {
           maskColor="rgba(0,0,0,0.04)"
         />
 
-        {/* Floating label prompt after drawing a new edge */}
+        {/* Floating label prompt after double-clicking an edge */}
         {pendingLabelEdgeId && (() => {
           const edge = edges.find((e) => e.id === pendingLabelEdgeId);
           const srcNode = edge ? nodes.find((n) => n.id === edge.source) : null;
@@ -279,54 +294,32 @@ function CanvasInner() {
                   zIndex: 1000,
                 }}
               >
-                <div style={{
-                  background: 'hsl(var(--card))',
-                  border: '1.5px solid #6366f1',
-                  borderRadius: 8,
-                  padding: '6px 10px',
-                  boxShadow: '0 0 0 3px rgba(99,102,241,0.15), 0 4px 16px rgba(0,0,0,0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  minWidth: 180,
-                }}>
-                  <input
-                    ref={labelInputRef}
-                    value={labelDraft}
-                    onChange={(e) => setLabelDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      e.stopPropagation();
-                      if (e.key === 'Enter') { e.preventDefault(); commitEdgeLabel(); }
-                      if (e.key === 'Escape') dismissEdgeLabel();
-                    }}
-                    placeholder="Add label (optional)"
-                    style={{
-                      flex: 1,
-                      background: 'transparent',
-                      border: 'none',
-                      outline: 'none',
-                      fontSize: 11,
-                      fontFamily: 'Inter, system-ui, sans-serif',
-                      color: 'hsl(var(--foreground))',
-                    }}
-                  />
-                  <button
-                    onMouseDown={(e) => { e.preventDefault(); commitEdgeLabel(); }}
-                    style={{
-                      background: '#6366f1',
-                      border: 'none',
-                      borderRadius: 4,
-                      padding: '2px 8px',
-                      fontSize: 10,
-                      fontWeight: 600,
-                      color: '#fff',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    ↵
-                  </button>
-                </div>
+                <input
+                  ref={labelInputRef}
+                  value={labelDraft}
+                  onChange={(e) => setLabelDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter') { e.preventDefault(); commitEdgeLabel(); }
+                    if (e.key === 'Escape') dismissEdgeLabel();
+                  }}
+                  onBlur={commitEdgeLabel}
+                  placeholder="Label"
+                  autoFocus
+                  style={{
+                    width: 100,
+                    background: resolvedTheme === 'dark' ? '#1e293b' : '#ffffff',
+                    border: resolvedTheme === 'dark' ? '1px solid #475569' : '1px solid #cbd5e1',
+                    borderRadius: 9999,
+                    padding: '2px 10px',
+                    fontSize: 10,
+                    fontFamily: 'system-ui, sans-serif',
+                    color: resolvedTheme === 'dark' ? '#f1f5f9' : '#1e293b',
+                    outline: 'none',
+                    textAlign: 'center',
+                    boxShadow: resolvedTheme === 'dark' ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)',
+                  }}
+                />
               </div>
             </EdgeLabelRenderer>
           );
@@ -341,10 +334,10 @@ function CanvasInner() {
       )}
 
       {nodes.length === 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-          <LayoutGrid className="w-12 h-12 text-slate-600 mb-3" />
-          <p className="text-slate-500 text-sm font-medium">Start building your architecture</p>
-          <p className="text-slate-600 text-xs mt-1">Drag components from the sidebar or load a template</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none dark:text-slate-500 text-slate-400">
+          <LayoutGrid className="w-12 h-12 mb-3 dark:text-slate-600 text-slate-400" />
+          <p className="text-sm font-medium">Start building your architecture</p>
+          <p className="text-xs mt-1 dark:text-slate-600 text-slate-500">Drag components from the sidebar or load a template</p>
         </div>
       )}
 

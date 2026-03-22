@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Toolbar } from '@/components/Toolbar';
 import { ComponentSidebar } from '@/components/ComponentSidebar';
 import { Canvas } from '@/components/Canvas';
@@ -151,7 +151,7 @@ export default function EditorPage() {
             <CanvasTabBar />
             <Canvas />
           </div>
-          {(selectedNodeId || selectedEdgeId) && <PropertiesPanel />}
+          {selectedNodeId && <PropertiesPanel />}
         </div>
         <CommandPalette />
       </div>

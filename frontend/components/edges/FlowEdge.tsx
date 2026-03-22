@@ -3,16 +3,33 @@ import ReactDOM from 'react-dom';
 import {
   EdgeProps,
   EdgeLabelRenderer,
-  useStore,
-  ReactFlowState,
 } from 'reactflow';
-import { getSmartOrthogonalPath } from '@/lib/edgeRouting';
-
-const nodesSelector = (state: ReactFlowState) => state.getNodes();
 import { EDGE_TYPE_CONFIGS, DEFAULT_EDGE_TYPE, EdgeType } from '@/data/edgeTypes';
 import { EdgeContextMenu } from './EdgeContextMenu';
 import { EdgeToolbar } from './EdgeToolbar';
 import { EdgeLabel } from './EdgeLabel';
+
+function getSimpleEdgePath(
+  sourceX: number, sourceY: number,
+  targetX: number, targetY: number,
+  offset: number = 40
+): { path: string; labelX: number; labelY: number } {
+  const midX = (sourceX + targetX) / 2;
+  const midY = (sourceY + targetY) / 2;
+
+  const cp1x = sourceX + offset;
+  const cp1y = sourceY;
+  const cp2x = targetX - offset;
+  const cp2y = targetY;
+
+  const dFn = `M ${sourceX} ${sourceY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${targetX} ${targetY}`;
+
+  return {
+    path: dFn,
+    labelX: midX,
+    labelY: midY - 15,
+  };
+}
 
 export function FlowEdge({
   id,
@@ -30,14 +47,8 @@ export function FlowEdge({
   const adjustedSourceY = sourceY + spreadOffset;
   const adjustedTargetY = targetY + spreadOffset;
 
-  const nodes = useStore(nodesSelector);
-
-  const { path: edgePath, labelX: lx, labelY: ly } = getSmartOrthogonalPath(
-    { x: sourceX, y: adjustedSourceY },
-    { x: targetX, y: adjustedTargetY },
-    nodes,
-    20,
-    40
+  const { path: edgePath, labelX: lx, labelY: ly } = getSimpleEdgePath(
+    sourceX, adjustedSourceY, targetX, adjustedTargetY, 40
   );
 
   const strokeWidth = isBundle ? (cfg.strokeWidth ?? 2) + 1 : (cfg.strokeWidth ?? 2);
@@ -97,7 +108,7 @@ export function FlowEdge({
           <div
             style={{
               position: 'absolute',
-              transform: 'translate(-50%, -100%) translate(' + lx + 'px,' + ly + 'px)',
+              transform: 'translate(-50%, -50%) translate(' + lx + 'px,' + (ly - 2) + 'px)',
               pointerEvents: 'all',
               zIndex: 10,
             }}

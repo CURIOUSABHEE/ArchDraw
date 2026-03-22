@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* ── Dark mode variant for Tailwind v4 ── */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ── Landing page dark theme tokens ── */
 :root {
   --land-bg: #080c14;
@@ -68,7 +71,7 @@
     --grid-color: 214 14% 88%;
   }
 
-  .dark {
+  .dark, :where(.dark, .dark *) {
     --background: 222 47% 5%;
     --foreground: 210 40% 98%;
     

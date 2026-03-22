@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import gsap from 'gsap';
 import { Boxes, Zap, LayoutTemplate, Link2, Download, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -17,7 +16,6 @@ const features: { Icon: LucideIcon; color: string; title: string; desc: string }
 export function Features() {
   const sectionRef = useRef<HTMLElement>(null);
 
-  // CSS IntersectionObserver reveal — no GSAP opacity
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
@@ -37,21 +35,31 @@ export function Features() {
     return () => observer.disconnect();
   }, []);
 
-  // GSAP hover-only (no opacity, no ScrollTrigger)
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
-    section.querySelectorAll<HTMLElement>('.feature-card').forEach((card) => {
-      const icon = card.querySelector<HTMLElement>('.card-icon');
-      card.addEventListener('mouseenter', () => {
-        gsap.to(card, { y: -4, duration: 0.3, ease: 'power2.out', boxShadow: '0 20px 40px rgba(99,102,241,0.12)' });
-        if (icon) gsap.to(icon, { scale: 1.15, rotate: 5, duration: 0.3, ease: 'back.out(2)' });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let gsap: any;
+    const initGsap = () => {
+      import('gsap').then(({ default: g }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        gsap = g as any;
+        section.querySelectorAll<HTMLElement>('.feature-card').forEach((card) => {
+          const icon = card.querySelector<HTMLElement>('.card-icon');
+          card.addEventListener('mouseenter', () => {
+            gsap.to(card, { y: -4, duration: 0.3, ease: 'power2.out', boxShadow: '0 20px 40px rgba(99,102,241,0.12)' });
+            if (icon) gsap.to(icon, { scale: 1.15, rotate: 5, duration: 0.3, ease: 'back.out(2)' });
+          });
+          card.addEventListener('mouseleave', () => {
+            gsap.to(card, { y: 0, duration: 0.4, ease: 'power2.inOut', boxShadow: 'none' });
+            if (icon) gsap.to(icon, { scale: 1, rotate: 0, duration: 0.3, ease: 'power2.inOut' });
+          });
+        });
       });
-      card.addEventListener('mouseleave', () => {
-        gsap.to(card, { y: 0, duration: 0.4, ease: 'power2.inOut', boxShadow: 'none' });
-        if (icon) gsap.to(icon, { scale: 1, rotate: 0, duration: 0.3, ease: 'power2.inOut' });
-      });
-    });
+    };
+
+    initGsap();
   }, []);
 
   return (

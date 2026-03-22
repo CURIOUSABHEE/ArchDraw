@@ -40,4 +40,40 @@ export const redisKeys = {
 
   sharedCanvas: (shareId: string) =>
     `canvas:shared:${shareId}`,
+
+  rateLimit: (identifier: string) =>
+    `ratelimit:diagram:${identifier}`,
 };
+
+export async function checkRateLimit(
+  identifier: string,
+  limit: number = 5,
+  windowSeconds: number = 60
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  const key = redisKeys.rateLimit(identifier);
+  const now = Math.floor(Date.now() / 1000);
+  const windowStart = now - windowSeconds;
+
+  try {
+    const multi = redis.multi();
+    multi.zremrangebyscore(key, 0, windowStart);
+    multi.zadd(key, { score: now, member: `${now}-${Math.random()}` });
+    multi.zcard(key);
+    multi.expire(key, windowSeconds);
+    const results = await multi.exec<[number, number, number, number]>();
+
+    const count = results[2] ?? 0;
+    const allowed = count <= limit;
+    const remaining = Math.max(0, limit - count);
+    const resetAt = now + windowSeconds;
+
+    if (!allowed) {
+      await redis.zremrangebyscore(key, 0, windowStart);
+    }
+
+    return { allowed, remaining, resetAt };
+  } catch (error) {
+    console.error('[RateLimit] Redis error, allowing request:', error);
+    return { allowed: true, remaining: limit, resetAt: now + windowSeconds };
+  }
+}

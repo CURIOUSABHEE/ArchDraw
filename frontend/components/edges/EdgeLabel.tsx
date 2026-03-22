@@ -21,8 +21,8 @@ export function EdgeLabel({ edgeId, edgeType, label, labelX, labelY }: EdgeLabel
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Display text: use label if non-empty, otherwise fall back to type id
-  const displayText = label?.trim() ? label.trim() : cfg.id;
+  // Display text: only show if user has set a custom label
+  const displayText = label?.trim() ? label.trim() : null;
 
   const enterEdit = useCallback(() => {
     setDraft(label?.trim() ?? '');
@@ -61,75 +61,64 @@ export function EdgeLabel({ edgeId, edgeType, label, labelX, labelY }: EdgeLabel
   };
 
   // Estimate input width from draft length so the box doesn't feel too wide or narrow
-  const inputWidth = Math.max(80, Math.min(220, draft.length * 8 + 32));
+  const inputWidth = Math.max(80, Math.min(150, draft.length * 6 + 32));
+
+  if (!displayText && !editing) {
+    return null;
+  }
 
   return (
     <AnimatePresence mode="wait">
       {editing ? (
-        <motion.div
+        <motion.input
           key="edit"
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.92 }}
-          transition={{ duration: 0.12, ease: 'easeOut' }}
-          style={{ display: 'inline-flex', alignItems: 'center' }}
-        >
-          <input
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={commit}
-            placeholder={cfg.id}
-            style={{
-              width: inputWidth,
-              background: '#0d0f1a',
-              border: `1.5px solid ${cfg.color}`,
-              borderRadius: 999,
-              color: cfg.color,
-              fontSize: 11,
-              fontWeight: 600,
-              fontFamily: 'system-ui, sans-serif',
-              padding: '2px 10px',
-              outline: 'none',
-              textAlign: 'center',
-              caretColor: cfg.color,
-              boxShadow: `0 0 0 3px ${cfg.color}22`,
-              transition: 'width 0.1s ease',
-              letterSpacing: '0.03em',
-            }}
-          />
-        </motion.div>
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={commit}
+          placeholder="Label"
+          autoFocus
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.1 }}
+          style={{
+            width: inputWidth,
+            background: '#1e293b',
+            border: '1px solid #475569',
+            borderRadius: 9999,
+            color: '#f1f5f9',
+            fontSize: 10,
+            fontFamily: 'system-ui, sans-serif',
+            padding: '2px 8px',
+            outline: 'none',
+            textAlign: 'center',
+          }}
+        />
       ) : (
         <motion.span
           key="read"
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.92 }}
-          transition={{ duration: 0.12, ease: 'easeOut' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.1 }}
           onDoubleClick={(e) => {
             e.stopPropagation();
             enterEdit();
           }}
-          title="Double-click to edit label"
+          title="Double-click to edit"
           style={{
             display: 'inline-block',
-            background: cfg.badgeColor,
-            color: cfg.color,
-            border: `1px solid ${cfg.color}44`,
-            borderRadius: 999,
-            fontSize: 11,
-            fontWeight: 600,
+            background: '#1e293b',
+            color: '#94a3b8',
+            borderRadius: 9999,
+            fontSize: 10,
             fontFamily: 'system-ui, sans-serif',
-            padding: '2px 8px',
-            letterSpacing: '0.04em',
+            padding: '1px 6px',
             cursor: 'text',
             userSelect: 'none',
             whiteSpace: 'nowrap',
-            transition: 'opacity 0.1s',
-            opacity: 1,
-            // Dark halo masks the edge line behind the label
-            boxShadow: '0 0 0 3px #0d0f1a',
           }}
         >
           {displayText}

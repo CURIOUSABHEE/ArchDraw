@@ -542,7 +542,6 @@ export function GuidePanel({
       default:
         return s.explanation ?? s.action ?? 'Continue to the next step.';
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [explainCount]);
 
   // ── Trigger AI phase ─────────────────────────────────────────────────────
@@ -1096,7 +1095,7 @@ export function GuidePanel({
     if (chip.nextPhase === 'action' && explainCount >= 3) { triggerPhase('action', 'force'); return; }
     triggerPhase(chip.nextPhase as Phase);
   }, [advanceStep, completeTutorial, triggerPhase, commitPhase, showMessage, explainCount, isLive,
-      contextTellMoreCount, checkEdgeDetection, enterConnectingPhase]);
+      onNextLevel, contextTellMoreCount, checkEdgeDetection, enterConnectingPhase]);
 
   // ── Escape hatch click (action phase) ────────────────────────────────────
   const handleEscapeHatch = useCallback(() => {

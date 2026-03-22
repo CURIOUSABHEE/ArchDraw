@@ -46,6 +46,60 @@ export function getSmartOrthogonalPath(
   borderRadius: number = 20,
   offset: number = 40
 ): { path: string; labelX: number; labelY: number; points: Point[] } {
+  // Check if there are any obstacles between source and target
+  const obstacles: Array<{ x: number; y: number; w: number; h: number }> = [];
+  for (const node of nodes) {
+    if (node.position && node.width && node.height) {
+      obstacles.push({
+        x: node.position.x - NODE_PADDING,
+        y: node.position.y - NODE_PADDING,
+        w: node.width + NODE_PADDING * 2,
+        h: node.height + NODE_PADDING * 2,
+      });
+    }
+  }
+
+  // Check if direct path is blocked by any obstacle
+  const sourceX = Math.min(source.x, target.x);
+  const sourceY = Math.min(source.y, target.y);
+  const targetX = Math.max(source.x, target.x);
+  const targetY = Math.max(source.y, target.y);
+
+  let pathBlocked = false;
+  for (const obs of obstacles) {
+    // Check if obstacle intersects with the bounding box of the connection
+    const intersects = !(obs.x + obs.w < sourceX || obs.x > targetX || obs.y + obs.h < sourceY || obs.y > targetY);
+    if (intersects) {
+      pathBlocked = true;
+      break;
+    }
+  }
+
+  // If path is not blocked, use simple straight/smooth path
+  if (!pathBlocked) {
+    const midX = (source.x + target.x) / 2;
+    const midY = (source.y + target.y) / 2;
+
+    // Simple bezier path for smooth connection
+    const cp1x = source.x + offset;
+    const cp1y = source.y;
+    const cp2x = target.x - offset;
+    const cp2y = target.y;
+
+    const dFn = `M ${source.x} ${source.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${target.x} ${target.y}`;
+
+    return {
+      path: dFn,
+      labelX: midX,
+      labelY: midY - 15,
+      points: [
+        { x: source.x, y: source.y },
+        { x: midX, y: midY },
+        { x: target.x, y: target.y },
+      ],
+    };
+  }
+
   // 1. Determine bounds
   let minX = Math.min(source.x, target.x) - 200;
   let maxX = Math.max(source.x, target.x) + 200;
@@ -76,9 +130,9 @@ export function getSmartOrthogonalPath(
     const ny2 = toGrid(node.position.y + node.height + NODE_PADDING, minY);
 
     for (let y = Math.max(0, ny1); y <= Math.min(rows - 1, ny2); y++) {
-        for (let x = Math.max(0, nx1); x <= Math.min(cols - 1, nx2); x++) {
-            grid[y][x] = true;
-        }
+      for (let x = Math.max(0, nx1); x <= Math.min(cols - 1, nx2); x++) {
+        grid[y][x] = true;
+      }
     }
   }
 
@@ -124,18 +178,18 @@ export function getSmartOrthogonalPath(
 
     for (const d of dirs) {
       const next = { x: current.x + d.x, y: current.y + d.y };
-      
+
       if (next.x < 0 || next.x >= cols || next.y < 0 || next.y >= rows) continue;
       if (grid[next.y][next.x]) continue;
 
       let moveCost = 1;
       // Penalty for turning
       if (parent) {
-          const dx = current.x - parent.x;
-          const dy = current.y - parent.y;
-          if (dx !== d.x || dy !== d.y) {
-              moveCost += 2; // turning penalty to encourage straight lines
-          }
+        const dx = current.x - parent.x;
+        const dy = current.y - parent.y;
+        if (dx !== d.x || dy !== d.y) {
+          moveCost += 2; // turning penalty to encourage straight lines
+        }
       }
 
       const newCost = costSoFar.get(currKey)! + moveCost;
@@ -164,8 +218,17 @@ export function getSmartOrthogonalPath(
     pathG.reverse();
     rawPoints = rawPoints.concat(pathG.map(p => ({ x: toWorld(p.x, minX), y: toWorld(p.y, minY) })).reverse());
   } else {
-      // Fallback if no path found
-      rawPoints.push({ x: targetP.x, y: startP.y });
+    // Fallback if no path found - use simple bezier
+    const midX = (source.x + target.x) / 2;
+    const midY = (source.y + target.y) / 2;
+    rawPoints = [source, { x: midX, y: midY }, target];
+    const dFn = `M ${source.x} ${source.y} C ${source.x + offset} ${source.y}, ${target.x - offset} ${target.y}, ${target.x} ${target.y}`;
+    return {
+      path: dFn,
+      labelX: midX,
+      labelY: midY,
+      points: rawPoints,
+    };
   }
 
   rawPoints.reverse(); // Now from start toward target
@@ -192,7 +255,7 @@ export function getSmartOrthogonalPath(
 
   // 4. Create SVG Path with rounded corners
   let dFn = `M ${waypoints[0].x} ${waypoints[0].y}`;
-  
+
   for (let i = 1; i < waypoints.length - 1; i++) {
     const p0 = waypoints[i - 1];
     const p1 = waypoints[i];
@@ -227,7 +290,7 @@ export function getSmartOrthogonalPath(
     const p1 = waypoints[i];
     const p2 = waypoints[i + 1];
     const len = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-    
+
     // We prefer horizontal segments for labels
     const isHorizontal = Math.abs(p1.y - p2.y) < 1;
     const weight = len * (isHorizontal ? 1.5 : 1);
@@ -235,7 +298,7 @@ export function getSmartOrthogonalPath(
     if (weight > maxLen) {
       maxLen = weight;
       labelX = (p1.x + p2.x) / 2;
-      labelY = (p1.y + p2.y) / 2 - (isHorizontal ? 18 : 0); // Offset up if horizontal
+      labelY = (p1.y + p2.y) / 2;
     }
   }
 

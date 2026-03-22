@@ -219,7 +219,9 @@ async function runSubagent(
   layer: string,
   brief: string,
   projectContext: string,
-  tier: string
+  tier: string,
+  retryCount: number = 0,
+  maxRetries: number = 3
 ): Promise<SubagentOutput> {
   const messages: GroqMessage[] = [
     { role: 'system', content: buildSubagentSystemPrompt(layer, tier) },
@@ -239,7 +241,14 @@ async function runSubagent(
       temperature: 0.05,
     });
   } catch (err) {
-    console.warn(`[${agentRole}] API call failed, using empty layer:`, (err as Error).message);
+    const error = err as Error;
+    if (retryCount < maxRetries && (error.message.includes('rate-limit') || error.message.includes('timeout') || error.message.includes('429'))) {
+      const delay = Math.pow(2, retryCount) * 1000;
+      console.warn(`[${agentRole}] API call failed (attempt ${retryCount + 1}/${maxRetries}), retrying in ${delay}ms:`, error.message);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return runSubagent(agentRole, layer, brief, projectContext, tier, retryCount + 1, maxRetries);
+    }
+    console.error(`[${agentRole}] API call failed after ${maxRetries} retries:`, error.message);
     return { layer, services: [] };
   }
 
@@ -247,7 +256,12 @@ async function runSubagent(
   try {
     parsed = parseJSON<any>(raw, `Subagent-${agentRole}`);
   } catch {
-    console.warn(`[${agentRole}] JSON parse failed. Raw: ${raw.slice(0, 200)}`);
+    if (retryCount < maxRetries) {
+      console.warn(`[${agentRole}] JSON parse failed (attempt ${retryCount + 1}/${maxRetries}), retrying...`);
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+      return runSubagent(agentRole, layer, brief, projectContext, tier, retryCount + 1, maxRetries);
+    }
+    console.error(`[${agentRole}] JSON parse failed after ${maxRetries} retries. Raw: ${raw.slice(0, 200)}`);
     return { layer, services: [] };
   }
 

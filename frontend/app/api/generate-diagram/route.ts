@@ -8,6 +8,7 @@ import { validateAndRepair } from '@/lib/ai/structuralValidator';
 import { buildReactFlowDiagramRaw, sanitiseSynthesiserOutput } from '@/lib/ai/buildReactFlowDiagram';
 import { fetchExistingCustomNodes, saveNewCustomNodes } from '@/lib/ai/customNodeRegistry';
 import { applyGridLayout } from '@/lib/ai/layoutEngine';
+import { checkRateLimit } from '@/lib/redis';
 
 import componentsData from '@/data/components.json';
 import awsData from '@/data/aws-components.json';
@@ -20,7 +21,32 @@ const RequestSchema = z.object({
   description: z.string().min(3).max(5000),
 });
 
+function getClientIdentifier(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+  return ip;
+}
+
 export async function POST(req: NextRequest) {
+  const clientIp = getClientIdentifier(req);
+  const rateLimit = await checkRateLimit(clientIp, 5, 60);
+
+  if (!rateLimit.allowed) {
+    return new Response(JSON.stringify({
+      error: 'Rate limit exceeded. Please wait before generating another diagram.',
+      retryAfter: rateLimit.resetAt
+    }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-RateLimit-Limit': '5',
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': String(rateLimit.resetAt),
+        'Retry-After': '60'
+      },
+    });
+  }
+
   let description: string;
   try {
     const body = await req.json();
@@ -36,15 +62,23 @@ export async function POST(req: NextRequest) {
   const encoder = new TextEncoder();
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   const writer = writable.getWriter();
+  let isClosed = false;
 
   const send = async (event: object) => {
+    if (isClosed) return;
     try {
       await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-    } catch {}
+    } catch (error) {
+      console.error('[SSE] Write failed:', error instanceof Error ? error.message : error);
+    }
   };
 
   const close = async () => {
-    try { await writer.close(); } catch {}
+    if (isClosed) return;
+    isClosed = true;
+    try { await writer.close(); } catch (error) {
+      console.error('[SSE] Close failed:', error instanceof Error ? error.message : error);
+    }
   };
 
   (async () => {

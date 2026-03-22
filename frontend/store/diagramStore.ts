@@ -361,7 +361,7 @@ export const useDiagramStore = create<DiagramState>()(
           get().edges
         );
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases, pendingLabelEdgeId: edgeId });
+        set({ edges, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 

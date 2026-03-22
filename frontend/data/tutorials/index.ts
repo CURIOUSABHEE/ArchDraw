@@ -77,15 +77,12 @@ import { validateAllTutorials } from '@/lib/tutorial/validators';
 // Validate the refactored tutorials at startup (dev-only, no-op in prod)
 validateAllTutorials([chatgptTutorial, instagramTutorial, openclawTutorial, netflixTutorial, uberTutorial]);
 
-/** tutorialId → whether this tutorial uses live Groq AI */
-// Netflix moved to static — no live tutorials currently
 export const LIVE_TUTORIALS = new Set<string>([]);
 
 export function isLiveTutorial(id: string): boolean {
   return LIVE_TUTORIALS.has(id);
 }
 
-/** tutorialId → whether this tutorial uses the 3-level progressive format */
 export const LEVELED_TUTORIALS = new Set([
   'chatgpt-architecture',
   'instagram-architecture',

@@ -3,15 +3,12 @@
 import { useRef, useState } from 'react';
 import {
   Download, Trash2, Upload, ChevronDown, FileJson,
-  Undo2, Redo2, Grid3X3, Zap, Moon, Sun,
-  Type, StickyNote, Group, Maximize2, LayoutTemplate, Share2, Loader2, Check, HelpCircle,
-  GraduationCap, Sparkles,
+  Undo2, Redo2, Share2, Loader2, Check,
+  GraduationCap, Sparkles, MoreHorizontal, HelpCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
-import { toPng } from 'html-to-image';
-import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 import { TemplateModal } from '@/components/TemplateModal';
 import { TooltipWrapper } from '@/components/TooltipWrapper';
@@ -21,20 +18,19 @@ import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { GenerateDiagramPanel } from '@/components/ai/GenerateDiagramPanel';
 import { AnimatePresence } from 'framer-motion';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { useTheme } from 'next-themes';
 
 type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf';
 
 export function Toolbar() {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const router = useRouter();
   const {
     clearDiagram, nodes, edges, importDiagram,
     undo, redo, past, future,
-    deleteSelected, selectedNodeId,
-    toggleEdgeAnimations, edgeAnimations,
-    toggleGrid, showGrid,
-    toggleDarkMode, darkMode,
-    selectedNodeIds, createGroup,
-    fitView, canvases, activeCanvasId,
+    canvases, activeCanvasId,
     savingState, userProfile,
   } = useDiagramStore();
 
@@ -50,6 +46,7 @@ export function Toolbar() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [emailCapture, setEmailCapture] = useState<EmailCaptureReason | null>(null);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const openGuide = useOnboardingStore((s) => s.open);
 
@@ -78,9 +75,11 @@ export function Toolbar() {
     const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
     if (!element) return;
     setIsExporting(true);
+    const { fitView } = useDiagramStore.getState();
     fitView();
     await new Promise((r) => setTimeout(r, 120));
     try {
+      const { toPng } = await import('html-to-image');
       const bgColor =
         format === 'png-dark'    ? '#0f172a'
         : format === 'png-light' ? '#ffffff'
@@ -89,8 +88,8 @@ export function Toolbar() {
         backgroundColor: bgColor,
         pixelRatio: 3,
         cacheBust: true,
-        filter: (node) => {
-          const cls = (node as HTMLElement).classList;
+        filter: (node: HTMLElement) => {
+          const cls = node.classList;
           if (!cls) return true;
           return (
             !cls.contains('react-flow__minimap') &&
@@ -101,6 +100,7 @@ export function Toolbar() {
         },
       });
       if (format === 'pdf') {
+        const { jsPDF } = await import('jspdf');
         const img = new window.Image();
         img.src = dataUrl;
         await new Promise<void>((r) => { img.onload = () => r(); });
@@ -151,18 +151,6 @@ export function Toolbar() {
     e.target.value = '';
   };
 
-  const addSpecialNode = (nodeType: string, nodeData: Record<string, unknown>) => {
-    const store = useDiagramStore.getState();
-    store.pushHistory();
-    const newNode = {
-      id: nodeType + '-' + Date.now(),
-      type: nodeType,
-      position: { x: 300 + Math.random() * 200, y: 200 + Math.random() * 200 },
-      data: nodeData,
-    };
-    store.importDiagram([...store.nodes, newNode], store.edges);
-  };
-
   const doShare = async () => {
     if (!isSupabaseConfigured) {
       toast.error('Supabase is not configured');
@@ -206,6 +194,14 @@ export function Toolbar() {
     doShare();
   };
 
+  const handleClear = () => {
+    if (nodes.length === 0) return;
+    if (window.confirm('Clear all nodes and edges from the canvas?')) {
+      clearDiagram();
+      toast.success('Canvas cleared');
+    }
+  };
+
   return (
     <>
       <header className="h-11 border-b border-border/60 bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 z-20 shrink-0 gap-2">
@@ -214,52 +210,18 @@ export function Toolbar() {
             <div className="w-2 h-2 border border-white/80 rounded-sm" />
           </div>
           <span className="font-semibold text-foreground text-sm tracking-tight">Archflow</span>
-        </div>
-
-        <div className="flex items-center gap-0.5">
-          <TooltipWrapper label="Undo (cmd+Z)">
-            <ToolBtn onClick={undo} disabled={!past.length}><Undo2 className="w-3.5 h-3.5" /></ToolBtn>
-          </TooltipWrapper>
-          <TooltipWrapper label="Redo (cmd+shift+Z)">
-            <ToolBtn onClick={redo} disabled={!future.length}><Redo2 className="w-3.5 h-3.5" /></ToolBtn>
-          </TooltipWrapper>
-          <Divider />
-          <TooltipWrapper label="Delete selected">
-            <ToolBtn onClick={deleteSelected} disabled={!selectedNodeId}><Trash2 className="w-3.5 h-3.5" /></ToolBtn>
-          </TooltipWrapper>
-          <Divider />
-          <TooltipWrapper label="Toggle grid">
-            <ToolBtn onClick={toggleGrid} active={showGrid}><Grid3X3 className="w-3.5 h-3.5" /></ToolBtn>
-          </TooltipWrapper>
-          <TooltipWrapper label="Toggle edge animation">
-            <ToolBtn onClick={toggleEdgeAnimations} active={edgeAnimations}><Zap className="w-3.5 h-3.5" /></ToolBtn>
-          </TooltipWrapper>
-          <TooltipWrapper label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
-            <ToolBtn onClick={toggleDarkMode}>
-              {darkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            </ToolBtn>
-          </TooltipWrapper>
-          <TooltipWrapper label="Fit view">
-            <ToolBtn onClick={fitView}><Maximize2 className="w-3.5 h-3.5" /></ToolBtn>
-          </TooltipWrapper>
-          <Divider />
-          <TooltipWrapper label="Group selected nodes">
-            <ToolBtn onClick={createGroup} disabled={selectedNodeIds.length < 2}><Group className="w-3.5 h-3.5" /></ToolBtn>
-          </TooltipWrapper>
-          <TooltipWrapper label="Add text label">
-            <ToolBtn onClick={() => addSpecialNode('textLabelNode', { text: 'Label', fontSize: 'medium' })}><Type className="w-3.5 h-3.5" /></ToolBtn>
-          </TooltipWrapper>
-          <TooltipWrapper label="Add sticky note">
-            <ToolBtn onClick={() => addSpecialNode('annotationNode', { title: 'Note', body: '' })}><StickyNote className="w-3.5 h-3.5" /></ToolBtn>
-          </TooltipWrapper>
-          <Divider />
-          <TooltipWrapper label="Browse templates">
-            <ToolBtn onClick={() => setTemplatesOpen(true)} data-onboarding="templates-btn"><LayoutTemplate className="w-3.5 h-3.5" /></ToolBtn>
-          </TooltipWrapper>
+          <div className="flex items-center gap-1 ml-2">
+            <TooltipWrapper label="Undo (Cmd+Z)">
+              <ToolBtn onClick={undo} disabled={!past.length}><Undo2 className="w-3.5 h-3.5" /></ToolBtn>
+            </TooltipWrapper>
+            <TooltipWrapper label="Redo (Cmd+Shift+Z)">
+              <ToolBtn onClick={redo} disabled={!future.length}><Redo2 className="w-3.5 h-3.5" /></ToolBtn>
+            </TooltipWrapper>
+          </div>
         </div>
 
         <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground font-medium">
-          <span>{nodes.length} nodes · {edges.length} edges</span>
+          <span>{nodes.length} nodes &middot; {edges.length} edges</span>
           {userProfile && savingState !== 'idle' && (
             <span className="flex items-center gap-1 text-slate-400">
               {savingState === 'saving'
@@ -271,6 +233,8 @@ export function Toolbar() {
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          <ThemeToggle />
+
           <TooltipWrapper label="Generate with AI">
             <button
               onClick={() => setAiPanelOpen(!aiPanelOpen)}
@@ -281,47 +245,95 @@ export function Toolbar() {
             </button>
           </TooltipWrapper>
 
-          <TooltipWrapper label="Interactive Tutorials">
-            <button
-              onClick={() => router.push('/tutorials')}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
-            >
-              <GraduationCap className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Learn</span>
-            </button>
-          </TooltipWrapper>
+          <div className="relative">
+            <TooltipWrapper label="More options">
+              <button
+                onClick={() => setMoreOpen(!moreOpen)}
+                className="inline-flex items-center justify-center w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </TooltipWrapper>
 
-          <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-
-          <TooltipWrapper label="Quick Guide">
-            <button
-              onClick={openGuide}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Guide</span>
-            </button>
-          </TooltipWrapper>
-
-          <TooltipWrapper label="Import JSON">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Import</span>
-            </button>
-          </TooltipWrapper>
-
-          <TooltipWrapper label="Clear canvas">
-            <button
-              onClick={clearDiagram}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-destructive rounded-md hover:bg-destructive/10 transition-colors"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Clear</span>
-            </button>
-          </TooltipWrapper>
+            {moreOpen && (
+              <>
+                <style>{`
+                  @keyframes dropdown-in {
+                    from {
+                      opacity: 0;
+                      transform: translateY(-4px) scale(0.98);
+                    }
+                    to {
+                      opacity: 1;
+                      transform: translateY(0) scale(1);
+                    }
+                  }
+                `}</style>
+                <div className="fixed inset-0 z-30" onClick={() => setMoreOpen(false)} />
+                <div
+                  className="absolute right-0 top-full mt-2 w-48 z-40 rounded-xl overflow-hidden"
+                  style={{
+                    background: isDark ? 'rgba(13, 17, 23, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+                    border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.1)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    boxShadow: isDark
+                      ? '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.04)'
+                      : '0 8px 32px rgba(0, 0, 0, 0.15)',
+                    animation: 'dropdown-in 0.12s ease-out forwards',
+                  }}
+                >
+                  <button
+                    onClick={() => { router.push('/tutorials'); setMoreOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-100 cursor-pointer ${
+                      isDark
+                        ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-black/[0.04]'
+                    }`}
+                  >
+                    <GraduationCap className="w-4 h-4 text-[#6366f1] flex-shrink-0" />
+                    <span>Learn</span>
+                  </button>
+                  <button
+                    onClick={() => { openGuide(); setMoreOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-100 cursor-pointer ${
+                      isDark
+                        ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-black/[0.04]'
+                    }`}
+                  >
+                    <HelpCircle className="w-4 h-4 text-[#64748b] flex-shrink-0" />
+                    <span>Guide</span>
+                  </button>
+                  <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+                  <button
+                    onClick={() => { fileInputRef.current?.click(); setMoreOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-100 cursor-pointer ${
+                      isDark
+                        ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-black/[0.04]'
+                    }`}
+                  >
+                    <Upload className="w-4 h-4 text-[#64748b] flex-shrink-0" />
+                    <span>Import</span>
+                  </button>
+                  <div className={`mx-3 my-1 border-t ${isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'}`} />
+                  <button
+                    onClick={() => { handleClear(); setMoreOpen(false); }}
+                    disabled={nodes.length === 0}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                      isDark
+                        ? 'text-slate-300 hover:text-red-400 hover:bg-[rgba(239,68,68,0.08)]'
+                        : 'text-slate-600 hover:text-red-600 hover:bg-red-50'
+                    }`}
+                  >
+                    <Trash2 className="w-4 h-4 text-[#ef4444] flex-shrink-0" />
+                    <span>Clear Canvas</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           <TooltipWrapper label={nodes.length === 0 ? 'Add nodes to share' : 'Share this diagram'}>
             <button
@@ -351,9 +363,22 @@ export function Toolbar() {
             {exportOpen && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setExportOpen(false)} />
-                <div className="absolute right-0 mt-2 w-52 bg-card/95 backdrop-blur-sm rounded-lg border border-border shadow-xl z-40 overflow-hidden">
-                  <div className="px-3 py-2 border-b border-border/40">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">PNG Export</p>
+                <div
+                  className="absolute right-0 mt-2 w-52 rounded-lg z-40 overflow-hidden"
+                  style={{
+                    background: isDark ? 'rgba(13, 17, 23, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+                    border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.1)',
+                    backdropFilter: 'blur(20px)',
+                    boxShadow: isDark
+                      ? '0 8px 32px rgba(0, 0, 0, 0.4)'
+                      : '0 8px 32px rgba(0, 0, 0, 0.15)',
+                  }}
+                >
+                  <div
+                    className="px-3 py-2"
+                    style={{ borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.06)' }}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: isDark ? '#64748b' : '#64748b' }}>PNG Export</p>
                   </div>
                   {([
                     { label: 'Dark background',        format: 'png-dark'        },
@@ -363,14 +388,21 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-foreground/80 hover:bg-accent hover:text-foreground transition-colors"
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors ${
+                        isDark
+                          ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-black/[0.04]'
+                      }`}
                     >
-                      <Download className="w-3.5 h-3.5 text-muted-foreground" />
+                      <Download className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isDark ? '#64748b' : '#94a3b8' }} />
                       {label}
                     </button>
                   ))}
-                  <div className="px-3 py-2 border-t border-border/40">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Other</p>
+                  <div
+                    className="px-3 py-2"
+                    style={{ borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.06)' }}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: isDark ? '#64748b' : '#64748b' }}>Other</p>
                   </div>
                   {([
                     { label: 'Export as JSON', format: 'json' },
@@ -379,9 +411,13 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-foreground/80 hover:bg-accent hover:text-foreground transition-colors"
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors ${
+                        isDark
+                          ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-black/[0.04]'
+                      }`}
                     >
-                      <FileJson className="w-3.5 h-3.5 text-muted-foreground" />
+                      <FileJson className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isDark ? '#64748b' : '#94a3b8' }} />
                       {label}
                     </button>
                   ))}
@@ -435,8 +471,4 @@ function ToolBtn({
       {children}
     </button>
   );
-}
-
-function Divider() {
-  return <div className="w-px h-4 bg-border/60 mx-1" />;
 }

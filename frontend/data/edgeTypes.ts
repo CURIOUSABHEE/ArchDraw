@@ -25,65 +25,69 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     id: 'sync',
     label: 'Synchronous',
     description: 'Blocking request — waits for response (REST, gRPC)',
-    color: '#6366f1',        // indigo
-    strokeWidth: 2.5,
-    strokeDasharray: '',     // solid
-    animated: false,
-    animationDuration: '0s',
-    markerEnd: 'arrowclosed',
+    color: '#6366f1',
+    strokeWidth: 2,
+    strokeDasharray: '',        // solid line
+    animated: true,             // flowing animation
+    animationDuration: '1s',
+    markerEnd: 'arrowclosed',   // solid arrow
     badgeColor: '#1e2050',
     badgeTextColor: '#a5b4fc',
   },
+
   async: {
     id: 'async',
     label: 'Asynchronous',
     description: 'Fire-and-forget — queue, pub-sub, message broker',
-    color: '#22d3ee',        // cyan
+    color: '#22d3ee',
     strokeWidth: 2,
-    strokeDasharray: '8 5',  // medium dash
-    animated: false,         // custom CSS animation instead
-    animationDuration: '0.7s',
-    markerEnd: 'arrowclosed',
+    strokeDasharray: '8 4',     // dashed to show async
+    animated: true,             // flowing animation
+    animationDuration: '1.5s',  // slightly slower = async feel
+    markerEnd: 'arrowclosed',   // solid arrow
     badgeColor: '#0c2433',
     badgeTextColor: '#67e8f9',
   },
+
   stream: {
     id: 'stream',
     label: 'High-frequency stream',
     description: 'Real-time data — WebSocket, SSE, Kafka consumer',
-    color: '#f59e0b',        // amber
-    strokeWidth: 2,
-    strokeDasharray: '2 3',  // dense dots — fast animation
-    animated: false,
-    animationDuration: '0.35s',
+    color: '#f59e0b',
+    strokeWidth: 2.5,           // thicker = high frequency feel
+    strokeDasharray: '',        // solid — streams are continuous
+    animated: true,             // fast flowing animation
+    animationDuration: '0.5s',  // fast = high frequency
     markerEnd: 'arrowclosed',
     badgeColor: '#1c1400',
     badgeTextColor: '#fcd34d',
   },
+
   event: {
     id: 'event',
     label: 'Event / bidirectional',
     description: 'Webhook, callback, or two-way communication',
-    color: '#a78bfa',        // violet
+    color: '#a78bfa',
     strokeWidth: 2,
-    strokeDasharray: '12 5', // long dash
-    animated: false,
-    animationDuration: '1s',
+    strokeDasharray: '4 4',     // short dashes = event pulses
+    animated: true,
+    animationDuration: '1.2s',
     markerEnd: 'arrowclosed',
     markerStart: 'arrowclosed', // bidirectional arrows
     badgeColor: '#1a1340',
     badgeTextColor: '#c4b5fd',
   },
+
   dep: {
     id: 'dep',
     label: 'Dependency / static',
     description: 'Config reference, build dep, or passive link',
-    color: '#6b7280',        // gray
+    color: '#6b7280',
     strokeWidth: 1.5,
-    strokeDasharray: '5 4',  // standard dash, no animation
-    animated: false,
+    strokeDasharray: '6 6',     // long dashes = passive/static
+    animated: false,            // deps don't flow — intentionally static
     animationDuration: '0s',
-    markerEnd: 'arrowclosed',
+    markerEnd: 'arrow',         // open arrow = passive reference
     badgeColor: '#1a1b1f',
     badgeTextColor: '#9ca3af',
   },

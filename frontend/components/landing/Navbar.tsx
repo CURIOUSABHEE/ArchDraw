@@ -3,10 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
 const NAV_LINKS = ['Features', 'Templates', 'Use Cases'];
 const NAV_TUTORIALS_HREF = '/tutorials';
@@ -20,28 +16,43 @@ export function Navbar() {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
-    // Subtle slide-in only — no opacity manipulation
-    gsap.fromTo(navRef.current,
-      { y: -20 },
-      { y: 0, duration: 0.5, ease: 'power2.out', delay: 0.1 }
-    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let gsap: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let ScrollTrigger: any;
 
-    ScrollTrigger.create({
-      start: 'top -60',
-      onEnter: () => gsap.to(navRef.current, {
-        backgroundColor: 'rgba(8,12,20,0.92)',
-        backdropFilter: 'blur(20px)',
-        borderBottomColor: 'rgba(255,255,255,0.06)',
-        duration: 0.3,
-      }),
-      onLeaveBack: () => gsap.to(navRef.current, {
-        backgroundColor: 'transparent',
-        borderBottomColor: 'transparent',
-        duration: 0.3,
-      }),
+    Promise.all([
+      import('gsap'),
+      import('gsap/ScrollTrigger'),
+    ]).then(([{ default: g }, { ScrollTrigger: ST }]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      gsap = g as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ScrollTrigger = ST as any;
+      gsap.registerPlugin(ScrollTrigger);
+
+      gsap.fromTo(navRef.current,
+        { y: -20 },
+        { y: 0, duration: 0.5, ease: 'power2.out', delay: 0.1 }
+      );
+
+      ScrollTrigger.create({
+        start: 'top -60',
+        onEnter: () => gsap.to(navRef.current, {
+          backgroundColor: 'rgba(8,12,20,0.92)',
+          backdropFilter: 'blur(20px)',
+          borderBottomColor: 'rgba(255,255,255,0.06)',
+          duration: 0.3,
+        }),
+        onLeaveBack: () => gsap.to(navRef.current, {
+          backgroundColor: 'transparent',
+          borderBottomColor: 'transparent',
+          duration: 0.3,
+        }),
+      });
     });
 
-    return () => { ScrollTrigger.getAll().forEach(t => t.kill()); };
+    return () => { ScrollTrigger?.getAll().forEach((t: { kill: () => void }) => t.kill()); };
   }, []);
 
   return (

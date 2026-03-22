@@ -275,7 +275,7 @@ export function Hero() {
       </div>
 
       {/* ── LAYER 3: Text content ── */}
-      <div className="text-center max-w-4xl mx-auto px-6 mb-16 pt-40 md:pt-48" style={{ position: 'relative', zIndex: 10 }}>
+      <div className="text-center max-w-4xl mx-auto px-6 mb-16 pt-24 md:pt-28" style={{ position: 'relative', zIndex: 10 }}>
         <div className="hero-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs mb-8" style={{ border: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)', color: '#94a3b8' }}>
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
           Now in Beta — Free to use
