@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "LinkedIn's hardest problem: when you search for '2nd-degree connections who work at Google', LinkedIn must traverse a graph of billions of edges in milliseconds. That requires a purpose-built graph database."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -83,7 +83,7 @@ const l1 = level({
         msg(
           "The gateway validates your auth token, checks rate limits (LinkedIn throttles aggressive scrapers), and routes to the right service. A profile view goes to the profile service; a job search goes to the search service."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -118,7 +118,7 @@ const l1 = level({
         msg(
           "This matters because the server can cache your connection graph in memory. If your requests were random, every request would need a cold graph lookup. Consistent hashing turns cold lookups into warm cache hits."
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -153,7 +153,7 @@ const l1 = level({
         msg(
           "Enterprise customers configure their identity provider (Okta, Azure AD) to authenticate employees. The Auth Service validates the SAML assertion and issues a LinkedIn JWT. This is how 'Sign in with your company account' works."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -188,7 +188,7 @@ const l1 = level({
         msg(
           "The model considers: how close you are to the author (1st degree > 2nd degree), how fast the post is getting likes, whether you prefer articles vs. job updates, and how old the post is. A viral post from a 2nd-degree connection can outrank a stale post from a 1st-degree connection."
         ),
-        msg('Press ⌘K, search for "Feed Ranker", add it, then connect Auth Service → Feed Ranker.'),
+        msg("Press ⌘K and search for \"Feed Ranker\" and press Enter to add it, then connect Auth Service → Feed Ranker."),
       ],
       requiredNodes: ['feed_ranker'],
       requiredEdges: [edge('auth_service', 'feed_ranker')],
@@ -223,7 +223,7 @@ const l1 = level({
         msg(
           "In a relational DB, finding 2nd-degree connections requires: SELECT friends of friends WHERE NOT already connected. That's a self-join on a billion-row table — catastrophically slow. A graph DB traverses edges directly: start at your node, hop to neighbors, hop again. O(connections) not O(table size)."
         ),
-        msg('Press ⌘K, search for "Graph Database", add it, then connect Feed Ranker → Graph Database.'),
+        msg("Press ⌘K and search for \"Graph Database\" and press Enter to add it, then connect Feed Ranker → Graph Database."),
       ],
       requiredNodes: ['graph_database'],
       requiredEdges: [edge('feed_ranker', 'graph_database')],
@@ -258,7 +258,7 @@ const l1 = level({
         msg(
           "When you search 'software engineer at Google', LinkedIn combines text relevance (does the profile match?) with network proximity (are they in your network?). A 2nd-degree connection ranks above a stranger with the same title. This requires the Search Service to query both Elasticsearch and the Graph Database."
         ),
-        msg('Press ⌘K, search for "Search Engine", add it, then connect Auth Service → Search Service.'),
+        msg("Press ⌘K and search for \"Search Engine\" and press Enter to add it, then connect Auth Service → Search Service."),
       ],
       requiredNodes: ['search_engine'],
       requiredEdges: [edge('auth_service', 'search_engine')],
@@ -293,7 +293,7 @@ const l1 = level({
         msg(
           "When you open LinkedIn, the Timeline Service fetches recent posts from your 500 connections, passes them to the Feed Ranker, and returns the top 20. LinkedIn chose pull over push because 500 connections × millions of posts = too many writes. Twitter uses push for celebrities (fan-out on write) but LinkedIn's connection graph is denser."
         ),
-        msg('Press ⌘K, search for "Timeline Service", add it, then connect Feed Ranker → Timeline Service.'),
+        msg("Press ⌘K and search for \"Timeline Service\" and press Enter to add it, then connect Feed Ranker → Timeline Service."),
       ],
       requiredNodes: ['timeline_service'],
       requiredEdges: [edge('feed_ranker', 'timeline_service')],
@@ -328,7 +328,7 @@ const l1 = level({
         msg(
           "When you post on LinkedIn, a single event goes to Kafka. Multiple consumers process it independently: the notification service sends alerts to your connections, the search indexer makes it searchable, the spam detector checks for violations, the analytics pipeline records the event. All decoupled, all async."
         ),
-        msg('Press ⌘K, search for "Message Queue", add it, then connect Timeline Service → Message Queue.'),
+        msg("Press ⌘K and search for \"Message Queue\" and press Enter to add it, then connect Timeline Service → Message Queue."),
       ],
       requiredNodes: ['message_queue'],
       requiredEdges: [edge('timeline_service', 'message_queue')],
@@ -363,7 +363,7 @@ const l1 = level({
         msg(
           "A researcher's profile has publications and patents. A designer's has portfolio links. An executive's has board memberships. In a relational DB, you'd need nullable columns for every possible field — or complex joins. NoSQL stores each profile as a self-contained document."
         ),
-        msg('Press ⌘K, search for "NoSQL Database", add it, then connect Timeline Service → NoSQL Database.'),
+        msg("Press ⌘K and search for \"NoSQL Database\" and press Enter to add it, then connect Timeline Service → NoSQL Database."),
       ],
       requiredNodes: ['nosql_db'],
       requiredEdges: [edge('timeline_service', 'nosql_db')],
@@ -398,7 +398,7 @@ const l1 = level({
         msg(
           "Your 500 connections are cached in memory. When LinkedIn computes 'people you may know', it uses the cached graph to find friends-of-friends without hitting the graph database. Cache invalidation happens when you add or remove a connection."
         ),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect Graph Database → In-Memory Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Graph Database → In-Memory Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('graph_database', 'in_memory_cache')],
@@ -454,7 +454,7 @@ const l2 = level({
         msg(
           "Profile updates, feed events, and analytics all consume the same Kafka stream. This decouples producers from consumers — the feed service doesn't wait for analytics to process."
         ),
-        msg("Press ⌘K, search for \"Kafka / Streaming\", add it, then connect API Gateway → Kafka Streaming."),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect API Gateway → Kafka Streaming."),
       ],
       requiredNodes: ["kafka_streaming"],
       requiredEdges: [edge("api_gateway", "kafka_streaming")],
@@ -492,7 +492,7 @@ const l2 = level({
         msg(
           "When you get a connection request, all three channels fire simultaneously. The worker batches notifications during peak times to prevent email provider rate limits."
         ),
-        msg("Press ⌘K, search for \"Worker / Background Job\", add it, then connect Kafka Streaming → Notification Worker."),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ["worker_job"],
       requiredEdges: [edge("kafka_streaming", "worker_job")],
@@ -530,7 +530,7 @@ const l2 = level({
         msg(
           "Profile data, connection lists, and feed content are cached aggressively. When a viral profile's connections are cached, sub-10ms reads replace expensive graph traversal."
         ),
-        msg("Press ⌘K, search for \"In-Memory Cache\", add it, then connect Graph Database → In-Memory Cache."),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Graph Database → In-Memory Cache."),
       ],
       requiredNodes: ["in_memory_cache"],
       requiredEdges: [edge("graph_database", "in_memory_cache")],
@@ -568,7 +568,7 @@ const l2 = level({
         msg(
           "Profile changes, job views, and connection graphs stream to Kafka. Analytics consumers and ML training pipelines consume the CDC stream independently."
         ),
-        msg("Press ⌘K, search for \"CDC Connector\", add it, then connect Graph Database → CDC Connector."),
+        msg("Press ⌘K and search for \"CDC Connector\" and press Enter to add it, then connect Graph Database → CDC Connector."),
       ],
       requiredNodes: ["cdc_connector"],
       requiredEdges: [edge("graph_database", "cdc_connector")],
@@ -606,7 +606,7 @@ const l2 = level({
         msg(
           "LinkedIn famously runs MySQL at scale — they even wrote their own storage engine (HeidiDB). ACID transactions ensure billing records and job applications are reliable."
         ),
-        msg("Press ⌘K, search for \"SQL Database\", add it, then connect Graph Database → SQL Database."),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Graph Database → SQL Database."),
       ],
       requiredNodes: ["sql_db"],
       requiredEdges: [edge("graph_database", "sql_db")],
@@ -644,7 +644,7 @@ const l2 = level({
         msg(
           "Logs flow to Kafka and then to the data lake. Structured JSON with consistent schemas enables fast aggregation across billions of events per day."
         ),
-        msg("Press ⌘K, search for \"Structured Logger\", add it, then connect API Gateway → Structured Logger."),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect API Gateway → Structured Logger."),
       ],
       requiredNodes: ["structured_logger"],
       requiredEdges: [edge("api_gateway", "structured_logger")],
@@ -682,7 +682,7 @@ const l2 = level({
         msg(
           "Feed ranking must complete in <200ms — tracked as a top-tier SLO. Search response time SLO: <100ms for 95% of queries. When these SLOs are violated, on-call is paged."
         ),
-        msg("Press ⌘K, search for \"SLO/SLI Tracker\", add it, then connect Feed Ranker → SLO Tracker."),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Feed Ranker → SLO Tracker."),
       ],
       requiredNodes: ["slo_tracker"],
       requiredEdges: [edge("feed_ranker", "slo_tracker")],
@@ -720,7 +720,7 @@ const l2 = level({
         msg(
           "When the error budget burns faster than acceptable, feature launches pause until reliability improves. This prevents reliability from being sacrificed for velocity."
         ),
-        msg("Press ⌘K, search for \"Error Budget Monitor\", add it, then connect SLO Tracker → Error Budget Alert."),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO Tracker → Error Budget Alert."),
       ],
       requiredNodes: ["error_budget_alert"],
       requiredEdges: [edge("slo_tracker", "error_budget_alert")],
@@ -774,7 +774,7 @@ const l3 = level({
         msg(
           "Every internal call is encrypted with mTLS. Compromised containers are ejected from the mesh within minutes — they can't impersonate other services."
         ),
-        msg("Press ⌘K, search for \"Service Mesh (Istio)\", add it, then connect API Gateway → Service Mesh."),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect API Gateway → Service Mesh."),
       ],
       requiredNodes: ["service_mesh"],
       requiredEdges: [edge("api_gateway", "service_mesh")],
@@ -812,7 +812,7 @@ const l3 = level({
         msg(
           "Each team owns their schema while the gateway provides a unified API. Mobile clients query one endpoint — the gateway fans out to multiple subgraphs and composes the response."
         ),
-        msg("Press ⌘K, search for \"GraphQL Federation Gateway\", add it, then connect Service Mesh → GraphQL Federation."),
+        msg("Press ⌘K and search for \"GraphQL Federation Gateway\" and press Enter to add it, then connect Service Mesh → GraphQL Federation."),
       ],
       requiredNodes: ["graphql_federation"],
       requiredEdges: [edge("service_mesh", "graphql_federation")],
@@ -850,7 +850,7 @@ const l3 = level({
         msg(
           "Token buckets smooth out burst traffic while enforcing daily limits. A user scraping 10,000 profiles in an hour can't exhaust resources meant for legitimate premium users."
         ),
-        msg("Press ⌘K, search for \"Token Bucket Rate Limiter\", add it, then connect API Gateway → Token Bucket Rate Limiter."),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ["token_bucket_limiter"],
       requiredEdges: [edge("api_gateway", "token_bucket_limiter")],
@@ -888,7 +888,7 @@ const l3 = level({
         msg(
           "A single request touches 50+ services. Without distributed tracing, debugging a slow request is impossible — OTel automatically instruments every service call."
         ),
-        msg("Press ⌘K, search for \"OTel Collector\", add it, then connect Service Mesh → OpenTelemetry Collector."),
+        msg("Press ⌘K and search for \"OTel Collector\" and press Enter to add it, then connect Service Mesh → OpenTelemetry Collector."),
       ],
       requiredNodes: ["otel_collector"],
       requiredEdges: [edge("service_mesh", "otel_collector")],
@@ -926,7 +926,7 @@ const l3 = level({
         msg(
           "When debugging an incident, you search for the correlation ID and see the complete request timeline across all 50+ services — invaluable for diagnosing latency issues."
         ),
-        msg("Press ⌘K, search for \"Correlation ID Handler\", add it, then connect Load Balancer → Correlation ID Handler."),
+        msg("Press ⌘K and search for \"Correlation ID Handler\" and press Enter to add it, then connect Load Balancer → Correlation ID Handler."),
       ],
       requiredNodes: ["correlation_id_handler"],
       requiredEdges: [edge("load_balancer", "correlation_id_handler")],
@@ -964,7 +964,7 @@ const l3 = level({
         msg(
           "Compromised containers are ejected from the mesh within minutes — they can't impersonate other services. This zero-trust networking is essential for enterprise compliance."
         ),
-        msg("Press ⌘K, search for \"SPIFFE CA\", add it, then connect Service Mesh → mTLS Certificate Authority."),
+        msg("Press ⌘K and search for \"SPIFFE CA\" and press Enter to add it, then connect Service Mesh → mTLS Certificate Authority."),
       ],
       requiredNodes: ["mtls_certificate_authority"],
       requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
@@ -1002,7 +1002,7 @@ const l3 = level({
         msg(
           "Lock-assisted refresh ensures only one worker computes the expensive graph while others wait. Without this guard, thousands of simultaneous recomputations would overwhelm the database."
         ),
-        msg("Press ⌘K, search for \"Cache Stampede Guard\", add it, then connect In-Memory Cache → Cache Stampede Guard."),
+        msg("Press ⌘K and search for \"Cache Stampede Guard\" and press Enter to add it, then connect In-Memory Cache → Cache Stampede Guard."),
       ],
       requiredNodes: ["cache_stampede_guard"],
       requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
@@ -1040,7 +1040,7 @@ const l3 = level({
         msg(
           "ML features are expensive to compute on-the-fly. CDC streams graph changes and recomputes recommendations in advance — serving in sub-10ms instead of seconds."
         ),
-        msg("Press ⌘K, search for \"CDC Connector\", add another one, then connect Graph Database → Change Data Cache."),
+        msg("Press ⌘K and search for \"CDC Connector\" and press Enter to add another one, then connect Graph Database → Change Data Cache."),
       ],
       requiredNodes: ["cdc_connector"],
       requiredEdges: [edge("graph_database", "cdc_connector")],
@@ -1078,7 +1078,7 @@ const l3 = level({
         msg(
           "The 'Who Viewed My Profile' feature requires real-time analytics on profile view events. Pinot is LinkedIn's OLAP database — built for exactly this use case with sub-second query latency."
         ),
-        msg("Press ⌘K, search for \"Data Warehouse\", add it, then connect Kafka Streaming → Data Warehouse."),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect Kafka Streaming → Data Warehouse."),
       ],
       requiredNodes: ["data_warehouse"],
       requiredEdges: [edge("kafka_streaming", "data_warehouse")],
@@ -1116,7 +1116,7 @@ const l3 = level({
         msg(
           "GDPR requires LinkedIn to delete user data on request — the Event Store provides a complete audit trail of every action taken on user data for legal discovery."
         ),
-        msg("Press ⌘K, search for \"Event Store\", add it, then connect Kafka Streaming → Event Store."),
+        msg("Press ⌘K and search for \"Event Store\" and press Enter to add it, then connect Kafka Streaming → Event Store."),
       ],
       requiredNodes: ["event_store"],
       requiredEdges: [edge("kafka_streaming", "event_store")],
@@ -1154,7 +1154,7 @@ const l3 = level({
         msg(
           "The BFF aggregates data from multiple GraphQL resolvers, handles pagination for mobile screens, and manages session state. Mobile-specific logic lives here without polluting the core API."
         ),
-        msg("Press ⌘K, search for \"BFF Gateway\", add it, then connect GraphQL Federation → BFF Gateway."),
+        msg("Press ⌘K and search for \"BFF Gateway\" and press Enter to add it, then connect GraphQL Federation → BFF Gateway."),
       ],
       requiredNodes: ["bff_gateway"],
       requiredEdges: [edge("graphql_federation", "bff_gateway")],

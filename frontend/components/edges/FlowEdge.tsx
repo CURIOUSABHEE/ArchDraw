@@ -128,6 +128,7 @@ export function FlowEdge({
         <EdgeToolbar
           edgeId={id}
           currentType={edgeType}
+          currentLabel={data?.label as string | undefined}
           labelX={lx}
           labelY={ly}
         />

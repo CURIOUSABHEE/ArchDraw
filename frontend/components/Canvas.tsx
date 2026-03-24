@@ -48,6 +48,7 @@ function CanvasInner() {
     setSelectedNodeId, setSelectedNodeIds, setSelectedEdgeId,
     showGrid,
     pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData,
+    canvasMode, setCanvasMode, openAIPanel,
   } = useDiagramStore();
   const { resolvedTheme } = useTheme();
 
@@ -258,12 +259,12 @@ function CanvasInner() {
           <defs>
             {Object.values(EDGE_TYPE_CONFIGS).map((cfg) => (
               <Fragment key={cfg.id}>
-                <marker id={`marker-${cfg.id}-end`} markerWidth="7" markerHeight="7" refX="6" refY="2.5" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,5 L6,2.5 z" fill={cfg.color} />
+                <marker id={`marker-${cfg.id}-end`} markerWidth="5" markerHeight="5" refX="4" refY="2" orient="auto" markerUnits="strokeWidth">
+                  <path d="M0,0 L0,4 L4,2 z" fill={cfg.color} />
                 </marker>
                 {cfg.markerStart && (
-                  <marker id={`marker-${cfg.id}-start`} markerWidth="7" markerHeight="7" refX="0" refY="2.5" orient="auto-start-reverse" markerUnits="strokeWidth">
-                    <path d="M0,0 L0,5 L6,2.5 z" fill={cfg.color} />
+                  <marker id={`marker-${cfg.id}-start`} markerWidth="5" markerHeight="5" refX="0" refY="2" orient="auto-start-reverse" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,4 L4,2 z" fill={cfg.color} />
                   </marker>
                 )}
               </Fragment>
@@ -355,7 +356,7 @@ function CanvasInner() {
         <ContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />
       )}
 
-      {nodes.length === 0 && (
+      {canvasMode === 'empty' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center select-none">
           <div className="text-center mb-8">
             <LayoutGrid className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
@@ -366,7 +367,7 @@ function CanvasInner() {
           <div className="flex items-center gap-3 pointer-events-auto">
             {/* AI Generate - Primary */}
             <button
-              onClick={() => {/* TODO: open AI panel */}}
+              onClick={() => openAIPanel()}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-105 active:scale-95"
               style={{
                 background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
@@ -379,7 +380,7 @@ function CanvasInner() {
             
             {/* Templates - Secondary */}
             <button
-              onClick={() => setTemplatesOpen(true)}
+              onClick={() => { setTemplatesOpen(true); setCanvasMode('template'); }}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-accent/60 hover:bg-accent text-foreground border border-border/50 transition-all hover:scale-105 active:scale-95"
             >
               <LayoutTemplate className="w-4 h-4" />
@@ -388,7 +389,7 @@ function CanvasInner() {
             
             {/* Start from Scratch - Ghost */}
             <button
-              onClick={() => {/* User can start dragging components */}}
+              onClick={() => setCanvasMode('editing')}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
             >
               <MousePointer2 className="w-4 h-4" />

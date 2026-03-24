@@ -1,6 +1,6 @@
 // ── Factory Tutorial format (new canonical type) ────────────────────────────────
-export type { Tutorial } from '@/lib/tutorial/types';
-export type { TutorialStep, TutorialMessage, StepValidation, TutorialLevel as TutorialLevelData } from '@/lib/tutorial/types';
+export type { Tutorial, TutorialStep, TutorialLevel } from '@/lib/tutorial/types';
+export type { TutorialMessage, StepValidation } from '@/lib/tutorial/types';
 
 // ── Flat Tutorial format (legacy — used by non-refactored tutorials) ────────────
 import type { TutorialStep } from '@/lib/tutorial/types';
@@ -27,30 +27,8 @@ export type { FlatTutorial as TutorialData };
 import type { Tutorial } from '@/lib/tutorial/types';
 export type AnyTutorial = FlatTutorial | Tutorial;
 
-export { chatgptTutorial } from './chatgpt-architecture';
-export { instagramTutorial } from './instagram-architecture';
-export { openclawTutorial } from './openclaw-architecture';
-export { netflixTutorial } from './netflix-architecture';
-export { uberTutorial } from './uber-architecture';
-export { whatsappTutorial } from './whatsapp-architecture';
-export { stripeTutorial } from './stripe-architecture';
-export { youtubeTutorial } from './youtube-architecture';
-export { notionTutorial } from './notion-architecture';
-export { twitterTutorial } from './twitter-architecture';
-export { airbnbTutorial } from './airbnb-architecture';
-export { discordTutorial } from './discord-architecture';
-export { zoomTutorial } from './zoom-architecture';
-export { spotifyTutorial } from './spotify-architecture';
-export { linkedinTutorial } from './linkedin-architecture';
-export { figmaTutorial } from './figma-architecture';
-export { shopifyTutorial } from './shopify-architecture';
-export { doordashTutorial } from './doordash-architecture';
-export { githubTutorial } from './github-architecture';
-export { urlShortenerTutorial } from './url-shortener-architecture';
-export { ragTutorial } from './rag-application-architecture';
-export { aiAgentTutorial } from './ai-agent-system-architecture';
-
-import { chatgptTutorial } from './chatgpt-architecture';
+// ── Import all tutorials ────────────────────────────────────────────────────────
+import { chatgptArchitecture as chatgptTutorial } from './chatgpt-architecture';
 import { instagramTutorial } from './instagram-architecture';
 import { openclawTutorial } from './openclaw-architecture';
 import { netflixTutorial } from './netflix-architecture';
@@ -73,6 +51,32 @@ import { urlShortenerTutorial } from './url-shortener-architecture';
 import { ragTutorial } from './rag-application-architecture';
 import { aiAgentTutorial } from './ai-agent-system-architecture';
 import { validateAllTutorials } from '@/lib/tutorial/validators';
+
+// Re-export all tutorials
+export {
+  chatgptTutorial,
+  instagramTutorial,
+  openclawTutorial,
+  netflixTutorial,
+  uberTutorial,
+  whatsappTutorial,
+  stripeTutorial,
+  youtubeTutorial,
+  notionTutorial,
+  twitterTutorial,
+  airbnbTutorial,
+  discordTutorial,
+  zoomTutorial,
+  spotifyTutorial,
+  linkedinTutorial,
+  figmaTutorial,
+  shopifyTutorial,
+  doordashTutorial,
+  githubTutorial,
+  urlShortenerTutorial,
+  ragTutorial,
+  aiAgentTutorial,
+};
 
 // Validate the refactored tutorials at startup (dev-only, no-op in prod)
 validateAllTutorials([chatgptTutorial, instagramTutorial, openclawTutorial, netflixTutorial, uberTutorial]);

@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "Twitter's client handles two very different flows: writing a tweet (rare, but triggers massive fan-out) and reading your timeline (happens constantly, must be instant)."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -88,7 +88,7 @@ const l1 = level({
         msg(
           "Twitter's API Gateway validates OAuth tokens, enforces per-user rate limits (300 requests/15 min), and routes to the right service — tweet service, timeline service, search, etc."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -126,7 +126,7 @@ const l1 = level({
         msg(
           "Twitter uses consistent hashing in their load balancer — a user's requests always route to the same server cluster, which helps with connection state and caching."
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -166,7 +166,7 @@ const l1 = level({
         msg(
           "The Auth Service validates OAuth tokens and checks account status — suspended accounts are blocked here, before any fan-out happens. This prevents banned users from reaching millions of followers."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -206,7 +206,7 @@ const l1 = level({
         msg(
           "A Snowflake ID is a 64-bit integer: 41 bits for timestamp (milliseconds since 2010), 10 bits for machine ID, 12 bits for sequence. This means 4,096 unique IDs per millisecond per machine — no central counter needed."
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Auth Service → Tweet Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Auth Service → Tweet Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('auth_service', 'microservice')],
@@ -246,7 +246,7 @@ const l1 = level({
         msg(
           "Twitter uses hybrid fan-out. Regular users (<1M followers): push model — tweet is written to all follower timeline caches immediately. Celebrities (>1M followers): pull model — followers fetch their tweets on demand when opening the app."
         ),
-        msg('Press ⌘K, search for "Fan-out Service", add it, then connect Tweet Service → Fan-out Service.'),
+        msg("Press ⌘K and search for \"Fan-out Service\" and press Enter to add it, then connect Tweet Service → Fan-out Service."),
       ],
       requiredNodes: ['fanout_service'],
       requiredEdges: [edge('microservice', 'fanout_service')],
@@ -284,7 +284,7 @@ const l1 = level({
         msg(
           "The Timeline Service maintains a Redis sorted set per user — a list of tweet IDs ordered by time. When you open Twitter, it reads the top 200 tweet IDs from Redis and fetches their content. No database query needed."
         ),
-        msg('Press ⌘K, search for "Timeline Service", add it, then connect Fan-out Service → Timeline Service.'),
+        msg("Press ⌘K and search for \"Timeline Service\" and press Enter to add it, then connect Fan-out Service → Timeline Service."),
       ],
       requiredNodes: ['timeline_service'],
       requiredEdges: [edge('fanout_service', 'timeline_service')],
@@ -322,7 +322,7 @@ const l1 = level({
         msg(
           "The Trending Service uses Count-Min Sketch — a probabilistic data structure that estimates hashtag frequency using a fraction of the memory exact counting would require. Updated every 30 seconds, localized by region."
         ),
-        msg('Press ⌘K, search for "Trending Service", add it, then connect Tweet Service → Trending Service.'),
+        msg("Press ⌘K and search for \"Trending Service\" and press Enter to add it, then connect Tweet Service → Trending Service."),
       ],
       requiredNodes: ['trending_service'],
       requiredEdges: [edge('microservice', 'trending_service')],
@@ -360,7 +360,7 @@ const l1 = level({
         msg(
           "Twitter built FlockDB — a custom graph database optimized for social graph traversal. It stores directed edges (A follows B) and supports fast queries like 'who follows this user' and 'who does this user follow'."
         ),
-        msg('Press ⌘K, search for "Graph Database", add it, then connect Fan-out Service → Graph Database.'),
+        msg("Press ⌘K and search for \"Graph Database\" and press Enter to add it, then connect Fan-out Service → Graph Database."),
       ],
       requiredNodes: ['graph_database'],
       requiredEdges: [edge('fanout_service', 'graph_database')],
@@ -400,7 +400,7 @@ const l1 = level({
         msg(
           "Manhattan stores tweets by Snowflake ID. Lookups are O(1) by ID. The flexible schema handles all tweet types: text, images, polls, threads, spaces — each with different fields."
         ),
-        msg('Press ⌘K, search for "NoSQL Database", add it, then connect Tweet Service → NoSQL Database.'),
+        msg("Press ⌘K and search for \"NoSQL Database\" and press Enter to add it, then connect Tweet Service → NoSQL Database."),
       ],
       requiredNodes: ['nosql_db'],
       requiredEdges: [edge('microservice', 'nosql_db')],
@@ -441,7 +441,7 @@ const l1 = level({
           "Each user has a Redis sorted set holding their top 800 tweet IDs. Timeline reads hit Redis 99%+ of the time — the database is almost never touched for feed reads. This is what makes Twitter feel instant."
         ),
         msg(
-          'Press ⌘K, search for "In-Memory Cache", add it, then connect Timeline Service → In-Memory Cache.'
+          'Press ⌘K and search for "In-Memory Cache" and press Enter to add it, then connect Timeline Service → In-Memory Cache.'
         ),
       ],
       requiredNodes: ['in_memory_cache'],
@@ -495,7 +495,7 @@ const l2 = level({
       messages: [
         msg("Level 2 — Production Ready. Every tweet, like, and follow is published to Kafka for downstream consumers."),
         msg("The trending algorithm consumes tweet events to compute trending topics. Analytics pipelines consume engagement data to train recommendation models."),
-        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Load Balancer → Kafka Streaming."),
       ],
       requiredNodes: ['kafka_streaming'],
       requiredEdges: [edge('load_balancer', 'kafka_streaming')],
@@ -531,7 +531,7 @@ const l2 = level({
       messages: [
         msg("Notification workers consume Kafka events to send push notifications — mentions, replies, followers, trending alerts."),
         msg("Notifications are batched to prevent notification storms. When a celebrity tweets to 150M followers, notifications go out in waves over 30 minutes."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('kafka_streaming', 'worker_job')],
@@ -567,7 +567,7 @@ const l2 = level({
       messages: [
         msg("Write-Through Cache synchronously updates both Redis and NoSQL on every like and retweet."),
         msg("Engagement counts are immediately consistent — a tweet with 1M likes shows 1M instantly. No stale counts displayed to users."),
-        msg('Press ⌘K, search for "Write-Through Cache", add it, then connect Load Balancer → Write-Through Cache.'),
+        msg("Press ⌘K and search for \"Write-Through Cache\" and press Enter to add it, then connect Load Balancer → Write-Through Cache."),
       ],
       requiredNodes: ['write_through_cache'],
       requiredEdges: [edge('load_balancer', 'write_through_cache')],
@@ -603,7 +603,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector captures row-level changes from the NoSQL transaction log and streams them to Kafka for analytics."),
         msg("Without CDC, analytics queries would add load to the production database. CDC captures changes from the transaction log — zero query overhead."),
-        msg('Press ⌘K, search for "CDC Connector (Debezium)", add it, then connect NoSQL Database → CDC Connector.'),
+        msg("Press ⌘K and search for \"CDC Connector (Debezium)\" and press Enter to add it, then connect NoSQL Database → CDC Connector."),
       ],
       requiredNodes: ['cdc_connector'],
       requiredEdges: [edge('nosql_db', 'cdc_connector')],
@@ -639,7 +639,7 @@ const l2 = level({
       messages: [
         msg("User profiles, direct messages, and advertising data need ACID compliance. PostgreSQL stores the authoritative records."),
         msg("Direct messages must be delivered exactly once. ACID transactions ensure every message is recorded — a dropped message is a support ticket."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('auth_service', 'sql_db')],
@@ -675,7 +675,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger emits JSON-formatted logs with consistent schemas — user_id, tweet_id, event_type, engagement_count."),
         msg("LogQL queries aggregate metrics across billions of logs per day in seconds. Trending detection and anomaly alerts use structured log queries."),
-        msg('Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Load Balancer → Structured Logger."),
       ],
       requiredNodes: ['structured_logger'],
       requiredEdges: [edge('load_balancer', 'structured_logger')],
@@ -711,7 +711,7 @@ const l2 = level({
       messages: [
         msg("The SLO/SLI Tracker monitors tweet delivery latency, timeline load time, and API availability against defined Service Level Objectives."),
         msg("Twitter's timeline load time SLO: 99.9% of timelines load within 500ms. When latency exceeds the error budget, on-call is paged."),
-        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO/SLI Tracker.'),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO/SLI Tracker."),
       ],
       requiredNodes: ['slo_tracker'],
       requiredEdges: [edge('metrics_collector', 'slo_tracker')],
@@ -747,7 +747,7 @@ const l2 = level({
       messages: [
         msg("The Error Budget Monitor tracks remaining reliability budget for timeline load time SLO."),
         msg("When the error budget burns faster than acceptable, feature launches pause until reliability improves. This prevents reliability from being sacrificed for velocity."),
-        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO/SLI Tracker → Error Budget Monitor."),
       ],
       requiredNodes: ['error_budget_alert'],
       requiredEdges: [edge('slo_tracker', 'error_budget_alert')],
@@ -799,7 +799,7 @@ const l3 = level({
       messages: [
         msg("Level 3 — Expert Architecture. The Service Mesh (Istio) adds sidecar proxies to every pod — handling mTLS, retries, circuit breaking, and load balancing transparently."),
         msg("With automatic mTLS, every service-to-service call is encrypted. The Control Plane distributes traffic policies across all sidecars instantly."),
-        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect Load Balancer → Service Mesh."),
       ],
       requiredNodes: ['service_mesh'],
       requiredEdges: [edge('load_balancer', 'service_mesh')],
@@ -835,7 +835,7 @@ const l3 = level({
       messages: [
         msg("GraphQL Federation combines tweet, user, and timeline schemas into a unified supergraph."),
         msg("Mobile clients query one endpoint — the gateway fans out to multiple subgraphs and composes the response. Mobile API calls reduced by 60%."),
-        msg('Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'),
+        msg("Press ⌘K and search for \"GraphQL Federation Gateway\" and press Enter to add it, then connect API Gateway → GraphQL Federation Gateway."),
       ],
       requiredNodes: ['graphql_federation'],
       requiredEdges: [edge('api_gateway', 'graphql_federation')],
@@ -871,7 +871,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter uses the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate."),
         msg("Premium API developers get larger buckets for batch operations. The steady average rate prevents abuse while enabling legitimate bursts."),
-        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ['token_bucket_limiter'],
       requiredEdges: [edge('api_gateway', 'token_bucket_limiter')],
@@ -907,7 +907,7 @@ const l3 = level({
       messages: [
         msg("The OpenTelemetry Collector is the unified observability pipeline — receiving spans, metrics, and logs from all services, normalizing the format, and exporting to multiple backends."),
         msg("Without OTel, adding a new tracing backend requires changing every service. With OTel, services instrument once and the collector routes to any backend."),
-        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Structured Logger → OpenTelemetry Collector."),
       ],
       requiredNodes: ['otel_collector'],
       requiredEdges: [edge('structured_logger', 'otel_collector')],
@@ -943,7 +943,7 @@ const l3 = level({
       messages: [
         msg("The Correlation ID Injector generates a unique trace ID at request entry and propagates it via HTTP headers through every service call."),
         msg("All logs for a request share one correlation ID — instant debugging across Tweet Service, Fan-out Service, and Timeline Service."),
-        msg('Press ⌘K, search for "Correlation ID Injector", add it, then connect OpenTelemetry Collector → Correlation ID Injector.'),
+        msg("Press ⌘K and search for \"Correlation ID Injector\" and press Enter to add it, then connect OpenTelemetry Collector → Correlation ID Injector."),
       ],
       requiredNodes: ['correlation_id_handler'],
       requiredEdges: [edge('otel_collector', 'correlation_id_handler')],
@@ -979,7 +979,7 @@ const l3 = level({
       messages: [
         msg("Leader Election ensures exactly one Trending Service instance processes trending counter updates."),
         msg("Without leader election, multiple instances might process the same counters, leading to inconsistent trending lists. The leader processes all updates — no split-brain scenarios."),
-        msg('Press ⌘K, search for "Leader Election", add it, then connect Kafka Streaming → Leader Election.'),
+        msg("Press ⌘K and search for \"Leader Election\" and press Enter to add it, then connect Kafka Streaming → Leader Election."),
       ],
       requiredNodes: ['leader_election'],
       requiredEdges: [edge('kafka_streaming', 'leader_election')],
@@ -1015,7 +1015,7 @@ const l3 = level({
       messages: [
         msg("CQRS Command Handler processes write operations — tweet creation, likes, follows."),
         msg("Commands are validated and persisted to the write model with strict consistency before acknowledgment. Reads go through an optimized query path separately."),
-        msg('Press ⌘K, search for "CQRS Command Handler", add it, then connect Auth Service → CQRS Command Handler.'),
+        msg("Press ⌘K and search for \"CQRS Command Handler\" and press Enter to add it, then connect Auth Service → CQRS Command Handler."),
       ],
       requiredNodes: ['cqrs_command_handler'],
       requiredEdges: [edge('auth_service', 'cqrs_command_handler')],
@@ -1051,7 +1051,7 @@ const l3 = level({
       messages: [
         msg("CQRS Query Handler serves read operations from a denormalized read model."),
         msg("Timeline reads use the pre-computed denormalized model — sub-millisecond queries without translating from the normalized write model."),
-        msg('Press ⌘K, search for "CQRS Query Handler", add it, then connect Timeline Service → CQRS Query Handler.'),
+        msg("Press ⌘K and search for \"CQRS Query Handler\" and press Enter to add it, then connect Timeline Service → CQRS Query Handler."),
       ],
       requiredNodes: ['cqrs_query_handler'],
       requiredEdges: [edge('timeline_service', 'cqrs_query_handler')],
@@ -1087,7 +1087,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores all historical engagement data for business intelligence, ad targeting, and ML training."),
         msg("The NoSQL database cannot answer multi-year engagement trend questions — columnar storage optimized for analytics is required."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ['data_warehouse'],
       requiredEdges: [edge('cdc_connector', 'data_warehouse')],
@@ -1123,7 +1123,7 @@ const l3 = level({
       messages: [
         msg("Saga Orchestrator coordinates multi-service distributed transactions — tweet deletion across storage, timelines, trending, and notifications."),
         msg("If one service fails during deletion, compensating actions roll back the entire operation automatically. No partial state left behind."),
-        msg('Press ⌘K, search for "Saga Orchestrator", add it, then connect Tweet Service → Saga Orchestrator.'),
+        msg("Press ⌘K and search for \"Saga Orchestrator\" and press Enter to add it, then connect Tweet Service → Saga Orchestrator."),
       ],
       requiredNodes: ['saga_orchestrator'],
       requiredEdges: [edge('microservice', 'saga_orchestrator')],
@@ -1159,7 +1159,7 @@ const l3 = level({
       messages: [
         msg("Event Store (EventStoreDB) maintains an immutable log of all tweet lifecycle events — created, liked, retweeted, deleted, moderated."),
         msg("The entire tweet history can be reconstructed by replaying events. Content moderation decisions require a complete audit trail — the Event Store provides immutable evidence for legal and compliance."),
-        msg('Press ⌘K, search for "Event Store (EventStoreDB)", add it, then connect Tweet Service → Event Store. This completes the expert architecture!'),
+        msg("Press ⌘K and search for \"Event Store (EventStoreDB)\" and press Enter to add it, then connect Tweet Service → Event Store. This completes the expert architecture!"),
       ],
       requiredNodes: ['event_store'],
       requiredEdges: [edge('microservice', 'event_store')],

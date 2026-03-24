@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "The guest web client is where most users start — searching destinations, browsing photos, and initiating bookings. Every component in this architecture exists to serve that journey."
         ),
-        msg('Press ⌘K and search for "Web" to add the primary client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the primary client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -83,7 +83,7 @@ const l1 = level({
         msg(
           "Search traffic is read-heavy and can be served from cache. Booking traffic is transactional and must hit the database. The gateway routes them to different service clusters."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -118,7 +118,7 @@ const l1 = level({
         msg(
           'Auto-scaling kicks in when CPU exceeds 70% — new servers spin up in under 2 minutes. The load balancer routes new traffic to them immediately so users never notice the scale-up.'
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -153,7 +153,7 @@ const l1 = level({
         msg(
           "The Auth Service tracks verification status: email verified, phone verified, government ID verified. Hosts with higher verification get better search placement. Guests with ID verification can book premium listings."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -188,7 +188,7 @@ const l1 = level({
         msg(
           'The Search Service ranks results using 50+ signals: host response rate, review score, price competitiveness, booking frequency, and more. These signals are updated continuously as guests interact with the platform.'
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Auth Service → Search Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Auth Service → Search Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('auth_service', 'microservice')],
@@ -223,7 +223,7 @@ const l1 = level({
         msg(
           "It uses pessimistic locking: when guest A starts checkout, the dates are locked for 10 minutes. Guest B sees those dates as unavailable instantly. Only one booking can succeed — no double bookings."
         ),
-        msg('Press ⌘K, search for "Availability Service", add it, then connect Search Service → Availability Service.'),
+        msg("Press ⌘K and search for \"Availability Service\" and press Enter to add it, then connect Search Service → Availability Service."),
       ],
       requiredNodes: ['availability_service'],
       requiredEdges: [edge('microservice', 'availability_service')],
@@ -258,7 +258,7 @@ const l1 = level({
         msg(
           'The Pricing Engine trains on 100+ signals: local events, competitor pricing, seasonality, historical booking rates, and demand forecasts. It updates suggestions daily for every active listing on the platform.'
         ),
-        msg('Press ⌘K, search for "Pricing Engine", add it, then connect Search Service → Pricing Engine.'),
+        msg("Press ⌘K and search for \"Pricing Engine\" and press Enter to add it, then connect Search Service → Pricing Engine."),
       ],
       requiredNodes: ['pricing_engine'],
       requiredEdges: [edge('microservice', 'pricing_engine')],
@@ -293,7 +293,7 @@ const l1 = level({
         msg(
           "It uses a saga pattern: lock dates → charge guest → notify host → confirm booking. If any step fails, compensating transactions roll back the previous steps. This ensures atomicity even across multiple services."
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Availability Service → Booking Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Availability Service → Booking Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('availability_service', 'microservice')],
@@ -328,7 +328,7 @@ const l1 = level({
         msg(
           "The 24-hour hold is an escrow mechanism — if a guest arrives and the listing doesn't match the description, they can report it before the host is paid. This single policy is responsible for much of Airbnb's trust."
         ),
-        msg('Press ⌘K, search for "Payment Gateway", add it, then connect Booking Service → Payment Gateway.'),
+        msg("Press ⌘K and search for \"Payment Gateway\" and press Enter to add it, then connect Booking Service → Payment Gateway."),
       ],
       requiredNodes: ['payment_gateway'],
       requiredEdges: [edge('microservice', 'payment_gateway')],
@@ -363,7 +363,7 @@ const l1 = level({
         msg(
           "It computes a trust score from: ID verification status, review history, response rate, and booking completion rate. Low-trust users can't book premium listings. Hosts with low trust scores get fewer booking inquiries."
         ),
-        msg('Press ⌘K, search for "Trust & Safety Service", add it, then connect Booking Service → Trust & Safety Service.'),
+        msg("Press ⌘K and search for \"Trust & Safety Service\" and press Enter to add it, then connect Booking Service → Trust & Safety Service."),
       ],
       requiredNodes: ['trust_service'],
       requiredEdges: [edge('microservice', 'trust_service')],
@@ -398,7 +398,7 @@ const l1 = level({
         msg(
           "This prevents retaliation — a host who got a bad review can't write a bad guest review in response. The 14-day window ensures reviews are still relevant even if one party forgets to submit."
         ),
-        msg('Press ⌘K, search for "Review Service", add it, then connect Booking Service → Review Service.'),
+        msg("Press ⌘K and search for \"Review Service\" and press Enter to add it, then connect Booking Service → Review Service."),
       ],
       requiredNodes: ['review_service'],
       requiredEdges: [edge('microservice', 'review_service')],
@@ -441,7 +441,7 @@ const l1 = level({
           "Redis caches the top search results for popular destinations like 'Paris, next weekend'. These searches are queried millions of times — serving them from Redis takes under 1ms instead of 20-50ms from the database."
         ),
         msg(
-          'Press ⌘K, search for "NoSQL Database", add it. Then search for "In-Memory Cache", add that too. Connect Search Service → NoSQL Database and Search Service → In-Memory Cache.'
+          'Press ⌘K and search for "NoSQL Database" and press Enter to add it. Then search for "In-Memory Cache", add that too. Connect Search Service → NoSQL Database and Search Service → In-Memory Cache.'
         ),
       ],
       requiredNodes: ['nosql_db', 'in_memory_cache'],
@@ -495,7 +495,7 @@ const l2 = level({
       messages: [
         msg("Level 2 — Production Ready. Every booking, cancellation, and search is published to Kafka for downstream consumers."),
         msg("Dynamic pricing models train weekly on booking events. Analytics pipelines consume search data for demand forecasting across markets."),
-        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Load Balancer → Kafka Streaming."),
       ],
       requiredNodes: ['kafka_streaming'],
       requiredEdges: [edge('load_balancer', 'kafka_streaming')],
@@ -531,7 +531,7 @@ const l2 = level({
       messages: [
         msg("Notification workers consume Kafka events to send booking confirmations and host responses."),
         msg("All notification delivery is asynchronous — booking responses are never delayed by slow push delivery."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('kafka_streaming', 'worker_job')],
@@ -567,7 +567,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector captures row-level changes from the NoSQL database and streams them to Kafka for analytics."),
         msg("Without CDC, analytics queries would add load to the production database. CDC captures changes from the transaction log — zero query overhead."),
-        msg('Press ⌘K, search for "CDC Connector (Debezium)", add it, then connect NoSQL Database → CDC Connector.'),
+        msg("Press ⌘K and search for \"CDC Connector (Debezium)\" and press Enter to add it, then connect NoSQL Database → CDC Connector."),
       ],
       requiredNodes: ['cdc_connector'],
       requiredEdges: [edge('nosql_db', 'cdc_connector')],
@@ -603,7 +603,7 @@ const l2 = level({
       messages: [
         msg("User profiles, payout records, and host earnings need ACID compliance. PostgreSQL stores the authoritative financial records."),
         msg("Host earnings calculations must be accurate and auditable. ACID transactions ensure every booking is recorded exactly once."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('auth_service', 'sql_db')],
@@ -639,7 +639,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger emits JSON-formatted logs with consistent schemas — booking_id, guest_id, host_id, event_type, price."),
         msg("LogQL queries aggregate metrics across billions of logs per day in seconds. Demand forecasting and anomaly detection use structured log queries."),
-        msg('Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Load Balancer → Structured Logger."),
       ],
       requiredNodes: ['structured_logger'],
       requiredEdges: [edge('load_balancer', 'structured_logger')],
@@ -675,7 +675,7 @@ const l2 = level({
       messages: [
         msg("The SLO/SLI Tracker monitors search latency, booking success rate, and payment processing time against defined Service Level Objectives."),
         msg("Airbnb's search latency SLO: 99.9% of searches return results within 200ms. When latency exceeds the error budget, on-call is paged."),
-        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO/SLI Tracker.'),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO/SLI Tracker."),
       ],
       requiredNodes: ['slo_tracker'],
       requiredEdges: [edge('metrics_collector', 'slo_tracker')],
@@ -711,7 +711,7 @@ const l2 = level({
       messages: [
         msg("The Error Budget Monitor tracks remaining reliability budget for search latency SLO."),
         msg("When the error budget burns faster than acceptable, feature launches pause until reliability improves. For marketplaces, a slow search means lost bookings."),
-        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO/SLI Tracker → Error Budget Monitor."),
       ],
       requiredNodes: ['error_budget_alert'],
       requiredEdges: [edge('slo_tracker', 'error_budget_alert')],
@@ -763,7 +763,7 @@ const l3 = level({
       messages: [
         msg("Level 3 — Expert Architecture. The Service Mesh (Istio) adds sidecar proxies to every pod — handling mTLS, retries, circuit breaking, and load balancing transparently."),
         msg("Automatic mTLS encrypts every service-to-service call. The Control Plane distributes traffic policies across all sidecars instantly."),
-        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect Load Balancer → Service Mesh."),
       ],
       requiredNodes: ['service_mesh'],
       requiredEdges: [edge('load_balancer', 'service_mesh')],
@@ -799,7 +799,7 @@ const l3 = level({
       messages: [
         msg("GraphQL Federation combines listing, booking, and review schemas into a unified supergraph."),
         msg("Mobile clients query one endpoint — the gateway fans out to multiple subgraphs and composes the response. Mobile API calls reduced by 60%."),
-        msg('Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'),
+        msg("Press ⌘K and search for \"GraphQL Federation Gateway\" and press Enter to add it, then connect API Gateway → GraphQL Federation Gateway."),
       ],
       requiredNodes: ['graphql_federation'],
       requiredEdges: [edge('api_gateway', 'graphql_federation')],
@@ -835,7 +835,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter uses the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate."),
         msg("Hosts managing multiple listings get larger buckets. The steady average rate prevents abuse while enabling legitimate bursts."),
-        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ['token_bucket_limiter'],
       requiredEdges: [edge('api_gateway', 'token_bucket_limiter')],
@@ -871,7 +871,7 @@ const l3 = level({
       messages: [
         msg("The OpenTelemetry Collector is the unified observability pipeline — receiving spans, metrics, and logs from all services, normalizing the format, and exporting to multiple backends."),
         msg("Without OTel, adding a new tracing backend requires changing every service. With OTel, services instrument once and the collector routes to any backend."),
-        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Structured Logger → OpenTelemetry Collector."),
       ],
       requiredNodes: ['otel_collector'],
       requiredEdges: [edge('structured_logger', 'otel_collector')],
@@ -907,7 +907,7 @@ const l3 = level({
       messages: [
         msg("The Correlation ID Injector generates a unique trace ID at request entry and propagates it via HTTP headers through every service call."),
         msg("All logs for a booking request share one correlation ID — instant debugging across Search, Availability, Pricing, Booking, and Payment services."),
-        msg('Press ⌘K, search for "Correlation ID Injector", add it, then connect OpenTelemetry Collector → Correlation ID Injector.'),
+        msg("Press ⌘K and search for \"Correlation ID Injector\" and press Enter to add it, then connect OpenTelemetry Collector → Correlation ID Injector."),
       ],
       requiredNodes: ['correlation_id_handler'],
       requiredEdges: [edge('otel_collector', 'correlation_id_handler')],
@@ -943,7 +943,7 @@ const l3 = level({
       messages: [
         msg("mTLS Certificate Authority issues and rotates TLS certificates for all service-to-service authentication."),
         msg("Mutual TLS ensures both client and server verify each other. Automatic rotation every 24 hours prevents expired certificates from causing outages."),
-        msg('Press ⌘K, search for "mTLS Certificate Authority", add it, then connect Service Mesh → mTLS CA.'),
+        msg("Press ⌘K and search for \"mTLS Certificate Authority\" and press Enter to add it, then connect Service Mesh → mTLS CA."),
       ],
       requiredNodes: ['mtls_certificate_authority'],
       requiredEdges: [edge('service_mesh', 'mtls_certificate_authority')],
@@ -979,7 +979,7 @@ const l3 = level({
       messages: [
         msg("Cache Stampede Prevention uses probabilistic early expiration — when TTL approaches, requests have a 10% chance of rebuilding the cache early."),
         msg("Instead of thousands of requests hitting NoSQL when cache expires, only ~10% rebuild — the thundering herd is prevented."),
-        msg('Press ⌘K, search for "Cache Stampede Prevention", add it, then connect In-Memory Cache → Cache Stampede Prevention.'),
+        msg("Press ⌘K and search for \"Cache Stampede Prevention\" and press Enter to add it, then connect In-Memory Cache → Cache Stampede Prevention."),
       ],
       requiredNodes: ['cache_stampede_guard'],
       requiredEdges: [edge('in_memory_cache', 'cache_stampede_guard')],
@@ -1015,7 +1015,7 @@ const l3 = level({
       messages: [
         msg("Change Data Cache uses CDC from the NoSQL transaction log to know exactly when listing data changes."),
         msg("Instead of waiting for TTL expiration, CDC captures every database write and invalidates the exact corresponding cache entry — zero staleness."),
-        msg('Press ⌘K, search for "Change Data Cache", add it, then connect NoSQL Database → Change Data Cache.'),
+        msg("Press ⌘K and search for \"Change Data Cache\" and press Enter to add it, then connect NoSQL Database → Change Data Cache."),
       ],
       requiredNodes: ['change_data_cache'],
       requiredEdges: [edge('nosql_db', 'change_data_cache')],
@@ -1051,7 +1051,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores all historical booking data for business intelligence and pricing ML training."),
         msg("The NoSQL database cannot answer multi-year demand trend questions — columnar storage optimized for analytics is required."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ['data_warehouse'],
       requiredEdges: [edge('cdc_connector', 'data_warehouse')],
@@ -1087,7 +1087,7 @@ const l3 = level({
       messages: [
         msg("Saga Orchestrator coordinates the booking saga across availability, pricing, payment, and notifications."),
         msg("If any step fails, compensating actions roll back the entire booking automatically. No stale availability locks left behind."),
-        msg('Press ⌘K, search for "Saga Orchestrator", add it, then connect Booking Service → Saga Orchestrator.'),
+        msg("Press ⌘K and search for \"Saga Orchestrator\" and press Enter to add it, then connect Booking Service → Saga Orchestrator."),
       ],
       requiredNodes: ['saga_orchestrator'],
       requiredEdges: [edge('microservice', 'saga_orchestrator')],
@@ -1123,7 +1123,7 @@ const l3 = level({
       messages: [
         msg("Event Store (EventStoreDB) maintains an immutable log of all booking lifecycle events — created, modified, cancelled, refunded."),
         msg("The entire booking history can be reconstructed by replaying events. Booking disputes require a complete audit trail — the Event Store provides immutable evidence for legal and regulatory compliance."),
-        msg('Press ⌘K, search for "Event Store (EventStoreDB)", add it, then connect Booking Service → Event Store. This completes the expert architecture!'),
+        msg("Press ⌘K and search for \"Event Store (EventStoreDB)\" and press Enter to add it, then connect Booking Service → Event Store. This completes the expert architecture!"),
       ],
       requiredNodes: ['event_store'],
       requiredEdges: [edge('microservice', 'event_store')],

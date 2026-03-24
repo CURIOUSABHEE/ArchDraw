@@ -104,11 +104,16 @@ interface DiagramState {
   showGrid: boolean;
   darkMode: boolean;
   sidebarOpen: boolean;
+  canvasMode: 'empty' | 'editing' | 'ai' | 'template';
+  aiPanelOpen: boolean;
   setGuideLines: (lines: GuideLine[]) => void;
   toggleEdgeAnimations: () => void;
   toggleGrid: () => void;
   toggleDarkMode: () => void;
   setSidebarOpen: (open: boolean) => void;
+  setCanvasMode: (mode: 'empty' | 'editing' | 'ai' | 'template') => void;
+  openAIPanel: () => void;
+  closeAIPanel: () => void;
 
   // ── History ───────────────────────────────────────────────────────────────
   past: HistoryEntry[];
@@ -125,6 +130,7 @@ interface DiagramState {
   removeNode: (id: string) => void;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
   updateEdgeData: (id: string, data: Record<string, unknown>) => void;
+  deleteEdge: (edgeId: string) => void;
   importDiagram: (nodes: Node[], edges: Edge[]) => void;
   clearDiagram: () => void;
   deleteSelected: () => void;
@@ -296,8 +302,13 @@ export const useDiagramStore = create<DiagramState>()(
       showGrid: true,
       darkMode: true,
       sidebarOpen: true,
+      canvasMode: 'empty',
+      aiPanelOpen: false,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setGuideLines: (lines) => set({ guideLines: lines }),
+      setCanvasMode: (mode) => set({ canvasMode: mode }),
+      openAIPanel: () => set({ aiPanelOpen: true, canvasMode: 'ai' }),
+      closeAIPanel: () => set({ aiPanelOpen: false }),
       toggleGrid: () => set({ showGrid: !get().showGrid }),
       toggleDarkMode: () => {
         const next = !get().darkMode;
@@ -400,6 +411,13 @@ export const useDiagramStore = create<DiagramState>()(
         const edges = get().edges.map((e) => e.id === id ? { ...e, data: { ...e.data, ...data } } : e);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
+      },
+
+      deleteEdge: (edgeId) => {
+        get().pushHistory();
+        const edges = get().edges.filter((e) => e.id !== edgeId);
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
+        set({ edges, canvases, selectedEdgeId: null });
       },
 
       importDiagram: (nodes, edges) => {

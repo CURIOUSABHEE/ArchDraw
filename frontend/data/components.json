@@ -1,7 +1,7 @@
 [
   {
     "id": "client_web",
-    "label": "Web",
+    "label": "Web Client",
     "category": "Client & Entry",
     "color": "#6366f1",
     "icon": "Monitor",
@@ -9,7 +9,7 @@
   },
   {
     "id": "client_mobile",
-    "label": "Mobile",
+    "label": "Mobile Client",
     "category": "Client & Entry",
     "color": "#6366f1",
     "icon": "Smartphone",
@@ -94,6 +94,38 @@
     "color": "#3b82f6",
     "icon": "Users",
     "description": "Manages follower graph operations — follow, unfollow, block, and restrict — as a dedicated microservice separate from authentication."
+  },
+  {
+    "id": "chat_service",
+    "label": "Chat Service",
+    "category": "Compute",
+    "color": "#3b82f6",
+    "icon": "MessageCircle",
+    "description": "The core backend service that receives chat messages, routes them to the LLM, and streams AI responses back to clients."
+  },
+  {
+    "id": "token_streaming",
+    "label": "Token Streaming Service",
+    "category": "Compute",
+    "color": "#3b82f6",
+    "icon": "Zap",
+    "description": "Delivers LLM tokens to clients one-by-one using Server-Sent Events (SSE) for real-time streaming responses."
+  },
+  {
+    "id": "bff_gateway",
+    "label": "BFF Gateway",
+    "category": "Client & Entry",
+    "color": "#6366f1",
+    "icon": "ArrowLeftRight",
+    "description": "The Backend-for-Frontend adapts the main API to client-specific needs, handling format translation and data aggregation per platform."
+  },
+  {
+    "id": "otel_collector",
+    "label": "OpenTelemetry Collector",
+    "category": "Observability",
+    "color": "#06b6d4",
+    "icon": "GitBranch",
+    "description": "Vendor-neutral telemetry pipeline that ingests logs, metrics, and traces from all services before routing to backends like Jaeger or Prometheus."
   },
   {
     "id": "worker_job",
@@ -423,7 +455,7 @@
   { "id": "model_registry", "label": "Model Registry", "category": "LLM Models", "color": "#10a37f", "icon": "Package", "description": "Catalogs versioned model artifacts with metadata for reproducible deployments." },
   { "id": "fine_tuned_model", "label": "Fine-tuned Model", "category": "LLM Models", "color": "#10a37f", "icon": "Sliders", "description": "A base LLM further trained on domain-specific data to improve task performance." },
   { "id": "multimodal_model", "label": "Multimodal Model", "category": "LLM Models", "color": "#10a37f", "icon": "Layers", "description": "Processes and generates across multiple modalities like text, images, and audio." },
-  { "id": "rag_pipeline_new", "label": "RAG Pipeline", "category": "RAG", "color": "#8b5cf6", "icon": "GitMerge", "description": "Retrieves relevant documents and injects them as context into LLM prompts." },
+  { "id": "rag_pipeline_v2", "label": "RAG Pipeline (v2)", "category": "RAG", "color": "#8b5cf6", "icon": "GitMerge", "description": "Retrieves relevant documents and injects them as context into LLM prompts." },
   { "id": "document_loader", "label": "Document Loader", "category": "RAG", "color": "#8b5cf6", "icon": "FileInput", "description": "Ingests documents from various sources like PDFs, URLs, and databases into the pipeline." },
   { "id": "text_splitter", "label": "Text Splitter / Chunker", "category": "RAG", "color": "#8b5cf6", "icon": "Scissors", "description": "Divides long documents into smaller chunks that fit within the model's context window." },
   { "id": "embedding_model", "label": "Embedding Model", "category": "RAG", "color": "#8b5cf6", "icon": "Network", "description": "Converts text chunks into dense vectors that capture semantic meaning for similarity search." },
@@ -455,7 +487,7 @@
   { "id": "gpu_cluster", "label": "GPU Cluster", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Cpu", "description": "Pool of GPU-accelerated machines for distributed model training at scale." },
   { "id": "distributed_training", "label": "Distributed Training", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Network", "description": "Splits training across multiple GPUs or machines to handle large models and datasets." },
   { "id": "fine_tuning_pipeline", "label": "Fine-tuning Pipeline", "category": "ML Infrastructure", "color": "#f59e0b", "icon": "Settings", "description": "Adapts a pre-trained model to a specific domain using a smaller labeled dataset." },
-  { "id": "model_server_ml", "label": "Model Server", "category": "ML Serving", "color": "#06b6d4", "icon": "Server", "description": "Exposes trained ML models as REST or gRPC endpoints for real-time inference." },
+  { "id": "model_server_ml", "label": "Model Server (ML)", "category": "ML Serving", "color": "#06b6d4", "icon": "Server", "description": "Exposes trained ML models as REST or gRPC endpoints for real-time inference." },
   { "id": "inference_engine", "label": "Inference Engine", "category": "ML Serving", "color": "#06b6d4", "icon": "Zap", "description": "Optimized runtime that executes model predictions with minimal latency." },
   { "id": "triton_server", "label": "Triton Inference Server", "category": "ML Serving", "color": "#06b6d4", "icon": "Server", "description": "NVIDIA's high-performance inference server supporting multiple ML frameworks." },
   { "id": "torchserve", "label": "TorchServe", "category": "ML Serving", "color": "#06b6d4", "icon": "Server", "description": "PyTorch's official model serving framework for deploying models in production." },
@@ -596,7 +628,6 @@
   { "id": "service_discovery", "label": "Service Discovery (Consul)", "category": "Distributed Coordination", "color": "#06b6d4", "icon": "Compass", "description": "Tracks live service instances and their network locations — enabling services to find each other without hardcoded IP addresses." },
   { "id": "configuration_sync", "label": "Config Sync (etcd)", "category": "Distributed Coordination", "color": "#06b6d4", "icon": "RefreshCw", "description": "Distributes configuration changes across all service instances in real time — ensuring consistent config without restarts." },
 
-  { "id": "bff_gateway", "label": "BFF Gateway", "category": "API & Traffic Management", "color": "#ec4899", "icon": "LayoutTemplate", "description": "Backend-for-Frontend pattern — a dedicated API layer per client type (web, mobile, TV) aggregating data shaped specifically for that interface." },
   { "id": "graphql_federation", "label": "GraphQL Federation Gateway", "category": "API & Traffic Management", "color": "#ec4899", "icon": "Hexagon", "description": "Combines multiple GraphQL schemas from different services into a unified supergraph — clients query one endpoint while services own their subgraph." },
   { "id": "graphql_subgraph", "label": "GraphQL Subgraph", "category": "API & Traffic Management", "color": "#ec4899", "icon": "Box", "description": "Owns a portion of the unified GraphQL schema — responsible for resolving types and fields within its domain." },
   { "id": "api_composition", "label": "API Composition Layer", "category": "API & Traffic Management", "color": "#ec4899", "icon": "Layers", "description": "Aggregates data from multiple backend services into a single API response — flattening microservice boundaries for specific use cases." },
@@ -607,7 +638,6 @@
   { "id": "token_rotation", "label": "Token Rotation Service", "category": "Security & Identity", "color": "#8b5cf6", "icon": "RotateCw", "description": "Automatically rotates short-lived tokens without user interaction — refresh tokens are rotated on every use with stolen token detection." },
   { "id": "zero_trust_proxy", "label": "Zero Trust Proxy", "category": "Security & Identity", "color": "#8b5cf6", "icon": "ShieldAlert", "description": "Enforces authentication and authorization on every request regardless of network location — no implicit trust based on network perimeter." },
 
-  { "id": "otel_collector", "label": "OpenTelemetry Collector", "category": "Observability", "color": "#06b6d4", "icon": "GitCommitHorizontal", "description": "Centralized collector for traces, metrics, and logs — processing and exporting telemetry data to multiple backends (Jaeger, Prometheus, Elasticsearch)." },
   { "id": "correlation_id_handler", "label": "Correlation ID Injector", "category": "Observability", "color": "#06b6d4", "icon": "Link", "description": "Injects a unique correlation ID into every request that propagates across all service calls — enabling end-to-end request tracing." },
   { "id": "slo_tracker", "label": "SLO/SLI Tracker", "category": "Observability", "color": "#06b6d4", "icon": "Target", "description": "Monitors Service Level Objectives against Service Level Indicators — tracking availability targets and alerting when error budgets burn." },
   { "id": "error_budget_alert", "label": "Error Budget Monitor", "category": "Observability", "color": "#06b6d4", "icon": "AlertTriangle", "description": "Tracks the remaining error budget for an SLO — alerting when the budget burns faster than acceptable and prompting reliability work." },
@@ -629,5 +659,27 @@
   { "id": "virtual_nodes", "label": "Virtual Nodes", "category": "Distributed Coordination", "color": "#06b6d4", "icon": "Copy", "description": "Adds multiple virtual positions per physical node on the consistent hash ring — improving load distribution balance across nodes." },
 
   { "id": "cdn_tiered_cache", "label": "Tiered CDN Cache", "category": "Networking & CDN", "color": "#6366f1", "icon": "Layers", "description": "Organizes CDN caches in tiers — L1 (edge PoP), L2 (regional), L3 (origin shield) — minimizing origin requests while maximizing cache hit rates." },
-  { "id": "surrogate_key_purge", "label": "Surrogate Key Purger", "category": "Networking & CDN", "color": "#6366f1", "icon": "Trash2", "description": "Invalidates CDN cache entries using soft purge with surrogate keys — enabling instant purging of related content without tracking individual URLs." }
+  { "id": "surrogate_key_purge", "label": "Surrogate Key Purger", "category": "Networking & CDN", "color": "#6366f1", "icon": "Trash2", "description": "Invalidates CDN cache entries using soft purge with surrogate keys — enabling instant purging of related content without tracking individual URLs." },
+
+  { "id": "analytics_service", "label": "Analytics Service", "category": "Compute", "color": "#3b82f6", "icon": "BarChart2", "description": "Processes user interaction events and generates real-time analytics dashboards, funnels, and cohort reports for product and growth teams." },
+  { "id": "rider_app", "label": "Rider App", "category": "Client & Entry", "color": "#6366f1", "icon": "Smartphone", "description": "Mobile app used by riders to request trips, track driver location in real-time, and manage payments." },
+  { "id": "matching_service", "label": "Matching Service", "category": "Compute", "color": "#3b82f6", "icon": "Users", "description": "Pairs riders with available drivers based on proximity, ratings, and vehicle type using efficient spatial indexing." },
+  { "id": "zero_trust_security", "label": "Zero Trust Security Layer", "category": "Auth & Security", "color": "#8b5cf6", "icon": "ShieldCheck", "description": "Enforces continuous verification for every request — no traffic is trusted by default regardless of network origin." },
+  { "id": "media_service", "label": "Media Service", "category": "Compute", "color": "#3b82f6", "icon": "Image", "description": "Handles upload, processing, and delivery of images and videos — generating thumbnails, applying transformations, and managing storage." },
+  { "id": "notification_worker", "label": "Notification Worker", "category": "Compute", "color": "#3b82f6", "icon": "Bell", "description": "Background worker that dispatches push notifications, emails, and SMS to users based on triggered events." },
+  { "id": "payment_service", "label": "Payment Service", "category": "Compute", "color": "#3b82f6", "icon": "CreditCard", "description": "Core payment orchestration service that validates transactions, coordinates with payment gateways, and manages payment state." },
+  { "id": "observability_service", "label": "Observability", "category": "Observability", "color": "#06b6d4", "icon": "Activity", "description": "Comprehensive observability stack combining logs, metrics, and traces for full system visibility." },
+  { "id": "transcoding_worker", "label": "Transcoding Worker", "category": "Compute", "color": "#3b82f6", "icon": "RefreshCw", "description": "Background worker that converts media files to multiple formats and resolutions for adaptive streaming delivery." },
+  { "id": "block_service", "label": "Block Service", "category": "Compute", "color": "#3b82f6", "icon": "Ban", "description": "Manages user blocks and restrictions — enforcing content visibility rules and preventing unwanted interactions." },
+  { "id": "tweet_service", "label": "Tweet Service", "category": "Compute", "color": "#3b82f6", "icon": "MessageSquare", "description": "Core service that handles creating, reading, and deleting user posts — maintaining the main timeline feed." },
+  { "id": "search_service", "label": "Search Service", "category": "Compute", "color": "#3b82f6", "icon": "Search", "description": "Full-text search service enabling users to discover content, users, and trends across the platform." },
+  { "id": "booking_service", "label": "Booking Service", "category": "Compute", "color": "#3b82f6", "icon": "CalendarCheck", "description": "Manages reservation lifecycle — availability, booking creation, confirmation, and cancellation across all listing types." },
+  { "id": "data_layer", "label": "Data Layer", "category": "Data Storage", "color": "#334155", "icon": "Database", "description": "Central data access layer providing unified interfaces to multiple storage systems — databases, caches, and search indexes." },
+  { "id": "message_service", "label": "Message Service", "category": "Compute", "color": "#3b82f6", "icon": "MessageCircle", "description": "Handles direct messaging between users — storing conversations, managing read receipts, and delivering notifications." },
+  { "id": "meeting_service", "label": "Meeting Service", "category": "Compute", "color": "#3b82f6", "icon": "Video", "description": "Orchestrates video meeting lifecycle — scheduling, participant management, recording, and post-meeting summaries." },
+  { "id": "repository_service", "label": "Repository Service", "category": "Compute", "color": "#3b82f6", "icon": "FolderGit", "description": "Manages version control repositories — hosting code, handling git operations, and serving code browser interfaces." },
+  { "id": "analytics_engine", "label": "Analytics", "category": "AI / ML", "color": "#ec4899", "icon": "TrendingUp", "description": "Machine learning pipeline that generates behavioral analytics, user funnels, and engagement metrics." },
+  { "id": "background_worker", "label": "Background Worker", "category": "Compute", "color": "#3b82f6", "icon": "Clock", "description": "Processes asynchronous tasks off the critical path — handling report generation, data exports, and batch operations." },
+  { "id": "document_cache", "label": "Document Cache", "category": "Caching", "color": "#ef4444", "icon": "FileText", "description": "Caches rendered document views to eliminate repeated processing of complex page templates and expensive database queries." },
+  { "id": "redis_cache", "label": "Redis Cache", "category": "Caching", "color": "#ef4444", "icon": "Database", "description": "In-memory data store used for session management, real-time leaderboards, pub/sub messaging, and caching hot data." }
 ]

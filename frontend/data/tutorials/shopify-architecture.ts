@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "Shopify's hardest problem: a merchant with 10 orders/day and one with 10 million orders/day run on the same infrastructure. The architecture must scale from zero to viral without any merchant-specific configuration."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -83,7 +83,7 @@ const l1 = level({
         msg(
           "When a merchant uploads a 5MB product photo, Shopify stores the original and generates thumbnails lazily. The CDN serves the right size for each device: 400px for mobile, 1200px for desktop. It also converts to WebP automatically for browsers that support it."
         ),
-        msg('Press ⌘K, search for "CDN", add it, then connect Web → CDN.'),
+        msg("Press ⌘K and search for \"CDN\" and press Enter to add it, then connect Web → CDN."),
       ],
       requiredNodes: ['cdn'],
       requiredEdges: [edge('client_web', 'cdn')],
@@ -118,7 +118,7 @@ const l1 = level({
         msg(
           "Shopify uses a leaky bucket rate limiter: each merchant gets 40 API calls per second. If an app exceeds this, it gets a 429 response. The gateway tracks usage per merchant, not per IP, so a merchant with 100 app instances still shares the same bucket."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -153,7 +153,7 @@ const l1 = level({
         msg(
           "Shopify's engineering team runs 'flash sale drills' throughout the year. They simulate Black Friday traffic to find bottlenecks before the real event. The load balancer is configured to auto-scale checkout services 10x starting at midnight on Thanksgiving."
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -188,7 +188,7 @@ const l1 = level({
         msg(
           "Every time you add an item, change quantity, or apply a discount code, the Cart Service updates Redis. Carts expire after 30 days of inactivity. During checkout, the cart is validated against current inventory before payment is processed."
         ),
-        msg('Press ⌘K, search for "Cart Service", add it, then connect Load Balancer → Cart Service.'),
+        msg("Press ⌘K and search for \"Cart Service\" and press Enter to add it, then connect Load Balancer → Cart Service."),
       ],
       requiredNodes: ['cart_service'],
       requiredEdges: [edge('load_balancer', 'cart_service')],
@@ -223,7 +223,7 @@ const l1 = level({
         msg(
           "Shopify uses optimistic locking: inventory isn't reserved when you add to cart (that would block other customers). It's checked and decremented atomically at checkout. If two customers checkout simultaneously, one succeeds and one gets an 'out of stock' error. This is the right tradeoff — better to disappoint one customer than to over-reserve inventory."
         ),
-        msg('Press ⌘K, search for "Inventory Service", add it, then connect Cart Service → Inventory Service.'),
+        msg("Press ⌘K and search for \"Inventory Service\" and press Enter to add it, then connect Cart Service → Inventory Service."),
       ],
       requiredNodes: ['inventory_service'],
       requiredEdges: [edge('cart_service', 'inventory_service')],
@@ -258,7 +258,7 @@ const l1 = level({
         msg(
           "Checkout steps: 1) Validate cart items still exist. 2) Check inventory. 3) Calculate taxes. 4) Apply discount codes. 5) Process payment. 6) Decrement inventory. 7) Create order. If step 5 fails (payment declined), steps 1-4 are rolled back. If step 6 fails (inventory error), payment is refunded."
         ),
-        msg('Press ⌘K, search for "Checkout Service", add it, then connect Inventory Service → Checkout Service.'),
+        msg("Press ⌘K and search for \"Checkout Service\" and press Enter to add it, then connect Inventory Service → Checkout Service."),
       ],
       requiredNodes: ['checkout_service'],
       requiredEdges: [edge('inventory_service', 'checkout_service')],
@@ -293,7 +293,7 @@ const l1 = level({
         msg(
           "When a customer enters their card, it's tokenized client-side before reaching Shopify's servers. The token is sent to the Payment Gateway, which exchanges it for a charge with the card network. Shopify stores the token, not the card number. This is how Shopify achieves PCI compliance without storing sensitive data."
         ),
-        msg('Press ⌘K, search for "Payment Gateway", add it, then connect Checkout Service → Payment Gateway.'),
+        msg("Press ⌘K and search for \"Payment Gateway\" and press Enter to add it, then connect Checkout Service → Payment Gateway."),
       ],
       requiredNodes: ['payment_gateway'],
       requiredEdges: [edge('checkout_service', 'payment_gateway')],
@@ -328,7 +328,7 @@ const l1 = level({
         msg(
           "After payment succeeds, the Order Service creates an immutable order record. It triggers the fulfillment workflow, sends a confirmation email, and notifies the merchant. Orders can never be deleted — only cancelled or refunded. This audit trail is required for accounting and dispute resolution."
         ),
-        msg('Press ⌘K, search for "Order Service", add it, then connect Payment Gateway → Order Service.'),
+        msg("Press ⌘K and search for \"Order Service\" and press Enter to add it, then connect Payment Gateway → Order Service."),
       ],
       requiredNodes: ['order_service'],
       requiredEdges: [edge('payment_gateway', 'order_service')],
@@ -363,7 +363,7 @@ const l1 = level({
         msg(
           "When an order is created, the Fulfillment Service checks which warehouse has the item in stock and is closest to the customer. It generates a shipping label via carrier APIs (UPS, FedEx, USPS), sends the label to the warehouse, and creates a tracking number. The customer gets a tracking email automatically."
         ),
-        msg('Press ⌘K, search for "Fulfillment Service", add it, then connect Order Service → Fulfillment Service.'),
+        msg("Press ⌘K and search for \"Fulfillment Service\" and press Enter to add it, then connect Order Service → Fulfillment Service."),
       ],
       requiredNodes: ['fulfillment_service'],
       requiredEdges: [edge('order_service', 'fulfillment_service')],
@@ -398,7 +398,7 @@ const l1 = level({
         msg(
           "After the 2018 South Dakota v. Wayfair Supreme Court ruling, online merchants must collect sales tax in states where they have 'economic nexus' — even without a physical presence. Shopify's Tax Service automatically determines nexus, calculates the correct rate, and remits taxes on behalf of merchants."
         ),
-        msg('Press ⌘K, search for "Tax Service", add it, then connect Checkout Service → Tax Service.'),
+        msg("Press ⌘K and search for \"Tax Service\" and press Enter to add it, then connect Checkout Service → Tax Service."),
       ],
       requiredNodes: ['tax_service'],
       requiredEdges: [edge('checkout_service', 'tax_service')],
@@ -433,7 +433,7 @@ const l1 = level({
         msg(
           "A clothing merchant's product has: size, color, material, care instructions. An electronics merchant's product has: voltage, compatibility, warranty. A food merchant's product has: ingredients, allergens, expiry. NoSQL handles all of these without a shared schema. Shopify's metafields feature lets merchants add any custom attribute."
         ),
-        msg('Press ⌘K, search for "NoSQL Database", add it, then connect Order Service → NoSQL Database.'),
+        msg("Press ⌘K and search for \"NoSQL Database\" and press Enter to add it, then connect Order Service → NoSQL Database."),
       ],
       requiredNodes: ['nosql_db'],
       requiredEdges: [edge('order_service', 'nosql_db')],
@@ -486,7 +486,7 @@ const l2 = level({
       messages: [
         msg("Level 2 — Production Ready. Every order, refund, and inventory update is published to Kafka for downstream consumers."),
         msg("Real-time revenue dashboards update within seconds. Fulfillment systems consume inventory updates to route orders."),
-        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Load Balancer → Kafka Streaming."),
       ],
       requiredNodes: ['kafka_streaming'],
       requiredEdges: [edge('load_balancer', 'kafka_streaming')],
@@ -522,7 +522,7 @@ const l2 = level({
       messages: [
         msg("Notification workers consume Kafka events to send order confirmations and shipping updates."),
         msg("All notification delivery is asynchronous — checkout responses are never delayed by slow email or SMS delivery."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('kafka_streaming', 'worker_job')],
@@ -558,7 +558,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector captures row-level changes from the NoSQL database and streams them to Kafka for analytics."),
         msg("Without CDC, analytics queries would add load to the production database. CDC captures changes from the transaction log — zero query overhead."),
-        msg('Press ⌘K, search for "CDC Connector (Debezium)", add it, then connect NoSQL Database → CDC Connector.'),
+        msg("Press ⌘K and search for \"CDC Connector (Debezium)\" and press Enter to add it, then connect NoSQL Database → CDC Connector."),
       ],
       requiredNodes: ['cdc_connector'],
       requiredEdges: [edge('nosql_db', 'cdc_connector')],
@@ -594,7 +594,7 @@ const l2 = level({
       messages: [
         msg("Merchant financial records, payout data, and tax records need ACID compliance. PostgreSQL stores the authoritative financial records."),
         msg("Merchant payouts must be accurate and auditable. ACID transactions ensure every order is recorded exactly once."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Order Service → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Order Service → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('order_service', 'sql_db')],
@@ -630,7 +630,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger emits JSON-formatted logs with consistent schemas — order_id, merchant_id, event_type, amount."),
         msg("LogQL queries aggregate metrics across billions of logs per day in seconds. Revenue dashboards and anomaly detection use structured log queries."),
-        msg('Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Load Balancer → Structured Logger."),
       ],
       requiredNodes: ['structured_logger'],
       requiredEdges: [edge('load_balancer', 'structured_logger')],
@@ -666,7 +666,7 @@ const l2 = level({
       messages: [
         msg("The SLO/SLI Tracker monitors checkout success rate, payment processing time, and cart abandonment rate against defined Service Level Objectives."),
         msg("Shopify's checkout success rate SLO: 99.9% — critical during Black Friday. When latency exceeds the error budget, on-call is paged."),
-        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO/SLI Tracker.'),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO/SLI Tracker."),
       ],
       requiredNodes: ['slo_tracker'],
       requiredEdges: [edge('metrics_collector', 'slo_tracker')],
@@ -702,7 +702,7 @@ const l2 = level({
       messages: [
         msg("The Error Budget Monitor tracks remaining reliability budget for checkout success rate SLO."),
         msg("When the error budget burns faster than acceptable, feature launches pause until reliability improves. For e-commerce, a failed checkout is lost revenue."),
-        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO/SLI Tracker → Error Budget Monitor."),
       ],
       requiredNodes: ['error_budget_alert'],
       requiredEdges: [edge('slo_tracker', 'error_budget_alert')],
@@ -754,7 +754,7 @@ const l3 = level({
       messages: [
         msg("Level 3 — Expert Architecture. The Service Mesh (Istio) adds sidecar proxies to every pod — handling mTLS, retries, circuit breaking, and load balancing transparently."),
         msg("Automatic mTLS encrypts every service-to-service call. The Control Plane distributes traffic policies across all sidecars instantly."),
-        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect Load Balancer → Service Mesh."),
       ],
       requiredNodes: ['service_mesh'],
       requiredEdges: [edge('load_balancer', 'service_mesh')],
@@ -790,7 +790,7 @@ const l3 = level({
       messages: [
         msg("GraphQL Federation combines product, order, and customer schemas into a unified supergraph."),
         msg("Admin dashboards query one endpoint — the gateway fans out to multiple subgraphs and composes the response. API calls reduced by 60%."),
-        msg('Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'),
+        msg("Press ⌘K and search for \"GraphQL Federation Gateway\" and press Enter to add it, then connect API Gateway → GraphQL Federation Gateway."),
       ],
       requiredNodes: ['graphql_federation'],
       requiredEdges: [edge('api_gateway', 'graphql_federation')],
@@ -826,7 +826,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter uses the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate."),
         msg("Enterprise merchants processing bulk orders get larger buckets. The steady average rate prevents abuse while enabling legitimate bursts."),
-        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ['token_bucket_limiter'],
       requiredEdges: [edge('api_gateway', 'token_bucket_limiter')],
@@ -862,7 +862,7 @@ const l3 = level({
       messages: [
         msg("The OpenTelemetry Collector is the unified observability pipeline — receiving spans, metrics, and logs from all services, normalizing the format, and exporting to multiple backends."),
         msg("Without OTel, adding a new tracing backend requires changing every service. With OTel, services instrument once and the collector routes to any backend."),
-        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Structured Logger → OpenTelemetry Collector."),
       ],
       requiredNodes: ['otel_collector'],
       requiredEdges: [edge('structured_logger', 'otel_collector')],
@@ -898,7 +898,7 @@ const l3 = level({
       messages: [
         msg("The Correlation ID Injector generates a unique trace ID at request entry and propagates it via HTTP headers through every service call."),
         msg("All logs for a checkout request share one correlation ID — instant debugging across Cart, Inventory, Checkout, and Payment services."),
-        msg('Press ⌘K, search for "Correlation ID Injector", add it, then connect OpenTelemetry Collector → Correlation ID Injector.'),
+        msg("Press ⌘K and search for \"Correlation ID Injector\" and press Enter to add it, then connect OpenTelemetry Collector → Correlation ID Injector."),
       ],
       requiredNodes: ['correlation_id_handler'],
       requiredEdges: [edge('otel_collector', 'correlation_id_handler')],
@@ -934,7 +934,7 @@ const l3 = level({
       messages: [
         msg("mTLS Certificate Authority issues and rotates TLS certificates for all service-to-service authentication."),
         msg("Mutual TLS ensures both client and server verify each other. Automatic rotation every 24 hours prevents expired certificates from causing outages."),
-        msg('Press ⌘K, search for "mTLS Certificate Authority", add it, then connect Service Mesh → mTLS CA.'),
+        msg("Press ⌘K and search for \"mTLS Certificate Authority\" and press Enter to add it, then connect Service Mesh → mTLS CA."),
       ],
       requiredNodes: ['mtls_certificate_authority'],
       requiredEdges: [edge('service_mesh', 'mtls_certificate_authority')],
@@ -970,7 +970,7 @@ const l3 = level({
       messages: [
         msg("Cache Stampede Prevention uses probabilistic early expiration — when TTL approaches, requests have a 10% chance of rebuilding the cache early."),
         msg("Instead of thousands of requests hitting the database when cart cache expires, only ~10% rebuild — the thundering herd is prevented."),
-        msg('Press ⌘K, search for "Cache Stampede Prevention", add it, then connect Cart Service → Cache Stampede Prevention.'),
+        msg("Press ⌘K and search for \"Cache Stampede Prevention\" and press Enter to add it, then connect Cart Service → Cache Stampede Prevention."),
       ],
       requiredNodes: ['cache_stampede_guard'],
       requiredEdges: [edge('cart_service', 'cache_stampede_guard')],
@@ -1006,7 +1006,7 @@ const l3 = level({
       messages: [
         msg("Change Data Cache uses CDC from the NoSQL transaction log to know exactly when product data changes."),
         msg("Instead of waiting for TTL expiration, CDC captures every database write and invalidates the exact corresponding cache entry — zero staleness."),
-        msg('Press ⌘K, search for "Change Data Cache", add it, then connect NoSQL Database → Change Data Cache.'),
+        msg("Press ⌘K and search for \"Change Data Cache\" and press Enter to add it, then connect NoSQL Database → Change Data Cache."),
       ],
       requiredNodes: ['change_data_cache'],
       requiredEdges: [edge('nosql_db', 'change_data_cache')],
@@ -1042,7 +1042,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores all historical order data for business intelligence and merchant analytics."),
         msg("The NoSQL database cannot answer multi-year revenue trend questions — columnar storage optimized for analytics is required."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ['data_warehouse'],
       requiredEdges: [edge('cdc_connector', 'data_warehouse')],
@@ -1078,7 +1078,7 @@ const l3 = level({
       messages: [
         msg("Saga Orchestrator coordinates the checkout saga across cart, inventory, tax, payment, and order creation."),
         msg("If any step fails, compensating actions roll back the entire checkout automatically. No stale inventory reservations left behind."),
-        msg('Press ⌘K, search for "Saga Orchestrator", add it, then connect Checkout Service → Saga Orchestrator.'),
+        msg("Press ⌘K and search for \"Saga Orchestrator\" and press Enter to add it, then connect Checkout Service → Saga Orchestrator."),
       ],
       requiredNodes: ['saga_orchestrator'],
       requiredEdges: [edge('checkout_service', 'saga_orchestrator')],
@@ -1114,7 +1114,7 @@ const l3 = level({
       messages: [
         msg("Event Store (EventStoreDB) maintains an immutable log of all order lifecycle events — created, paid, fulfilled, refunded."),
         msg("The entire order history can be reconstructed by replaying events. Order disputes require a complete audit trail — the Event Store provides immutable evidence for chargeback disputes and regulatory compliance."),
-        msg('Press ⌘K, search for "Event Store (EventStoreDB)", add it, then connect Order Service → Event Store. This completes the expert architecture!'),
+        msg("Press ⌘K and search for \"Event Store (EventStoreDB)\" and press Enter to add it, then connect Order Service → Event Store. This completes the expert architecture!"),
       ],
       requiredNodes: ['event_store'],
       requiredEdges: [edge('order_service', 'event_store')],

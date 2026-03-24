@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "Spotify's client selects audio quality automatically: 24kbps on 2G, 96kbps on 3G, 160kbps on WiFi, 320kbps for Premium users. The client also manages the local playback queue and offline downloads."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -83,7 +83,7 @@ const l1 = level({
         msg(
           "The Audio CDN caches the most popular songs at edge nodes. The top 10,000 songs account for 80% of streams — these are pre-cached everywhere. Long-tail songs are fetched from origin on first request and cached for subsequent ones."
         ),
-        msg('Press ⌘K, search for "Audio CDN", add it, then connect Web → Audio CDN.'),
+        msg("Press ⌘K and search for \"Audio CDN\" and press Enter to add it, then connect Web → Audio CDN."),
       ],
       requiredNodes: ['audio_cdn'],
       requiredEdges: [edge('client_web', 'audio_cdn')],
@@ -118,7 +118,7 @@ const l1 = level({
         msg(
           "The API Gateway routes requests to the right microservice: search queries go to the search service, playlist updates go to the playlist service, recommendation requests go to the ML inference service."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -153,7 +153,7 @@ const l1 = level({
         msg(
           "When Taylor Swift drops a new album, millions of users search simultaneously. The load balancer auto-scales the search service cluster while other services remain unaffected."
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -188,7 +188,7 @@ const l1 = level({
         msg(
           "Spotify Connect lets you control your TV's Spotify from your phone. The Auth Service issues device tokens so your phone can send commands to your TV's Spotify session. Both devices are authenticated independently."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -223,7 +223,7 @@ const l1 = level({
         msg(
           "Collaborative playlists use operational transforms — if two users add a track at the same position simultaneously, both tracks are added without conflict. Spotify also generates algorithmic playlists like Discover Weekly here."
         ),
-        msg('Press ⌘K, search for "Playlist Service", add it, then connect Auth Service → Playlist Service.'),
+        msg("Press ⌘K and search for \"Playlist Service\" and press Enter to add it, then connect Auth Service → Playlist Service."),
       ],
       requiredNodes: ['playlist_service'],
       requiredEdges: [edge('auth_service', 'playlist_service')],
@@ -258,7 +258,7 @@ const l1 = level({
         msg(
           "When a label uploads a master WAV file, the Audio Transcoder creates 5 versions: 24kbps (mobile data saver), 96kbps (normal), 160kbps (high), 320kbps (very high), and lossless FLAC. That's 500 million files total."
         ),
-        msg('Press ⌘K, search for "Audio Transcoder", add it, then connect Playlist Service → Audio Transcoder.'),
+        msg("Press ⌘K and search for \"Audio Transcoder\" and press Enter to add it, then connect Playlist Service → Audio Transcoder."),
       ],
       requiredNodes: ['audio_transcoder'],
       requiredEdges: [edge('playlist_service', 'audio_transcoder')],
@@ -293,7 +293,7 @@ const l1 = level({
         msg(
           "The algorithm finds users with similar taste to you, then recommends songs they loved that you haven't heard. It runs every Monday morning as a batch job — not real-time. The 40% save rate makes it one of the most accurate recommendation systems ever built."
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Auth Service → Recommendation Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Auth Service → Recommendation Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('auth_service', 'microservice')],
@@ -328,7 +328,7 @@ const l1 = level({
         msg(
           "The Offline Sync Service manages download state, syncs playlist changes to offline devices, and revokes decryption keys when subscriptions expire. This is how Spotify honors its licensing agreements with labels."
         ),
-        msg('Press ⌘K, search for "Offline Sync Service", add it, then connect Auth Service → Offline Sync Service.'),
+        msg("Press ⌘K and search for \"Offline Sync Service\" and press Enter to add it, then connect Auth Service → Offline Sync Service."),
       ],
       requiredNodes: ['offline_sync'],
       requiredEdges: [edge('auth_service', 'offline_sync')],
@@ -363,7 +363,7 @@ const l1 = level({
         msg(
           "Every play, skip, save, and share is stored as an event. The Recommendation Service processes these events weekly to update Discover Weekly. NoSQL's flexible schema handles the different event types without migrations."
         ),
-        msg('Press ⌘K, search for "NoSQL Database", add it, then connect Playlist Service → NoSQL Database.'),
+        msg("Press ⌘K and search for \"NoSQL Database\" and press Enter to add it, then connect Playlist Service → NoSQL Database."),
       ],
       requiredNodes: ['nosql_db'],
       requiredEdges: [edge('playlist_service', 'nosql_db')],
@@ -398,7 +398,7 @@ const l1 = level({
         msg(
           "Object Storage holds the master WAV files and all 5 transcoded versions. The Audio CDN pulls from here to cache popular songs at edge nodes. The Offline Sync Service downloads encrypted versions to user devices."
         ),
-        msg('Press ⌘K, search for "Object Storage", add it, then connect Audio Transcoder → Object Storage.'),
+        msg("Press ⌘K and search for \"Object Storage\" and press Enter to add it, then connect Audio Transcoder → Object Storage."),
       ],
       requiredNodes: ['object_storage'],
       requiredEdges: [edge('audio_transcoder', 'object_storage')],
@@ -451,7 +451,7 @@ const l2 = level({
       messages: [
         msg("Level 2 — Production Ready. Every play, skip, and search is published to Kafka for downstream consumers."),
         msg("The Discover Weekly ML pipeline trains weekly on listening events. Analytics pipelines consume engagement for artist insights."),
-        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Load Balancer → Kafka Streaming."),
       ],
       requiredNodes: ['kafka_streaming'],
       requiredEdges: [edge('load_balancer', 'kafka_streaming')],
@@ -487,7 +487,7 @@ const l2 = level({
       messages: [
         msg("Notification workers consume Kafka events to send new release alerts and playlist updates."),
         msg("All notification delivery is asynchronous — playback responses are never delayed by slow push delivery."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('kafka_streaming', 'worker_job')],
@@ -523,7 +523,7 @@ const l2 = level({
       messages: [
         msg("Cache-Aside Pattern manages the recommendation cache explicitly — checked first on read, populated on miss."),
         msg("When recommendations are regenerated, the cache is updated immediately — no stale recommendations shown to users."),
-        msg('Press ⌘K, search for "Cache-Aside Pattern", add it, then connect Auth Service → Cache-Aside Pattern.'),
+        msg("Press ⌘K and search for \"Cache-Aside Pattern\" and press Enter to add it, then connect Auth Service → Cache-Aside Pattern."),
       ],
       requiredNodes: ['cache_aside'],
       requiredEdges: [edge('auth_service', 'cache_aside')],
@@ -559,7 +559,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector captures row-level changes from the NoSQL database and streams them to Kafka for analytics."),
         msg("Without CDC, analytics queries would add load to the production database. CDC captures changes from the transaction log — zero query overhead."),
-        msg('Press ⌘K, search for "CDC Connector (Debezium)", add it, then connect NoSQL Database → CDC Connector.'),
+        msg("Press ⌘K and search for \"CDC Connector (Debezium)\" and press Enter to add it, then connect NoSQL Database → CDC Connector."),
       ],
       requiredNodes: ['cdc_connector'],
       requiredEdges: [edge('nosql_db', 'cdc_connector')],
@@ -595,7 +595,7 @@ const l2 = level({
       messages: [
         msg("User profiles, subscription data, and payment records need ACID compliance. PostgreSQL stores the authoritative records."),
         msg("Subscription billing requires auditable records. A missed billing event is a revenue leak that must be detectable and correctable."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('auth_service', 'sql_db')],
@@ -631,7 +631,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger emits JSON-formatted logs with consistent schemas — user_id, track_id, event_type, listen_duration."),
         msg("LogQL queries aggregate metrics across billions of listening events per day in seconds. Artist analytics use structured log queries."),
-        msg('Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Load Balancer → Structured Logger."),
       ],
       requiredNodes: ['structured_logger'],
       requiredEdges: [edge('load_balancer', 'structured_logger')],
@@ -667,7 +667,7 @@ const l2 = level({
       messages: [
         msg("The SLO/SLI Tracker monitors stream start time, audio quality, and recommendation latency against defined Service Level Objectives."),
         msg("Spotify's stream start time SLO: 99.9% of streams start within 500ms. When latency exceeds the error budget, on-call is paged."),
-        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO/SLI Tracker.'),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO/SLI Tracker."),
       ],
       requiredNodes: ['slo_tracker'],
       requiredEdges: [edge('metrics_collector', 'slo_tracker')],
@@ -703,7 +703,7 @@ const l2 = level({
       messages: [
         msg("The Error Budget Monitor tracks remaining reliability budget for stream start time SLO."),
         msg("When the error budget burns faster than acceptable, feature launches pause until reliability improves. For streaming, buffering drives subscription cancellations."),
-        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO/SLI Tracker → Error Budget Monitor."),
       ],
       requiredNodes: ['error_budget_alert'],
       requiredEdges: [edge('slo_tracker', 'error_budget_alert')],
@@ -755,7 +755,7 @@ const l3 = level({
       messages: [
         msg("Level 3 — Expert Architecture. The Service Mesh (Istio) adds sidecar proxies to every pod — handling mTLS, retries, circuit breaking, and load balancing transparently."),
         msg("With automatic mTLS, every service-to-service call is encrypted across all 800+ microservices. The Control Plane distributes traffic policies across all sidecars instantly."),
-        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect Load Balancer → Service Mesh."),
       ],
       requiredNodes: ['service_mesh'],
       requiredEdges: [edge('load_balancer', 'service_mesh')],
@@ -791,7 +791,7 @@ const l3 = level({
       messages: [
         msg("BFF Gateway provides a dedicated API layer per client type — web, mobile, TV."),
         msg("Web gets rich metadata, mobile gets compressed payloads, TV gets simplified navigation. Each client loads 40% faster with its dedicated BFF."),
-        msg('Press ⌘K, search for "BFF Gateway", add it, then connect API Gateway → BFF Gateway.'),
+        msg("Press ⌘K and search for \"BFF Gateway\" and press Enter to add it, then connect API Gateway → BFF Gateway."),
       ],
       requiredNodes: ['bff_gateway'],
       requiredEdges: [edge('api_gateway', 'bff_gateway')],
@@ -827,7 +827,7 @@ const l3 = level({
       messages: [
         msg("GraphQL Federation combines playlist, track, and user schemas into a unified supergraph."),
         msg("Partner apps query one endpoint — the gateway fans out to multiple subgraphs and composes the response. API calls reduced by 60%."),
-        msg('Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'),
+        msg("Press ⌘K and search for \"GraphQL Federation Gateway\" and press Enter to add it, then connect API Gateway → GraphQL Federation Gateway."),
       ],
       requiredNodes: ['graphql_federation'],
       requiredEdges: [edge('api_gateway', 'graphql_federation')],
@@ -863,7 +863,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter uses the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate."),
         msg("Premium users managing large playlists get larger buckets. The steady average rate prevents abuse while enabling legitimate bursts."),
-        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ['token_bucket_limiter'],
       requiredEdges: [edge('api_gateway', 'token_bucket_limiter')],
@@ -899,7 +899,7 @@ const l3 = level({
       messages: [
         msg("Prefetch Cache proactively caches audio segments before users request them based on prediction algorithms."),
         msg("When you finish a song, the next track is already cached — zero latency gap between songs. Seamless listening experience."),
-        msg('Press ⌘K, search for "Prefetch Cache", add it, then connect Audio CDN → Prefetch Cache.'),
+        msg("Press ⌘K and search for \"Prefetch Cache\" and press Enter to add it, then connect Audio CDN → Prefetch Cache."),
       ],
       requiredNodes: ['prefetch_cache'],
       requiredEdges: [edge('audio_cdn', 'prefetch_cache')],
@@ -935,7 +935,7 @@ const l3 = level({
       messages: [
         msg("The OpenTelemetry Collector is the unified observability pipeline — receiving spans, metrics, and logs from all services, normalizing the format, and exporting to multiple backends."),
         msg("Without OTel, adding a new tracing backend requires changing every service. With OTel across 800+ services, services instrument once and the collector routes to any backend."),
-        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Structured Logger → OpenTelemetry Collector."),
       ],
       requiredNodes: ['otel_collector'],
       requiredEdges: [edge('structured_logger', 'otel_collector')],
@@ -971,7 +971,7 @@ const l3 = level({
       messages: [
         msg("The Correlation ID Injector generates a unique trace ID at request entry and propagates it via HTTP headers through every service call."),
         msg("All logs for a request share one correlation ID — instant debugging across Playlist, Recommendation, and Audio services."),
-        msg('Press ⌘K, search for "Correlation ID Injector", add it, then connect OpenTelemetry Collector → Correlation ID Injector.'),
+        msg("Press ⌘K and search for \"Correlation ID Injector\" and press Enter to add it, then connect OpenTelemetry Collector → Correlation ID Injector."),
       ],
       requiredNodes: ['correlation_id_handler'],
       requiredEdges: [edge('otel_collector', 'correlation_id_handler')],
@@ -1007,7 +1007,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores all historical listening data for business intelligence and ML model training."),
         msg("The NoSQL database cannot answer multi-year streaming trend questions — columnar storage optimized for analytics is required."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ['data_warehouse'],
       requiredEdges: [edge('cdc_connector', 'data_warehouse')],
@@ -1043,7 +1043,7 @@ const l3 = level({
       messages: [
         msg("CQRS Command Handler processes write operations — playlist updates, track saves, follow actions."),
         msg("Commands are validated and persisted to the write model with strict consistency before acknowledgment. Reads go through an optimized query path separately."),
-        msg('Press ⌘K, search for "CQRS Command Handler", add it, then connect Auth Service → CQRS Command Handler.'),
+        msg("Press ⌘K and search for \"CQRS Command Handler\" and press Enter to add it, then connect Auth Service → CQRS Command Handler."),
       ],
       requiredNodes: ['cqrs_command_handler'],
       requiredEdges: [edge('auth_service', 'cqrs_command_handler')],
@@ -1079,7 +1079,7 @@ const l3 = level({
       messages: [
         msg("CQRS Query Handler serves read operations from a denormalized read model."),
         msg("Playlist reads use the pre-computed denormalized model — sub-millisecond queries without translating from the normalized write model."),
-        msg('Press ⌘K, search for "CQRS Query Handler", add it, then connect Playlist Service → CQRS Query Handler.'),
+        msg("Press ⌘K and search for \"CQRS Query Handler\" and press Enter to add it, then connect Playlist Service → CQRS Query Handler."),
       ],
       requiredNodes: ['cqrs_query_handler'],
       requiredEdges: [edge('playlist_service', 'cqrs_query_handler')],
@@ -1115,7 +1115,7 @@ const l3 = level({
       messages: [
         msg("Event Store (EventStoreDB) maintains an immutable log of all playlist lifecycle events — created, tracks added, tracks removed, collaborative edits."),
         msg("The entire playlist history can be reconstructed by replaying events. Collaborative playlists require a complete edit history — the Event Store provides immutable evidence for collaboration and compliance."),
-        msg('Press ⌘K, search for "Event Store (EventStoreDB)", add it, then connect Playlist Service → Event Store. This completes the expert architecture!'),
+        msg("Press ⌘K and search for \"Event Store (EventStoreDB)\" and press Enter to add it, then connect Playlist Service → Event Store. This completes the expert architecture!"),
       ],
       requiredNodes: ['event_store'],
       requiredEdges: [edge('playlist_service', 'event_store')],

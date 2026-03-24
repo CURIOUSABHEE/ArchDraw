@@ -44,7 +44,7 @@ const l1 = level({
       messages: [
         msg("Welcome to the AI Agent System tutorial. AI agents are LLMs that take actions — plan, use tools, make decisions, and learn from feedback."),
         msg("The client sends a goal: 'research competitors and draft a report'. The agent autonomously plans steps, executes tools, and reports results. Unlike chatbots, the user sets a goal and the agent figures out how to achieve it."),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -80,7 +80,7 @@ const l1 = level({
       messages: [
         msg("The API Gateway handles agent requests and streaming responses with token budgets and rate limits."),
         msg("AI agents consume tokens rapidly — a single agent loop (plan → execute → evaluate → repeat) can generate thousands of tokens. The API Gateway enforces token budgets: max 10,000 tokens per request. Rate limits prevent runaway agents from burning through your API quota."),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -116,7 +116,7 @@ const l1 = level({
       messages: [
         msg("The Agent Orchestrator decomposes goals and manages the multi-agent workflow."),
         msg("Given a goal like 'research competitors and draft a report', the orchestrator decomposes: 1) identify competitor names, 2) search for their websites, 3) extract key data, 4) draft report. It assigns each step to the right agent and manages execution order. This is the LangGraph-style execution engine."),
-        msg('Press ⌘K, search for "Agent Orchestrator", add it, then connect API Gateway → Agent Orchestrator.'),
+        msg("Press ⌘K and search for \"Agent Orchestrator\" and press Enter to add it, then connect API Gateway → Agent Orchestrator."),
       ],
       requiredNodes: ['agent_orchestrator'],
       requiredEdges: [edge('api_gateway', 'agent_orchestrator')],
@@ -152,7 +152,7 @@ const l1 = level({
       messages: [
         msg("The Agent Planner decomposes goals into structured execution plans before any tools are called."),
         msg("Planning before acting is what separates smart agents from dumb ones. The planner thinks: 'What do I need to know? What tools do I need? In what order?' It outputs a structured plan. ReAct (Reasoning + Acting) and chain-of-thought are common planning patterns used by GPT-4 and Claude."),
-        msg('Press ⌘K, search for "Agent Planner", add it, then connect Agent Orchestrator → Agent Planner.'),
+        msg("Press ⌘K and search for \"Agent Planner\" and press Enter to add it, then connect Agent Orchestrator → Agent Planner."),
       ],
       requiredNodes: ['agent_planner'],
       requiredEdges: [edge('agent_orchestrator', 'agent_planner')],
@@ -188,7 +188,7 @@ const l1 = level({
       messages: [
         msg("The Tool Registry catalogs available tools — the agent's capabilities."),
         msg("Agents are only as capable as their tools. The Tool Registry lists: web search, calculator, code execution, database queries, API calls. Each tool has a name, description, and input schema. The planner selects tools based on their descriptions. This is the agent's capability surface."),
-        msg('Press ⌘K, search for "Tool Registry", add it, then connect Agent Planner → Tool Registry.'),
+        msg("Press ⌘K and search for \"Tool Registry\" and press Enter to add it, then connect Agent Planner → Tool Registry."),
       ],
       requiredNodes: ['tool_registry'],
       requiredEdges: [edge('agent_planner', 'tool_registry')],
@@ -224,7 +224,7 @@ const l1 = level({
       messages: [
         msg("The Agent Executor runs individual tasks — calling tools and handling responses."),
         msg("Given a task ('search for competitor X'), the executor calls the search tool with retry logic. It parses the response, handles errors (timeout, rate limit, invalid input), and formats results for the orchestrator. Without execution, planning is just wishful thinking."),
-        msg('Press ⌘K, search for "Agent Orchestrator", add another one for the Agent Executor, then connect Agent Orchestrator → Agent Executor.'),
+        msg("Press ⌘K and search for \"Agent Orchestrator\" and press Enter to add another one for the Agent Executor, then connect Agent Orchestrator → Agent Executor."),
       ],
       requiredNodes: ['agent_executor'],
       requiredEdges: [edge('agent_orchestrator', 'agent_executor')],
@@ -260,7 +260,7 @@ const l1 = level({
       messages: [
         msg("Agent Memory stores conversation history and tool results across sessions."),
         msg("Without memory: every task starts from scratch, no context from previous sessions. With memory: an agent working on 'monthly reports' references last month's report. Memory includes: conversation history, tool call results, and a learned-facts store (key-value knowledge the agent has accumulated)."),
-        msg('Press ⌘K, search for "Agent Memory", add it, then connect Agent Orchestrator → Agent Memory.'),
+        msg("Press ⌘K and search for \"Agent Memory\" and press Enter to add it, then connect Agent Orchestrator → Agent Memory."),
       ],
       requiredNodes: ['agent_memory'],
       requiredEdges: [edge('agent_orchestrator', 'agent_memory')],
@@ -296,7 +296,7 @@ const l1 = level({
       messages: [
         msg("The Agent Supervisor monitors execution and enforces safety guardrails."),
         msg("Supervision makes agents safe and reliable. The supervisor evaluates tool results: did the search return useful data? Should we retry with different parameters? Should we escalate to the user? Guardrails prevent harmful actions — the supervisor can halt execution if the agent tries something dangerous."),
-        msg('Press ⌘K, search for "Agent Supervisor", add it, then connect Agent Executor → Agent Supervisor.'),
+        msg("Press ⌘K and search for \"Agent Supervisor\" and press Enter to add it, then connect Agent Executor → Agent Supervisor."),
       ],
       requiredNodes: ['agent_supervisor'],
       requiredEdges: [edge('agent_executor', 'agent_supervisor')],
@@ -332,7 +332,7 @@ const l1 = level({
       messages: [
         msg("The LLM Gateway routes requests to the optimal LLM based on task complexity."),
         msg("Different LLMs excel at different tasks: GPT-4 for complex reasoning, Claude for long documents, Gemini for multimodal. The LLM Gateway routes intelligently. Simple classification → fast cheap models. Complex planning → GPT-4. This saves 60%+ on LLM costs."),
-        msg('Press ⌘K, search for "LLM API", add it for the LLM Gateway, then connect Agent Orchestrator → LLM Gateway.'),
+        msg("Press ⌘K and search for \"LLM API\" and press Enter to add it for the LLM Gateway, then connect Agent Orchestrator → LLM Gateway."),
       ],
       requiredNodes: ['llm_api'],
       requiredEdges: [edge('agent_orchestrator', 'llm_api')],
@@ -368,7 +368,7 @@ const l1 = level({
       messages: [
         msg("Agent systems need specialized observability — tracking tool call success rates, planning accuracy, and task completion."),
         msg("Standard LLM metrics (tokens, latency) miss what matters for agents: which tools fail most? How often does planning need retries? What's the task completion rate? The Metrics Collector tracks: token budget consumption, tool call success/failure rates, planning accuracy, and task-level completion."),
-        msg('Press ⌘K, search for "Metrics Collector", add it, then connect Agent Orchestrator → Metrics Collector.'),
+        msg("Press ⌘K and search for \"Metrics Collector\" and press Enter to add it, then connect Agent Orchestrator → Metrics Collector."),
       ],
       requiredNodes: ['metrics_collector'],
       requiredEdges: [edge('agent_orchestrator', 'metrics_collector')],
@@ -404,7 +404,7 @@ const l1 = level({
       messages: [
         msg("Final step — observability. Every agent action is logged for auditing and debugging."),
         msg("Agent systems are notoriously hard to debug. When the agent does something unexpected, logs are your only way to understand why. Every plan, tool call, result, decision, and failure is logged in detail. This is what makes AI agents auditable, debuggable, and production-ready."),
-        msg('Press ⌘K, search for "Logger", add it, then connect Agent Orchestrator → Logger.'),
+        msg("Press ⌘K and search for \"Logger\" and press Enter to add it, then connect Agent Orchestrator → Logger."),
       ],
       requiredNodes: ['logger'],
       requiredEdges: [edge('agent_orchestrator', 'logger')],
@@ -454,7 +454,7 @@ const l2 = level({
       messages: [
         msg("Let's scale the AI Agent system. Thousands of concurrent agents, millions of tool calls — this requires Kafka for execution streaming."),
         msg("Every agent action generates an event: tool called, result received, decision made. Kafka streams these events to the observability platform and memory system in real time."),
-        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Agent Orchestrator → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Agent Orchestrator → Kafka Streaming."),
       ],
       requiredNodes: ["kafka_streaming"],
       requiredEdges: [edge("agent_orchestrator", "kafka_streaming")],
@@ -490,7 +490,7 @@ const l2 = level({
       messages: [
         msg("Long-running agents need notification workers to alert users when action is required."),
         msg("Workers consume Kafka events to send notifications: agent completed, approval needed, or error encountered. This prevents users from having to poll for agent status."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ["worker_job"],
       requiredEdges: [edge("kafka_streaming", "worker_job")],
@@ -526,7 +526,7 @@ const l2 = level({
       messages: [
         msg("Long-running agents maintain state across thousands of tool calls — Redis caches this session state."),
         msg("Without Redis, every tool call would query the database for context. Redis stores session state, tool outputs, and conversation history for sub-millisecond retrieval."),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect Agent Orchestrator → In-Memory Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Agent Orchestrator → In-Memory Cache."),
       ],
       requiredNodes: ["in_memory_cache"],
       requiredEdges: [edge("agent_orchestrator", "in_memory_cache")],
@@ -562,7 +562,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector mirrors agent execution data to the analytics platform for tool usage and success rate analysis."),
         msg("Change Data Capture streams database changes to analytics without impacting agent performance. Tool patterns, success rates, and memory effectiveness are analyzed in the data warehouse."),
-        msg('Press ⌘K, search for "CDC Connector", add it, then connect Agent Memory → CDC Connector.'),
+        msg("Press ⌘K and search for \"CDC Connector\" and press Enter to add it, then connect Agent Memory → CDC Connector."),
       ],
       requiredNodes: ["cdc_connector"],
       requiredEdges: [edge("agent_memory", "cdc_connector")],
@@ -598,7 +598,7 @@ const l2 = level({
       messages: [
         msg("User accounts, agent definitions, and tool configurations require ACID compliance. PostgreSQL stores these with fine-grained access control."),
         msg("Agent definitions include tool permissions and resource limits — these must be consistent and auditable. PostgreSQL handles the access control that keeps agents secure."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect API Gateway → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect API Gateway → SQL Database."),
       ],
       requiredNodes: ["sql_db"],
       requiredEdges: [edge("api_gateway", "sql_db")],
@@ -634,7 +634,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger captures agent reasoning chains, tool call inputs/outputs, and decision points for debugging."),
         msg("Agent systems are notoriously hard to debug. Every reasoning step, tool call, and decision must be logged. Structured JSON logs enable fast aggregation and debugging of agent failures."),
-        msg('Press ⌘K, search for "Structured Logger", add it, then connect Agent Orchestrator → Structured Logger.'),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Agent Orchestrator → Structured Logger."),
       ],
       requiredNodes: ["structured_logger"],
       requiredEdges: [edge("agent_orchestrator", "structured_logger")],
@@ -670,7 +670,7 @@ const l2 = level({
       messages: [
         msg("SLO Tracker monitors agent execution time, tool call success rate, and memory retrieval quality against defined SLOs."),
         msg("Long-running agents must complete within timeout — tracked as a critical SLO. When tool call success rates fall or memory retrieval degrades, the SLO tracker alerts the team."),
-        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO Tracker.'),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO Tracker."),
       ],
       requiredNodes: ["slo_tracker"],
       requiredEdges: [edge("metrics_collector", "slo_tracker")],
@@ -706,7 +706,7 @@ const l2 = level({
       messages: [
         msg("Error Budget Monitor tracks tool call success rate SLO. When error budget burns from tool API degradation, the team gets alerted to switch to fallback tools."),
         msg("The error budget quantifies acceptable unreliability. When a tool API degrades, alerts prompt the team to switch to fallback tools before agents start failing."),
-        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO Tracker → Error Budget Alert.'),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO Tracker → Error Budget Alert."),
       ],
       requiredNodes: ["error_budget_alert"],
       requiredEdges: [edge("slo_tracker", "error_budget_alert")],
@@ -756,7 +756,7 @@ const l3 = level({
       messages: [
         msg("Let's make AI Agent enterprise-grade. Zero-trust tool execution requires a service mesh for mTLS between all services."),
         msg("Agents execute external tools — tool outputs must be authenticated and not tampered with. Service mesh provides zero-trust networking: every service-to-service call is encrypted and verified."),
-        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect API Gateway → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect API Gateway → Service Mesh."),
       ],
       requiredNodes: ["service_mesh"],
       requiredEdges: [edge("api_gateway", "service_mesh")],
@@ -792,7 +792,7 @@ const l3 = level({
       messages: [
         msg("BFF Gateway serves client-specific APIs for agent management."),
         msg("The BFF handles agent deployment, streaming responses, and human-in-the-loop approval flows for sensitive operations. This separates client logic from core agent logic."),
-        msg('Press ⌘K, search for "BFF Gateway", add it, then connect Service Mesh → BFF Gateway.'),
+        msg("Press ⌘K and search for \"BFF Gateway\" and press Enter to add it, then connect Service Mesh → BFF Gateway."),
       ],
       requiredNodes: ["bff_gateway"],
       requiredEdges: [edge("service_mesh", "bff_gateway")],
@@ -828,7 +828,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter enforces tenant-based rate limits: free tier (100/min), pro tier (1000/min), enterprise (unlimited)."),
         msg("Without rate limiting, one runaway agent could exhaust a tool API's rate limit in seconds. Token buckets prevent this while allowing legitimate high-volume usage."),
-        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect BFF Gateway → Token Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect BFF Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ["token_bucket_limiter"],
       requiredEdges: [edge("bff_gateway", "token_bucket_limiter")],
@@ -864,7 +864,7 @@ const l3 = level({
       messages: [
         msg("OpenTelemetry Collector traces agent reasoning chains across orchestrator, tool calls, and memory retrieval."),
         msg("A single agent task can trigger 50+ tool calls across multiple services. Without distributed tracing, debugging agent failures is nearly impossible — OTel traces every step."),
-        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Agent Orchestrator → OpenTelemetry Collector.'),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Agent Orchestrator → OpenTelemetry Collector."),
       ],
       requiredNodes: ["otel_collector"],
       requiredEdges: [edge("agent_orchestrator", "otel_collector")],
@@ -900,7 +900,7 @@ const l3 = level({
       messages: [
         msg("Correlation ID Handler links an agent task to every tool call, memory retrieval, and LLM response."),
         msg("Debugging a failed agent task requires tracing through dozens of tool executions. Correlation IDs enable end-to-end debugging of the full agent reasoning chain."),
-        msg('Press ⌘K, search for "Correlation ID Handler", add it, then connect Agent Executor → Correlation ID Handler.'),
+        msg("Press ⌘K and search for \"Correlation ID Handler\" and press Enter to add it, then connect Agent Executor → Correlation ID Handler."),
       ],
       requiredNodes: ["correlation_id_handler"],
       requiredEdges: [edge("agent_executor", "correlation_id_handler")],
@@ -936,7 +936,7 @@ const l3 = level({
       messages: [
         msg("SPIFFE CA issues certificates to every agent pod, tool service, and memory store for workload identity."),
         msg("Multi-tenant agent systems require workload identity. Compromised agent pods must not be able to access other tenants' data — SPIFFE CA provides the identity layer."),
-        msg('Press ⌘K, search for "mTLS Certificate Authority", add it, then connect Service Mesh → mTLS Certificate Authority.'),
+        msg("Press ⌘K and search for \"mTLS Certificate Authority\" and press Enter to add it, then connect Service Mesh → mTLS Certificate Authority."),
       ],
       requiredNodes: ["mtls_certificate_authority"],
       requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
@@ -972,7 +972,7 @@ const l3 = level({
       messages: [
         msg("Cache Stampede Guard prevents memory cache stampedes when popular agent sessions expire."),
         msg("When a popular agent session expires, thousands of concurrent requests try to refresh the cache simultaneously. Lock-assisted refresh ensures only one worker retrieves the memory state."),
-        msg('Press ⌘K, search for "Cache Stampede Guard", add it, then connect In-Memory Cache → Cache Stampede Guard.'),
+        msg("Press ⌘K and search for \"Cache Stampede Guard\" and press Enter to add it, then connect In-Memory Cache → Cache Stampede Guard."),
       ],
       requiredNodes: ["cache_stampede_guard"],
       requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
@@ -1008,7 +1008,7 @@ const l3 = level({
       messages: [
         msg("Change Data Cache precomputes agent session summaries and knowledge base lookups materialized in Redis."),
         msg("Agents frequently need session summaries during reasoning. CDC precomputes these and materializes them in Redis — agents get instant results without waiting for computation."),
-        msg('Press ⌘K, search for "Change Data Cache", add it, then connect CDC Connector → Change Data Cache.'),
+        msg("Press ⌘K and search for \"Change Data Cache\" and press Enter to add it, then connect CDC Connector → Change Data Cache."),
       ],
       requiredNodes: ["change_data_cache"],
       requiredEdges: [edge("cdc_connector", "change_data_cache")],
@@ -1044,7 +1044,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores agent execution traces, tool performance metrics, and success rates for ML training and failure analysis."),
         msg("Agent optimization requires historical data: which tools succeed, which fail, what patterns predict failure. Data warehouse enables ML training and failure pattern identification."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ["data_warehouse"],
       requiredEdges: [edge("cdc_connector", "data_warehouse")],
@@ -1080,7 +1080,7 @@ const l3 = level({
       messages: [
         msg("Event Store stores every agent action as an immutable event for replay, debugging, and audit trails."),
         msg("Event sourcing provides complete audit trails and enables agent replay. Every action is stored as an immutable event — debugging failures and auditing agent behavior is trivial."),
-        msg('Press ⌘K, search for "Event Store", add it, then connect Kafka → Event Store.'),
+        msg("Press ⌘K and search for \"Event Store\" and press Enter to add it, then connect Kafka → Event Store."),
       ],
       requiredNodes: ["event_store"],
       requiredEdges: [edge("kafka_streaming", "event_store")],
@@ -1116,7 +1116,7 @@ const l3 = level({
       messages: [
         msg("Saga Orchestrator manages multi-step agent workflows: plan, execute, validate, and compensate for each failure."),
         msg("Multi-step agent workflows require saga patterns: each step can fail and requires compensation. The Saga Orchestrator manages the entire workflow with rollback capabilities."),
-        msg('Press ⌘K, search for "Saga Orchestrator", add it, then connect Agent Supervisor → Saga Orchestrator.'),
+        msg("Press ⌘K and search for \"Saga Orchestrator\" and press Enter to add it, then connect Agent Supervisor → Saga Orchestrator."),
       ],
       requiredNodes: ["saga_orchestrator"],
       requiredEdges: [edge("agent_supervisor", "saga_orchestrator")],

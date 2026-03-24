@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "Zoom's client monitors your network every 100ms and adjusts video quality automatically. On a bad connection, it drops to 360p. If it gets worse, it drops video entirely and keeps audio — because audio requires only 32kbps vs 1Mbps+ for HD video."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -83,7 +83,7 @@ const l1 = level({
         msg(
           "The API Gateway routes REST requests for meeting management and upgrades connections to WebSocket for real-time signaling. It also handles Zoom's OAuth integration with calendar apps like Google Calendar and Outlook."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -118,7 +118,7 @@ const l1 = level({
         msg(
           "When you join a meeting, the load balancer checks your IP, finds the nearest Zoom data center, and assigns you to a media server there. A Tokyo participant and a New York participant in the same meeting connect to different media servers that relay between each other."
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -153,7 +153,7 @@ const l1 = level({
         msg(
           "The Auth Service validates meeting passwords, manages waiting rooms (host must admit participants), and handles SSO for enterprise customers. A Fortune 500 company's employees join Zoom meetings with their corporate Active Directory credentials."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -188,7 +188,7 @@ const l1 = level({
         msg(
           "Breakout rooms are implemented as separate meeting sessions. When the host creates 5 breakout rooms, the Meeting Service creates 5 new meeting sessions and moves participants between them. Moving a participant is a session transfer operation."
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Auth Service → Meeting Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Auth Service → Meeting Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('auth_service', 'microservice')],
@@ -223,7 +223,7 @@ const l1 = level({
         msg(
           "The Signaling Server exchanges SDP offers: 'I support H.264 and VP8, my network address is X, my DTLS fingerprint is Y.' Once both sides agree, the Signaling Server's job is done. Media flows directly to the Media Server."
         ),
-        msg('Press ⌘K, search for "Signaling Server", add it, then connect Meeting Service → Signaling Server.'),
+        msg("Press ⌘K and search for \"Signaling Server\" and press Enter to add it, then connect Meeting Service → Signaling Server."),
       ],
       requiredNodes: ['signaling_server'],
       requiredEdges: [edge('microservice', 'signaling_server')],
@@ -258,7 +258,7 @@ const l1 = level({
         msg(
           "The STUN Server tells your client: 'Your public IP is 203.0.113.42, port 54321.' Your client includes this in the SDP offer so other participants know how to reach you directly."
         ),
-        msg('Press ⌘K, search for "STUN Server", add it, then connect Signaling Server → STUN Server.'),
+        msg("Press ⌘K and search for \"STUN Server\" and press Enter to add it, then connect Signaling Server → STUN Server."),
       ],
       requiredNodes: ['stun_server'],
       requiredEdges: [edge('signaling_server', 'stun_server')],
@@ -293,7 +293,7 @@ const l1 = level({
         msg(
           "TURN adds latency (all media goes through Zoom's servers instead of directly) but guarantees connectivity. Enterprise customers often have strict firewalls that block direct connections — TURN ensures they can always join meetings."
         ),
-        msg('Press ⌘K, search for "TURN Server", add it, then connect STUN Server → TURN Server.'),
+        msg("Press ⌘K and search for \"TURN Server\" and press Enter to add it, then connect STUN Server → TURN Server."),
       ],
       requiredNodes: ['turn_server'],
       requiredEdges: [edge('stun_server', 'turn_server')],
@@ -328,7 +328,7 @@ const l1 = level({
         msg(
           "This is what enables host controls: muting a participant means the Media Server stops forwarding their audio. Recording means the server saves the streams. Spotlight means the server prioritizes one participant's video for everyone."
         ),
-        msg('Press ⌘K, search for "Media Server", add it, then connect TURN Server → Media Server.'),
+        msg("Press ⌘K and search for \"Media Server\" and press Enter to add it, then connect TURN Server → Media Server."),
       ],
       requiredNodes: ['media_server'],
       requiredEdges: [edge('turn_server', 'media_server')],
@@ -363,7 +363,7 @@ const l1 = level({
         msg(
           "During the meeting, the Media Server records raw streams locally. After the meeting, a transcoding worker converts them to MP4, generates a transcript, and uploads to Object Storage. The host gets an email with the download link."
         ),
-        msg('Press ⌘K, search for "Object Storage", add it, then connect Media Server → Object Storage.'),
+        msg("Press ⌘K and search for \"Object Storage\" and press Enter to add it, then connect Media Server → Object Storage."),
       ],
       requiredNodes: ['object_storage'],
       requiredEdges: [edge('media_server', 'object_storage')],
@@ -398,7 +398,7 @@ const l1 = level({
         msg(
           "The Metrics Collector tracks packet loss, jitter, and latency per participant. When packet loss exceeds 5%, the system automatically drops video resolution. This feedback loop is what makes Zoom resilient to network degradation."
         ),
-        msg('Press ⌘K, search for "Metrics Collector", add it, then connect Media Server → Metrics Collector.'),
+        msg("Press ⌘K and search for \"Metrics Collector\" and press Enter to add it, then connect Media Server → Metrics Collector."),
       ],
       requiredNodes: ['metrics_collector'],
       requiredEdges: [edge('media_server', 'metrics_collector')],
@@ -452,7 +452,7 @@ const l2 = level({
         msg(
           "Kafka streams meeting events: participant joins, screen shares, chat messages. When a 1000-person webinar starts, all participant events stream to analytics."
         ),
-        msg("Press ⌘K, search for \"Kafka / Streaming\", add it, then connect API Gateway → Kafka Streaming."),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect API Gateway → Kafka Streaming."),
       ],
       requiredNodes: ["kafka_streaming"],
       requiredEdges: [edge("api_gateway", "kafka_streaming")],
@@ -488,7 +488,7 @@ const l2 = level({
       messages: [
         msg("Notification workers send meeting reminders, recording alerts, and calendar sync notifications."),
         msg("Integrates with Google Calendar, Outlook, and iCal for seamless scheduling across platforms."),
-        msg("Press ⌘K, search for \"Worker / Background Job\", add it, then connect Kafka Streaming → Notification Worker."),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ["worker_job"],
       requiredEdges: [edge("kafka_streaming", "worker_job")],
@@ -524,7 +524,7 @@ const l2 = level({
       messages: [
         msg("Redis Cache serves active meeting state: participant lists, chat history, and polling results."),
         msg("In-meeting state is ephemeral — cached in Redis with TTL matching the meeting duration."),
-        msg("Press ⌘K, search for \"In-Memory Cache\", add it, then connect API Gateway → In-Memory Cache."),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect API Gateway → In-Memory Cache."),
       ],
       requiredNodes: ["in_memory_cache"],
       requiredEdges: [edge("api_gateway", "in_memory_cache")],
@@ -560,7 +560,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector mirrors meeting metadata to the analytics platform."),
         msg("Meeting quality metrics, participant engagement scores, and network quality data stream to ClickHouse for SLA reporting."),
-        msg("Press ⌘K, search for \"CDC Connector\", add it, then connect Meeting Service → CDC Connector."),
+        msg("Press ⌘K and search for \"CDC Connector\" and press Enter to add it, then connect Meeting Service → CDC Connector."),
       ],
       requiredNodes: ["cdc_connector"],
       requiredEdges: [edge("microservice", "cdc_connector")],
@@ -596,7 +596,7 @@ const l2 = level({
       messages: [
         msg("MySQL stores user accounts, meeting templates, and billing information."),
         msg("PostgreSQL handles reporting and analytics queries — separate from real-time meeting data."),
-        msg("Press ⌘K, search for \"SQL Database\", add it, then connect Auth Service → SQL Database."),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."),
       ],
       requiredNodes: ["sql_db"],
       requiredEdges: [edge("auth_service", "sql_db")],
@@ -632,7 +632,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger captures meeting quality metrics: packet loss, jitter, latency per participant."),
         msg("These logs flow to the SLA reporting system — Zoom promises 99.99% meeting availability."),
-        msg("Press ⌘K, search for \"Structured Logger\", add it, then connect API Gateway → Structured Logger."),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect API Gateway → Structured Logger."),
       ],
       requiredNodes: ["structured_logger"],
       requiredEdges: [edge("api_gateway", "structured_logger")],
@@ -668,7 +668,7 @@ const l2 = level({
       messages: [
         msg("SLO Tracker monitors meeting connection time, video quality, and audio clarity against defined SLO targets."),
         msg("Connection time SLO: <3 seconds for 99% of meetings. Video quality SLO: 720p minimum for 95% of participants."),
-        msg("Press ⌘K, search for \"SLO/SLI Tracker\", add it, then connect Metrics Collector → SLO Tracker."),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO Tracker."),
       ],
       requiredNodes: ["slo_tracker"],
       requiredEdges: [edge("metrics_collector", "slo_tracker")],
@@ -704,7 +704,7 @@ const l2 = level({
       messages: [
         msg("Error Budget Monitor tracks SLA consumption in real-time."),
         msg("When meeting quality degrades during a viral webinar, on-call engineers are paged before the budget is depleted."),
-        msg("Press ⌘K, search for \"Error Budget Monitor\", add it, then connect SLO Tracker → Error Budget Alert."),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO Tracker → Error Budget Alert."),
       ],
       requiredNodes: ["error_budget_alert"],
       requiredEdges: [edge("slo_tracker", "error_budget_alert")],
@@ -754,7 +754,7 @@ const l3 = level({
       messages: [
         msg("Let's make Zoom enterprise-grade. Zero-trust media routing, WebRTC distributed tracing, and SLA-grade quality monitoring."),
         msg("Service Mesh handles mTLS between media servers and signaling services. WebRTC media streams traverse SFUs independently scaled."),
-        msg("Press ⌘K, search for \"Service Mesh (Istio)\", add it, then connect Load Balancer → Service Mesh."),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect Load Balancer → Service Mesh."),
       ],
       requiredNodes: ["service_mesh"],
       requiredEdges: [edge("load_balancer", "service_mesh")],
@@ -790,7 +790,7 @@ const l3 = level({
       messages: [
         msg("BFF Gateway serves mobile and web clients with optimized signaling APIs."),
         msg("The BFF aggregates meeting state, handles WebSocket connections, and manages participant lists for the client."),
-        msg("Press ⌘K, search for \"BFF Gateway\", add it, then connect API Gateway → BFF Gateway."),
+        msg("Press ⌘K and search for \"BFF Gateway\" and press Enter to add it, then connect API Gateway → BFF Gateway."),
       ],
       requiredNodes: ["bff_gateway"],
       requiredEdges: [edge("api_gateway", "bff_gateway")],
@@ -826,7 +826,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter enforces meeting participant limits per plan: Free (100), Pro (300), Business (1000)."),
         msg("Token buckets prevent meeting bombing by rate-limiting join requests per IP."),
-        msg("Press ⌘K, search for \"Token Bucket Rate Limiter\", add it, then connect API Gateway → Token Bucket Rate Limiter."),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ["token_bucket_limiter"],
       requiredEdges: [edge("api_gateway", "token_bucket_limiter")],
@@ -862,7 +862,7 @@ const l3 = level({
       messages: [
         msg("OTel Collector traces meeting connection flows: SIP signaling, TURN relay allocation, and SFU subscription."),
         msg("WebRTC is notoriously hard to debug — tracing is essential for enterprise-grade reliability."),
-        msg("Press ⌘K, search for \"OpenTelemetry Collector\", add it, then connect Metrics Collector → OpenTelemetry Collector."),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Metrics Collector → OpenTelemetry Collector."),
       ],
       requiredNodes: ["otel_collector"],
       requiredEdges: [edge("metrics_collector", "otel_collector")],
@@ -898,7 +898,7 @@ const l3 = level({
       messages: [
         msg("Correlation ID links a meeting join to every service it touches: calendar integration, waiting room, breakout rooms, recording."),
         msg("Debugging a failed join requires tracing across all these services with a single correlation ID."),
-        msg("Press ⌘K, search for \"Correlation ID Handler\", add it, then connect API Gateway → Correlation ID Handler."),
+        msg("Press ⌘K and search for \"Correlation ID Handler\" and press Enter to add it, then connect API Gateway → Correlation ID Handler."),
       ],
       requiredNodes: ["correlation_id_handler"],
       requiredEdges: [edge("api_gateway", "correlation_id_handler")],
@@ -934,7 +934,7 @@ const l3 = level({
       messages: [
         msg("SPIFFE CA issues certificates to every media server and signaling node."),
         msg("Zoom's scale requires automated certificate management — thousands of certificates rotate daily."),
-        msg("Press ⌘K, search for \"mTLS Certificate Authority\", add it, then connect Service Mesh → mTLS Certificate Authority."),
+        msg("Press ⌘K and search for \"mTLS Certificate Authority\" and press Enter to add it, then connect Service Mesh → mTLS Certificate Authority."),
       ],
       requiredNodes: ["mtls_certificate_authority"],
       requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
@@ -970,7 +970,7 @@ const l3 = level({
       messages: [
         msg("Leaky Bucket Rate Limiter smooths API burst traffic from meeting analytics."),
         msg("API calls are rate-limited to prevent thundering-herd analytics queries during peak meeting hours."),
-        msg("Press ⌘K, search for \"Leaky Bucket Rate Limiter\", add it, then connect API Gateway → Leaky Bucket Rate Limiter."),
+        msg("Press ⌘K and search for \"Leaky Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Leaky Bucket Rate Limiter."),
       ],
       requiredNodes: ["leaky_bucket_limiter"],
       requiredEdges: [edge("api_gateway", "leaky_bucket_limiter")],
@@ -1006,7 +1006,7 @@ const l3 = level({
       messages: [
         msg("Cache Stampede Guard protects meeting roster caches from stampedes when a large meeting starts."),
         msg("Lock-assisted refresh ensures only one worker fetches the participant list."),
-        msg("Press ⌘K, search for \"Cache Stampede Guard\", add it, then connect In-Memory Cache → Cache Stampede Guard."),
+        msg("Press ⌘K and search for \"Cache Stampede Guard\" and press Enter to add it, then connect In-Memory Cache → Cache Stampede Guard."),
       ],
       requiredNodes: ["cache_stampede_guard"],
       requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
@@ -1042,7 +1042,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores meeting quality telemetry: MOS scores, packet loss rates, and jitter per meeting."),
         msg("This data drives Zoom's SLA reporting and product decisions."),
-        msg("Press ⌘K, search for \"Data Warehouse\", add it, then connect CDC Connector → Data Warehouse."),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ["data_warehouse"],
       requiredEdges: [edge("cdc_connector", "data_warehouse")],
@@ -1078,7 +1078,7 @@ const l3 = level({
       messages: [
         msg("Event Store stores every meeting lifecycle event: scheduled, started, ended, recording available."),
         msg("Event sourcing enables replay — recordings can be regenerated from event logs."),
-        msg("Press ⌘K, search for \"Event Store\", add it, then connect CDC Connector → Event Store."),
+        msg("Press ⌘K and search for \"Event Store\" and press Enter to add it, then connect CDC Connector → Event Store."),
       ],
       requiredNodes: ["event_store"],
       requiredEdges: [edge("cdc_connector", "event_store")],
@@ -1114,7 +1114,7 @@ const l3 = level({
       messages: [
         msg("Prefetch Cache preloads recording thumbnails and chat history for upcoming meetings."),
         msg("When a meeting ends, the next meeting's data is preloaded into cache for instant access."),
-        msg("Press ⌘K, search for \"Prefetch Cache\", add it, then connect In-Memory Cache → Prefetch Cache."),
+        msg("Press ⌘K and search for \"Prefetch Cache\" and press Enter to add it, then connect In-Memory Cache → Prefetch Cache."),
       ],
       requiredNodes: ["prefetch_cache"],
       requiredEdges: [edge("in_memory_cache", "prefetch_cache")],

@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "Discord's client maintains a persistent WebSocket connection at all times — not just when you're actively chatting. This is how you see the green dot when friends come online instantly."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -83,7 +83,7 @@ const l1 = level({
         msg(
           "The API Gateway routes REST requests to the message service and upgrades WebSocket connections for real-time delivery. Discord's gateway also handles the initial guild state sync — sending you all the channels and members when you connect."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -118,7 +118,7 @@ const l1 = level({
         msg(
           'The Load Balancer distributes WebSocket connections across Elixir gateway servers. Connection affinity is maintained — once you connect to a gateway server, all your events come through that server.'
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -153,7 +153,7 @@ const l1 = level({
         msg(
           "The Auth Service validates tokens and determines whether the requester is a user or bot. Bots can send 5 messages per second per channel. Users have different limits. The Auth Service enforces these distinctions on every request."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -188,7 +188,7 @@ const l1 = level({
         msg(
           "Cassandra's data model is perfect for Discord: messages are stored by (channel_id, message_id) where message_id is a Snowflake. Loading the last 50 messages is a single range query — no JOINs, no full table scans."
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Auth Service → Message Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Auth Service → Message Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('auth_service', 'microservice')],
@@ -223,7 +223,7 @@ const l1 = level({
         msg(
           "The Signaling Server exchanges SDP offers between clients: 'I support Opus codec at 64kbps, my public IP is X, my encryption key is Y.' Once both sides agree, the Signaling Server's job is done — media flows directly."
         ),
-        msg('Press ⌘K, search for "Signaling Server", add it, then connect Message Service → Signaling Server.'),
+        msg("Press ⌘K and search for \"Signaling Server\" and press Enter to add it, then connect Message Service → Signaling Server."),
       ],
       requiredNodes: ['signaling_server'],
       requiredEdges: [edge('microservice', 'signaling_server')],
@@ -258,7 +258,7 @@ const l1 = level({
         msg(
           "TURN (Traversal Using Relays around NAT) relays audio through Discord's servers when direct connection fails. It adds ~20ms latency but guarantees connectivity. Discord runs TURN servers in every major region to minimize this latency."
         ),
-        msg('Press ⌘K, search for "TURN Server", add it, then connect Signaling Server → TURN Server.'),
+        msg("Press ⌘K and search for \"TURN Server\" and press Enter to add it, then connect Signaling Server → TURN Server."),
       ],
       requiredNodes: ['turn_server'],
       requiredEdges: [edge('signaling_server', 'turn_server')],
@@ -293,7 +293,7 @@ const l1 = level({
         msg(
           'The Media Server receives audio from all participants, mixes them, and sends each person the combined stream minus their own voice. Discord uses Opus codec at 64kbps — high quality, low bandwidth.'
         ),
-        msg('Press ⌘K, search for "Media Server", add it, then connect TURN Server → Media Server.'),
+        msg("Press ⌘K and search for \"Media Server\" and press Enter to add it, then connect TURN Server → Media Server."),
       ],
       requiredNodes: ['media_server'],
       requiredEdges: [edge('turn_server', 'media_server')],
@@ -328,7 +328,7 @@ const l1 = level({
         msg(
           "Discord shards presence by user ID. When you come online, your shard broadcasts your status to all your friends' shards. This fan-out is why Discord uses Elixir — it handles millions of concurrent lightweight processes."
         ),
-        msg('Press ⌘K, search for "Presence Service", add it, then connect Message Service → Presence Service.'),
+        msg("Press ⌘K and search for \"Presence Service\" and press Enter to add it, then connect Message Service → Presence Service."),
       ],
       requiredNodes: ['presence_service'],
       requiredEdges: [edge('microservice', 'presence_service')],
@@ -363,7 +363,7 @@ const l1 = level({
         msg(
           "Cassandra handles Discord's write throughput: billions of new messages per day. It scales linearly — add more nodes, get more capacity. No single point of failure. Discord partitions by channel_id so all messages in a channel are co-located."
         ),
-        msg('Press ⌘K, search for "NoSQL Database", add it, then connect Message Service → NoSQL Database.'),
+        msg("Press ⌘K and search for \"NoSQL Database\" and press Enter to add it, then connect Message Service → NoSQL Database."),
       ],
       requiredNodes: ['nosql_db'],
       requiredEdges: [edge('microservice', 'nosql_db')],
@@ -398,7 +398,7 @@ const l1 = level({
         msg(
           "Every message send requires a permission check: can this user send messages in this channel? That check hits Redis — sub-millisecond. Without the cache, every message would require a database read for permissions."
         ),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect Message Service → In-Memory Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Message Service → In-Memory Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('microservice', 'in_memory_cache')],
@@ -454,7 +454,7 @@ const l2 = level({
           "Discord's Event Bus streams message events, voice state changes, and presence updates. When a popular streamer goes live, millions of presence updates stream through Kafka within seconds."
         ),
         msg(
-          "Press ⌘K, search for \"Kafka / Streaming\", add it, then connect Load Balancer → Kafka Streaming."
+          "Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Load Balancer → Kafka Streaming."
         ),
       ],
       requiredNodes: ["kafka_streaming"],
@@ -497,7 +497,7 @@ const l2 = level({
           "It must route notifications to the correct device — mobile, desktop, or browser. When you're on mobile, you get a push. When you're on desktop, you get an in-app notification."
         ),
         msg(
-          "Press ⌘K, search for \"Worker / Background Job\", add it, then connect Kafka Streaming → Notification Worker."
+          "Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."
         ),
       ],
       requiredNodes: ["worker_job"],
@@ -540,7 +540,7 @@ const l2 = level({
           "With 200 million users, Redis must handle millions of presence updates per second. When you come online, your status fans out to all your friends' connections instantly."
         ),
         msg(
-          "Press ⌘K, search for \"In-Memory Cache\", add it, then connect Load Balancer → In-Memory Cache."
+          "Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Load Balancer → In-Memory Cache."
         ),
       ],
       requiredNodes: ["in_memory_cache"],
@@ -583,7 +583,7 @@ const l2 = level({
           "Message sentiment, engagement metrics, and channel activity stream to ClickHouse for real-time analytics. Discord can see trending channels within seconds of activity."
         ),
         msg(
-          "Press ⌘K, search for \"CDC Connector\", add it, then connect Message Service → CDC Connector."
+          "Press ⌘K and search for \"CDC Connector\" and press Enter to add it, then connect Message Service → CDC Connector."
         ),
       ],
       requiredNodes: ["cdc_connector"],
@@ -626,7 +626,7 @@ const l2 = level({
           "Discord's message history is stored in Cassandra — but user and server data lives in MySQL. ACID transactions ensure consistent billing for Nitro subscriptions."
         ),
         msg(
-          "Press ⌘K, search for \"SQL Database\", add it, then connect Auth Service → SQL Database."
+          "Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."
         ),
       ],
       requiredNodes: ["sql_db"],
@@ -669,7 +669,7 @@ const l2 = level({
           "Logs flow to Datadog — Discord processes billions of log lines from millions of concurrent connections. Moderation teams can audit any action in seconds."
         ),
         msg(
-          "Press ⌘K, search for \"Structured Logger\", add it, then connect Load Balancer → Structured Logger."
+          "Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Load Balancer → Structured Logger."
         ),
       ],
       requiredNodes: ["structured_logger"],
@@ -712,7 +712,7 @@ const l2 = level({
           "Message delivery must complete in <100ms — tracked as a top-tier SLO. When latency exceeds the SLO target, on-call is alerted."
         ),
         msg(
-          "Press ⌘K, search for \"SLO/SLI Tracker\", add it, then connect Metrics Collector → SLO/SLI Tracker."
+          "Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO/SLI Tracker."
         ),
       ],
       requiredNodes: ["slo_tracker"],
@@ -755,7 +755,7 @@ const l2 = level({
           "During a DDoS attack, the error budget is consumed rapidly — on-call teams use this to make real-time capacity decisions."
         ),
         msg(
-          "Press ⌘K, search for \"Error Budget Monitor\", add it, then connect SLO/SLI Tracker → Error Budget Monitor."
+          "Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO/SLI Tracker → Error Budget Monitor."
         ),
       ],
       requiredNodes: ["error_budget_alert"],
@@ -812,7 +812,7 @@ const l3 = level({
           "Discord's Service Mesh (Envoy) handles mTLS between gateway servers, voice servers, and media services. Discord's architecture uses a custom transport (Disstress) over UDP for voice — meshed separately from the REST API mesh."
         ),
         msg(
-          "Press ⌘K, search for \"Service Mesh (Istio)\", add it, then connect Load Balancer → Service Mesh."
+          "Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect Load Balancer → Service Mesh."
         ),
       ],
       requiredNodes: ["service_mesh"],
@@ -855,7 +855,7 @@ const l3 = level({
           "The BFF manages WebSocket connections, batches events, and handles the proprietary Discord Gateway protocol for real-time updates. This is the protocol that keeps your Discord open in the background."
         ),
         msg(
-          "Press ⌘K, search for \"BFF Gateway\", add it, then connect API Gateway → BFF Gateway."
+          "Press ⌘K and search for \"BFF Gateway\" and press Enter to add it, then connect API Gateway → BFF Gateway."
         ),
       ],
       requiredNodes: ["bff_gateway"],
@@ -898,7 +898,7 @@ const l3 = level({
           "Leaky buckets smooth bursts while preventing sustained abuse. If a bot tries to spam messages, the rate limiter kicks in — you know that 429 error you see sometimes?"
         ),
         msg(
-          "Press ⌘K, search for \"Leaky Bucket Rate Limiter\", add it, then connect BFF Gateway → Leaky Bucket Rate Limiter."
+          "Press ⌘K and search for \"Leaky Bucket Rate Limiter\" and press Enter to add it, then connect BFF Gateway → Leaky Bucket Rate Limiter."
         ),
       ],
       requiredNodes: ["leaky_bucket_limiter"],
@@ -941,7 +941,7 @@ const l3 = level({
           "A message to a 100,000-member server touches dozens of services. Without distributed tracing, debugging a slow message delivery would be impossible."
         ),
         msg(
-          "Press ⌘K, search for \"OpenTelemetry Collector\", add it, then connect Metrics Collector → OpenTelemetry Collector."
+          "Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Metrics Collector → OpenTelemetry Collector."
         ),
       ],
       requiredNodes: ["otel_collector"],
@@ -984,7 +984,7 @@ const l3 = level({
           "Debugging a lost message requires tracing across all these components. The correlation ID follows every hop — from the client to the gateway to the notification worker."
         ),
         msg(
-          "Press ⌘K, search for \"Correlation ID Handler\", add it, then connect BFF Gateway → Correlation ID Handler."
+          "Press ⌘K and search for \"Correlation ID Handler\" and press Enter to add it, then connect BFF Gateway → Correlation ID Handler."
         ),
       ],
       requiredNodes: ["correlation_id_handler"],
@@ -1027,7 +1027,7 @@ const l3 = level({
           "Voice servers are particularly sensitive — compromised voice nodes could intercept media. SPIFFE certificates ensure every node is authenticated before handling voice traffic."
         ),
         msg(
-          "Press ⌘K, search for \"mTLS Certificate Authority\", add it, then connect Service Mesh → mTLS Certificate Authority."
+          "Press ⌘K and search for \"mTLS Certificate Authority\" and press Enter to add it, then connect Service Mesh → mTLS Certificate Authority."
         ),
       ],
       requiredNodes: ["mtls_certificate_authority"],
@@ -1070,7 +1070,7 @@ const l3 = level({
           "Lock-assisted refresh prevents origin overload. Without it, millions of requests would hit the origin simultaneously when a cache misses during a viral moment."
         ),
         msg(
-          "Press ⌘K, search for \"Cache Stampede Guard\", add it, then connect CDN → Cache Stampede Guard."
+          "Press ⌘K and search for \"Cache Stampede Guard\" and press Enter to add it, then connect CDN → Cache Stampede Guard."
         ),
       ],
       requiredNodes: ["cache_stampede_guard"],
@@ -1113,7 +1113,7 @@ const l3 = level({
           "These are precomputed in Redis for fast permission checks — sub-millisecond role resolution is critical for moderation. When someone with Manage Messages tries to purge spam, the permission check must be instant."
         ),
         msg(
-          "Press ⌘K, search for \"Change Data Cache\", add it, then connect CDC Connector → Change Data Cache."
+          "Press ⌘K and search for \"Change Data Cache\" and press Enter to add it, then connect CDC Connector → Change Data Cache."
         ),
       ],
       requiredNodes: ["change_data_cache"],
@@ -1156,7 +1156,7 @@ const l3 = level({
           "This data drives Discord's product and monetization decisions. Product managers query ClickHouse to understand which features drive Nitro conversions."
         ),
         msg(
-          "Press ⌘K, search for \"Data Warehouse\", add it, then connect CDC Connector → Data Warehouse."
+          "Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."
         ),
       ],
       requiredNodes: ["data_warehouse"],
@@ -1199,7 +1199,7 @@ const l3 = level({
           "Immutable audit logs are required for server admins and legal compliance. Server admins can review who banned whom and why. Legal teams can subpoena moderation records."
         ),
         msg(
-          "Press ⌘K, search for \"Event Store\", add it, then connect Structured Logger → Event Store."
+          "Press ⌘K and search for \"Event Store\" and press Enter to add it, then connect Structured Logger → Event Store."
         ),
       ],
       requiredNodes: ["event_store"],
@@ -1242,7 +1242,7 @@ const l3 = level({
           "When you switch channels, the next channel's state is preloaded. This is why channel switches feel instant — the BFF already fetched the messages before you clicked."
         ),
         msg(
-          "Press ⌘K, search for \"Prefetch Cache\", add it, then connect BFF Gateway → Prefetch Cache."
+          "Press ⌘K and search for \"Prefetch Cache\" and press Enter to add it, then connect BFF Gateway → Prefetch Cache."
         ),
       ],
       requiredNodes: ["prefetch_cache"],

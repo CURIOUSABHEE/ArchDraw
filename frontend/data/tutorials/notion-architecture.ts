@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "Notion's client is a block-based editor — every element is a block with a unique ID. When you type, you're not editing a string, you're creating block operations that get synced to every collaborator."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -88,7 +88,7 @@ const l1 = level({
         msg(
           "The API Gateway routes both. A page load is a REST request to fetch block data. Opening a shared document upgrades to a WebSocket connection for live sync."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -126,7 +126,7 @@ const l1 = level({
         msg(
           "The Auth Service also enforces Notion's permission hierarchy: workspace admins, members, guests, and public viewers all have different access levels. Every block read or write is permission-checked."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect API Gateway → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect API Gateway → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('api_gateway', 'auth_service')],
@@ -164,7 +164,7 @@ const l1 = level({
         msg(
           "The Sync Service uses operational transforms — it receives both edits, transforms them so they're compatible, and applies both. Neither person loses their work. This is the core algorithm behind Google Docs and Notion."
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Auth Service → Sync Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Auth Service → Sync Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('auth_service', 'microservice')],
@@ -205,7 +205,7 @@ const l1 = level({
           "The Block Service handles all reads and writes to this tree. When you move a block, it atomically removes it from one parent and inserts it into another — no partial states."
         ),
         msg(
-          'Press ⌘K, search for "Microservice", add another one for the Block Service, then connect Sync Service → Block Service.'
+          'Press ⌘K and search for "Microservice" and press Enter to add another one for the Block Service, then connect Sync Service → Block Service.'
         ),
       ],
       requiredNodes: ['microservice'],
@@ -246,7 +246,7 @@ const l1 = level({
         msg(
           "NoSQL's flexible document model handles this perfectly. A paragraph block has text content. A database block has schema and rows. Both are just documents with different shapes — no schema migrations needed."
         ),
-        msg('Press ⌘K, search for "NoSQL Database", add it, then connect Block Service → NoSQL Database.'),
+        msg("Press ⌘K and search for \"NoSQL Database\" and press Enter to add it, then connect Block Service → NoSQL Database."),
       ],
       requiredNodes: ['nosql_db'],
       requiredEdges: [edge('microservice', 'nosql_db')],
@@ -286,7 +286,7 @@ const l1 = level({
         msg(
           "The cache stores the block tree for popular pages. Cache TTL is short — 60 seconds — because collaborative pages change frequently. But even a 60-second cache dramatically reduces database load."
         ),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect Block Service → In-Memory Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Block Service → In-Memory Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('microservice', 'in_memory_cache')],
@@ -326,7 +326,7 @@ const l1 = level({
         msg(
           "A Message Queue decouples all of this from the write path. The Block Service publishes a 'block_updated' event and returns immediately. Search indexing happens asynchronously — the editor stays fast."
         ),
-        msg('Press ⌘K, search for "Message Queue", add it, then connect Block Service → Message Queue.'),
+        msg("Press ⌘K and search for \"Message Queue\" and press Enter to add it, then connect Block Service → Message Queue."),
       ],
       requiredNodes: ['message_queue'],
       requiredEdges: [edge('microservice', 'message_queue')],
@@ -366,7 +366,7 @@ const l1 = level({
         msg(
           "Notion generates a pre-signed URL, the client uploads directly to S3, then tells Notion the upload is complete. Notion stores the URL as a block property. This keeps Notion's servers out of the file transfer path entirely."
         ),
-        msg('Press ⌘K, search for "Object Storage", add it, then connect Block Service → Object Storage.'),
+        msg("Press ⌘K and search for \"Object Storage\" and press Enter to add it, then connect Block Service → Object Storage."),
       ],
       requiredNodes: ['object_storage'],
       requiredEdges: [edge('microservice', 'object_storage')],
@@ -416,7 +416,7 @@ const l2 = level({
       messages: [
         msg("Level 2 — Notion at Scale. Kafka streams block operations to all collaborators."),
         msg("Every keystroke in a shared document generates an event that must be broadcast to all collaborators. Kafka enables this at scale."),
-        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect API Gateway → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect API Gateway → Kafka Streaming."),
       ],
       requiredNodes: ["kafka_streaming"],
       requiredEdges: [edge("api_gateway", "kafka_streaming")],
@@ -452,7 +452,7 @@ const l2 = level({
       messages: [
         msg("Notification workers handle @mentions, comments, and shared document alerts."),
         msg("Notifications must be delivered in seconds — collaboration depends on timely awareness of changes."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ["worker_job"],
       requiredEdges: [edge("kafka_streaming", "worker_job")],
@@ -488,7 +488,7 @@ const l2 = level({
       messages: [
         msg("Notion's Redis Cache stores active document sessions and presence state."),
         msg("When 20 team members edit a shared database, their presence and cursors are cached for instant retrieval."),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect API Gateway → In-Memory Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect API Gateway → In-Memory Cache."),
       ],
       requiredNodes: ["in_memory_cache"],
       requiredEdges: [edge("api_gateway", "in_memory_cache")],
@@ -524,7 +524,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector mirrors document activity to the analytics platform."),
         msg("Block usage, template engagement, and collaboration metrics stream to ClickHouse for product insights."),
-        msg('Press ⌘K, search for "CDC Connector", add it, then connect Sync Service → CDC Connector.'),
+        msg("Press ⌘K and search for \"CDC Connector\" and press Enter to add it, then connect Sync Service → CDC Connector."),
       ],
       requiredNodes: ["cdc_connector"],
       requiredEdges: [edge("microservice", "cdc_connector")],
@@ -560,7 +560,7 @@ const l2 = level({
       messages: [
         msg("PostgreSQL stores user accounts, workspaces, and permissions."),
         msg("Document content is stored as structured JSON in PostgreSQL — Notion's block-based model maps naturally to JSON."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."),
       ],
       requiredNodes: ["sql_db"],
       requiredEdges: [edge("auth_service", "sql_db")],
@@ -596,7 +596,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger captures query latency, cache hit rates, and collaboration sync times."),
         msg("Performance logs track p99 latency — Notion's target is <200ms for document loads."),
-        msg('Press ⌘K, search for "Structured Logger", add it, then connect API Gateway → Structured Logger.'),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect API Gateway → Structured Logger."),
       ],
       requiredNodes: ["structured_logger"],
       requiredEdges: [edge("api_gateway", "structured_logger")],
@@ -632,7 +632,7 @@ const l2 = level({
       messages: [
         msg("SLO Tracker monitors document load time, collaboration sync latency, and search response time."),
         msg("Document load must complete in <200ms — tracked as a critical SLO."),
-        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Structured Logger → SLO Tracker.'),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Structured Logger → SLO Tracker."),
       ],
       requiredNodes: ["slo_tracker"],
       requiredEdges: [edge("structured_logger", "slo_tracker")],
@@ -668,7 +668,7 @@ const l2 = level({
       messages: [
         msg("Error Budget Monitor tracks collaboration sync SLO."),
         msg("When sync latency degrades during peak editing hours, engineers are alerted before the budget is depleted."),
-        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO Tracker → Error Budget Alert.'),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO Tracker → Error Budget Alert."),
       ],
       requiredNodes: ["error_budget_alert"],
       requiredEdges: [edge("slo_tracker", "error_budget_alert")],
@@ -718,7 +718,7 @@ const l3 = level({
       messages: [
         msg("Level 3 — Notion Enterprise. Service Mesh adds mTLS between all services."),
         msg("Notion's block-based architecture has dozens of specialized services — each requires secure inter-service communication."),
-        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect API Gateway → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect API Gateway → Service Mesh."),
       ],
       requiredNodes: ["service_mesh"],
       requiredEdges: [edge("api_gateway", "service_mesh")],
@@ -754,7 +754,7 @@ const l3 = level({
       messages: [
         msg("BFF Gateway serves optimized block APIs for web and mobile clients."),
         msg("It batches block operations, handles offline sync reconciliation, and manages collaborative cursor positions."),
-        msg('Press ⌘K, search for "BFF Gateway", add it, then connect Service Mesh → BFF Gateway.'),
+        msg("Press ⌘K and search for \"BFF Gateway\" and press Enter to add it, then connect Service Mesh → BFF Gateway."),
       ],
       requiredNodes: ["bff_gateway"],
       requiredEdges: [edge("service_mesh", "bff_gateway")],
@@ -790,7 +790,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter enforces per-workspace limits: Free (1000/min), Plus (5000), Business (20000)."),
         msg("Token buckets prevent runaway API usage from integrations and ensure fair resource allocation."),
-        msg('Press ⌘K, search for "Rate Limiter", add it, then connect BFF Gateway → Token Bucket Limiter.'),
+        msg("Press ⌘K and search for \"Rate Limiter\" and press Enter to add it, then connect BFF Gateway → Token Bucket Limiter."),
       ],
       requiredNodes: ["token_bucket_limiter"],
       requiredEdges: [edge("bff_gateway", "token_bucket_limiter")],
@@ -826,7 +826,7 @@ const l3 = level({
       messages: [
         msg("OTel Collector traces block operations across document servers."),
         msg("A single paste operation can touch: block creation, search indexing, permission evaluation, and webhook delivery."),
-        msg('Press ⌘K, search for "OTel Collector", add it, then connect Service Mesh → OTel Collector.'),
+        msg("Press ⌘K and search for \"OTel Collector\" and press Enter to add it, then connect Service Mesh → OTel Collector."),
       ],
       requiredNodes: ["otel_collector"],
       requiredEdges: [edge("service_mesh", "otel_collector")],
@@ -862,7 +862,7 @@ const l3 = level({
       messages: [
         msg("Correlation ID Handler links block edits to every service in the request chain."),
         msg("Debugging a lost edit requires tracing across OT engine, search indexer, permission service, and notification worker."),
-        msg('Press ⌘K, search for "Correlation ID", add it, then connect BFF Gateway → Correlation ID Handler.'),
+        msg("Press ⌘K and search for \"Correlation ID\" and press Enter to add it, then connect BFF Gateway → Correlation ID Handler."),
       ],
       requiredNodes: ["correlation_id_handler"],
       requiredEdges: [edge("bff_gateway", "correlation_id_handler")],
@@ -898,7 +898,7 @@ const l3 = level({
       messages: [
         msg("SPIFFE CA issues certificates to every workspace worker and sync server."),
         msg("Workspace isolation is critical — compromised workers must not access other workspaces' data."),
-        msg('Press ⌘K, search for "SPIFFE CA", add it, then connect Service Mesh → mTLS Certificate Authority.'),
+        msg("Press ⌘K and search for \"SPIFFE CA\" and press Enter to add it, then connect Service Mesh → mTLS Certificate Authority."),
       ],
       requiredNodes: ["mtls_certificate_authority"],
       requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
@@ -934,7 +934,7 @@ const l3 = level({
       messages: [
         msg("Cache Stampede Guard protects workspace session caches from stampedes."),
         msg("When a popular shared template is opened by many users simultaneously, the stampede guard prevents cache overwhelm."),
-        msg('Press ⌘K, search for "Cache Stampede Guard", add it, then connect In-Memory Cache → Cache Stampede Guard.'),
+        msg("Press ⌘K and search for \"Cache Stampede Guard\" and press Enter to add it, then connect In-Memory Cache → Cache Stampede Guard."),
       ],
       requiredNodes: ["cache_stampede_guard"],
       requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
@@ -970,7 +970,7 @@ const l3 = level({
       messages: [
         msg("Change Data Cache precomputes workspace activity feeds and @mention notifications in Redis."),
         msg("@mention notifications must appear in under 1 second — precomputing enables instant retrieval."),
-        msg('Press ⌘K, search for "Change Data Cache", add it, then connect CDC Connector → Change Data Cache.'),
+        msg("Press ⌘K and search for \"Change Data Cache\" and press Enter to add it, then connect CDC Connector → Change Data Cache."),
       ],
       requiredNodes: ["change_data_cache"],
       requiredEdges: [edge("cdc_connector", "change_data_cache")],
@@ -1006,7 +1006,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores workspace analytics: feature usage, template engagement, and collaboration patterns."),
         msg("This data drives Notion's product decisions and growth strategies."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ["data_warehouse"],
       requiredEdges: [edge("cdc_connector", "data_warehouse")],
@@ -1042,7 +1042,7 @@ const l3 = level({
       messages: [
         msg("Event Store stores every block operation as an immutable event."),
         msg("Event sourcing enables infinite undo/redo, document version history, and offline sync reconciliation."),
-        msg('Press ⌘K, search for "Event Store", add it, then connect Sync Service → Event Store.'),
+        msg("Press ⌘K and search for \"Event Store\" and press Enter to add it, then connect Sync Service → Event Store."),
       ],
       requiredNodes: ["event_store"],
       requiredEdges: [edge("microservice", "event_store")],
@@ -1078,7 +1078,7 @@ const l3 = level({
       messages: [
         msg("GraphQL Federation composes the API from blocks, databases, comments, and search domains."),
         msg("Each domain team owns their schema while the gateway provides a unified API."),
-        msg('Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation.'),
+        msg("Press ⌘K and search for \"GraphQL Federation Gateway\" and press Enter to add it, then connect API Gateway → GraphQL Federation."),
       ],
       requiredNodes: ["graphql_federation"],
       requiredEdges: [edge("api_gateway", "graphql_federation")],

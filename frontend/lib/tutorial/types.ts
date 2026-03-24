@@ -1,76 +1,244 @@
-// ── Single source of truth for all tutorial system types ────────────────────
+import type { Node, Edge } from 'reactflow';
 
-/** Component reference — links to components.json */
-export type ComponentRef = {
-  id: string;        // must exist in components.json
-  label: string;     // must match label in components.json
-  searchHint: string; // what user types in ⌘K — defaults to label
-};
+// ──────────────────────────────────────────────────────────────────────────────
+// Core Types
+// ──────────────────────────────────────────────────────────────────────────────
 
-/** Edge requirement for connection validation */
-export type EdgeRequirement = {
-  from: string;  // first meaningful word of source label
-  to: string;    // first meaningful word of target label
-  label?: string; // optional edge label shown on canvas
-};
+export type ComponentType =
+  | 'client'
+  | 'cdn'
+  | 'gateway'
+  | 'load_balancer'
+  | 'proxy'
+  | 'service'
+  | 'serverless'
+  | 'worker'
+  | 'database'
+  | 'cache'
+  | 'queue'
+  | 'storage'
+  | 'search'
+  | 'auth'
+  | 'ai'
+  | 'llm'
+  | 'vector_db'
+  | 'embedding'
+  | 'rag'
+  | 'observability'
+  | 'logger'
+  | 'metrics'
+  | 'tracing'
+  | 'external'
+  | 'generic';
 
-/** Single chat message in the guide panel */
-export type TutorialMessage = {
-  role: 'ai';
-  content: string; // max 3 sentences
-};
+export interface ComponentMatcher {
+  type?: ComponentType;
+  category?: string;
+  keywords?: string[];
+  labelContains?: string[];
+}
 
-/** Validation config for a step */
-export type StepValidation = {
-  successMessage: string;
-  errorMessage: string;
-};
-
-/** A single step inside a level */
-export type TutorialStep = {
-  id: number;              // sequential per level, starts at 1
-  title: string;           // max 6 words
-  explanation: string;     // 2-3 sentences, concept explanation
-  action: string;          // add + connect + why
-  why: string;             // 1-2 sentences, architectural reason
-  component: ComponentRef; // what to add
-  openingMessage: string;  // pre-written guide panel message
-  celebrationMessage: string; // after node + edge confirmed
-  connectingMessage?: string; // optional: specific instruction for connecting phase
-  messages: TutorialMessage[]; // exactly 2-3 messages
-  requiredNodes: string[];     // component IDs from components.json
-  requiredEdges: EdgeRequirement[]; // connections to make
-  validation: StepValidation;  // always present — no optional chaining needed
-};
-
-/** A single level inside a tutorial */
-export type TutorialLevel = {
-  level: 1 | 2 | 3;
-  title: string;        // max 4 words
-  subtitle: string;     // max 8 words
-  description: string;  // 2-3 sentences
-  stepCount: number;    // always equals steps.length — computed by factory
-  estimatedTime: string; // format: '~XX mins'
-  unlocks?: string;     // what next level is called
-  prerequisite?: string; // for levels 2 and 3
-  contextMessage: string; // opening message for this level
-  steps: TutorialStep[];
-};
-
-/** Tutorial difficulty */
-export type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced';
-
-/** Full tutorial object (leveled format) */
-export type Tutorial = {
-  id: string;           // kebab-case, ends in -architecture
-  title: string;        // "How to Design X Architecture"
-  description: string;  // 2 sentences max
-  difficulty: Difficulty;
+export interface GraphNode {
+  id: string;
+  type: string;
+  label: string;
   category: string;
-  isLive: boolean;      // true ONLY for netflix-architecture
-  icon: string;         // valid Lucide icon name
-  color: string;        // hex color
-  tags: string[];       // 3-5 tags
-  estimatedTime: string; // total across all levels
-  levels: [TutorialLevel] | [TutorialLevel, TutorialLevel] | [TutorialLevel, TutorialLevel, TutorialLevel];
-};
+  color: string;
+  position: { x: number; y: number };
+  componentId: string;
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceComponentId: string;
+  targetComponentId: string;
+}
+
+export interface ArchitectureGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  getNodesByMatcher(matcher: ComponentMatcher): GraphNode[];
+  hasNodesMatching(matcher: ComponentMatcher): boolean;
+  countNodesMatching(matcher: ComponentMatcher): number;
+  isConnected(from: ComponentMatcher, to: ComponentMatcher): boolean;
+  hasEdge(from: ComponentMatcher, to: ComponentMatcher): boolean;
+  getEdges(): GraphEdge[];
+  getNodes(): GraphNode[];
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Validation
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface ValidationError {
+  code: string;
+  message: string;
+  hint?: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+}
+
+export type ValidationFn = (graph: ArchitectureGraph) => ValidationResult;
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Feedback
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type FeedbackFn = (graph: ArchitectureGraph) => string[];
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Action Intent
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface ActionIntent {
+  type: 'ADD_NODE' | 'CONNECT' | 'DELETE_NODE' | 'MULTI';
+  matcher?: ComponentMatcher;
+  from?: ComponentMatcher;
+  to?: ComponentMatcher;
+  actions?: ActionIntent[];
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Tutorial Step
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface TutorialStep {
+  id: string;
+  order: number;
+  title: string;
+  description: string;
+  explanation: string;
+  why: string;
+  
+  action: ActionIntent;
+  validation: ValidationFn;
+  feedback: FeedbackFn;
+  
+  successMessage: string;
+  hints: string[];
+  
+  openingMessage?: string;
+  celebrationMessage?: string;
+  connectingMessage?: string;
+  messages?: string[];
+  errorMessage?: string;
+  contextMessage?: string;
+  
+  // GuidePanel compatibility
+  requiredNodes?: string[];
+  requiredEdges?: Array<{ from: string; to: string }>;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Tutorial Level
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface TutorialLevel {
+  id: string;
+  order: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  estimatedTime: string;
+  prerequisite?: string;
+  unlocks?: string;
+  contextMessage?: string;
+  level?: number;
+  stepCount?: number;
+  steps: TutorialStep[];
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Tutorial
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface Tutorial {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert' | string;
+  levels: TutorialLevel[];
+  tags: string[];
+  
+  contextMessage?: string;
+  category?: string;
+  color?: string;
+  estimatedTime?: string;
+  unlocks?: string;
+}
+
+export type TutorialMessage = string;
+export type StepValidation = ValidationResult;
+export type EdgeRequirement = { from: string; to: string };
+
+// ──────────────────────────────────────────────────────────────────────────────
+// State Machine
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type TutorialStatus = 
+  | 'idle'
+  | 'starting'
+  | 'in_progress'
+  | 'step_complete'
+  | 'level_complete'
+  | 'completed'
+  | 'paused'
+  | 'error';
+
+export interface TutorialState {
+  tutorialId: string | null;
+  levelId: string | null;
+  currentStepIndex: number;
+  status: TutorialStatus;
+  errors: ValidationError[];
+  hintsShown: number;
+  startedAt: number | null;
+  completedAt: number | null;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Events
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type CanvasEventType =
+  | 'node_added'
+  | 'node_deleted'
+  | 'node_updated'
+  | 'edge_created'
+  | 'edge_deleted'
+  | 'selection_changed'
+  | 'canvas_cleared';
+
+export interface CanvasEvent {
+  type: CanvasEventType;
+  timestamp: number;
+  payload: unknown;
+}
+
+export type EventHandler = (event: CanvasEvent, state: TutorialState) => TutorialState | void;
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Component Registry
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface ComponentDefinition {
+  id: string;
+  label: string;
+  category: string;
+  color: string;
+  icon?: string;
+  matcher: ComponentMatcher;
+}
+
+export interface ComponentRegistry {
+  register(definition: ComponentDefinition): void;
+  get(id: string): ComponentDefinition | undefined;
+  getAll(): ComponentDefinition[];
+  matches(component: GraphNode, matcher: ComponentMatcher): boolean;
+}

@@ -61,7 +61,7 @@ const l1 = level({
       connectingMessage: 'CDN is on the canvas. Connect Mobile Client → CDN first. Then connect Web Client → CDN. Both clients fetch all media through the CDN — photos, videos, stories, and profile pictures all come from the nearest edge server, not from Instagram\'s origin servers directly.',
       messages: [
         msg("Instagram uses multiple CDN providers — Meta's own CDN plus Akamai and Cloudflare as fallbacks. If one CDN has an outage another takes over automatically."),
-        msg("Press ⌘K, search for 'CDN', add it, then connect both Mobile and Web clients to it."),
+        msg("Press ⌘K and search for 'CDN' and press Enter to add it, then connect both Mobile and Web clients to it."),
       ],
       requiredNodes: ['cdn'],
       requiredEdges: [edge('client_mobile', 'cdn'), edge('client_web', 'cdn')],
@@ -80,7 +80,7 @@ const l1 = level({
       connectingMessage: 'API Gateway is on the canvas. Connect Mobile Client → API Gateway first. Then connect Web Client → API Gateway. Both clients send API calls — feed requests, post actions, profile updates — through the same gateway. Only media delivery goes through the CDN instead.',
       messages: [
         msg("Instagram uses GraphQL for its API since 2012 — one of the earliest large-scale GraphQL adoptions. This lets the mobile app request exactly the fields it needs, reducing data transfer by 30-40%."),
-        msg("Press ⌘K, search for 'API Gateway', add it, then connect both clients to it."),
+        msg("Press ⌘K and search for 'API Gateway' and press Enter to add it, then connect both clients to it."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_mobile', 'api_gateway'), edge('client_web', 'api_gateway')],
@@ -99,7 +99,7 @@ const l1 = level({
       connectingMessage: 'Load Balancer is on the canvas. Connect API Gateway → Load Balancer. Hover over API Gateway and drag to Load Balancer. All API traffic is now distributed across Instagram\'s server fleet before reaching any specific service.',
       messages: [
         msg("Instagram uses Layer 7 load balancing — it reads the request content to route different endpoints to specialized server pools. Upload requests go to upload servers, feed requests to feed servers."),
-        msg("Press ⌘K, search for 'Load Balancer', add it, then connect API Gateway → Load Balancer."),
+        msg("Press ⌘K and search for 'Load Balancer' and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -118,7 +118,7 @@ const l1 = level({
       connectingMessage: 'Upload Service is on the canvas. Connect Load Balancer → Upload Service. Hover over Load Balancer and drag to Upload Service. Upload requests are now routed specifically to the upload service — not mixed with feed or profile requests.',
       messages: [
         msg("The Upload Service does not process the media itself — it just receives, validates, and stores the raw file. Processing happens asynchronously in a separate pipeline to avoid blocking the upload."),
-        msg("Press ⌘K, search for 'Upload Service', add it, then connect Load Balancer → Upload Service."),
+        msg("Press ⌘K and search for \"Upload Service\" and press Enter to add it, then connect Load Balancer → Upload Service."),
       ],
       requiredNodes: ['upload_service'],
       requiredEdges: [edge('load_balancer', 'upload_service')],
@@ -137,7 +137,7 @@ const l1 = level({
       connectingMessage: 'Object Storage is on the canvas. Connect Upload Service → Object Storage. Hover over Upload Service and drag to Object Storage. Raw uploaded files land here immediately after upload. This is S3-compatible storage — infinitely scalable, 99.999999999% durability.',
       messages: [
         msg("Meta built their own object storage system called Haystack specifically for Instagram's scale. Traditional filesystems could not handle billions of small files efficiently."),
-        msg("Press ⌘K, search for 'Object Storage (S3-like)', add it, then connect Upload Service → Object Storage."),
+        msg("Press ⌘K and search for \"Object Storage (S3-like)\" and press Enter to add it, then connect Upload Service → Object Storage."),
       ],
       requiredNodes: ['object_storage'],
       requiredEdges: [edge('upload_service', 'object_storage')],
@@ -156,7 +156,7 @@ const l1 = level({
       connectingMessage: 'NoSQL Database is on the canvas. Connect Upload Service → NoSQL Database. When a photo uploads, two things happen simultaneously: the file goes to Object Storage and the metadata goes to NoSQL Database — both connections are created by the Upload Service.',
       messages: [
         msg("Instagram uses Cassandra for post metadata — it handles massive write throughput and never has a single point of failure since data is distributed across many nodes."),
-        msg("Press ⌘K, search for 'NoSQL Database', add it, then connect Upload Service → NoSQL Database."),
+        msg("Press ⌘K and search for \"NoSQL Database\" and press Enter to add it, then connect Upload Service → NoSQL Database."),
       ],
       requiredNodes: ['nosql_db'],
       requiredEdges: [edge('upload_service', 'nosql_db')],
@@ -188,7 +188,7 @@ const l2 = level({
       connectingMessage: 'Auth Service is on the canvas. Connect Load Balancer → Auth Service. Every request to any Instagram endpoint is authenticated before reaching any service. The Load Balancer routes to Auth Service first for all non-CDN traffic.',
       messages: [
         msg("Every request to any Instagram endpoint is authenticated before reaching any service. The Load Balancer routes to Auth Service first for all non-CDN traffic."),
-        msg("Press ⌘K, search for 'Auth Service', add it, then connect Load Balancer → Auth Service."),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -207,7 +207,7 @@ const l2 = level({
       connectingMessage: 'SQL Database is on the canvas. Connect Auth Service → SQL Database. User accounts and relationships require strong consistency — SQL guarantees that a follow relationship is either fully committed or fully rolled back, never in a partial state.',
       messages: [
         msg("User accounts and relationships require strong consistency — SQL guarantees that a follow relationship is either fully committed or fully rolled back, never in a partial state."),
-        msg("Press ⌘K, search for 'SQL Database', add it, then connect Auth Service → SQL Database."),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('auth_service', 'sql_db')],
@@ -226,7 +226,7 @@ const l2 = level({
       connectingMessage: 'Feed Service is on the canvas. Connect Load Balancer → Feed Service. When a user opens Instagram the Load Balancer routes the feed request here. This service assembles and ranks the personalized feed.',
       messages: [
         msg("When a user opens Instagram the Load Balancer routes the feed request here. This service assembles and ranks the personalized feed."),
-        msg("Press ⌘K, search for 'Feed Service', add it, then connect Load Balancer → Feed Service."),
+        msg("Press ⌘K and search for \"Feed Service\" and press Enter to add it, then connect Load Balancer → Feed Service."),
       ],
       requiredNodes: ['feed_service'],
       requiredEdges: [edge('load_balancer', 'feed_service')],
@@ -245,7 +245,7 @@ const l2 = level({
       connectingMessage: 'In-Memory Cache is on the canvas. Connect Feed Service → In-Memory Cache. Pre-computed feeds are stored here. When a user opens Instagram the cached feed loads in milliseconds. The Feed Service regenerates the cache in the background while the user is already scrolling.',
       messages: [
         msg("Pre-computed feeds are stored here. When a user opens Instagram the cached feed loads in milliseconds. The Feed Service regenerates the cache in the background while the user is already scrolling."),
-        msg("Press ⌘K, search for 'In-Memory Cache', add it, then connect Feed Service → In-Memory Cache."),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Feed Service → In-Memory Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('feed_service', 'in_memory_cache')],
@@ -264,7 +264,7 @@ const l2 = level({
       connectingMessage: 'Kafka is on the canvas. Connect Upload Service → Kafka. When a post is uploaded, an event is published to Kafka. Every service that cares about new posts — notifications, feed updates, analytics, ML training — consumes from Kafka independently.',
       messages: [
         msg("When a post is uploaded, an event is published to Kafka. Every service that cares about new posts — notifications, feed updates, analytics, ML training — consumes from Kafka independently."),
-        msg("Press ⌘K, search for 'Kafka / Streaming', add it, then connect Upload Service → Kafka Streaming."),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Upload Service → Kafka Streaming."),
       ],
       requiredNodes: ['kafka_streaming'],
       requiredEdges: [edge('upload_service', 'kafka_streaming')],
@@ -283,7 +283,7 @@ const l2 = level({
       connectingMessage: 'Worker is on the canvas. Connect Kafka → Worker. Upload events from Kafka trigger background jobs. Media transcoding, thumbnail generation, and hashtag indexing all run here asynchronously while the user sees their post immediately.',
       messages: [
         msg("Upload events from Kafka trigger background jobs. Media transcoding, thumbnail generation, and hashtag indexing all run here asynchronously while the user sees their post immediately."),
-        msg("Press ⌘K, search for 'Worker', add it, then connect Kafka Streaming → Worker / Background Job."),
+        msg("Press ⌘K and search for \"Worker\" and press Enter to add it, then connect Kafka Streaming → Worker / Background Job."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('kafka_streaming', 'worker_job')],
@@ -302,7 +302,7 @@ const l2 = level({
       connectingMessage: 'Search Engine is on the canvas. Connect Load Balancer → Search Engine. Search requests are routed directly to the search engine — separate from the feed service because search has different performance characteristics and scaling requirements.',
       messages: [
         msg("Search requests are routed directly to the search engine — separate from the feed service because search has different performance characteristics and scaling requirements."),
-        msg("Press ⌘K, search for 'Search Engine', add it, then connect Load Balancer → Search Engine."),
+        msg("Press ⌘K and search for \"Search Engine\" and press Enter to add it, then connect Load Balancer → Search Engine."),
       ],
       requiredNodes: ['search_engine'],
       requiredEdges: [edge('load_balancer', 'search_engine')],
@@ -321,7 +321,7 @@ const l2 = level({
       connectingMessage: 'Logger is on the canvas. Connect Feed Service → Logger. Feed requests are logged with the full ranking signals used — this data is used to improve the ML model and debug ranking issues.',
       messages: [
         msg("Feed requests are logged with the full ranking signals used — this data is used to improve the ML model and debug ranking issues."),
-        msg("Press ⌘K, search for 'Logger', add it, then connect Feed Service → Logger."),
+        msg("Press ⌘K and search for \"Logger\" and press Enter to add it, then connect Feed Service → Logger."),
       ],
       requiredNodes: ['logger'],
       requiredEdges: [edge('feed_service', 'logger')],
@@ -340,7 +340,7 @@ const l2 = level({
       connectingMessage: 'Metrics Collector is on the canvas. Connect Logger → Metrics Collector. Logs feed into metric aggregation — error rates, latency percentiles, and throughput numbers are computed from log streams in real-time.',
       messages: [
         msg("Logs feed into metric aggregation — error rates, latency percentiles, and throughput numbers are computed from log streams in real-time."),
-        msg("Press ⌘K, search for 'Metrics Collector', add it, then connect Logger → Metrics Collector."),
+        msg("Press ⌘K and search for \"Metrics Collector\" and press Enter to add it, then connect Logger → Metrics Collector."),
       ],
       requiredNodes: ['metrics_collector'],
       requiredEdges: [edge('logger', 'metrics_collector')],
@@ -359,7 +359,7 @@ const l2 = level({
       connectingMessage: 'Dashboard is on the canvas. Connect Metrics Collector → Dashboard. Aggregated metrics flow to the dashboard where engineers monitor platform health 24/7 across every region Instagram operates in.',
       messages: [
         msg("Aggregated metrics flow to the dashboard where engineers monitor platform health 24/7 across every region Instagram operates in."),
-        msg("Press ⌘K, search for 'Dashboard (Grafana)', add it, then connect Metrics Collector → Dashboard."),
+        msg("Press ⌘K and search for \"Dashboard (Grafana)\" and press Enter to add it, then connect Metrics Collector → Dashboard."),
       ],
       requiredNodes: ['dashboard'],
       requiredEdges: [edge('metrics_collector', 'dashboard')],
@@ -390,7 +390,7 @@ const l3 = level({
       connectingMessage: 'GraphQL Federation Gateway is on the canvas. Connect Load Balancer → GraphQL Federation Gateway. Connect GraphQL Federation Gateway → User Service, → Feed Service, and → Media Service. The gateway receives client queries and fans them out to the appropriate services.',
       messages: [
         msg("The GraphQL Federation Gateway receives client queries and fans them out to User Service, Feed Service, and Media Service in parallel, then composes a unified response."),
-        msg("Press ⌘K, search for 'GraphQL Federation Gateway', add it, then connect Load Balancer → GraphQL Federation Gateway and to the services."),
+        msg("Press ⌘K and search for \"GraphQL Federation Gateway\" and press Enter to add it, then connect Load Balancer → GraphQL Federation Gateway and to the services."),
       ],
       requiredNodes: ['graphql_federation_gateway'],
       requiredEdges: [edge('load_balancer', 'graphql_federation_gateway')],
@@ -409,7 +409,7 @@ const l3 = level({
       connectingMessage: 'CDC Connector is on the canvas. Connect SQL Database → CDC Connector. Then connect CDC Connector → Cache and → Search Engine. Changes to the follower graph are streamed to downstream systems in real-time.',
       messages: [
         msg("The CDC Connector captures every follower graph change and streams it to downstream consumers. When a celebrity gains 1 million followers, all caches and indexes are updated within seconds without tight coupling."),
-        msg("Press ⌘K, search for 'CDC Connector', add it, then connect SQL Database → CDC Connector → Cache and Search Engine."),
+        msg("Press ⌘K and search for \"CDC Connector\" and press Enter to add it, then connect SQL Database → CDC Connector → Cache and Search Engine."),
       ],
       requiredNodes: ['cdc_connector'],
       requiredEdges: [edge('sql_db', 'cdc_connector')],
@@ -428,7 +428,7 @@ const l3 = level({
       connectingMessage: 'CQRS Command Handler is on the canvas. Connect Feed Service → CQRS Command Handler. Write operations (post, follow, like) are routed through the command handler while reads continue to use the existing read path.',
       messages: [
         msg("The CQRS Command Handler receives write operations and routes them through strict validation and event sourcing. Read operations bypass this and hit optimized read replicas directly."),
-        msg("Press ⌘K, search for 'CQRS Command Handler', add it, then connect Feed Service → CQRS Command Handler."),
+        msg("Press ⌘K and search for \"CQRS Command Handler\" and press Enter to add it, then connect Feed Service → CQRS Command Handler."),
       ],
       requiredNodes: ['cqrs_command_handler'],
       requiredEdges: [edge('feed_service', 'cqrs_command_handler')],
@@ -447,7 +447,7 @@ const l3 = level({
       connectingMessage: 'Notification Service is on the canvas. Connect Kafka → Notification Service. Like, comment, follow, and mention events flow from Kafka to the Notification Service which decides the delivery channel and priority for each notification type.',
       messages: [
         msg("Like, comment, follow, and mention events flow from Kafka to the Notification Service which decides the delivery channel and priority for each notification type."),
-        msg("Press ⌘K, search for 'Notification Service', add it, then connect Kafka Streaming → Notification Service."),
+        msg("Press ⌘K and search for \"Notification Service\" and press Enter to add it, then connect Kafka Streaming → Notification Service."),
       ],
       requiredNodes: ['notification_service'],
       requiredEdges: [edge('kafka_streaming', 'notification_service')],
@@ -466,7 +466,7 @@ const l3 = level({
       connectingMessage: 'CQRS Query Handler is on the canvas. Connect Read Replica → CQRS Query Handler. Then connect CQRS Query Handler → Feed Service. Read queries for feeds and profiles are served from denormalized views on read replicas.',
       messages: [
         msg("The CQRS Query Handler serves read queries from denormalized read replicas. Feed reads hit pre-computed views — no expensive joins or aggregations on the critical path."),
-        msg("Press ⌘K, search for 'CQRS Query Handler', add it, then connect Read Replica → CQRS Query Handler → Feed Service."),
+        msg("Press ⌘K and search for \"CQRS Query Handler\" and press Enter to add it, then connect Read Replica → CQRS Query Handler → Feed Service."),
       ],
       requiredNodes: ['cqrs_query_handler'],
       requiredEdges: [edge('feed_service', 'cqrs_query_handler')],
@@ -485,7 +485,7 @@ const l3 = level({
       connectingMessage: 'Recommendation Service is on the canvas. Connect Feed Service → Recommendation Service. When assembling a feed, the Feed Service queries the Recommendation Service for Explore page content and suggested accounts to mix into the home feed.',
       messages: [
         msg("When assembling a feed, the Feed Service queries the Recommendation Service for Explore page content and suggested accounts to mix into the home feed."),
-        msg("Press ⌘K, search for 'Recommendation Service', add it, then connect Feed Service → Recommendation Service."),
+        msg("Press ⌘K and search for \"Recommendation Service\" and press Enter to add it, then connect Feed Service → Recommendation Service."),
       ],
       requiredNodes: ['recommendation_service'],
       requiredEdges: [edge('feed_service', 'recommendation_service')],
@@ -504,7 +504,7 @@ const l3 = level({
       connectingMessage: 'Read Replica is on the canvas. Connect NoSQL Database → Read Replica. Then connect Read Replica → CQRS Query Handler. All read queries are served from replicas — the primary only handles writes.',
       messages: [
         msg("The Read Replica serves all read queries. Replication from primary to replica uses write-ahead log (WAL) shipping with lag under 100ms. Reads never contend with the high-throughput write path."),
-        msg("Press ⌘K, search for 'Read Replica', add it, then connect NoSQL Database → Read Replica → CQRS Query Handler."),
+        msg("Press ⌘K and search for \"Read Replica\" and press Enter to add it, then connect NoSQL Database → Read Replica → CQRS Query Handler."),
       ],
       requiredNodes: ['read_replica'],
       requiredEdges: [edge('nosql_db', 'read_replica')],
@@ -523,7 +523,7 @@ const l3 = level({
       connectingMessage: 'Data Warehouse is on the canvas. Connect Kafka → Data Warehouse. Every engagement event — view, like, share, save — flows from Kafka into the warehouse where data scientists run analysis and ML engineers extract training data.',
       messages: [
         msg("Every engagement event — view, like, share, save — flows from Kafka into the warehouse where data scientists run analysis and ML engineers extract training data."),
-        msg("Press ⌘K, search for 'Data Warehouse', add it, then connect Kafka Streaming → Data Warehouse."),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect Kafka Streaming → Data Warehouse."),
       ],
       requiredNodes: ['data_warehouse'],
       requiredEdges: [edge('kafka_streaming', 'data_warehouse')],
@@ -542,7 +542,7 @@ const l3 = level({
       connectingMessage: 'SLO/SLI Tracker is on the canvas. Connect Metrics Collector → SLO/SLI Tracker. Real-time metrics are evaluated against SLO thresholds — availability, latency, and error rates are tracked continuously.',
       messages: [
         msg("The SLO/SLI Tracker evaluates real-time metrics against defined SLOs. When availability drops below 99.99% or latency exceeds 200ms P95, the error budget begins depleting."),
-        msg("Press ⌘K, search for 'SLO/SLI Tracker', add it, then connect Metrics Collector → SLO/SLI Tracker."),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO/SLI Tracker."),
       ],
       requiredNodes: ['slo_sli_tracker'],
       requiredEdges: [edge('metrics_collector', 'slo_sli_tracker')],
@@ -561,7 +561,7 @@ const l3 = level({
       connectingMessage: 'Error Budget Monitor is on the canvas. Connect SLO/SLI Tracker → Error Budget Monitor. Error budgets are calculated continuously — when 80% is consumed, automated alerts fire and feature rollouts pause automatically.',
       messages: [
         msg("The Error Budget Monitor calculates remaining budget based on SLO violations. When 80% is consumed, automated alerts fire and feature rollouts pause until reliability improves."),
-        msg("Press ⌘K, search for 'Error Budget Monitor', add it, then connect SLO/SLI Tracker → Error Budget Monitor."),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO/SLI Tracker → Error Budget Monitor."),
       ],
       requiredNodes: ['error_budget_monitor'],
       requiredEdges: [edge('slo_sli_tracker', 'error_budget_monitor')],

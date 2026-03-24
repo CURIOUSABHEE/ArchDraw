@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "DoorDash's hardest problem: predicting delivery time accurately. Too optimistic and customers are disappointed. Too pessimistic and they order from a competitor. The ETA model runs in real-time using ML, traffic data, restaurant prep times, and dasher location."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -83,7 +83,7 @@ const l1 = level({
         msg(
           "A customer app can browse restaurants and place orders. A Dasher app can accept deliveries and update location. A merchant tablet can accept/reject orders and update prep times. The gateway enforces these permissions — a customer can't update a restaurant's menu, even if they bypass the UI."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -118,7 +118,7 @@ const l1 = level({
         msg(
           "DoorDash pre-scales their order service at 11:30am and 5:30pm daily. By the time the rush hits, capacity is already available. Reactive autoscaling would mean the first 2-3 minutes of the rush hit under-provisioned servers — exactly when customers are most likely to abandon."
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -153,7 +153,7 @@ const l1 = level({
         msg(
           "Customer signup is instant — email and password. Dasher onboarding takes days: identity verification, background check via Checkr, vehicle registration, and insurance verification. The Auth Service tracks onboarding state and only activates Dasher accounts after all checks pass."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -188,7 +188,7 @@ const l1 = level({
         msg(
           "Order states: PLACED → RESTAURANT_ACCEPTED → PREPARING → READY_FOR_PICKUP → DASHER_ASSIGNED → PICKED_UP → DELIVERED. Each transition notifies all three parties. If the restaurant rejects the order, the customer is refunded and the Dasher assignment is cancelled. The Order Service orchestrates all of this."
         ),
-        msg('Press ⌘K, search for "Order Service", add it, then connect Auth Service → Order Service.'),
+        msg("Press ⌘K and search for \"Order Service\" and press Enter to add it, then connect Auth Service → Order Service."),
       ],
       requiredNodes: ['order_service'],
       requiredEdges: [edge('auth_service', 'order_service')],
@@ -223,7 +223,7 @@ const l1 = level({
         msg(
           "With 1 million active Dashers, that's 250,000 location updates per second. The Dasher Service stores current positions in Redis (not a database) for fast geospatial queries. When a new order comes in, the Routing Engine queries Redis to find nearby available Dashers."
         ),
-        msg('Press ⌘K, search for "Dasher Service", add it, then connect Order Service → Dasher Service.'),
+        msg("Press ⌘K and search for \"Dasher Service\" and press Enter to add it, then connect Order Service → Dasher Service."),
       ],
       requiredNodes: ['dasher_service'],
       requiredEdges: [edge('order_service', 'dasher_service')],
@@ -258,7 +258,7 @@ const l1 = level({
         msg(
           "The algorithm considers: distance from Dasher to restaurant, whether the Dasher is already carrying another order (batching), restaurant prep time (no point sending a Dasher who'll arrive before the food is ready), and traffic. DoorDash batches orders — one Dasher can carry two orders from nearby restaurants to nearby customers."
         ),
-        msg('Press ⌘K, search for "Routing Engine", add it, then connect Dasher Service → Routing Engine.'),
+        msg("Press ⌘K and search for \"Routing Engine\" and press Enter to add it, then connect Dasher Service → Routing Engine."),
       ],
       requiredNodes: ['routing_engine'],
       requiredEdges: [edge('dasher_service', 'routing_engine')],
@@ -293,7 +293,7 @@ const l1 = level({
         msg(
           "The model has learned: this McDonald's location takes 4 minutes to prepare a Big Mac. This intersection has a 2-minute traffic delay at 6pm on Fridays. This apartment building takes 3 minutes to navigate to the right unit. All of this is learned from historical delivery data and updated in real-time."
         ),
-        msg('Press ⌘K, search for "ETA Service", add it, then connect Routing Engine → ETA Service.'),
+        msg("Press ⌘K and search for \"ETA Service\" and press Enter to add it, then connect Routing Engine → ETA Service."),
       ],
       requiredNodes: ['eta_service'],
       requiredEdges: [edge('routing_engine', 'eta_service')],
@@ -328,7 +328,7 @@ const l1 = level({
         msg(
           "Each restaurant has a 100-meter geofence. When a Dasher enters it, the Order Service transitions to DASHER_AT_RESTAURANT and notifies the customer. When the Dasher enters the customer's geofence, the customer gets 'Your Dasher is 2 minutes away'. These automatic triggers reduce the need for manual status updates."
         ),
-        msg('Press ⌘K, search for "Geofence Service", add it, then connect Dasher Service → Geofence Service.'),
+        msg("Press ⌘K and search for \"Geofence Service\" and press Enter to add it, then connect Dasher Service → Geofence Service."),
       ],
       requiredNodes: ['geofence_service'],
       requiredEdges: [edge('dasher_service', 'geofence_service')],
@@ -363,7 +363,7 @@ const l1 = level({
         msg(
           "A single 'ORDER_DELIVERED' event goes to Kafka. Five consumers process it independently: the notification service sends the receipt, the payment service pays the Dasher, the settlement service pays the merchant, the analytics pipeline records metrics, and the ML training pipeline adds a data point to improve future ETA predictions."
         ),
-        msg('Press ⌘K, search for "Message Queue", add it, then connect Order Service → Message Queue.'),
+        msg("Press ⌘K and search for \"Message Queue\" and press Enter to add it, then connect Order Service → Message Queue."),
       ],
       requiredNodes: ['message_queue'],
       requiredEdges: [edge('order_service', 'message_queue')],
@@ -398,7 +398,7 @@ const l1 = level({
         msg(
           "DoorDash caches menus in Redis with a 5-minute TTL. When a restaurant updates their menu, the cache is invalidated immediately. Dasher locations are also cached in Redis with a 4-second TTL (matching the location update frequency). Active order states are cached to avoid database reads on every status check."
         ),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect Order Service → In-Memory Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Order Service → In-Memory Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('order_service', 'in_memory_cache')],
@@ -450,7 +450,7 @@ const l2 = level({
         msg(
           "During peak meal times, thousands of orders flow through Kafka every minute. Each event — placed, accepted, picked up, delivered — triggers notifications, analytics, and billing independently."
         ),
-        msg("Press ⌘K, search for \"Kafka / Streaming\", add it, then connect Order Service → Kafka Streaming."),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Order Service → Kafka Streaming."),
       ],
       requiredNodes: ["kafka_streaming"],
       requiredEdges: [edge("order_service", "kafka_streaming")],
@@ -488,7 +488,7 @@ const l2 = level({
         msg(
           "When a dasher picks up your order, you need to know immediately. Notifications are delivered in under 5 seconds through the fastest available channel — push, SMS, or email."
         ),
-        msg("Press ⌘K, search for \"Worker / Background Job\", add it, then connect Kafka Streaming → Notification Worker."),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ["worker_job"],
       requiredEdges: [edge("kafka_streaming", "worker_job")],
@@ -526,7 +526,7 @@ const l2 = level({
         msg(
           "Live tracking requires sub-second location updates from dashers and instant retrieval of order status. Redis handles this with millisecond latency — the customer sees their dasher move in real time."
         ),
-        msg("Press ⌘K, search for \"In-Memory Cache\", add it, then connect Dasher Service → In-Memory Cache."),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Dasher Service → In-Memory Cache."),
       ],
       requiredNodes: ["in_memory_cache"],
       requiredEdges: [edge("dasher_service", "in_memory_cache")],
@@ -564,7 +564,7 @@ const l2 = level({
         msg(
           "Delivery times, dasher efficiency, and consumer behavior stream to the data warehouse. This data trains DoorDash's ML models for dispatch and ETA prediction."
         ),
-        msg("Press ⌘K, search for \"CDC Connector\", add it, then connect Order Service → CDC Connector."),
+        msg("Press ⌘K and search for \"CDC Connector\" and press Enter to add it, then connect Order Service → CDC Connector."),
       ],
       requiredNodes: ["cdc_connector"],
       requiredEdges: [edge("order_service", "cdc_connector")],
@@ -602,7 +602,7 @@ const l2 = level({
         msg(
           "Delivery orders have complex schemas — merchant fees, dasher pay, and consumer charges are stored together. Financial reconciliation requires consistent, auditable records."
         ),
-        msg("Press ⌘K, search for \"SQL Database\", add it, then connect Auth Service → SQL Database."),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."),
       ],
       requiredNodes: ["sql_db"],
       requiredEdges: [edge("auth_service", "sql_db")],
@@ -640,7 +640,7 @@ const l2 = level({
         msg(
           "Logs flow to the ML platform — DoorDash's ETA prediction model trains on delivery event logs. Every successful delivery improves prediction accuracy."
         ),
-        msg("Press ⌘K, search for \"Structured Logger\", add it, then connect Order Service → Structured Logger."),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Order Service → Structured Logger."),
       ],
       requiredNodes: ["structured_logger"],
       requiredEdges: [edge("order_service", "structured_logger")],
@@ -678,7 +678,7 @@ const l2 = level({
         msg(
           "Order acceptance must complete in <30 seconds. Dispatch latency must be <2 minutes. ETA accuracy within 5 minutes. These are critical SLOs tracked in real time."
         ),
-        msg("Press ⌘K, search for \"SLO/SLI Tracker\", add it, then connect Order Service → SLO Tracker."),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Order Service → SLO Tracker."),
       ],
       requiredNodes: ["slo_tracker"],
       requiredEdges: [edge("order_service", "slo_tracker")],
@@ -716,7 +716,7 @@ const l2 = level({
         msg(
           "When delivery predictions degrade during bad weather, on-call teams use the error budget to decide whether to adjust ETA models or add dasher capacity."
         ),
-        msg("Press ⌘K, search for \"Error Budget Monitor\", add it, then connect SLO Tracker → Error Budget Monitor."),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO Tracker → Error Budget Monitor."),
       ],
       requiredNodes: ["error_budget_alert"],
       requiredEdges: [edge("slo_tracker", "error_budget_alert")],
@@ -768,7 +768,7 @@ const l3 = level({
         msg(
           "The three-sided marketplace has three client types: consumers, dashers, and merchants. Every service-to-service call is authenticated — compromised services cannot impersonate other parties."
         ),
-        msg("Press ⌘K, search for \"Service Mesh (Istio)\", add it, then connect API Gateway → Service Mesh."),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect API Gateway → Service Mesh."),
       ],
       requiredNodes: ["service_mesh"],
       requiredEdges: [edge("api_gateway", "service_mesh")],
@@ -806,7 +806,7 @@ const l3 = level({
         msg(
           "The BFF aggregates order state, dasher location, and merchant data for real-time tracking. The consumer sees menu and order tracking; the dasher sees navigation and pickup details."
         ),
-        msg("Press ⌘K, search for \"BFF Gateway\", add it, then connect Service Mesh → BFF Gateway."),
+        msg("Press ⌘K and search for \"BFF Gateway\" and press Enter to add it, then connect Service Mesh → BFF Gateway."),
       ],
       requiredNodes: ["bff_gateway"],
       requiredEdges: [edge("service_mesh", "bff_gateway")],
@@ -844,7 +844,7 @@ const l3 = level({
         msg(
           "Token buckets also protect the dispatch system from burst requests during peak hours. During lunch rush, the rate limiter allows bursts up to the bucket size without blocking real users."
         ),
-        msg("Press ⌘K, search for \"Token Bucket Rate Limiter\", add it, then connect BFF Gateway → Token Bucket Rate Limiter."),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect BFF Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ["token_bucket_limiter"],
       requiredEdges: [edge("bff_gateway", "token_bucket_limiter")],
@@ -882,7 +882,7 @@ const l3 = level({
         msg(
           "A single order touches 20+ services. Distributed tracing links spans across all services — debugging a late delivery means tracing a single order from placement to delivery."
         ),
-        msg("Press ⌘K, search for \"OpenTelemetry Collector\", add it, then connect Order Service → OpenTelemetry Collector."),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Order Service → OpenTelemetry Collector."),
       ],
       requiredNodes: ["otel_collector"],
       requiredEdges: [edge("order_service", "otel_collector")],
@@ -920,7 +920,7 @@ const l3 = level({
         msg(
           "Cart service, delivery estimation, merchant acceptance, dasher dispatch, and tracking all participate in the order lifecycle. Correlation IDs link logs across all these steps."
         ),
-        msg("Press ⌘K, search for \"Correlation ID Handler\", add it, then connect OpenTelemetry Collector → Correlation ID Handler."),
+        msg("Press ⌘K and search for \"Correlation ID Handler\" and press Enter to add it, then connect OpenTelemetry Collector → Correlation ID Handler."),
       ],
       requiredNodes: ["correlation_id_handler"],
       requiredEdges: [edge("otel_collector", "correlation_id_handler")],
@@ -958,7 +958,7 @@ const l3 = level({
         msg(
           "Compromised services cannot obtain certificates for other services — limiting the blast radius of breaches. Every workload has cryptographic identity."
         ),
-        msg("Press ⌘K, search for \"mTLS Certificate Authority\", add it, then connect Service Mesh → mTLS Certificate Authority."),
+        msg("Press ⌘K and search for \"mTLS Certificate Authority\" and press Enter to add it, then connect Service Mesh → mTLS Certificate Authority."),
       ],
       requiredNodes: ["mtls_certificate_authority"],
       requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
@@ -996,7 +996,7 @@ const l3 = level({
         msg(
           "When a cache entry expires, many requests simultaneously miss the cache and hit the database. Lock-assisted refresh ensures only one worker refreshes while others wait for the result."
         ),
-        msg("Press ⌘K, search for \"Cache Stampede Guard\", add it, then connect In-Memory Cache → Cache Stampede Guard."),
+        msg("Press ⌘K and search for \"Cache Stampede Guard\" and press Enter to add it, then connect In-Memory Cache → Cache Stampede Guard."),
       ],
       requiredNodes: ["cache_stampede_guard"],
       requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
@@ -1034,7 +1034,7 @@ const l3 = level({
         msg(
           "ML inference results are cached in Redis for sub-10ms retrieval during dispatch. This eliminates the latency of running the ML model during peak order volume."
         ),
-        msg("Press ⌘K, search for \"Change Data Cache\", add it, then connect CDC Connector → Change Data Cache."),
+        msg("Press ⌘K and search for \"Change Data Cache\" and press Enter to add it, then connect CDC Connector → Change Data Cache."),
       ],
       requiredNodes: ["change_data_cache"],
       requiredEdges: [edge("cdc_connector", "change_data_cache")],
@@ -1072,7 +1072,7 @@ const l3 = level({
         msg(
           "Fulfillment rates, dasher efficiency, and demand forecasting data becomes the training set for dispatch and ETA models. Better data means more accurate predictions."
         ),
-        msg("Press ⌘K, search for \"Data Warehouse\", add it, then connect CDC Connector → Data Warehouse."),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ["data_warehouse"],
       requiredEdges: [edge("cdc_connector", "data_warehouse")],
@@ -1110,7 +1110,7 @@ const l3 = level({
         msg(
           "Event sourcing provides an immutable audit trail. For dispute resolution, DoorDash can replay the exact sequence. For fraud detection, anomalies in the event sequence indicate suspicious activity."
         ),
-        msg("Press ⌘K, search for \"Event Store\", add it, then connect Order Service → Event Store."),
+        msg("Press ⌘K and search for \"Event Store\" and press Enter to add it, then connect Order Service → Event Store."),
       ],
       requiredNodes: ["event_store"],
       requiredEdges: [edge("order_service", "event_store")],
@@ -1148,7 +1148,7 @@ const l3 = level({
         msg(
           "Validate order, reserve dasher, notify merchant, charge consumer, update dasher earnings. Each step can fail independently and requires compensating transactions for rollback."
         ),
-        msg("Press ⌘K, search for \"Saga Orchestrator\", add it, then connect Order Service → Saga Orchestrator."),
+        msg("Press ⌘K and search for \"Saga Orchestrator\" and press Enter to add it, then connect Order Service → Saga Orchestrator."),
       ],
       requiredNodes: ["saga_orchestrator"],
       requiredEdges: [edge("order_service", "saga_orchestrator")],

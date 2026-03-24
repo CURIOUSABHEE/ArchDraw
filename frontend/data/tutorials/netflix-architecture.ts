@@ -23,7 +23,7 @@ const l1 = level({
       messages: [
         msg("Welcome to the Netflix Architecture tutorial. 270 million subscribers, 190 countries, 1 billion hours of content streamed per month."),
         msg("Netflix's client implements adaptive bitrate streaming — it monitors your bandwidth every few seconds and switches quality automatically. That quality switch is a new CDN request to a different encoded file."),
-        msg('Press ⌘K, search for "Web", and add it to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter and add it to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],

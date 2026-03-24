@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "Figma's biggest technical achievement: solving the simultaneous edit problem. When two designers move the same element at the same time, neither edit is lost. They use CRDTs — Conflict-free Replicated Data Types."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -83,7 +83,7 @@ const l1 = level({
         msg(
           "The API Gateway handles the REST side: loading a file, saving a version, inviting a collaborator, or calling a plugin API. Real-time edit operations bypass the gateway and go directly to the collaboration server via WebSocket."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -118,7 +118,7 @@ const l1 = level({
         msg(
           "If Alice and Bob are both editing 'Homepage Design', they must connect to the same collaboration server. The load balancer hashes the file ID to determine which server handles that file. This ensures the CRDT engine sees all edits in one place."
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -153,7 +153,7 @@ const l1 = level({
         msg(
           "When you connect to a Figma file via WebSocket, the Auth Service checks your permission level. Viewers get a read-only connection. Editors get a read-write connection. Even if a viewer modifies the client code, the server rejects edit operations from viewer-level connections."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -188,7 +188,7 @@ const l1 = level({
         msg(
           "When Alice moves a rectangle to (100, 200) and Bob simultaneously moves it to (300, 400), the CRDT engine merges both operations. The result is deterministic — both clients converge to the same final state. Figma uses a last-write-wins CRDT for position, which means the later timestamp wins."
         ),
-        msg('Press ⌘K, search for "CRDT Engine", add it, then connect Auth Service → CRDT Engine.'),
+        msg("Press ⌘K and search for \"CRDT Engine\" and press Enter to add it, then connect Auth Service → CRDT Engine."),
       ],
       requiredNodes: ['crdt_engine'],
       requiredEdges: [edge('auth_service', 'crdt_engine')],
@@ -223,7 +223,7 @@ const l1 = level({
         msg(
           "Cursor positions update up to 60 times per second. Storing this in a database would be catastrophic. The Presence Service keeps cursor state in memory and broadcasts updates via WebSocket. When a user disconnects, their cursor disappears within 1 second."
         ),
-        msg('Press ⌘K, search for "Presence Service", add it, then connect CRDT Engine → Presence Service.'),
+        msg("Press ⌘K and search for \"Presence Service\" and press Enter to add it, then connect CRDT Engine → Presence Service."),
       ],
       requiredNodes: ['presence_service'],
       requiredEdges: [edge('crdt_engine', 'presence_service')],
@@ -258,7 +258,7 @@ const l1 = level({
         msg(
           "The renderer receives the document state from the CRDT engine and renders it using WebGL. When you zoom in, the renderer re-renders at higher resolution. When a collaborator moves an element, the CRDT engine updates the state and the renderer re-draws that element."
         ),
-        msg('Press ⌘K, search for "Canvas Renderer", add it, then connect CRDT Engine → Canvas Renderer.'),
+        msg("Press ⌘K and search for \"Canvas Renderer\" and press Enter to add it, then connect CRDT Engine → Canvas Renderer."),
       ],
       requiredNodes: ['canvas_renderer'],
       requiredEdges: [edge('crdt_engine', 'canvas_renderer')],
@@ -293,7 +293,7 @@ const l1 = level({
         msg(
           "Every 30 minutes, Figma saves an automatic version. Users can also save named versions ('Before client review'). Each version is a compressed snapshot of the full document. Restoring is instant because there's no diff replay — just load the snapshot."
         ),
-        msg('Press ⌘K, search for "Version History", add it, then connect CRDT Engine → Version History.'),
+        msg("Press ⌘K and search for \"Version History\" and press Enter to add it, then connect CRDT Engine → Version History."),
       ],
       requiredNodes: ['version_history'],
       requiredEdges: [edge('crdt_engine', 'version_history')],
@@ -328,7 +328,7 @@ const l1 = level({
         msg(
           "When you open a Figma file, the client downloads the binary file directly from Object Storage via a signed URL. The CRDT engine then applies any pending operations on top of the stored state. This is faster than serving files through the API server."
         ),
-        msg('Press ⌘K, search for "Object Storage", add it, then connect Version History → Object Storage.'),
+        msg("Press ⌘K and search for \"Object Storage\" and press Enter to add it, then connect Version History → Object Storage."),
       ],
       requiredNodes: ['object_storage'],
       requiredEdges: [edge('version_history', 'object_storage')],
@@ -363,7 +363,7 @@ const l1 = level({
         msg(
           "The In-Memory Cache stores the current document state for active files. When you join a file, the server sends you the cached state plus any pending CRDT operations. When the last collaborator leaves, the state is flushed to Object Storage and evicted from cache."
         ),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect CRDT Engine → In-Memory Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect CRDT Engine → In-Memory Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('crdt_engine', 'in_memory_cache')],
@@ -408,7 +408,7 @@ const l2 = level({
       messages: [
         msg("Level 2: Figma at Scale. Millions of CRDT operations per second, real-time presence caching, and performance-grade observability."),
         msg("Figma's Event Bus streams document events: element moves, comment additions, and cursor updates. Cursor updates alone stream millions of events per second during busy design sessions."),
-        msg("Press ⌘K, search for 'Kafka / Streaming', add it, then connect Auth Service → Kafka Streaming.")
+msg("Press ⌘K and search for 'Kafka / Streaming' and press Enter to add it, then connect Auth Service → Kafka Streaming.")
       ],
       requiredNodes: ["kafka_streaming"],
       requiredEdges: [edge("auth_service", "kafka_streaming")],
@@ -439,7 +439,7 @@ const l2 = level({
       messages: [
         msg("Figma's Notification Worker sends in-app and email notifications for comments, mentions, and file sharing."),
         msg("Notifications must be delivered in seconds — designers collaborate in real-time and expect immediate feedback on comments and mentions."),
-        msg("Press ⌘K, search for 'Worker / Background Job', add it, then connect Kafka Streaming → Notification Worker.")
+msg("Press ⌘K and search for 'Worker / Background Job' and press Enter to add it, then connect Kafka Streaming → Notification Worker.")
       ],
       requiredNodes: ["worker_job"],
       requiredEdges: [edge("kafka_streaming", "worker_job")],
@@ -470,7 +470,7 @@ const l2 = level({
       messages: [
         msg("Figma's Redis Cache stores active document sessions and presence state."),
         msg("When 30 designers edit the same file, their presence and cursors are cached in Redis for sub-10ms retrieval."),
-        msg("Press ⌘K, search for 'In-Memory Cache', add it, then connect CRDT Engine → In-Memory Cache.")
+msg("Press ⌘K and search for 'In-Memory Cache' and press Enter to add it, then connect CRDT Engine → In-Memory Cache.")
       ],
       requiredNodes: ["in_memory_cache"],
       requiredEdges: [edge("crdt_engine", "in_memory_cache")],
@@ -501,7 +501,7 @@ const l2 = level({
       messages: [
         msg("Figma's CDC Connector mirrors document changes to the analytics platform."),
         msg("Design engagement metrics, collaboration frequency, and feature usage stream to ClickHouse for product analytics."),
-        msg("Press ⌘K, search for 'CDC Connector', add it, then connect CRDT Engine → CDC Connector.")
+msg("Press ⌘K and search for 'CDC Connector' and press Enter to add it, then connect CRDT Engine → CDC Connector.")
       ],
       requiredNodes: ["cdc_connector"],
       requiredEdges: [edge("crdt_engine", "cdc_connector")],
@@ -532,7 +532,7 @@ const l2 = level({
       messages: [
         msg("Figma's MySQL stores user accounts, organization settings, and billing."),
         msg("Document content (the actual design files) is stored in custom document storage — not in MySQL."),
-        msg("Press ⌘K, search for 'SQL Database', add it, then connect Auth Service → SQL Database.")
+msg("Press ⌘K and search for 'SQL Database' and press Enter to add it, then connect Auth Service → SQL Database.")
       ],
       requiredNodes: ["sql_db"],
       requiredEdges: [edge("auth_service", "sql_db")],
@@ -563,7 +563,7 @@ const l2 = level({
       messages: [
         msg("Figma's Structured Logger captures render events, CRDT operations, and plugin executions."),
         msg("Performance logs track render latency — Figma's target is 60fps canvas rendering."),
-        msg("Press ⌘K, search for 'Structured Logger', add it, then connect CRDT Engine → Structured Logger.")
+msg("Press ⌘K and search for 'Structured Logger' and press Enter to add it, then connect CRDT Engine → Structured Logger.")
       ],
       requiredNodes: ["structured_logger"],
       requiredEdges: [edge("crdt_engine", "structured_logger")],
@@ -594,7 +594,7 @@ const l2 = level({
       messages: [
         msg("Figma's SLO Tracker monitors canvas render latency, collaboration sync time, and file load time."),
         msg("Canvas rendering must stay under 16ms (60fps) — tracked as a critical SLO."),
-        msg("Press ⌘K, search for 'SLO/SLI Tracker', add it, then connect Canvas Renderer → SLO Tracker.")
+msg("Press ⌘K and search for 'SLO/SLI Tracker' and press Enter to add it, then connect Canvas Renderer → SLO Tracker.")
       ],
       requiredNodes: ["slo_tracker"],
       requiredEdges: [edge("canvas_renderer", "slo_tracker")],
@@ -625,7 +625,7 @@ const l2 = level({
       messages: [
         msg("Figma's Error Budget Monitor tracks collaboration sync SLO."),
         msg("When sync latency degrades during a team review, engineers are paged before the error budget is consumed."),
-        msg("Press ⌘K, search for 'Error Budget Monitor', add it, then connect SLO Tracker → Error Budget Monitor.")
+msg("Press ⌘K and search for 'Error Budget Monitor' and press Enter to add it, then connect SLO Tracker → Error Budget Monitor.")
       ],
       requiredNodes: ["error_budget_alert"],
       requiredEdges: [edge("slo_tracker", "error_budget_alert")],
@@ -670,7 +670,7 @@ const l3 = level({
       messages: [
         msg("Level 3: Figma Enterprise. Zero-trust plugin isolation, CRDT distributed tracing, and event sourcing for perfect versioning."),
         msg("Figma's Service Mesh (Envoy) handles mTLS between document servers, rendering workers, and plugin hosts. Plugin isolation is critical — third-party plugins must not compromise document security."),
-        msg("Press ⌘K, search for 'Service Mesh', add it, then connect Load Balancer → Service Mesh.")
+msg("Press ⌘K and search for 'Service Mesh' and press Enter to add it, then connect Load Balancer → Service Mesh.")
       ],
       requiredNodes: ["service_mesh"],
       requiredEdges: [edge("load_balancer", "service_mesh")],
@@ -701,7 +701,7 @@ const l3 = level({
       messages: [
         msg("Figma's GraphQL Federation composes the API from document, comments, design systems, and teams domains."),
         msg("Each domain owns its schema while the gateway provides a unified API for clients."),
-        msg("Press ⌘K, search for 'GraphQL Federation Gateway', add it, then connect API Gateway → GraphQL Federation Gateway.")
+msg("Press ⌘K and search for 'GraphQL Federation Gateway' and press Enter to add it, then connect API Gateway → GraphQL Federation Gateway.")
       ],
       requiredNodes: ["graphql_federation"],
       requiredEdges: [edge("api_gateway", "graphql_federation")],
@@ -732,7 +732,7 @@ const l3 = level({
       messages: [
         msg("Figma's Rate Limiter uses token buckets per plan: Free (1M ops/month), Professional (10M), Organization (100M)."),
         msg("Token buckets prevent resource exhaustion from runaway plugins."),
-        msg("Press ⌘K, search for 'Token Bucket Rate Limiter', add it, then connect API Gateway → Token Bucket Rate Limiter.")
+msg("Press ⌘K and search for 'Token Bucket Rate Limiter' and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter.")
       ],
       requiredNodes: ["token_bucket_limiter"],
       requiredEdges: [edge("api_gateway", "token_bucket_limiter")],
@@ -763,7 +763,7 @@ const l3 = level({
       messages: [
         msg("Figma's OTel Collector traces CRDT sync operations across document servers."),
         msg("A single element move can trigger sync operations across dozens of servers — tracing is essential for debugging desync."),
-        msg("Press ⌘K, search for 'OpenTelemetry Collector', add it, then connect CRDT Engine → OpenTelemetry Collector.")
+msg("Press ⌘K and search for 'OpenTelemetry Collector' and press Enter to add it, then connect CRDT Engine → OpenTelemetry Collector.")
       ],
       requiredNodes: ["otel_collector"],
       requiredEdges: [edge("crdt_engine", "otel_collector")],
@@ -794,7 +794,7 @@ const l3 = level({
       messages: [
         msg("Figma's Correlation ID links a design action to every service involved."),
         msg("Debugging a lost edit requires tracing across CRDT engine, presence service, plugin host, and CDN upload."),
-        msg("Press ⌘K, search for 'Correlation ID Handler', add it, then connect CRDT Engine → Correlation ID Handler.")
+msg("Press ⌘K and search for 'Correlation ID Handler' and press Enter to add it, then connect CRDT Engine → Correlation ID Handler.")
       ],
       requiredNodes: ["correlation_id_handler"],
       requiredEdges: [edge("crdt_engine", "correlation_id_handler")],
@@ -825,7 +825,7 @@ const l3 = level({
       messages: [
         msg("Figma's SPIFFE CA issues certificates to every rendering worker and plugin host."),
         msg("Plugin isolation requires cryptographic guarantees — plugins run in sandboxed environments with limited certificates."),
-        msg("Press ⌘K, search for 'mTLS Certificate Authority', add it, then connect Service Mesh → mTLS Certificate Authority.")
+msg("Press ⌘K and search for 'mTLS Certificate Authority' and press Enter to add it, then connect Service Mesh → mTLS Certificate Authority.")
       ],
       requiredNodes: ["mtls_certificate_authority"],
       requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
@@ -856,7 +856,7 @@ const l3 = level({
       messages: [
         msg("Figma's Cache Stampede Guard protects document session caches from stampedes."),
         msg("When a popular shared file is opened by many users simultaneously, stampede protection prevents cache server overload."),
-        msg("Press ⌘K, search for 'Cache Stampede Guard', add it, then connect In-Memory Cache → Cache Stampede Guard.")
+msg("Press ⌘K and search for 'Cache Stampede Guard' and press Enter to add it, then connect In-Memory Cache → Cache Stampede Guard.")
       ],
       requiredNodes: ["cache_stampede_guard"],
       requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
@@ -887,7 +887,7 @@ const l3 = level({
       messages: [
         msg("Figma's CDC pipeline precomputes comment threads and version history previews."),
         msg("These are materialized in Redis for instant retrieval when navigating document history."),
-        msg("Press ⌘K, search for 'Change Data Cache', add it, then connect CDC Connector → Change Data Cache.")
+msg("Press ⌘K and search for 'Change Data Cache' and press Enter to add it, then connect CDC Connector → Change Data Cache.")
       ],
       requiredNodes: ["change_data_cache"],
       requiredEdges: [edge("cdc_connector", "change_data_cache")],
@@ -918,7 +918,7 @@ const l3 = level({
       messages: [
         msg("Figma's Data Warehouse (ClickHouse) stores design analytics: feature usage, collaboration patterns, and performance metrics."),
         msg("This data drives Figma's product roadmap and performance optimizations."),
-        msg("Press ⌘K, search for 'Data Warehouse', add it, then connect CDC Connector → Data Warehouse.")
+msg("Press ⌘K and search for 'Data Warehouse' and press Enter to add it, then connect CDC Connector → Data Warehouse.")
       ],
       requiredNodes: ["data_warehouse"],
       requiredEdges: [edge("cdc_connector", "data_warehouse")],
@@ -949,7 +949,7 @@ const l3 = level({
       messages: [
         msg("Figma's Event Store stores every design operation as an immutable event."),
         msg("Event sourcing enables perfect undo/redo, document versioning, and offline sync reconciliation."),
-        msg("Press ⌘K, search for 'Event Store', add it, then connect CRDT Engine → Event Store.")
+msg("Press ⌘K and search for 'Event Store' and press Enter to add it, then connect CRDT Engine → Event Store.")
       ],
       requiredNodes: ["event_store"],
       requiredEdges: [edge("crdt_engine", "event_store")],
@@ -980,7 +980,7 @@ const l3 = level({
       messages: [
         msg("Figma's BFF Gateway serves the web client with optimized canvas APIs."),
         msg("The BFF batches CRDT operations, handles file compression, and manages WebSocket connections for real-time sync."),
-        msg("Press ⌘K, search for 'BFF Gateway', add it, then connect API Gateway → BFF Gateway.")
+msg("Press ⌘K and search for 'BFF Gateway' and press Enter to add it, then connect API Gateway → BFF Gateway.")
       ],
       requiredNodes: ["bff_gateway"],
       requiredEdges: [edge("api_gateway", "bff_gateway")],

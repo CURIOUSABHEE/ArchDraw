@@ -2,268 +2,442 @@ import type {
   Tutorial,
   TutorialLevel,
   TutorialStep,
-  ComponentRef,
-  EdgeRequirement,
-  TutorialMessage,
+  ComponentMatcher,
+  ValidationFn,
+  FeedbackFn,
+  ActionIntent,
 } from './types';
 
-// ── EDGE_LABEL map ────────────────────────────────────────────────────────────
-// Maps component IDs to the first word of their canvas label.
-// Used by edge() to resolve component IDs → display labels for requiredEdges.
-// Rule: use the first significant word of the component's canvas label.
-export const EDGE_LABEL: Record<string, string> = {
-  // Clients
-  client_web: 'Web',
-  client_mobile: 'Mobile',
-  // Networking
-  dns: 'DNS',
-  cdn: 'CDN',
-  api_gateway: 'API Gateway',
-  load_balancer: 'Load Balancer',
-  firewall_waf: 'Firewall',
-  // Auth / Security
-  auth_service: 'Auth',
-  api_key_manager: 'API',
-  secret_manager: 'Secret',
-  // Services
-  microservice: 'Microservice',
-  serverless_fn: 'Serverless',
-  worker_job: 'Worker',
-  notification_service: 'Notification',
-  upload_service: 'Upload',
-  user_service: 'User',
-  fanout_service: 'Fan-out',
-  feed_service: 'Feed',
-  data_ingestion_service: 'Data',
-  recommendation_service: 'Recommendation',
-  ml_service: 'ML',
-  embedding_service: 'Embedding',
-  llm_api: 'LLM',
-  rag_pipeline: 'RAG',
-  tracing_service: 'Tracing',
-  config_service: 'Config',
-  model_server: 'Model',
-  // External Services
-  maps_api: 'Maps',
-  payment_gateway: 'Payment',
-  // Compute (additional)
-  pricing_engine: 'Pricing',
-  trust_service: 'Trust',
-  routing_engine: 'Routing',
-  geofence_service: 'Geofence',
-  location_service: 'Location',
-  fraud_detection_service: 'Fraud',
-  // Clients (additional)
-  driver_app: 'Driver',
-  // Messaging
-  kafka_streaming: 'Kafka',
-  message_queue: 'Message',
-  event_bus: 'Event',
-  // Storage
-  nosql_db: 'NoSQL',
-  sql_db: 'SQL',
-  object_storage: 'Object',
-  in_memory_cache: 'Cache',
-  vector_db: 'Vector',
-  data_warehouse: 'Data',
-  // Observability
-  logger: 'Logger',
-  metrics_collector: 'Metrics',
-  dashboard: 'Dashboard',
-  circuit_breaker: 'Circuit',
-  search_engine: 'Search',
-  // AirBnb-specific
-  availability_service: 'Availability',
-  review_service: 'Review',
-  // Discord-specific
-  signaling_server: 'Signaling',
-  media_server: 'Media',
-  presence_service: 'Presence',
-  stun_server: 'STUN',
-  webrtc_server: 'WebRTC',
-  // Zoom-specific
-  turn_server: 'TURN',
-  // Spotify-specific
-  audio_cdn: 'Audio',
-  playlist_service: 'Playlist',
-  audio_transcoder: 'Audio',
-  offline_sync: 'Offline',
-  // LinkedIn-specific
-  feed_ranker: 'Feed',
-  graph_database: 'Graph',
-  timeline_service: 'Timeline',
-  // Shopify-specific
-  cart_service: 'Cart',
-  checkout_service: 'Checkout',
-  fulfillment_service: 'Fulfillment',
-  tax_service: 'Tax',
-  inventory_service: 'Inventory',
-  order_service: 'Order',
-  // Figma-specific
-  crdt_engine: 'CRDT',
-  canvas_renderer: 'Canvas',
-  version_history: 'Version',
-  // DoorDash-specific
-  dasher_service: 'Dasher',
-  eta_service: 'ETA',
-  // GitHub-specific
-  code_review_service: 'Code',
-  ci_runner: 'CI',
-  git_storage: 'Git',
-  webhook_dispatcher: 'Webhook',
-  // WhatsApp-specific
-  trending_service: 'Trending',
-  media_service: 'Media',
-  // AI Agent system
-  agent_orchestrator: 'Agent',
-  agent_planner: 'Agent',
-  agent_executor: 'Agent',
-  agent_memory: 'Memory',
-  agent_supervisor: 'Supervisor',
-  tool_registry: 'Tool',
-  llm_gateway: 'LLM',
-  // Service Mesh
-  sidecar_proxy: 'Sidecar',
-  service_mesh: 'Mesh',
-  control_plane: 'Control',
-  // Rate Limiting
-  token_bucket_limiter: 'Token',
-  sliding_window_limiter: 'Sliding',
-  leaky_bucket_limiter: 'Leaky',
-  rate_limit_redis: 'Rate',
-  // Data Pipelines
-  cdc_connector: 'CDC',
-  event_store: 'Event',
-  cqrs_command_handler: 'Command',
-  cqrs_query_handler: 'Query',
-  saga_orchestrator: 'Saga',
-  saga_participant: 'Saga',
-  // Distributed Coordination
-  raft_consensus: 'Raft',
-  distributed_lock: 'Lock',
-  leader_election: 'Leader',
-  service_discovery: 'Discovery',
-  configuration_sync: 'Config',
-  consistent_hash_ring: 'Hash',
-  virtual_nodes: 'Virtual',
-  // API Patterns
-  bff_gateway: 'BFF',
-  graphql_federation: 'GraphQL',
-  graphql_subgraph: 'Subgraph',
-  api_composition: 'API',
-  // Security
-  mtls_certificate_authority: 'mTLS',
-  oauth_pkce_flow: 'OAuth',
-  jwt_validator: 'JWT',
-  token_rotation: 'Token',
-  zero_trust_proxy: 'Zero',
-  // Observability Advanced
-  otel_collector: 'OTel',
-  correlation_id_handler: 'Correlation',
-  slo_tracker: 'SLO',
-  error_budget_alert: 'Budget',
-  structured_logger: 'Structured',
-  // Database Advanced
-  read_replica: 'Replica',
-  write_shard: 'Shard',
-  connection_pooler: 'Pooler',
-  // Caching Advanced
-  change_data_cache: 'CDC',
-  cache_stampede_guard: 'Stampede',
-  write_through_cache: 'Write',
-  cache_aside: 'Cache',
-  // Networking
-  cdn_anycast: 'Anycast',
-  ddos_mitigation: 'DDoS',
-  prefetch_cache: 'Prefetch',
-  cdn_tiered_cache: 'Tiered',
-  surrogate_key_purge: 'Surrogate',
+import {
+  createMatcher,
+  nodeMatcher,
+  clientMatcher,
+  cdnMatcher,
+  gatewayMatcher,
+  loadBalancerMatcher,
+  serviceMatcher,
+  databaseMatcher,
+  cacheMatcher,
+  queueMatcher,
+  llmMatcher,
+  authMatcher,
+  vectorDbMatcher,
+  embeddingMatcher,
+  ragMatcher,
+  observabilityMatcher,
+} from './graph';
+
+import {
+  addNodeValidation,
+  connectValidation,
+  nodeAndConnectionValidation,
+  hasNode,
+  hasConnection,
+} from './validation';
+
+import {
+  nodeNotAddedFeedback,
+  notConnectedFeedback,
+  nodeAddedFeedback,
+  progressiveFeedback,
+  genericFeedback,
+} from './feedback';
+
+export {
+  createMatcher,
+  nodeMatcher,
+  clientMatcher,
+  cdnMatcher,
+  gatewayMatcher,
+  loadBalancerMatcher,
+  serviceMatcher,
+  databaseMatcher,
+  cacheMatcher,
+  queueMatcher,
+  llmMatcher,
+  authMatcher,
+  vectorDbMatcher,
+  embeddingMatcher,
+  ragMatcher,
+  observabilityMatcher,
 };
 
-/** Resolve a component ID to its edge label (first word of canvas label).
- *  Falls back to the raw string if the ID is not in the map. */
-export function edgeLabel(componentId: string): string {
-  return EDGE_LABEL[componentId] ?? componentId;
-}
-
-// ── Primitive builders ───────────────────────────────────────────────────────
-
-/** Build a component reference. searchHint defaults to label. */
-export function component(id: string, label: string, searchHint?: string): ComponentRef {
-  return { id, label, searchHint: searchHint ?? label };
-}
-
-/** Build an edge requirement.
- *  `from` and `to` should be component IDs (e.g. 'client_web', 'api_gateway').
- *  They are resolved to their canvas label first-words via EDGE_LABEL.
- *  Raw label strings are also accepted and passed through unchanged. */
-export function edge(from: string, to: string, label?: string): EdgeRequirement {
-  const resolvedFrom = EDGE_LABEL[from] ?? from;
-  const resolvedTo = EDGE_LABEL[to] ?? to;
-  return { from: resolvedFrom, to: resolvedTo, ...(label ? { label } : {}) };
-}
-
-/** Build an AI message */
-export function msg(content: string): TutorialMessage {
-  return { role: 'ai', content };
-}
-
-// ── Step builder ─────────────────────────────────────────────────────────────
-
-export function step(config: {
-  id: number;
+export interface StepConfig {
+  id: string;
+  order: number;
   title: string;
+  description: string;
   explanation: string;
-  action: string;
   why: string;
-  component: ComponentRef;
-  openingMessage: string;
-  celebrationMessage: string;
+  
+  nodeMatcher: ComponentMatcher;
+  fromMatchers?: ComponentMatcher[];
+  toMatchers?: ComponentMatcher[];
+  
+  successMessage: string;
+  hints: string[];
+  
+  openingMessage?: string;
+  celebrationMessage?: string;
   connectingMessage?: string;
-  messages: TutorialMessage[];
-  requiredNodes: string[];
-  requiredEdges: EdgeRequirement[];
-  successMessage?: string;
+  messages?: string[];
   errorMessage?: string;
-}): TutorialStep {
-  const { successMessage, errorMessage, requiredNodes, requiredEdges, ...rest } = config;
+  contextMessage?: string;
+}
+
+export function createStep(config: StepConfig): TutorialStep {
+  const fromMatchers = config.fromMatchers || [];
+  const toMatchers = config.toMatchers || [];
+
+  let validation: ValidationFn;
+  let feedback: FeedbackFn;
+
+  if (fromMatchers.length === 0 && toMatchers.length === 0) {
+    validation = addNodeValidation(config.nodeMatcher);
+    feedback = nodeNotAddedFeedback(config.nodeMatcher);
+  } else if (fromMatchers.length === 0) {
+    const to = toMatchers[0];
+    validation = (graph) => {
+      if (!hasNode(graph, config.nodeMatcher)) {
+        return addNodeValidation(config.nodeMatcher)(graph);
+      }
+      const connections = toMatchers.map(t => ({
+        from: config.nodeMatcher,
+        to: t,
+      }));
+      return nodeAndConnectionValidation(config.nodeMatcher, undefined, to)(graph);
+    };
+    feedback = (graph) => {
+      if (!hasNode(graph, config.nodeMatcher)) {
+        return nodeNotAddedFeedback(config.nodeMatcher)(graph);
+      }
+      for (const to of toMatchers) {
+        if (!hasConnection(graph, config.nodeMatcher, to)) {
+          return notConnectedFeedback(config.nodeMatcher, to)(graph);
+        }
+      }
+      return [];
+    };
+  } else if (toMatchers.length === 0) {
+    const from = fromMatchers[0];
+    validation = (graph) => {
+      if (!hasNode(graph, config.nodeMatcher)) {
+        return addNodeValidation(config.nodeMatcher)(graph);
+      }
+      return nodeAndConnectionValidation(config.nodeMatcher, from, undefined)(graph);
+    };
+    feedback = (graph) => {
+      if (!hasNode(graph, config.nodeMatcher)) {
+        return nodeNotAddedFeedback(config.nodeMatcher)(graph);
+      }
+      if (!hasConnection(graph, from, config.nodeMatcher)) {
+        return notConnectedFeedback(from, config.nodeMatcher)(graph);
+      }
+      return [];
+    };
+  } else {
+    const connections = [
+      ...fromMatchers.map(from => ({ from, to: config.nodeMatcher })),
+      ...toMatchers.map(to => ({ from: config.nodeMatcher, to })),
+    ];
+    
+    validation = (graph) => {
+      if (!hasNode(graph, config.nodeMatcher)) {
+        return addNodeValidation(config.nodeMatcher)(graph);
+      }
+      
+      for (const conn of connections) {
+        if (!hasConnection(graph, conn.from, conn.to)) {
+          return connectValidation(conn.from, conn.to)(graph);
+        }
+      }
+      
+      return { isValid: true, errors: [] };
+    };
+    
+    feedback = progressiveFeedback([
+      { matcher: config.nodeMatcher, connections },
+    ]);
+  }
+
+  const action: ActionIntent = {
+    type: 'MULTI',
+    actions: [
+      { type: 'ADD_NODE', matcher: config.nodeMatcher },
+      ...fromMatchers.map(from => ({ type: 'CONNECT' as const, from, to: config.nodeMatcher })),
+      ...toMatchers.map(to => ({ type: 'CONNECT' as const, from: config.nodeMatcher, to })),
+    ],
+  };
+
+  // Compute requiredNodes and requiredEdges for GuidePanel compatibility
+  // Extract meaningful identifiers from matchers for GuidePanel's string-based matching
+  const requiredNodes: string[] = [];
+  
+  // Use labelContains for matching (most specific)
+  if (config.nodeMatcher.labelContains && config.nodeMatcher.labelContains.length > 0) {
+    requiredNodes.push(...config.nodeMatcher.labelContains);
+  }
+  // Fall back to keywords
+  if (config.nodeMatcher.keywords && config.nodeMatcher.keywords.length > 0) {
+    requiredNodes.push(...config.nodeMatcher.keywords);
+  }
+  // Fall back to category
+  if (config.nodeMatcher.category) {
+    requiredNodes.push(config.nodeMatcher.category);
+  }
+
+  const requiredEdges: Array<{ from: string; to: string }> = [];
+  
+  for (const fromMatcher of fromMatchers) {
+    const fromId = fromMatcher.labelContains?.[0] || fromMatcher.keywords?.[0] || fromMatcher.category || 'source';
+    const toId = config.nodeMatcher.labelContains?.[0] || config.nodeMatcher.keywords?.[0] || config.nodeMatcher.category || 'target';
+    requiredEdges.push({ from: fromId, to: toId });
+  }
+  
+  for (const toMatcher of toMatchers) {
+    const fromId = config.nodeMatcher.labelContains?.[0] || config.nodeMatcher.keywords?.[0] || config.nodeMatcher.category || 'source';
+    const toId = toMatcher.labelContains?.[0] || toMatcher.keywords?.[0] || toMatcher.category || 'target';
+    requiredEdges.push({ from: fromId, to: toId });
+  }
+
   return {
-    ...rest,
+    id: config.id,
+    order: config.order,
+    title: config.title,
+    description: config.description,
+    explanation: config.explanation,
+    why: config.why,
+    action,
+    validation,
+    feedback,
+    successMessage: config.successMessage,
+    hints: config.hints,
+    openingMessage: config.openingMessage,
+    celebrationMessage: config.celebrationMessage,
+    connectingMessage: config.connectingMessage,
+    messages: config.messages,
+    errorMessage: config.errorMessage,
+    contextMessage: config.contextMessage,
+    // GuidePanel compatibility
     requiredNodes,
     requiredEdges,
-    validation: {
-      successMessage: successMessage ?? `${config.component.label} added and connected correctly.`,
-      errorMessage: errorMessage ?? `Add ${config.component.label} using ⌘K and connect it as instructed.`,
-    },
   };
 }
 
-// ── Level builder ────────────────────────────────────────────────────────────
-
-/** stepCount is always computed from steps.length — never set manually */
-export function level(config: {
-  level: 1 | 2 | 3;
+export interface LevelConfig {
+  id: string;
+  order: number;
   title: string;
   subtitle: string;
   description: string;
   estimatedTime: string;
-  contextMessage: string;
-  unlocks?: string;
   prerequisite?: string;
+  unlocks?: string;
+  contextMessage?: string;
   steps: TutorialStep[];
-}): TutorialLevel {
+}
+
+export function createLevel(config: LevelConfig): TutorialLevel {
   return {
-    ...config,
-    stepCount: config.steps.length,
+    id: config.id,
+    order: config.order,
+    level: config.order,
+    title: config.title,
+    subtitle: config.subtitle,
+    description: config.description,
+    estimatedTime: config.estimatedTime,
+    prerequisite: config.prerequisite,
+    unlocks: config.unlocks,
+    contextMessage: config.contextMessage,
+    steps: config.steps.sort((a, b) => a.order - b.order),
   };
 }
 
-// ── Tutorial builder ─────────────────────────────────────────────────────────
-
-export function tutorial(
-  config: Omit<Tutorial, 'levels'> & {
-    levels: [TutorialLevel] | [TutorialLevel, TutorialLevel] | [TutorialLevel, TutorialLevel, TutorialLevel];
-  },
-): Tutorial {
-  return config;
+export interface TutorialConfig {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  difficulty: Tutorial['difficulty'];
+  tags: string[];
+  levels: TutorialLevel[];
+  contextMessage?: string;
+  category?: string;
+  color?: string;
+  estimatedTime?: string;
+  unlocks?: string;
+  difficultyLabel?: string;
 }
+
+export function createTutorial(config: TutorialConfig): Tutorial {
+  return {
+    id: config.id,
+    title: config.title,
+    subtitle: config.subtitle,
+    description: config.description,
+    difficulty: config.difficulty,
+    tags: config.tags,
+    levels: config.levels.sort((a, b) => a.order - b.order),
+    contextMessage: config.contextMessage,
+    category: config.category,
+    color: config.color,
+    estimatedTime: config.estimatedTime,
+    unlocks: config.unlocks,
+  };
+}
+
+export { createMatcher as matcher };
+
+export function hint(text: string): string {
+  return text;
+}
+
+export function success(text: string): string {
+  return text;
+}
+
+export function step(config: {
+  id: string | number;
+  title: string;
+  explanation?: string;
+  action?: string | ActionIntent;
+  why?: string;
+  component?: ComponentMatcher;
+  requiredNodes?: string[];
+  requiredEdges?: { from: string; to: string }[];
+  successMessage?: string;
+  errorMessage?: string;
+  openingMessage?: string;
+  celebrationMessage?: string;
+  connectingMessage?: string;
+  messages?: string[];
+  description?: string;
+}): TutorialStep {
+  const actionIntent: ActionIntent = typeof config.action === 'string'
+    ? { type: 'ADD_NODE', matcher: config.component }
+    : config.action || { type: 'ADD_NODE' };
+
+  const stepConfig: StepConfig = {
+    id: String(config.id),
+    order: typeof config.id === 'number' ? config.id : 1,
+    title: config.title,
+    description: config.description || config.explanation || '',
+    explanation: config.explanation || config.description || '',
+    why: config.why || '',
+    nodeMatcher: config.component || { category: 'generic' },
+    successMessage: config.successMessage || '',
+    hints: config.messages || [],
+    openingMessage: config.openingMessage,
+    celebrationMessage: config.celebrationMessage,
+    connectingMessage: config.connectingMessage,
+    messages: config.messages,
+    errorMessage: config.errorMessage,
+  };
+
+  return createStep(stepConfig);
+}
+
+export function level(config: {
+  level?: number;
+  id?: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  estimatedTime: string;
+  unlocks?: string;
+  prerequisite?: string;
+  contextMessage?: string;
+  steps: TutorialStep[];
+}): TutorialLevel {
+  return createLevel({
+    id: config.id || `level-${config.level || 1}`,
+    order: config.level || 1,
+    title: config.title,
+    subtitle: config.subtitle,
+    description: config.description,
+    estimatedTime: config.estimatedTime,
+    unlocks: config.unlocks,
+    prerequisite: config.prerequisite,
+    contextMessage: config.contextMessage,
+    steps: config.steps,
+  });
+}
+
+export function tutorial(config: {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  difficulty: Tutorial['difficulty'];
+  contextMessage?: string;
+  levels: TutorialLevel[];
+  category?: string;
+  color?: string;
+  estimatedTime?: string;
+  unlocks?: string;
+  difficultyLabel?: string;
+  icon?: string;
+  nodeCount?: number;
+  stepCount?: number;
+  isLive?: boolean;
+  tags?: string[];
+  [key: string]: unknown;
+}): Tutorial {
+  return createTutorial({
+    id: config.id,
+    title: config.title,
+    subtitle: config.subtitle || config.description || '',
+    description: config.description || config.subtitle || config.title,
+    difficulty: config.difficulty,
+    tags: config.tags || [],
+    levels: config.levels,
+    contextMessage: config.contextMessage,
+    category: config.category,
+    color: config.color,
+    estimatedTime: config.estimatedTime,
+    unlocks: config.unlocks,
+  });
+}
+
+export function component(id: string, label: string, displayName?: string): ComponentMatcher {
+  return createMatcher({
+    category: label,
+    labelContains: [displayName || label],
+  });
+}
+
+export function edge(source: string, target: string): { from: string; to: string } {
+  return {
+    from: source,
+    to: target,
+  };
+}
+
+export function msg(text: string): string {
+  return text;
+}
+
+export const EDGE_LABEL: Record<string, string> = {
+  client_mobile: 'Mobile',
+  client_web: 'Web',
+  cdn: 'CDN',
+  api_gateway: 'API Gateway',
+  load_balancer: 'Load Balancer',
+  microservice: 'Microservice',
+  llm_api: 'LLM API',
+  nosql_db: 'NoSQL Database',
+  auth_service: 'Auth Service',
+  sql_db: 'SQL Database',
+  in_memory_cache: 'In-Memory Cache',
+  embedding_service: 'Embedding Service',
+  vector_db: 'Vector Database',
+  rag_pipeline: 'RAG Pipeline',
+  message_queue: 'Message Queue',
+  logger: 'Logger',
+  metrics_collector: 'Metrics Collector',
+  dashboard: 'Dashboard',
+  bff_gateway: 'BFF Gateway',
+  serverless_fn: 'Serverless Function',
+  token_bucket_rate_limiter: 'Token Bucket Rate Limimiter',
+  otel_collector: 'OpenTelemetry Collector',
+};

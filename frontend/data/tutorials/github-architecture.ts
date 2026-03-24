@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "GitHub's scale of Git storage alone is staggering. Every commit, every file, every version of every file across 420 million repositories. Git's content-addressable storage is what makes this possible."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -83,7 +83,7 @@ const l1 = level({
         msg(
           "Loading a pull request page used to require 10+ REST API calls: get PR details, get commits, get reviews, get comments, get CI status, get labels... GraphQL lets the client specify exactly what it needs in one request. GitHub's own web app uses the GraphQL API internally."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -118,7 +118,7 @@ const l1 = level({
         msg(
           "When a popular open-source project releases a new version, thousands of CI systems clone the repository simultaneously. The load balancer distributes these clone requests across Git server instances. Git operations are stateless, so any server can handle any clone request."
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -153,7 +153,7 @@ const l1 = level({
         msg(
           "GitHub Apps are the modern integration model. Instead of 'this app has access to all your repos', GitHub Apps request specific permissions on specific repos. A CI app only needs read access to your code repo — not your private repos. The Auth Service validates GitHub App JWTs and enforces these fine-grained permissions."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -188,7 +188,7 @@ const l1 = level({
         msg(
           "When you create a repository, the Repository Service creates the metadata record and provisions storage. When you add a collaborator, it updates the access control list. When you make a repo private, it updates visibility. The actual Git objects (commits, trees, blobs) are stored separately in Git Object Storage."
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Auth Service → Repository Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Auth Service → Repository Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('auth_service', 'microservice')],
@@ -223,7 +223,7 @@ const l1 = level({
         msg(
           "Every file in Git is stored as a blob identified by its SHA-1 hash. If the same file exists in 1 million repositories (like a popular library), GitHub stores it once. When you push a commit, GitHub checks if each blob already exists before storing it. This deduplication saves petabytes of storage."
         ),
-        msg('Press ⌘K, search for "Git Object Storage", add it, then connect Repository Service → Git Object Storage.'),
+        msg("Press ⌘K and search for \"Git Object Storage\" and press Enter to add it, then connect Repository Service → Git Object Storage."),
       ],
       requiredNodes: ['git_storage'],
       requiredEdges: [edge('microservice', 'git_storage')],
@@ -258,7 +258,7 @@ const l1 = level({
         msg(
           "When you open a PR, the Code Review Service computes the diff between your branch and the base branch. It stores inline comments with their position in the diff. When the base branch changes, it re-computes which comments are still relevant. This diff computation is expensive — GitHub caches diffs aggressively."
         ),
-        msg('Press ⌘K, search for "Code Review Service", add it, then connect Repository Service → Code Review Service.'),
+        msg("Press ⌘K and search for \"Code Review Service\" and press Enter to add it, then connect Repository Service → Code Review Service."),
       ],
       requiredNodes: ['code_review_service'],
       requiredEdges: [edge('microservice', 'code_review_service')],
@@ -293,7 +293,7 @@ const l1 = level({
         msg(
           "When a push triggers a workflow, GitHub provisions a new VM, clones the repository, runs the job steps, and destroys the VM. This takes under 30 seconds for hosted runners. The ephemeral model prevents test pollution between jobs. GitHub runs millions of CI jobs per day across their runner fleet."
         ),
-        msg('Press ⌘K, search for "CI Runner", add it, then connect Code Review Service → CI Runner.'),
+        msg("Press ⌘K and search for \"CI Runner\" and press Enter to add it, then connect Code Review Service → CI Runner."),
       ],
       requiredNodes: ['ci_runner'],
       requiredEdges: [edge('code_review_service', 'ci_runner')],
@@ -328,7 +328,7 @@ const l1 = level({
         msg(
           "When a push happens, GitHub sends a webhook to every registered endpoint. If an endpoint is slow (>10 seconds), the request times out. If it fails, GitHub retries with exponential backoff: 5s, 30s, 5m, 30m, 2h. After 3 days of failures, the webhook is disabled. This protects GitHub from slow endpoints blocking the delivery queue."
         ),
-        msg('Press ⌘K, search for "Webhook Dispatcher", add it, then connect Repository Service → Webhook Dispatcher.'),
+        msg("Press ⌘K and search for \"Webhook Dispatcher\" and press Enter to add it, then connect Repository Service → Webhook Dispatcher."),
       ],
       requiredNodes: ['webhook_dispatcher'],
       requiredEdges: [edge('microservice', 'webhook_dispatcher')],
@@ -363,7 +363,7 @@ const l1 = level({
         msg(
           "Code search has unique requirements: exact symbol matching, regex support, language-aware tokenization (a dot in Python means something different than in English). GitHub's Blackbird engine handles these requirements. The new AI-powered search also understands natural language: 'how does authentication work in this repo'."
         ),
-        msg('Press ⌘K, search for "Search Engine", add it, then connect Repository Service → Search Service.'),
+        msg("Press ⌘K and search for \"Search Engine\" and press Enter to add it, then connect Repository Service → Search Service."),
       ],
       requiredNodes: ['search_engine'],
       requiredEdges: [edge('microservice', 'search_engine')],
@@ -398,7 +398,7 @@ const l1 = level({
         msg(
           "GitHub Projects lets teams add custom fields: priority, sprint, story points, custom labels. Each team has different fields. In a relational DB, you'd need a separate table per custom field type. NoSQL stores each issue as a document with whatever fields the team has configured."
         ),
-        msg('Press ⌘K, search for "NoSQL Database", add it, then connect Code Review Service → NoSQL Database.'),
+        msg("Press ⌘K and search for \"NoSQL Database\" and press Enter to add it, then connect Code Review Service → NoSQL Database."),
       ],
       requiredNodes: ['nosql_db'],
       requiredEdges: [edge('code_review_service', 'nosql_db')],
@@ -433,7 +433,7 @@ const l1 = level({
         msg(
           "Without LFS, a 1GB video file would be stored in every clone of the repository forever. With LFS, the Git repo contains a 200-byte pointer file. The actual video is in Object Storage and downloaded only when needed. GitHub Actions CI artifacts (build outputs, test reports) are also stored here and expire after 90 days."
         ),
-        msg('Press ⌘K, search for "Object Storage", add it, then connect CI Runner → Object Storage.'),
+        msg("Press ⌘K and search for \"Object Storage\" and press Enter to add it, then connect CI Runner → Object Storage."),
       ],
       requiredNodes: ['object_storage'],
       requiredEdges: [edge('ci_runner', 'object_storage')],
@@ -488,7 +488,7 @@ const l2 = level({
           "When a popular open-source project releases a new version, thousands of CI systems and integrations consume webhook events simultaneously. Kafka handles this peak throughput without slowing down push operations."
         ),
         msg(
-          'Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'
+          'Press ⌘K and search for "Kafka / Streaming" and press Enter to add it, then connect Load Balancer → Kafka Streaming.'
         ),
       ],
       requiredNodes: ["kafka_streaming"],
@@ -530,7 +530,7 @@ const l2 = level({
           "When you push code, GitHub notifies all watchers, mentioned users, and CI subscribers. For repositories with millions of watchers, notifications are batched to prevent device overwhelm."
         ),
         msg(
-          'Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'
+          'Press ⌘K and search for "Worker / Background Job" and press Enter to add it, then connect Kafka Streaming → Notification Worker.'
         ),
       ],
       requiredNodes: ["worker_job"],
@@ -572,7 +572,7 @@ const l2 = level({
           "Every commit, PR, and issue change streams to ClickHouse for real-time analytics. GitHub Engineering uses this data to understand code churn, contributor patterns, and repository health."
         ),
         msg(
-          'Press ⌘K, search for "CDC Connector", add it, then connect Repository Service → CDC Connector.'
+          'Press ⌘K and search for "CDC Connector" and press Enter to add it, then connect Repository Service → CDC Connector.'
         ),
       ],
       requiredNodes: ["cdc_connector"],
@@ -614,7 +614,7 @@ const l2 = level({
           "GitHub famously runs MySQL at scale — all forks share storage with the parent via content-addressable Git storage. This is why forking a repository is nearly instant."
         ),
         msg(
-          'Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'
+          'Press ⌘K and search for "SQL Database" and press Enter to add it, then connect Auth Service → SQL Database.'
         ),
       ],
       requiredNodes: ["sql_db"],
@@ -656,7 +656,7 @@ const l2 = level({
           "Logs flow to Splunk for analysis — GitHub processes billions of log lines daily. Structured JSON enables fast queries across all services."
         ),
         msg(
-          'Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'
+          'Press ⌘K and search for "Structured Logger" and press Enter to add it, then connect Load Balancer → Structured Logger.'
         ),
       ],
       requiredNodes: ["structured_logger"],
@@ -698,7 +698,7 @@ const l2 = level({
           "GitHub tracks SLOs for hundreds of services with 99.99% targets for critical paths. When latency exceeds SLOs, the on-call team is alerted before users notice."
         ),
         msg(
-          'Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Structured Logger → SLO/SLI Tracker.'
+          'Press ⌘K and search for "SLO/SLI Tracker" and press Enter to add it, then connect Structured Logger → SLO/SLI Tracker.'
         ),
       ],
       requiredNodes: ["slo_tracker"],
@@ -740,7 +740,7 @@ const l2 = level({
           "When the budget is depleted, GitHub automatically reduces non-critical deployments to protect service reliability. This prevents reliability from being sacrificed for velocity."
         ),
         msg(
-          'Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'
+          'Press ⌘K and search for "Error Budget Monitor" and press Enter to add it, then connect SLO/SLI Tracker → Error Budget Monitor.'
         ),
       ],
       requiredNodes: ["error_budget_alert"],
@@ -782,7 +782,7 @@ const l2 = level({
           "This reduces MySQL load by orders of magnitude. When a popular repository is accessed, metadata is served from Redis instead of MySQL for subsequent requests."
         ),
         msg(
-          'Press ⌘K, search for "In-Memory Cache", add it, then connect Load Balancer → In-Memory Cache.'
+          'Press ⌘K and search for "In-Memory Cache" and press Enter to add it, then connect Load Balancer → In-Memory Cache.'
         ),
       ],
       requiredNodes: ["in_memory_cache"],
@@ -838,7 +838,7 @@ const l3 = level({
           "Every internal service call is encrypted and authenticated — zero-trust networking. Envoy sidecars handle circuit breaking to prevent cascade failures."
         ),
         msg(
-          'Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'
+          'Press ⌘K and search for "Service Mesh (Istio)" and press Enter to add it, then connect Load Balancer → Service Mesh.'
         ),
       ],
       requiredNodes: ["service_mesh"],
@@ -880,7 +880,7 @@ const l3 = level({
           "Each domain (Repositories, Users, Actions, Packages) owns its schema. The gateway composes them into a unified API — enabling independent deployments and schema evolution."
         ),
         msg(
-          'Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'
+          'Press ⌘K and search for "GraphQL Federation Gateway" and press Enter to add it, then connect API Gateway → GraphQL Federation Gateway.'
         ),
       ],
       requiredNodes: ["graphql_federation"],
@@ -922,7 +922,7 @@ const l3 = level({
           "GitHub's free tier: 60 requests/hour for unauthenticated, 5,000 for authenticated, 15,000 for GitHub Apps. Token buckets allow burst traffic while enforcing average rate limits."
         ),
         msg(
-          'Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'
+          'Press ⌘K and search for "Token Bucket Rate Limiter" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter.'
         ),
       ],
       requiredNodes: ["token_bucket_limiter"],
@@ -964,7 +964,7 @@ const l3 = level({
           "With 100+ services, a single push spans dozens of services: webhook reception, auth validation, Git object storage, notification dispatch. Distributed tracing links these spans to understand end-to-end latency."
         ),
         msg(
-          'Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'
+          'Press ⌘K and search for "OpenTelemetry Collector" and press Enter to add it, then connect Structured Logger → OpenTelemetry Collector.'
         ),
       ],
       requiredNodes: ["otel_collector"],
@@ -1006,7 +1006,7 @@ const l3 = level({
           "When a push triggers Actions CI, the correlation ID links webhook delivery, CI trigger, and build logs. Without this, debugging a failed CI run requires manually correlating dozens of log entries."
         ),
         msg(
-          'Press ⌘K, search for "Correlation ID Handler", add it, then connect Load Balancer → Correlation ID Handler.'
+          'Press ⌘K and search for "Correlation ID Handler" and press Enter to add it, then connect Load Balancer → Correlation ID Handler.'
         ),
       ],
       requiredNodes: ["correlation_id_handler"],
@@ -1048,7 +1048,7 @@ const l3 = level({
           "Certificates rotate every 24 hours. If a service is compromised, its certificate is revoked within minutes — limiting the blast radius of the security incident."
         ),
         msg(
-          'Press ⌘K, search for "mTLS Certificate Authority", add it, then connect Service Mesh → mTLS Certificate Authority.'
+          'Press ⌘K and search for "mTLS Certificate Authority" and press Enter to add it, then connect Service Mesh → mTLS Certificate Authority.'
         ),
       ],
       requiredNodes: ["mtls_certificate_authority"],
@@ -1090,7 +1090,7 @@ const l3 = level({
           "When a cache expires for a popular repository, thousands of requests hit the database simultaneously. Lock-assisted refresh ensures only one worker refreshes while others serve stale data."
         ),
         msg(
-          'Press ⌘K, search for "Cache Stampede Guard", add it, then connect In-Memory Cache → Cache Stampede Guard.'
+          'Press ⌘K and search for "Cache Stampede Guard" and press Enter to add it, then connect In-Memory Cache → Cache Stampede Guard.'
         ),
       ],
       requiredNodes: ["cache_stampede_guard"],
@@ -1132,7 +1132,7 @@ const l3 = level({
           "Queries like 'who starred this repo' and 'who contributes to this org' would require scanning millions of records. Materialized views precompute these results for sub-10ms queries."
         ),
         msg(
-          'Press ⌘K, search for "Change Data Cache", add it, then connect CDC Connector → Change Data Cache.'
+          'Press ⌘K and search for "Change Data Cache" and press Enter to add it, then connect CDC Connector → Change Data Cache.'
         ),
       ],
       requiredNodes: ["change_data_cache"],
@@ -1174,7 +1174,7 @@ const l3 = level({
           "Commit frequency, contributor graphs, and code churn inform GitHub's engineering decisions. Which languages are growing? Where are CI times increasing? The data warehouse enables this analysis."
         ),
         msg(
-          'Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'
+          'Press ⌘K and search for "Data Warehouse" and press Enter to add it, then connect CDC Connector → Data Warehouse.'
         ),
       ],
       requiredNodes: ["data_warehouse"],
@@ -1216,7 +1216,7 @@ const l3 = level({
           "Repository creation, access grants, billing changes — every action is recorded. When a security incident occurs, auditors can replay exactly what happened."
         ),
         msg(
-          'Press ⌘K, search for "Event Store", add it, then connect Kafka Streaming → Event Store.'
+          'Press ⌘K and search for "Event Store" and press Enter to add it, then connect Kafka Streaming → Event Store.'
         ),
       ],
       requiredNodes: ["event_store"],
@@ -1258,7 +1258,7 @@ const l3 = level({
           "The BFF aggregates data from multiple GraphQL resolvers, handles SSR hydration, and manages OAuth session state. This is the final piece of GitHub Enterprise Cloud."
         ),
         msg(
-          'Press ⌘K, search for "BFF Gateway", add it, then connect Web Client → BFF Gateway.'
+          'Press ⌘K and search for "BFF Gateway" and press Enter to add it, then connect Web Client → BFF Gateway.'
         ),
       ],
       requiredNodes: ["bff_gateway"],

@@ -44,7 +44,7 @@ const l1 = level({
       messages: [
         msg("Welcome to the RAG Application tutorial. RAG combines your private data with LLMs for accurate, grounded answers."),
         msg("The client is a question-answering interface. Users ask questions in natural language. The RAG system retrieves relevant documents and synthesizes an answer. This is how ChatGPT Enterprise and Perplexity work with your private data."),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -80,7 +80,7 @@ const l1 = level({
       messages: [
         msg("The API Gateway handles two flows: querying (user asks a question) and ingestion (documents are added to the knowledge base)."),
         msg("Both flows go through the API Gateway. It handles authentication, rate limiting, and routing. Query traffic is continuous and latency-sensitive (needs fast responses). Ingestion traffic is bursty and throughput-sensitive (needs to handle large document uploads)."),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -116,7 +116,7 @@ const l1 = level({
       messages: [
         msg("The Load Balancer distributes requests across application servers for both query and ingestion flows."),
         msg("RAG systems are read-heavy on queries and write-heavy on ingestion. Consistent hashing keeps frequently queried embeddings cached on the same servers — reducing vector database lookups and achieving sub-second Q&A responses."),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -152,7 +152,7 @@ const l1 = level({
       messages: [
         msg("The LLM synthesizes the final answer using retrieved document context."),
         msg("Without RAG, LLMs hallucinate — plausible-sounding but wrong answers. With RAG, the LLM receives retrieved documents as context. It answers the user's question using only the provided documents, citing the sources. This is what makes RAG accurate."),
-        msg('Press ⌘K, search for "LLM API", add it, then connect Load Balancer → LLM API.'),
+        msg("Press ⌘K and search for \"LLM API\" and press Enter to add it, then connect Load Balancer → LLM API."),
       ],
       requiredNodes: ['llm_api'],
       requiredEdges: [edge('load_balancer', 'llm_api')],
@@ -188,7 +188,7 @@ const l1 = level({
       messages: [
         msg("The RAG Pipeline is the retrieval engine — the 'R' in RAG."),
         msg("Given a user question: 1) Convert to embedding vector. 2) Search vector DB for semantically similar chunks. 3) Return top-k results. Semantic search means finding 'car insurance' when the user asks 'auto coverage' — keyword search would completely miss this."),
-        msg('Press ⌘K, search for "RAG Pipeline", add it, then connect Load Balancer → RAG Pipeline.'),
+        msg("Press ⌘K and search for \"RAG Pipeline\" and press Enter to add it, then connect Load Balancer → RAG Pipeline."),
       ],
       requiredNodes: ['rag_pipeline'],
       requiredEdges: [edge('load_balancer', 'rag_pipeline')],
@@ -224,7 +224,7 @@ const l1 = level({
       messages: [
         msg("The Vector Database stores document embeddings and enables similarity search."),
         msg("Embeddings are dense numerical representations of text. 'Car insurance' and 'auto coverage' have similar embeddings even though the words are different. The Vector DB finds nearest neighbors using cosine similarity — this is semantic search."),
-        msg('Press ⌘K, search for "Vector Database", add it, then connect RAG Pipeline → Vector DB.'),
+        msg("Press ⌘K and search for \"Vector Database\" and press Enter to add it, then connect RAG Pipeline → Vector DB."),
       ],
       requiredNodes: ['vector_db'],
       requiredEdges: [edge('rag_pipeline', 'vector_db')],
@@ -260,7 +260,7 @@ const l1 = level({
       messages: [
         msg("The Embedding Service converts text to vector embeddings — the foundation of semantic search."),
         msg("Embedding models turn text into dense numerical vectors. 'The car needs auto insurance' and 'Vehicle coverage policy' → similar vectors. The Embedding Service runs during ingestion (batch) and at query time (real-time). OpenAI text-embedding-3 or Sentence Transformers are common choices."),
-        msg('Press ⌘K, search for "Embedding Service", add it, then connect Load Balancer → Embedding Service.'),
+        msg("Press ⌘K and search for \"Embedding Service\" and press Enter to add it, then connect Load Balancer → Embedding Service."),
       ],
       requiredNodes: ['embedding_service'],
       requiredEdges: [edge('load_balancer', 'embedding_service')],
@@ -296,7 +296,7 @@ const l1 = level({
       messages: [
         msg("RAG queries are expensive. Cache recent results to avoid re-computation."),
         msg("Each RAG query runs: embed question → vector search → LLM synthesis. Each step costs money and adds latency. Semantic caching stores recent query embeddings and their results. Similar questions hit the cache — saving 30-60% of compute on common questions."),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect RAG Pipeline → Document Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect RAG Pipeline → Document Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('rag_pipeline', 'in_memory_cache')],
@@ -332,7 +332,7 @@ const l1 = level({
       messages: [
         msg("Documents enter the RAG system through the Document Loader — PDFs, web pages, Notion, Confluence, Slack."),
         msg("Each format needs a specialized parser: PDF extractors for documents, web scrapers for URLs, Notion API clients for pages, Slack message exporters for conversations. The output is always clean, structured text — ready for chunking."),
-        msg('Press ⌘K, search for "Upload Service", add it for Document Loading, then connect API Gateway → Document Loader.'),
+        msg("Press ⌘K and search for \"Upload Service\" and press Enter to add it for Document Loading, then connect API Gateway → Document Loader."),
       ],
       requiredNodes: ['upload_service'],
       requiredEdges: [edge('api_gateway', 'upload_service')],
@@ -368,7 +368,7 @@ const l1 = level({
       messages: [
         msg("Documents are split into chunks — typically 512-1024 tokens. Chunking strategy matters enormously."),
         msg("Too large: chunks lose granularity, retrieval returns irrelevant context. Too small: chunks lack enough context for the LLM to answer. 25% overlap preserves continuity across chunk boundaries. Semantic chunking (splitting at natural sentence/paragraph boundaries) outperforms fixed-size chunking."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it for Text Splitting, then connect Document Loader → Text Splitter.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it for Text Splitting, then connect Document Loader → Text Splitter."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('upload_service', 'worker_job')],
@@ -418,7 +418,7 @@ const l2 = level({
       messages: [
         msg("Kafka is the event bus for RAG's ingestion pipeline."),
         msg("Every document uploaded triggers embedding generation tasks that stream through Kafka. Query events also stream through for async processing."),
-        msg('Press ⌘K, search for "Kafka Streaming", add it, then connect API Gateway → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka Streaming\" and press Enter to add it, then connect API Gateway → Kafka Streaming."),
       ],
       requiredNodes: ["kafka_streaming"],
       requiredEdges: [edge("api_gateway", "kafka_streaming")],
@@ -454,7 +454,7 @@ const l2 = level({
       messages: [
         msg("Notification workers keep users informed about RAG system state."),
         msg("When document ingestion completes, embeddings finish generating, or query results are ready — users receive notifications. Trust requires transparency in RAG systems."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it for Notification Worker, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it for Notification Worker, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ["worker_job"],
       requiredEdges: [edge("kafka_streaming", "worker_job")],
@@ -490,7 +490,7 @@ const l2 = level({
       messages: [
         msg("Redis caches query results and embeddings."),
         msg("Frequently asked questions get cached embedding results — avoiding expensive vector search for repeated queries. This saves significant compute on common RAG queries."),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect RAG Pipeline → Redis Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect RAG Pipeline → Redis Cache."),
       ],
       requiredNodes: ["in_memory_cache"],
       requiredEdges: [edge("rag_pipeline", "in_memory_cache")],
@@ -526,7 +526,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector mirrors ingestion metadata to analytics."),
         msg("Document usage, query patterns, and relevance feedback stream to the data warehouse. This data drives continuous improvement of chunking and retrieval strategies."),
-        msg('Press ⌘K, search for "CDC Connector", add it, then connect SQL Database → CDC Connector.'),
+        msg("Press ⌘K and search for \"CDC Connector\" and press Enter to add it, then connect SQL Database → CDC Connector."),
       ],
       requiredNodes: ["cdc_connector"],
       requiredEdges: [edge("sql_db", "cdc_connector")],
@@ -562,7 +562,7 @@ const l2 = level({
       messages: [
         msg("PostgreSQL stores user accounts, document metadata, and chunk mappings."),
         msg("Chunk-to-document mappings enable source tracing for generated answers — the core value proposition of RAG. Users can verify which documents informed the answer."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect API Gateway → PostgreSQL.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect API Gateway → PostgreSQL."),
       ],
       requiredNodes: ["sql_db"],
       requiredEdges: [edge("api_gateway", "sql_db")],
@@ -598,7 +598,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger captures RAG system metrics."),
         msg("Query latency, embedding generation time, and retrieval quality metrics flow to the observability platform. Understanding retrieval performance is essential for RAG quality."),
-        msg('Press ⌘K, search for "Logger", add it, then connect RAG Pipeline → Structured Logger.'),
+        msg("Press ⌘K and search for \"Logger\" and press Enter to add it, then connect RAG Pipeline → Structured Logger."),
       ],
       requiredNodes: ["structured_logger"],
       requiredEdges: [edge("rag_pipeline", "structured_logger")],
@@ -634,7 +634,7 @@ const l2 = level({
       messages: [
         msg("SLO Tracker monitors query latency and retrieval quality."),
         msg("Query latency must complete in <3 seconds. Retrieval precision@k is tracked alongside latency — quality matters as much as speed."),
-        msg('Press ⌘K, search for "Metrics Collector", add it for SLO Tracker, then connect Structured Logger → SLO Tracker.'),
+        msg("Press ⌘K and search for \"Metrics Collector\" and press Enter to add it for SLO Tracker, then connect Structured Logger → SLO Tracker."),
       ],
       requiredNodes: ["slo_tracker"],
       requiredEdges: [edge("structured_logger", "slo_tracker")],
@@ -670,7 +670,7 @@ const l2 = level({
       messages: [
         msg("Error Budget Monitor tracks answer quality SLO."),
         msg("When retrieval precision drops (e.g., after a bad embedding model update), the error budget alerts the team before degraded answers reach users."),
-        msg('Press ⌘K, search for "Alert Manager", add it, then connect SLO Tracker → Error Budget Alert. This completes the RAG at Scale architecture!'),
+        msg("Press ⌘K and search for \"Alert Manager\" and press Enter to add it, then connect SLO Tracker → Error Budget Alert. This completes the RAG at Scale architecture!"),
       ],
       requiredNodes: ["error_budget_alert"],
       requiredEdges: [edge("slo_tracker", "error_budget_alert")],
@@ -720,7 +720,7 @@ const l3 = level({
       messages: [
         msg("Service Mesh handles mTLS between services."),
         msg("Zero-trust networking ensures LLM API keys and document content are protected in transit. Envoy-based service mesh is the standard for enterprise RAG."),
-        msg('Press ⌘K, search for "Service Mesh", add it, then connect Load Balancer → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh\" and press Enter to add it, then connect Load Balancer → Service Mesh."),
       ],
       requiredNodes: ["service_mesh"],
       requiredEdges: [edge("load_balancer", "service_mesh")],
@@ -756,7 +756,7 @@ const l3 = level({
       messages: [
         msg("BFF Gateway optimizes API for client needs."),
         msg("The BFF handles query preprocessing, result ranking, and citation formatting — aggregating multiple retrieval results into a coherent response for the client."),
-        msg('Press ⌘K, search for "API Gateway", add it for BFF, then connect Service Mesh → BFF Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it for BFF, then connect Service Mesh → BFF Gateway."),
       ],
       requiredNodes: ["bff_gateway"],
       requiredEdges: [edge("service_mesh", "bff_gateway")],
@@ -792,7 +792,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter enforces tier-based limits."),
         msg("Free tier: 10 queries/min, Pro tier: 100/min, Enterprise: unlimited. Token buckets prevent expensive embedding generation abuse."),
-        msg('Press ⌘K, search for "Rate Limiter", add it, then connect BFF Gateway → Token Bucket Limiter.'),
+        msg("Press ⌘K and search for \"Rate Limiter\" and press Enter to add it, then connect BFF Gateway → Token Bucket Limiter."),
       ],
       requiredNodes: ["token_bucket_limiter"],
       requiredEdges: [edge("bff_gateway", "token_bucket_limiter")],
@@ -828,7 +828,7 @@ const l3 = level({
       messages: [
         msg("OpenTelemetry Collector traces queries end-to-end."),
         msg("A single RAG query touches embedding lookup, vector search, reranking, and LLM synthesis — 10+ services. Tracing is essential for debugging hallucinated answers."),
-        msg('Press ⌘K, search for "Metrics Collector", add it for OTel, then connect RAG Pipeline → OpenTelemetry Collector.'),
+        msg("Press ⌘K and search for \"Metrics Collector\" and press Enter to add it for OTel, then connect RAG Pipeline → OpenTelemetry Collector."),
       ],
       requiredNodes: ["otel_collector"],
       requiredEdges: [edge("rag_pipeline", "otel_collector")],
@@ -864,7 +864,7 @@ const l3 = level({
       messages: [
         msg("Correlation ID Handler links queries to every step."),
         msg("Embedding lookup, vector search, reranking, LLM call, and citation generation — all linked by correlation ID for complete traceability."),
-        msg('Press ⌘K, search for "Trace Context", add it, then connect BFF Gateway → Correlation ID Handler.'),
+        msg("Press ⌘K and search for \"Trace Context\" and press Enter to add it, then connect BFF Gateway → Correlation ID Handler."),
       ],
       requiredNodes: ["correlation_id_handler"],
       requiredEdges: [edge("bff_gateway", "correlation_id_handler")],
@@ -900,7 +900,7 @@ const l3 = level({
       messages: [
         msg("mTLS Certificate Authority issues SPIFFE certificates."),
         msg("Every service authenticates with mTLS before retrieving LLM API keys from secrets management. This is zero-trust security."),
-        msg('Press ⌘K, search for "Certificate Authority", add it, then connect Service Mesh → mTLS Certificate Authority.'),
+        msg("Press ⌘K and search for \"Certificate Authority\" and press Enter to add it, then connect Service Mesh → mTLS Certificate Authority."),
       ],
       requiredNodes: ["mtls_certificate_authority"],
       requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
@@ -936,7 +936,7 @@ const l3 = level({
       messages: [
         msg("Cache Stampede Guard prevents thundering herd."),
         msg("When a popular document's embeddings expire, lock-assisted refresh ensures only one worker regenerates expensive embeddings — not thousands."),
-        msg('Press ⌘K, search for "Cache Stampede Prevention", add it, then connect In-Memory Cache → Cache Stampede Guard.'),
+        msg("Press ⌘K and search for \"Cache Stampede Prevention\" and press Enter to add it, then connect In-Memory Cache → Cache Stampede Guard."),
       ],
       requiredNodes: ["cache_stampede_guard"],
       requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
@@ -972,7 +972,7 @@ const l3 = level({
       messages: [
         msg("Change Data Cache precomputes caches from CDC."),
         msg("Query result caches and frequently accessed document embeddings are materialized in Redis for sub-10ms retrieval. Query time doesn't pay the compute cost."),
-        msg('Press ⌘K, search for "Change Data Cache", add it, then connect CDC Connector → Change Data Cache.'),
+        msg("Press ⌘K and search for \"Change Data Cache\" and press Enter to add it, then connect CDC Connector → Change Data Cache."),
       ],
       requiredNodes: ["change_data_cache"],
       requiredEdges: [edge("cdc_connector", "change_data_cache")],
@@ -1008,7 +1008,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores query logs and quality metrics."),
         msg("Query logs, retrieval quality metrics, and user feedback train reranking models, improve chunking strategies, and identify knowledge gaps."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect Kafka Streaming → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect Kafka Streaming → Data Warehouse."),
       ],
       requiredNodes: ["data_warehouse"],
       requiredEdges: [edge("kafka_streaming", "data_warehouse")],
@@ -1044,7 +1044,7 @@ const l3 = level({
       messages: [
         msg("Event Store maintains immutable audit logs."),
         msg("Every document ingestion event and query event is stored. Immutable logs enable audit trails for compliance — critical for enterprise RAG on sensitive documents."),
-        msg('Press ⌘K, search for "Event Store", add it, then connect Kafka Streaming → Event Store.'),
+        msg("Press ⌘K and search for \"Event Store\" and press Enter to add it, then connect Kafka Streaming → Event Store."),
       ],
       requiredNodes: ["event_store"],
       requiredEdges: [edge("kafka_streaming", "event_store")],
@@ -1080,7 +1080,7 @@ const l3 = level({
       messages: [
         msg("Prefetch Cache anticipates queries."),
         msg("Based on document similarity, embeddings for semantically similar documents are preloaded into cache. This reduces query latency for related topics."),
-        msg('Press ⌘K, search for "Prefetch Cache", add it, then connect Vector DB → Prefetch Cache. This completes the RAG Enterprise architecture!'),
+        msg("Press ⌘K and search for \"Prefetch Cache\" and press Enter to add it, then connect Vector DB → Prefetch Cache. This completes the RAG Enterprise architecture!"),
       ],
       requiredNodes: ["prefetch_cache"],
       requiredEdges: [edge("vector_db", "prefetch_cache")],

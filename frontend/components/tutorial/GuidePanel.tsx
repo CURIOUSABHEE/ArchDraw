@@ -127,6 +127,25 @@ function getSuccessMessage(step: any): string {
   return step.validation?.successMessage ?? step.successMessage ?? `Great job adding ${step.title}!`;
 }
 
+// Extract search term from step — looks in hints for buildFirstStepAction/buildAction patterns
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getSearchTerm(step: any): string {
+  // If step has a dedicated searchTerm field, use it
+  if (step.searchTerm) return step.searchTerm;
+  
+  // Extract from hints array (buildFirstStepAction or buildAction patterns)
+  const hints = step.hints ?? [];
+  for (const hint of hints) {
+    const hintStr = typeof hint === 'string' ? hint : (hint as { action?: string })?.action ?? '';
+    // Match: Press ⌘K and search for 'X' ...
+    const match = hintStr.match(/search for ['"]([^'"]+)['"]/);
+    if (match) return match[1];
+  }
+  
+  // Fallback: extract from title by removing "Add ", "Add the ", "Remove ", etc.
+  return step.title?.replace(/^(Add|Add the|Remove|Remove the)\s+/i, '') ?? step.title ?? '';
+}
+
 // ── Robust node matching: checks componentId, label, and components.json lookup ──
 function nodeMatchesRequirement(node: Node, requiredId: string): boolean {
   const nodeLabel = (node.data?.label as string ?? '').toLowerCase().trim();
@@ -521,8 +540,12 @@ export function GuidePanel({
         if (cached) return cached;
         return s.explanation ?? `${s.title} is a key component in this architecture.`;
       }
-      case 'action':
-        return s.action ?? `Press ⌘K and search for "${s.title}" to add it.`;
+      case 'action': {
+        const actionText = typeof s.action === 'string' 
+          ? s.action 
+          : `Press ⌘K and search for "${getSearchTerm(s)}" and press Enter to add it.`;
+        return actionText;
+      }
       case 'connecting': {
         const reqEdges = getRequiredEdges(s);
         const edge = reqEdges[connectingEdgeIndexRef.current];
@@ -633,6 +656,7 @@ export function GuidePanel({
     if (!tutorial.id || !step?.title || currentStep < 1) return;
 
     const key = `${tutorial.id}:${currentLevel}:${currentStep}`;
+    console.log('[StepChange] New step:', { key, stepTitle: step?.title, requiredNodes: getRequiredNodes(step) });
     if (lastFiredRef.current === key) return;
     lastFiredRef.current = key;
 
@@ -701,6 +725,48 @@ export function GuidePanel({
     return () => { clearTimeout(t); cleanup(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, currentLevel, tutorial.id, step?.title]);
+
+  // ── Auto-skip: if required nodes and edges already exist, skip to next step ──
+  const hasCheckedExistingNodes = useRef(false);
+  useEffect(() => {
+    if (!step) return;
+    hasCheckedExistingNodes.current = false;
+  }, [currentStep, currentLevel, step]);
+
+  useEffect(() => {
+    if (!step || hasCheckedExistingNodes.current) return;
+    if (currentStep > totalSteps) return;
+
+    const requiredNodes = getRequiredNodes(step);
+    const requiredEdges = getRequiredEdges(step);
+
+    // Check if ALL required nodes exist on the canvas
+    const allRequiredNodesExist = !requiredNodes?.length || requiredNodes.every((reqId: string) =>
+      nodes.some((n: Node) => nodeMatchesRequirement(n, reqId))
+    );
+
+    // Check if ALL required edges exist on the canvas
+    const allRequiredEdgesExist = !requiredEdges?.length || requiredEdges.every((reqEdge: { from: string; to: string }) =>
+      edges.some((e: Edge) => edgeMatchesRequired(e, nodes, reqEdge))
+    );
+
+    if (allRequiredNodesExist && allRequiredEdgesExist) {
+      hasCheckedExistingNodes.current = true;
+      console.log('[AutoSkip] Required nodes and edges already exist, skipping step:', step.title);
+
+      // Skip directly to celebration then advance
+      stepCompletedRef.current = true;
+      setActiveMessage(`${step.title} already complete! Great job!`);
+
+      setTimeout(() => {
+        if (currentStep >= totalSteps) {
+          completeTutorial();
+        } else {
+          advanceStep();
+        }
+      }, 1000);
+    }
+  }, [nodes, edges, currentStep, step, advanceStep, completeTutorial, totalSteps]);
 
   // ── Chunk stall timeout ──────────────────────────────────────────────────
   const prevContentRef = useRef('');
@@ -789,14 +855,13 @@ export function GuidePanel({
   const prevNodeIdsRef = useRef<Set<string>>(new Set());
   const wrongNodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset stepCompletedRef and baseline snapshot on step/level change
+  // Reset stepCompletedRef on step/level change (don't update prevNodeIdsRef here)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     stepCompletedRef.current = false;
-    prevNodeIdsRef.current = new Set(nodes.map((n: Node) => n.id));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, currentLevel]);
 
-  // Snapshot baseline when entering 'action' phase
+  // Snapshot baseline when entering 'action' phase (ONLY here do we set prevNodeIdsRef)
   const prevPhaseRef = useRef<Phase>('intro');
   useEffect(() => {
     if (committedPhase === 'action' && prevPhaseRef.current !== 'action') {
@@ -809,7 +874,10 @@ export function GuidePanel({
   useEffect(() => {
     if (committedPhase !== 'action') return;
     const requiredNodes = getRequiredNodes(step);
-    if (currentStep > totalSteps || !requiredNodes?.length) return;
+    if (currentStep > totalSteps || !requiredNodes?.length) {
+      console.log('[Validation] Skipped - requiredNodes empty:', { requiredNodes, currentStep, totalSteps });
+      return;
+    }
     if (stepCompletedRef.current) return;
 
     const newNodes = nodes.filter((n: Node) => !prevNodeIdsRef.current.has(n.id));
@@ -853,7 +921,7 @@ export function GuidePanel({
           const s = stepRef.current;
           setTypeSpeed(SPEED.fallback);
           setShowChips(false);
-          setActiveMessage(`That's not quite right — search for "${s.title}" in ⌘K palette. Press Delete or Backspace to remove the wrong component.`);
+          setActiveMessage(`That's not quite right — search for "${getSearchTerm(s)}" in ⌘K palette and press Enter. Press Delete or Backspace to remove the wrong component.`);
           commitPhase('action');
         } else {
           sendMessage(
@@ -862,8 +930,7 @@ export function GuidePanel({
         }
       }, 1_500);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, committedPhase]);
+  }, [nodes, committedPhase, step]);
 
   // ── Edge watcher (connecting phase) ──────────────────────────────────────
   const edgeCheckInProgressRef = useRef(false);
@@ -1074,17 +1141,18 @@ export function GuidePanel({
     if (!isLive) {
       const s = stepRef.current;
       let text: string;
+      const actionText = typeof s.action === 'string' ? s.action : '';
       if (chip.nextPhase === 'teaching' || chip.nextPhase === 'reteach') {
         const ec = chip.nextPhase === 'reteach' ? explainCount + 1 : explainCount;
         const cacheKey = `${tutorialRef.current.id}:${currentStepRef.current}:teaching:${ec}`;
-        text = (staticCacheData as Record<string, string>)[cacheKey] ?? s.explanation ?? s.action;
+        text = (staticCacheData as Record<string, string>)[cacheKey] ?? s.explanation ?? actionText;
         if (chip.nextPhase === 'reteach') setExplainCount(c => c + 1);
       } else if (chip.nextPhase === 'action') {
-        text = s.action;
+        text = actionText || `Press ⌘K and search for "${getSearchTerm(s)}" and press Enter to add it.`;
       } else if (chip.nextPhase === 'celebration') {
         text = getSuccessMessage(s);
       } else {
-        text = s.explanation ?? s.action;
+        text = s.explanation ?? actionText;
       }
       commitPhase(chip.nextPhase as Phase);
       showMessage(text, chip.nextPhase as Phase);

@@ -209,7 +209,7 @@ function TutorialCanvasInner({
         {
           ...connection,
           id: `edge-${Date.now()}`,
-          type: 'smoothstep',
+          type: 'default',
           animated: true,
           style: { stroke: '#94a3b8', strokeWidth: 1.5 },
         },
@@ -323,10 +323,10 @@ function TutorialCanvasInner({
           fitView
           fitViewOptions={{ maxZoom: 0.7 }}
           proOptions={{ hideAttribution: true }}
-          connectionLineType={ConnectionLineType.SmoothStep}
+          connectionLineType={ConnectionLineType.Bezier}
           style={{ background: canvasBg }}
           defaultEdgeOptions={{
-            type: 'smoothstep',
+            type: 'default',
             animated: true,
             style: { stroke: '#94a3b8', strokeWidth: 1.5 },
           }}

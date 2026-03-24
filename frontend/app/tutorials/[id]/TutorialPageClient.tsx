@@ -14,9 +14,7 @@ import { IntroCardFlow } from '@/components/tutorial/IntroCardFlow';
 import { CompletionCardFlow } from '@/components/tutorial/CompletionCardFlow';
 import type { TutorialData } from '@/data/tutorials';
 import type { Tutorial, TutorialLevel } from '@/lib/tutorial/types';
-import type { TutorialLevelData } from '@/data/tutorials';
 import type { Node, Edge } from 'reactflow';
-const _TutorialLevelData: TutorialLevelData = null as unknown as TutorialLevel;
 
 // Dynamic import to avoid SSR issues with ReactFlow
 const TutorialCanvas = dynamic(
@@ -44,19 +42,22 @@ function LevelCompleteScreen({
   onContinue,
   onSave,
 }: {
-  level: TutorialLevelData;
-  nextLevel: TutorialLevelData;
+  level: TutorialLevel;
+  nextLevel: TutorialLevel;
   nodeCount: number;
   edgeCount: number;
   onContinue: () => void;
   onSave: () => void;
 }) {
+  const levelNum = level.level ?? level.order ?? 1;
+  const nextLevelNum = nextLevel.level ?? nextLevel.order ?? (levelNum + 1);
+  
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(8,12,20,0.85)', backdropFilter: 'blur(4px)' }}>
       <div className="w-full max-w-sm mx-4 rounded-2xl p-6 flex flex-col gap-5" style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="flex items-center gap-2">
           <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}>
-            Level {level.level} Complete
+            Level {levelNum} Complete
           </span>
         </div>
         <div>
@@ -67,7 +68,7 @@ function LevelCompleteScreen({
         </div>
         <div style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Ready for Level {nextLevel.level}?</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Ready for Level {nextLevelNum}?</p>
           <p className="text-sm text-slate-300">{nextLevel.description}</p>
           <p className="text-xs text-slate-500 mt-2">You&apos;ll add {nextLevel.steps.length} more components on top of what you built.</p>
         </div>
@@ -79,7 +80,7 @@ function LevelCompleteScreen({
             onMouseEnter={e => (e.currentTarget.style.background = '#6366f1')}
             onMouseLeave={e => (e.currentTarget.style.background = '#4f46e5')}
           >
-            Continue to Level {nextLevel.level} →
+            Continue to Level {nextLevelNum} →
           </button>
           <button
             onClick={onSave}
@@ -160,7 +161,7 @@ export default function TutorialPage() {
     prevIdRef.current = activeTutorialId;
   });
 
-  const levels: TutorialLevelData[] = isLeveled && tutorial ? (tutorial as Tutorial).levels ?? [] : [];
+  const levels: TutorialLevel[] = isLeveled && tutorial ? (tutorial as Tutorial).levels ?? [] : [];
   // Handle both old flat format (tutorial.steps) and new factory format (tutorial.levels[].steps)
   // Also handle case where tutorial has levels but wasn't detected as leveled yet
   const hasLevelsArray = tutorial && 'levels' in tutorial && (tutorial as Tutorial).levels?.length > 0;
@@ -491,7 +492,7 @@ export default function TutorialPage() {
           levelTitle={currentLevelData?.title}
           levelDescription={currentLevelData?.description}
           stepCount={totalSteps}
-          estimatedTime={tutorial.estimatedTime}
+          estimatedTime={tutorial.estimatedTime || '15-30 mins'}
           componentCount={componentCount}
           onStart={handleStartFromIntro}
           onSkip={handleIntroSkip}

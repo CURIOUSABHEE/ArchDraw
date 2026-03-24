@@ -8,7 +8,7 @@ export function buildAction(
   connectionMeaning: string,
 ): string {
   return (
-    `Press ⌘K and search for '${searchLabel}' and add it to the canvas. ` +
+    `Press ⌘K and search for '${searchLabel}' and press Enter to add it. ` +
     `Then connect ${fromNode} → ${toNode} by hovering over ${fromNode} ` +
     `and dragging from the handle on its edge to ${toNode}. ` +
     `This connection represents ${connectionMeaning}.`
@@ -17,7 +17,7 @@ export function buildAction(
 
 /** Standard first step action — no connection needed */
 export function buildFirstStepAction(searchLabel: string): string {
-  return `Press ⌘K and search for '${searchLabel}' and add it to the canvas.`;
+  return `Press ⌘K and search for '${searchLabel}' and press Enter to add it.`;
 }
 
 /** Standard celebration message */
@@ -45,7 +45,7 @@ export function buildOpeningL1(
   return (
     `${company} uses ${component} to ${whatItDoes}. ` +
     `${analogy} ` +
-    `Press ⌘K and search for '${searchLabel}'.`
+    `Press ⌘K and search for '${searchLabel}' and press Enter.`
   );
 }
 
@@ -60,7 +60,7 @@ export function buildOpeningL2(
   return (
     `${company}'s ${component} ${atScale}. ` +
     `Without it, ${withoutIt}. ` +
-    `Press ⌘K and search for '${searchLabel}'.`
+    `Press ⌘K and search for '${searchLabel}' and press Enter.`
   );
 }
 
@@ -75,6 +75,6 @@ export function buildOpeningL3(
   return (
     `${company}'s ${component} implements ${pattern}. ` +
     `${tradeoff} ` +
-    `Press ⌘K and search for '${searchLabel}'.`
+    `Press ⌘K and search for '${searchLabel}' and press Enter.`
   );
 }

@@ -132,10 +132,18 @@ export default async function LearnPage({
               >
                 {tutorial.difficulty}
               </span>
-              <span className="text-xs text-slate-500">{tutorial.category}</span>
-              <span className="text-xs text-slate-500">·</span>
-              <span className="text-xs text-slate-500">{tutorial.estimatedTime}</span>
-              <span className="text-xs text-slate-500">·</span>
+              {tutorial.category && (
+                <>
+                  <span className="text-xs text-slate-500">{tutorial.category}</span>
+                  <span className="text-xs text-slate-500">·</span>
+                </>
+              )}
+              {tutorial.estimatedTime && (
+                <>
+                  <span className="text-xs text-slate-500">{tutorial.estimatedTime}</span>
+                  <span className="text-xs text-slate-500">·</span>
+                </>
+              )}
               <span className="text-xs text-slate-500">{stepCount} steps</span>
             </div>
 
@@ -187,7 +195,7 @@ export default async function LearnPage({
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: '#94a3b8' }}
                   >
                     <span className="font-medium text-indigo-400">Key insight:</span>{' '}
-                    {step.messages.find((m: { type: string; content: string }) => m.type === 'guide')?.content ?? step.explanation}
+                    {step.messages?.find((m: { type: string; content: string }) => m.type === 'guide')?.content ?? step.explanation}
                   </div>
                 </div>
               ))}
@@ -196,7 +204,7 @@ export default async function LearnPage({
             {/* Key Architectural Decisions */}
             <h2 className="text-2xl font-bold text-white mb-5">Key Architectural Decisions</h2>
             <ul className="flex flex-col gap-3 mb-16 list-none pl-0">
-              {tutorial.tags.map((tag: string) => (
+              {(tutorial.tags || []).map((tag: string) => (
                 <li key={tag} className="flex items-start gap-3 text-slate-400">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
                   <span>{tag} is a core part of the {companyName} architecture, enabling the system to scale and remain resilient.</span>

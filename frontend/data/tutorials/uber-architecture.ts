@@ -26,7 +26,7 @@ const l1 = level({
       messages: [
         msg("Welcome to the Uber Architecture tutorial. Level 1 — The Foundation. Uber is a two-sided marketplace: riders request trips, drivers fulfill them."),
         msg("We're building the minimum viable Uber: a system that accepts a ride request, finds a nearby driver, and matches them. Start with the Rider App — the entry point for every trip."),
-        msg('Press ⌘K, search for "Mobile", and add the Rider App to the canvas.'),
+        msg("Press ⌘K and search for \"Mobile\" and press Enter and add the Rider App to the canvas."),
       ],
       requiredNodes: ['client_mobile'],
       requiredEdges: [],
@@ -46,7 +46,7 @@ const l1 = level({
       messages: [
         msg("Uber has two completely separate mobile apps. The Driver App handles trip acceptance, navigation, and earnings — completely different flows from the rider experience."),
         msg("Both apps connect to the same API Gateway. The gateway differentiates between rider and driver requests using the JWT token's user type claim."),
-        msg('Press ⌘K, search for "Driver App", and add it to the canvas.'),
+        msg("Press ⌘K and search for \"Driver App\" and press Enter and add it to the canvas."),
       ],
       requiredNodes: ['driver_app'],
       requiredEdges: [],

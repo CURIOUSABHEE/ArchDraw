@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "YouTube's client handles adaptive bitrate playback — it monitors your bandwidth every 10 seconds and switches video quality automatically. That quality switch is a new CDN request to a different file segment."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -86,7 +86,7 @@ const l1 = level({
         msg(
           "The CDN caches popular videos at edge locations worldwide. When a video goes viral, it's served from the nearest edge node — never hitting YouTube's origin. Cache hit rates for popular content exceed 95%."
         ),
-        msg('Press ⌘K, search for "CDN", add it, then connect Web → CDN.'),
+        msg("Press ⌘K and search for \"CDN\" and press Enter to add it, then connect Web → CDN."),
       ],
       requiredNodes: ['cdn'],
       requiredEdges: [edge('client_web', 'cdn')],
@@ -124,7 +124,7 @@ const l1 = level({
         msg(
           "The gateway routes requests to the right service: search queries go to the search service, comment posts go to the comment service, recommendation requests go to the ML service."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -162,7 +162,7 @@ const l1 = level({
         msg(
           "The Load Balancer handles this distribution. When MrBeast posts a new video and millions of people click simultaneously, the load balancer spreads those requests across the fleet."
         ),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -200,7 +200,7 @@ const l1 = level({
         msg(
           "The Upload Service uses chunked uploads. The video is split into chunks on the client. If the connection drops, only the last chunk needs to be re-sent. The service tracks which chunks have been received."
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Load Balancer → Upload Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Load Balancer → Upload Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('load_balancer', 'microservice')],
@@ -238,7 +238,7 @@ const l1 = level({
         msg(
           "YouTube's Archer pipeline uses per-title encoding — it analyzes each scene's complexity and allocates more bits to action sequences. This produces better quality at lower file sizes, saving hundreds of millions in CDN costs annually."
         ),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Upload Service → Transcoding Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Upload Service → Transcoding Worker."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('microservice', 'worker_job')],
@@ -276,7 +276,7 @@ const l1 = level({
         msg(
           "YouTube stores over 1 exabyte of video — that's 1 million terabytes. Object storage (like Google Cloud Storage) handles this at 11 nines of durability. The CDN pulls from here to serve viewers."
         ),
-        msg('Press ⌘K, search for "Object Storage", add it, then connect Transcoding Worker → Object Storage.'),
+        msg("Press ⌘K and search for \"Object Storage\" and press Enter to add it, then connect Transcoding Worker → Object Storage."),
       ],
       requiredNodes: ['object_storage'],
       requiredEdges: [edge('worker_job', 'object_storage')],
@@ -315,7 +315,7 @@ const l1 = level({
           "The Streaming Service generates time-limited URLs for each video segment. The URL expires in 60 seconds — long enough to watch, too short to share. The CDN fetches segments using these URLs."
         ),
         msg(
-          'Press ⌘K, search for "Microservice", add another one for the Streaming Service, then connect Object Storage → Streaming Service.'
+          'Press ⌘K and search for "Microservice" and press Enter to add another one for the Streaming Service, then connect Object Storage → Streaming Service.'
         ),
       ],
       requiredNodes: ['microservice'],
@@ -355,7 +355,7 @@ const l1 = level({
           "It's a two-stage system: first, a candidate generation model narrows 800 million videos to ~500 candidates for you. Then a ranking model scores those 500 using deep learning. The top results appear on your homepage."
         ),
         msg(
-          'Press ⌘K, search for "Microservice", add another one for the Recommendation Service, then connect Load Balancer → Recommendation Service.'
+          'Press ⌘K and search for "Microservice" and press Enter to add another one for the Recommendation Service, then connect Load Balancer → Recommendation Service.'
         ),
       ],
       requiredNodes: ['microservice'],
@@ -396,7 +396,7 @@ const l1 = level({
         msg(
           "View counts alone require billions of atomic increments per day. YouTube uses a counter service backed by NoSQL to handle this write throughput without locking rows in a SQL table."
         ),
-        msg('Press ⌘K, search for "NoSQL Database", add it, then connect Upload Service → NoSQL Database.'),
+        msg("Press ⌘K and search for \"NoSQL Database\" and press Enter to add it, then connect Upload Service → NoSQL Database."),
       ],
       requiredNodes: ['nosql_db'],
       requiredEdges: [edge('microservice', 'nosql_db')],
@@ -437,7 +437,7 @@ const l1 = level({
           "The Metrics Collector tracks video start times, buffering rates, and transcoding queue depth. The Logger captures detailed traces for debugging specific playback failures."
         ),
         msg(
-          'Press ⌘K, search for "Metrics Collector", add it. Then search for "Logger" and add that too. Connect both from the Upload Service.'
+          'Press ⌘K and search for "Metrics Collector" and press Enter to add it. Then search for "Logger" and add that too. Connect both from the Upload Service.'
         ),
       ],
       requiredNodes: ['metrics_collector', 'logger'],
@@ -494,7 +494,7 @@ const l2 = level({
       messages: [
         msg("Level 2 — Production Ready. YouTube's Auth Service validates user sessions and manages channel ownership."),
         msg("JWT tokens encode user ID, channel permissions, and subscription tier. Every API request is verified against these claims — premium users get different quotas and features."),
-        msg('Press ⌘K, search for "Auth Service (JWT)", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service (JWT)\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -530,7 +530,7 @@ const l2 = level({
       messages: [
         msg("Video metadata for popular videos is cached in Redis for 30 seconds — reducing NoSQL reads by 90% during viral spikes."),
         msg("Redis GEOSEARCH returns results in under 1ms vs 5-20ms for a NoSQL read. At YouTube's scale, that difference is the entire latency budget."),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect Load Balancer → In-Memory Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Load Balancer → In-Memory Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('load_balancer', 'in_memory_cache')],
@@ -566,7 +566,7 @@ const l2 = level({
       messages: [
         msg("Every view, like, comment, and share is published to Kafka. The trending algorithm consumes view events to compute trending lists within minutes."),
         msg("Analytics pipelines consume watch time data to retrain the recommendation model daily — this is how YouTube learns what content performs well."),
-        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Load Balancer → Kafka Streaming."),
       ],
       requiredNodes: ['kafka_streaming'],
       requiredEdges: [edge('load_balancer', 'kafka_streaming')],
@@ -602,7 +602,7 @@ const l2 = level({
       messages: [
         msg("Notification workers consume Kafka events to send push notifications — new subscriber alerts, comment replies, live stream starts."),
         msg("Notifications are batched to prevent notification storms. When MrBeast posts to 10 million subscribers, notifications go out in waves over 30 minutes."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('kafka_streaming', 'worker_job')],
@@ -638,7 +638,7 @@ const l2 = level({
       messages: [
         msg("User profiles, channel settings, and monetization data need ACID compliance. PostgreSQL stores the authoritative financial records."),
         msg("Creator earnings are legally required to be accurate and auditable. ACID transactions ensure every view is recorded exactly once for the revenue calculation."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('auth_service', 'sql_db')],
@@ -674,7 +674,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger emits JSON-formatted logs with consistent schemas — video_id, user_id, event_type, watch_duration."),
         msg("LogQL queries aggregate metrics across billions of logs per day in seconds. Trending detection runs queries against structured logs, not raw text."),
-        msg('Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Load Balancer → Structured Logger."),
       ],
       requiredNodes: ['structured_logger'],
       requiredEdges: [edge('load_balancer', 'structured_logger')],
@@ -710,7 +710,7 @@ const l2 = level({
       messages: [
         msg("The SLO/SLI Tracker monitors video start time, buffering rate, and transcoding queue depth against defined Service Level Objectives."),
         msg("YouTube's video start time SLO: 99.5% of videos start within 2 seconds. When buffering rates exceed the error budget, on-call is paged."),
-        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO/SLI Tracker.'),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO/SLI Tracker."),
       ],
       requiredNodes: ['slo_tracker'],
       requiredEdges: [edge('metrics_collector', 'slo_tracker')],
@@ -746,7 +746,7 @@ const l2 = level({
       messages: [
         msg("The Error Budget Monitor tracks remaining reliability budget for the video start time SLO."),
         msg("When the error budget burns faster than acceptable, feature launches pause until reliability improves. This prevents reliability from being sacrificed for velocity."),
-        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO/SLI Tracker → Error Budget Monitor."),
       ],
       requiredNodes: ['error_budget_alert'],
       requiredEdges: [edge('slo_tracker', 'error_budget_alert')],
@@ -798,7 +798,7 @@ const l3 = level({
       messages: [
         msg("Level 3 — Expert Architecture. The Service Mesh (Istio) adds sidecar proxies to every pod — handling mTLS, retries, circuit breaking, and load balancing transparently."),
         msg("With automatic mTLS, every service-to-service call is encrypted. The Control Plane distributes traffic policies across all sidecars instantly."),
-        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect Load Balancer → Service Mesh."),
       ],
       requiredNodes: ['service_mesh'],
       requiredEdges: [edge('load_balancer', 'service_mesh')],
@@ -834,7 +834,7 @@ const l3 = level({
       messages: [
         msg("GraphQL Federation combines video metadata, recommendation, and subscription schemas into a unified supergraph."),
         msg("Mobile clients query one endpoint — the gateway fans out to multiple subgraphs and composes the response. Mobile API calls reduced by 60%."),
-        msg('Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'),
+        msg("Press ⌘K and search for \"GraphQL Federation Gateway\" and press Enter to add it, then connect API Gateway → GraphQL Federation Gateway."),
       ],
       requiredNodes: ['graphql_federation'],
       requiredEdges: [edge('api_gateway', 'graphql_federation')],
@@ -870,7 +870,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter uses the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate."),
         msg("Creators uploading 4K videos get larger buckets than casual viewers. The steady average rate prevents abuse while enabling legitimate upload bursts."),
-        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ['token_bucket_limiter'],
       requiredEdges: [edge('api_gateway', 'token_bucket_limiter')],
@@ -906,7 +906,7 @@ const l3 = level({
       messages: [
         msg("The OpenTelemetry Collector is the unified observability pipeline — receiving spans, metrics, and logs from all services, normalizing the format, and exporting to multiple backends."),
         msg("Without OTel, adding a new tracing backend requires changing every service. With OTel, services instrument once and the collector routes to any backend."),
-        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Structured Logger → OpenTelemetry Collector."),
       ],
       requiredNodes: ['otel_collector'],
       requiredEdges: [edge('structured_logger', 'otel_collector')],
@@ -942,7 +942,7 @@ const l3 = level({
       messages: [
         msg("The Correlation ID Injector generates a unique trace ID at request entry and propagates it via HTTP headers through every service call."),
         msg("All logs for a request share one correlation ID — instant debugging across API Gateway, Upload Service, Transcoding Workers, and Object Storage."),
-        msg('Press ⌘K, search for "Correlation ID Injector", add it, then connect OpenTelemetry Collector → Correlation ID Injector.'),
+        msg("Press ⌘K and search for \"Correlation ID Injector\" and press Enter to add it, then connect OpenTelemetry Collector → Correlation ID Injector."),
       ],
       requiredNodes: ['correlation_id_handler'],
       requiredEdges: [edge('otel_collector', 'correlation_id_handler')],
@@ -978,7 +978,7 @@ const l3 = level({
       messages: [
         msg("Anycast DNS Router routes viewers to the nearest CDN PoP using BGP anycast — the same IP announces from hundreds of locations worldwide."),
         msg("Unicast DNS routes all traffic to one IP — viewers in Tokyo hit servers in Virginia. Anycast automatically routes viewers to the nearest edge location."),
-        msg('Press ⌘K, search for "Anycast DNS Router", add it, then connect Web → Anycast DNS Router.'),
+        msg("Press ⌘K and search for \"Anycast DNS Router\" and press Enter to add it, then connect Web → Anycast DNS Router."),
       ],
       requiredNodes: ['cdn_anycast'],
       requiredEdges: [edge('client_web', 'cdn_anycast')],
@@ -1014,7 +1014,7 @@ const l3 = level({
       messages: [
         msg("DDoS Mitigation Layer scrubs malicious traffic at the network edge using anycast distribution and rate limiting."),
         msg("During hacktivist attacks, volumetric DDoS traffic is absorbed at the edge before reaching YouTube origin servers. Anycast distribution spreads attack traffic across 200+ PoPs."),
-        msg('Press ⌘K, search for "DDoS Mitigation Layer", add it, then connect Anycast DNS Router → DDoS Mitigation Layer.'),
+        msg("Press ⌘K and search for \"DDoS Mitigation Layer\" and press Enter to add it, then connect Anycast DNS Router → DDoS Mitigation Layer."),
       ],
       requiredNodes: ['ddos_mitigation'],
       requiredEdges: [edge('cdn_anycast', 'ddos_mitigation')],
@@ -1050,7 +1050,7 @@ const l3 = level({
       messages: [
         msg("Cache Stampede Prevention uses probabilistic early expiration — when TTL approaches, requests have a 10% chance of rebuilding the cache early."),
         msg("Instead of thousands of requests hitting NoSQL when cache expires, only ~10% rebuild — the thundering herd is prevented."),
-        msg('Press ⌘K, search for "Cache Stampede Prevention", add it, then connect In-Memory Cache → Cache Stampede Prevention.'),
+        msg("Press ⌘K and search for \"Cache Stampede Prevention\" and press Enter to add it, then connect In-Memory Cache → Cache Stampede Prevention."),
       ],
       requiredNodes: ['cache_stampede_guard'],
       requiredEdges: [edge('in_memory_cache', 'cache_stampede_guard')],
@@ -1086,7 +1086,7 @@ const l3 = level({
       messages: [
         msg("Change Data Cache uses CDC (Change Data Capture) from the NoSQL transaction log to know exactly when video metadata changes."),
         msg("Instead of waiting for TTL expiration, CDC captures every database write and invalidates the exact corresponding cache entry — zero staleness."),
-        msg('Press ⌘K, search for "Change Data Cache", add it, then connect NoSQL Database → Change Data Cache.'),
+        msg("Press ⌘K and search for \"Change Data Cache\" and press Enter to add it, then connect NoSQL Database → Change Data Cache."),
       ],
       requiredNodes: ['change_data_cache'],
       requiredEdges: [edge('nosql_db', 'change_data_cache')],
@@ -1122,7 +1122,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores all historical watch time, engagement, and creator analytics data for business intelligence and ML model training."),
         msg("The NoSQL database cannot answer multi-year trend questions — watch time patterns over years require columnar storage optimized for analytics."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect Kafka Streaming → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect Kafka Streaming → Data Warehouse."),
       ],
       requiredNodes: ['data_warehouse'],
       requiredEdges: [edge('kafka_streaming', 'data_warehouse')],
@@ -1158,7 +1158,7 @@ const l3 = level({
       messages: [
         msg("Event Store (EventStoreDB) maintains an immutable log of all video lifecycle events — uploaded, transcoded, published, removed, monetized."),
         msg("The entire system state can be reconstructed by replaying events. Video takedowns require a complete audit trail — the Event Store provides immutable evidence for legal and compliance."),
-        msg('Press ⌘K, search for "Event Store (EventStoreDB)", add it, then connect Upload Service → Event Store. This completes the expert architecture!'),
+        msg("Press ⌘K and search for \"Event Store (EventStoreDB)\" and press Enter to add it, then connect Upload Service → Event Store. This completes the expert architecture!"),
       ],
       requiredNodes: ['event_store'],
       requiredEdges: [edge('microservice', 'event_store')],

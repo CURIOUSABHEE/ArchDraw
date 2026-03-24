@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "WhatsApp's client is the iOS/Android app. It maintains a persistent WebSocket connection and handles all encryption locally — the server never sees your message content."
         ),
-        msg('Press ⌘K and search for "Mobile" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Mobile\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_mobile'],
       requiredEdges: [],
@@ -83,7 +83,7 @@ const l1 = level({
         msg(
           "The gateway authenticates the connection and routes it to the right chat server — the one that will maintain the persistent WebSocket for that user."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Mobile → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Mobile → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_mobile', 'api_gateway')],
@@ -119,7 +119,7 @@ const l1 = level({
           "Each WhatsApp server handles 1 million concurrent connections using Erlang's lightweight process model. The load balancer distributes users across these servers and must maintain connection affinity."
         ),
         msg(
-          'Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'
+          'Press ⌘K and search for "Load Balancer" and press Enter to add it, then connect API Gateway → Load Balancer.'
         ),
       ],
       requiredNodes: ['load_balancer'],
@@ -155,7 +155,7 @@ const l1 = level({
         msg(
           "The Auth Service validates the OTP, creates a session, and registers your device's public encryption key. This key exchange is what enables end-to-end encryption between devices."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect Load Balancer → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect Load Balancer → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('load_balancer', 'auth_service')],
@@ -188,7 +188,7 @@ const l1 = level({
         msg(
           "It uses store-and-forward: your message is stored on the server until the recipient's device confirms receipt, then deleted. WhatsApp's servers never hold messages long-term."
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Auth Service → Chat Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Auth Service → Chat Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('auth_service', 'microservice')],
@@ -226,7 +226,7 @@ const l1 = level({
         msg(
           "WhatsApp's queue holds messages for up to 30 days. When the recipient comes online, messages are delivered in order. After 30 days, the sender gets a failure notification."
         ),
-        msg('Press ⌘K, search for "Message Queue", add it, then connect Chat Service → Message Queue.'),
+        msg("Press ⌘K and search for \"Message Queue\" and press Enter to add it, then connect Chat Service → Message Queue."),
       ],
       requiredNodes: ['message_queue'],
       requiredEdges: [edge('microservice', 'message_queue')],
@@ -266,7 +266,7 @@ const l1 = level({
         msg(
           "The database stores delivery timestamps, read receipts, group membership, and user profiles. At 100 billion messages per day, that's 100 billion status updates — NoSQL handles this throughput where SQL would struggle."
         ),
-        msg('Press ⌘K, search for "NoSQL Database", add it, then connect Chat Service → NoSQL Database.'),
+        msg("Press ⌘K and search for \"NoSQL Database\" and press Enter to add it, then connect Chat Service → NoSQL Database."),
       ],
       requiredNodes: ['nosql_db'],
       requiredEdges: [edge('microservice', 'nosql_db')],
@@ -307,7 +307,7 @@ const l1 = level({
           "It's one of the most queried services in WhatsApp — billions of presence checks per hour. WhatsApp uses a distributed hash table to serve this at scale, partitioned by user ID."
         ),
         msg(
-          'Press ⌘K, search for "Microservice", add another one for the Presence Service, then connect Chat Service → Presence Service.'
+          'Press ⌘K and search for "Microservice" and press Enter to add another one for the Presence Service, then connect Chat Service → Presence Service.'
         ),
       ],
       requiredNodes: ['presence_service'],
@@ -347,7 +347,7 @@ const l1 = level({
           "The Media Service handles upload, compression, and storage. Media is encrypted on the client before upload, so the server stores encrypted blobs it can never read."
         ),
         msg(
-          'Press ⌘K, search for "Microservice", add another one for the Media Service, then connect Chat Service → Media Service.'
+          'Press ⌘K and search for "Microservice" and press Enter to add another one for the Media Service, then connect Chat Service → Media Service.'
         ),
       ],
       requiredNodes: ['media_service'],
@@ -386,7 +386,7 @@ const l1 = level({
         msg(
           "WhatsApp stores media for 30 days. After that it's deleted from servers. The 30-day limit keeps storage costs manageable — at 2 billion users, even 1 photo per user per day is enormous."
         ),
-        msg('Press ⌘K, search for "Object Storage", add it, then connect Media Service → Object Storage.'),
+        msg("Press ⌘K and search for \"Object Storage\" and press Enter to add it, then connect Media Service → Object Storage."),
       ],
       requiredNodes: ['object_storage'],
       requiredEdges: [edge('media_service', 'object_storage')],
@@ -439,7 +439,7 @@ const l2 = level({
       messages: [
         msg("Level 2 — Production Ready. Every message, call, and status update is published to Kafka for downstream consumers."),
         msg("Trending detection consumes message events to compute trending topics. Analytics pipelines consume engagement for user growth modeling."),
-        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Load Balancer → Kafka Streaming."),
       ],
       requiredNodes: ['kafka_streaming'],
       requiredEdges: [edge('load_balancer', 'kafka_streaming')],
@@ -475,7 +475,7 @@ const l2 = level({
       messages: [
         msg("Notification workers consume Kafka events to send missed call alerts and voice message notifications."),
         msg("All notification delivery is asynchronous — message processing is never delayed by slow push delivery."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('kafka_streaming', 'worker_job')],
@@ -511,7 +511,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector captures row-level changes from the NoSQL database and streams them to Kafka for analytics."),
         msg("Without CDC, analytics queries would add load to the production database. CDC captures changes from the transaction log — zero query overhead."),
-        msg('Press ⌘K, search for "CDC Connector (Debezium)", add it, then connect NoSQL Database → CDC Connector.'),
+        msg("Press ⌘K and search for \"CDC Connector (Debezium)\" and press Enter to add it, then connect NoSQL Database → CDC Connector."),
       ],
       requiredNodes: ['cdc_connector'],
       requiredEdges: [edge('nosql_db', 'cdc_connector')],
@@ -547,7 +547,7 @@ const l2 = level({
       messages: [
         msg("User accounts, business payment records, and advertising data need ACID compliance. PostgreSQL stores the authoritative records."),
         msg("Business payment records require auditable records. A missed transaction is a dispute that must be detectable and correctable."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('auth_service', 'sql_db')],
@@ -583,7 +583,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger emits JSON-formatted logs with consistent schemas — user_id, message_id, event_type, delivery_status."),
         msg("LogQL queries aggregate metrics across billions of logs per day in seconds. Delivery health monitoring and anomaly detection use structured log queries."),
-        msg('Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Load Balancer → Structured Logger."),
       ],
       requiredNodes: ['structured_logger'],
       requiredEdges: [edge('load_balancer', 'structured_logger')],
@@ -619,7 +619,7 @@ const l2 = level({
       messages: [
         msg("The SLO/SLI Tracker monitors message delivery latency, presence update latency, and WebSocket connection stability against defined Service Level Objectives."),
         msg("WhatsApp's message delivery latency SLO: 99.9% of messages delivered within 5 seconds. When latency exceeds the error budget, on-call is paged."),
-        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO/SLI Tracker.'),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO/SLI Tracker."),
       ],
       requiredNodes: ['slo_tracker'],
       requiredEdges: [edge('metrics_collector', 'slo_tracker')],
@@ -655,7 +655,7 @@ const l2 = level({
       messages: [
         msg("The Error Budget Monitor tracks remaining reliability budget for message delivery latency SLO."),
         msg("When the error budget burns faster than acceptable, feature launches pause until reliability improves. For messaging, slow messages drive users to competitors."),
-        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO/SLI Tracker → Error Budget Monitor."),
       ],
       requiredNodes: ['error_budget_alert'],
       requiredEdges: [edge('slo_tracker', 'error_budget_alert')],
@@ -707,7 +707,7 @@ const l3 = level({
       messages: [
         msg("Level 3 — Expert Architecture. The Service Mesh (Istio) adds sidecar proxies to every pod — handling mTLS, retries, circuit breaking, and load balancing transparently."),
         msg("Automatic mTLS encrypts every service-to-service call. The Control Plane distributes traffic policies across all sidecars instantly."),
-        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect Load Balancer → Service Mesh."),
       ],
       requiredNodes: ['service_mesh'],
       requiredEdges: [edge('load_balancer', 'service_mesh')],
@@ -743,7 +743,7 @@ const l3 = level({
       messages: [
         msg("GraphQL Federation combines message, user, and group schemas into a unified supergraph."),
         msg("Business API clients query one endpoint — the gateway fans out to multiple subgraphs and composes the response. API calls reduced by 60%."),
-        msg('Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'),
+        msg("Press ⌘K and search for \"GraphQL Federation Gateway\" and press Enter to add it, then connect API Gateway → GraphQL Federation Gateway."),
       ],
       requiredNodes: ['graphql_federation'],
       requiredEdges: [edge('api_gateway', 'graphql_federation')],
@@ -779,7 +779,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter uses the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate."),
         msg("Business API clients sending bulk messages get larger buckets. The steady average rate prevents abuse while enabling legitimate bursts."),
-        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ['token_bucket_limiter'],
       requiredEdges: [edge('api_gateway', 'token_bucket_limiter')],
@@ -815,7 +815,7 @@ const l3 = level({
       messages: [
         msg("The OpenTelemetry Collector is the unified observability pipeline — receiving spans, metrics, and logs from all services, normalizing the format, and exporting to multiple backends."),
         msg("Without OTel, adding a new tracing backend requires changing every service. With OTel, services instrument once and the collector routes to any backend."),
-        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Structured Logger → OpenTelemetry Collector."),
       ],
       requiredNodes: ['otel_collector'],
       requiredEdges: [edge('structured_logger', 'otel_collector')],
@@ -851,7 +851,7 @@ const l3 = level({
       messages: [
         msg("The Correlation ID Injector generates a unique trace ID at message entry and propagates it via HTTP headers through every service call."),
         msg("All logs for a message delivery share one correlation ID — instant debugging across Chat, Queue, Presence, and Delivery services."),
-        msg('Press ⌘K, search for "Correlation ID Injector", add it, then connect OpenTelemetry Collector → Correlation ID Injector.'),
+        msg("Press ⌘K and search for \"Correlation ID Injector\" and press Enter to add it, then connect OpenTelemetry Collector → Correlation ID Injector."),
       ],
       requiredNodes: ['correlation_id_handler'],
       requiredEdges: [edge('otel_collector', 'correlation_id_handler')],
@@ -887,7 +887,7 @@ const l3 = level({
       messages: [
         msg("Leader Election ensures exactly one Presence Service instance processes presence updates."),
         msg("Without leader election, multiple instances might process the same user status, leading to inconsistent online/offline states shown to other users."),
-        msg('Press ⌘K, search for "Leader Election", add it, then connect Presence Service → Leader Election.'),
+        msg("Press ⌘K and search for \"Leader Election\" and press Enter to add it, then connect Presence Service → Leader Election."),
       ],
       requiredNodes: ['leader_election'],
       requiredEdges: [edge('presence_service', 'leader_election')],
@@ -923,7 +923,7 @@ const l3 = level({
       messages: [
         msg("mTLS Certificate Authority issues and rotates TLS certificates for all service-to-service authentication."),
         msg("Mutual TLS ensures both client and server verify each other. Automatic rotation every 24 hours prevents expired certificates from causing outages."),
-        msg('Press ⌘K, search for "mTLS Certificate Authority", add it, then connect Service Mesh → mTLS CA.'),
+        msg("Press ⌘K and search for \"mTLS Certificate Authority\" and press Enter to add it, then connect Service Mesh → mTLS CA."),
       ],
       requiredNodes: ['mtls_certificate_authority'],
       requiredEdges: [edge('service_mesh', 'mtls_certificate_authority')],
@@ -959,7 +959,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores all historical message data for business intelligence and user growth analytics."),
         msg("The NoSQL database cannot answer multi-year messaging trend questions — columnar storage optimized for analytics is required."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ['data_warehouse'],
       requiredEdges: [edge('cdc_connector', 'data_warehouse')],
@@ -995,7 +995,7 @@ const l3 = level({
       messages: [
         msg("CQRS Command Handler processes write operations — message sends, group creates, status updates."),
         msg("Commands are validated and persisted to the write model with strict consistency before acknowledgment. Reads go through an optimized query path separately."),
-        msg('Press ⌘K, search for "CQRS Command Handler", add it, then connect Auth Service → CQRS Command Handler.'),
+        msg("Press ⌘K and search for \"CQRS Command Handler\" and press Enter to add it, then connect Auth Service → CQRS Command Handler."),
       ],
       requiredNodes: ['cqrs_command_handler'],
       requiredEdges: [edge('auth_service', 'cqrs_command_handler')],
@@ -1031,7 +1031,7 @@ const l3 = level({
       messages: [
         msg("CQRS Query Handler serves read operations from a denormalized read model."),
         msg("Inbox reads use the pre-computed denormalized model — sub-millisecond queries without translating from the normalized write model."),
-        msg('Press ⌘K, search for "CQRS Query Handler", add it, then connect Chat Service → CQRS Query Handler.'),
+        msg("Press ⌘K and search for \"CQRS Query Handler\" and press Enter to add it, then connect Chat Service → CQRS Query Handler."),
       ],
       requiredNodes: ['cqrs_query_handler'],
       requiredEdges: [edge('microservice', 'cqrs_query_handler')],
@@ -1067,7 +1067,7 @@ const l3 = level({
       messages: [
         msg("Event Store (EventStoreDB) maintains an immutable log of all message lifecycle events — sent, delivered, read, deleted."),
         msg("The entire message history can be reconstructed by replaying events. Legal compliance requires a complete audit trail — the Event Store provides immutable evidence for law enforcement requests."),
-        msg('Press ⌘K, search for "Event Store (EventStoreDB)", add it, then connect Chat Service → Event Store. This completes the expert architecture!'),
+        msg("Press ⌘K and search for \"Event Store (EventStoreDB)\" and press Enter to add it, then connect Chat Service → Event Store. This completes the expert architecture!"),
       ],
       requiredNodes: ['event_store'],
       requiredEdges: [edge('microservice', 'event_store')],

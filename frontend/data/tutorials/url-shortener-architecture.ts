@@ -44,7 +44,7 @@ const l1 = level({
       messages: [
         msg("Welcome to the URL Shortener tutorial. This is the classic system design interview question — used by Google, Bitly, and TinyURL."),
         msg("The client is simple: a user pastes a long URL, gets back a short code. When someone visits the short URL, the browser automatically follows a 301/302 redirect to the original URL."),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -75,7 +75,7 @@ const l1 = level({
       messages: [
         msg("The URL shortener has two main flows: creating a short URL (POST) and redirecting to the original (GET)."),
         msg("Both flows go through the API Gateway. It routes POST requests to the shortening handler and GET requests to the redirect handler. It also enforces rate limits — without them, a single user could create millions of short URLs."),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -106,7 +106,7 @@ const l1 = level({
       messages: [
         msg("URL shorteners are read-heavy: 95% of traffic is redirects, only 5% is URL creation."),
         msg("The Load Balancer distributes requests across application servers. Consistent hashing ensures that short code lookups are routed to the same server cluster — keeping the redirect cache hot and avoiding cache misses on every request."),
-        msg('Press ⌘K, search for "Load Balancer", add it, then connect API Gateway → Load Balancer.'),
+        msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],
       requiredEdges: [edge('api_gateway', 'load_balancer')],
@@ -142,7 +142,7 @@ const l1 = level({
       messages: [
         msg("95% of URL shortener traffic is redirects. Before hitting the database, check the cache."),
         msg("Redis stores the code → URL mapping. A redirect checks Redis first: 'code=abc123' → 'https://long-url...'. Sub-millisecond lookup. Only 5% of requests (cache misses) hit the database. This is what makes URL shorteners fast at scale."),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect Load Balancer → Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Load Balancer → Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('load_balancer', 'in_memory_cache')],
@@ -178,7 +178,7 @@ const l1 = level({
       messages: [
         msg("The database stores the permanent mapping: short code, original URL, creation timestamp, click count."),
         msg("SQL's UNIQUE constraint on short_code prevents collisions — two users can never get the same short code. ACID transactions ensure that when a short URL is created, it's immediately readable. No eventual consistency delays."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Load Balancer → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Load Balancer → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('load_balancer', 'sql_db')],
@@ -214,7 +214,7 @@ const l1 = level({
       messages: [
         msg("Every redirect is an analytics event. Total clicks, unique visitors, referrer, geographic distribution."),
         msg("URL shorteners make money from analytics, not URL shortening. Bitly charges for click reports and geographic data. When a short URL is visited, the click is logged: who clicked, when, from where, and what device. This data is what companies pay for."),
-        msg('Press ⌘K, search for "In-Memory Cache", add it again for Analytics, then connect SQL Database → Analytics.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it again for Analytics, then connect SQL Database → Analytics."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('sql_db', 'in_memory_cache')],
@@ -250,7 +250,7 @@ const l1 = level({
       messages: [
         msg("Click counters can't be written to the database in real-time at scale. Batch them with a Worker."),
         msg("The Worker flushes Redis click counters to the database every minute. In real-time, clicks increment an in-memory counter in Redis. Every 60 seconds, the Worker batches all those increments into the database. This is the standard write-batching pattern."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Load Balancer → Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Load Balancer → Worker."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('load_balancer', 'worker_job')],
@@ -286,7 +286,7 @@ const l1 = level({
       messages: [
         msg("Final step — observability. Every URL creation, redirect, and error is logged."),
         msg("Logs capture: timestamp, short code, original URL, client IP, user agent, and response status. These logs feed into centralized logging (Datadog, CloudWatch) for real-time alerting and post-incident analysis. When a short URL returns 404, logs tell you what happened."),
-        msg('Press ⌘K, search for "Logger", add it, then connect Load Balancer → Logger.'),
+        msg("Press ⌘K and search for \"Logger\" and press Enter to add it, then connect Load Balancer → Logger."),
       ],
       requiredNodes: ['logger'],
       requiredEdges: [edge('load_balancer', 'logger')],
@@ -322,7 +322,7 @@ const l1 = level({
       messages: [
         msg("Short URLs are often shared via QR codes. The mobile scanner follows the same redirect flow."),
         msg("QR code scanners (mobile apps) use the same redirect infrastructure: scan short URL → API Gateway → Load Balancer → Cache → Database → redirect. The short URL makes the QR code small and scannable — this is a major use case for URL shorteners."),
-        msg('Press ⌘K, search for "Web", add a second client to represent the mobile scanner.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add a second client to represent the mobile scanner."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -372,7 +372,7 @@ const l2 = level({
       messages: [
         msg("Level 2 — URL Shortener at Scale. Let's stream click events and add real-time analytics."),
         msg("Every redirect generates a click event that streams to Kafka — millions of clicks per second during viral campaigns. Analytics consumers compute real-time dashboards."),
-        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Load Balancer → Kafka Streaming."),
       ],
       requiredNodes: ["kafka_streaming"],
       requiredEdges: [edge("load_balancer", "kafka_streaming")],
@@ -408,7 +408,7 @@ const l2 = level({
       messages: [
         msg("Notification workers consume Kafka events to send alerts — link click limits, expiration warnings."),
         msg("When a link exceeds its click limit or expires, the Notification Worker sends alerts to the link owner."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ["worker_job"],
       requiredEdges: [edge("kafka_streaming", "worker_job")],
@@ -444,7 +444,7 @@ const l2 = level({
       messages: [
         msg("Redis Cache stores popular short link mappings with TTLs for viral links."),
         msg("Viral links are cached at the edge — serving redirects from cache instead of the database handles millions of requests per second."),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect Load Balancer → Redis Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Load Balancer → Redis Cache."),
       ],
       requiredNodes: ["in_memory_cache"],
       requiredEdges: [edge("load_balancer", "in_memory_cache")],
@@ -480,7 +480,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector mirrors analytics data to the data warehouse for real-time dashboards."),
         msg("Click counts, geographic distribution, and referrer data stream to ClickHouse."),
-        msg('Press ⌘K, search for "CDC Connector", add it, then connect SQL Database → CDC Connector.'),
+        msg("Press ⌘K and search for \"CDC Connector\" and press Enter to add it, then connect SQL Database → CDC Connector."),
       ],
       requiredNodes: ["cdc_connector"],
       requiredEdges: [edge("sql_db", "cdc_connector")],
@@ -516,7 +516,7 @@ const l2 = level({
       messages: [
         msg("PostgreSQL stores link metadata with indexing on short codes for efficient lookups."),
         msg("Original URL, creation date, click count, and owner are stored with indexing for fast lookups."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Load Balancer → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Load Balancer → SQL Database."),
       ],
       requiredNodes: ["sql_db"],
       requiredEdges: [edge("load_balancer", "sql_db")],
@@ -552,7 +552,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger captures redirect latency, cache hit rates, and error rates."),
         msg("Performance logs track p99 latency — redirect must complete in <10ms."),
-        msg('Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Load Balancer → Structured Logger."),
       ],
       requiredNodes: ["structured_logger"],
       requiredEdges: [edge("load_balancer", "structured_logger")],
@@ -588,7 +588,7 @@ const l2 = level({
       messages: [
         msg("SLO Tracker monitors redirect latency, availability, and cache hit rate against SLO targets."),
         msg("Redirect latency must stay under 10ms — tracked as a critical SLO for millions of daily redirects."),
-        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO Tracker.'),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO Tracker."),
       ],
       requiredNodes: ["slo_tracker"],
       requiredEdges: [edge("metrics_collector", "slo_tracker")],
@@ -624,7 +624,7 @@ const l2 = level({
       messages: [
         msg("Error Budget Monitor tracks redirect SLO consumption during DDoS attacks."),
         msg("The system auto-scales before the error budget is depleted during DDoS attacks."),
-        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO Tracker → Error Budget Monitor.'),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO Tracker → Error Budget Monitor."),
       ],
       requiredNodes: ["error_budget_alert"],
       requiredEdges: [edge("slo_tracker", "error_budget_alert")],
@@ -674,7 +674,7 @@ const l3 = level({
       messages: [
         msg("Level 3 — URL Shortener Enterprise. Service Mesh adds zero-trust networking with mTLS."),
         msg("Every service-to-service call is encrypted with mTLS — redirect services, analytics workers, and API servers all communicate securely."),
-        msg('Press ⌘K, search for "Service Mesh", add it, then connect Load Balancer → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh\" and press Enter to add it, then connect Load Balancer → Service Mesh."),
       ],
       requiredNodes: ["service_mesh"],
       requiredEdges: [edge("load_balancer", "service_mesh")],
@@ -710,7 +710,7 @@ const l3 = level({
       messages: [
         msg("Consistent Hash Ring distributes short code mappings across database shards."),
         msg("Consistent hashing ensures minimal remapping when shards are added — critical for hot viral links."),
-        msg('Press ⌘K, search for "Consistent Hash Ring", add it, then connect Load Balancer → Consistent Hash Ring.'),
+        msg("Press ⌘K and search for \"Consistent Hash Ring\" and press Enter to add it, then connect Load Balancer → Consistent Hash Ring."),
       ],
       requiredNodes: ["consistent_hash_ring"],
       requiredEdges: [edge("load_balancer", "consistent_hash_ring")],
@@ -746,7 +746,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter uses token buckets per API key for tiered rate limiting."),
         msg("Free tier (100 req/min), pro tier (1000 req/min), enterprise (unlimited). Token buckets prevent abuse while allowing legitimate burst traffic."),
-        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ["token_bucket_limiter"],
       requiredEdges: [edge("api_gateway", "token_bucket_limiter")],
@@ -782,7 +782,7 @@ const l3 = level({
       messages: [
         msg("OpenTelemetry Collector traces redirect requests through cache lookup, database query, and CDN invalidation."),
         msg("Even simple redirects touch multiple systems at scale — tracing is essential for debugging."),
-        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Service Mesh → OTel Collector.'),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Service Mesh → OTel Collector."),
       ],
       requiredNodes: ["otel_collector"],
       requiredEdges: [edge("service_mesh", "otel_collector")],
@@ -818,7 +818,7 @@ const l3 = level({
       messages: [
         msg("Correlation ID links click events to redirects, analytics writes, and notification delivery."),
         msg("Debugging a lost click requires tracing across the analytics pipeline — correlation IDs enable end-to-end visibility."),
-        msg('Press ⌘K, search for "Correlation ID Handler", add it, then connect Kafka Streaming → Correlation ID Handler.'),
+        msg("Press ⌘K and search for \"Correlation ID Handler\" and press Enter to add it, then connect Kafka Streaming → Correlation ID Handler."),
       ],
       requiredNodes: ["correlation_id_handler"],
       requiredEdges: [edge("kafka_streaming", "correlation_id_handler")],
@@ -854,7 +854,7 @@ const l3 = level({
       messages: [
         msg("SPIFFE CA issues certificates to every service in the redirect pipeline."),
         msg("Automated certificate rotation ensures zero-trust without manual certificate management."),
-        msg('Press ⌘K, search for "mTLS Certificate Authority", add it, then connect Service Mesh → SPIFFE CA.'),
+        msg("Press ⌘K and search for \"mTLS Certificate Authority\" and press Enter to add it, then connect Service Mesh → SPIFFE CA."),
       ],
       requiredNodes: ["mtls_certificate_authority"],
       requiredEdges: [edge("service_mesh", "mtls_certificate_authority")],
@@ -890,7 +890,7 @@ const l3 = level({
       messages: [
         msg("Cache Stampede Guard prevents thundering herds when a viral link's cache expires."),
         msg("Lock-assisted refresh ensures only one worker refreshes the cache — others serve stale data to prevent database overload."),
-        msg('Press ⌘K, search for "Cache Stampede Guard", add it, then connect Redis Cache → Cache Stampede Guard.'),
+        msg("Press ⌘K and search for \"Cache Stampede Guard\" and press Enter to add it, then connect Redis Cache → Cache Stampede Guard."),
       ],
       requiredNodes: ["cache_stampede_guard"],
       requiredEdges: [edge("in_memory_cache", "cache_stampede_guard")],
@@ -926,7 +926,7 @@ const l3 = level({
       messages: [
         msg("CDC pipeline precomputes analytics aggregations: top links, geographic heat maps, referrer distributions."),
         msg("These are materialized in Redis for instant dashboard queries."),
-        msg('Press ⌘K, search for "Change Data Cache", add it, then connect CDC Connector → CDC Cache.'),
+        msg("Press ⌘K and search for \"Change Data Cache\" and press Enter to add it, then connect CDC Connector → CDC Cache."),
       ],
       requiredNodes: ["change_data_cache"],
       requiredEdges: [edge("cdc_connector", "change_data_cache")],
@@ -962,7 +962,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores petabyte-scale click analytics for A/B testing and campaign performance analysis."),
         msg("Petabyte-scale click data enables A/B testing of redirect strategies and campaign performance analysis."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ["data_warehouse"],
       requiredEdges: [edge("cdc_connector", "data_warehouse")],
@@ -998,7 +998,7 @@ const l3 = level({
       messages: [
         msg("Event Store stores every link creation and modification event."),
         msg("Immutable audit logs enable compliance with data retention policies and support legal discovery requests."),
-        msg('Press ⌘K, search for "Event Store", add it, then connect Load Balancer → Event Store.'),
+        msg("Press ⌘K and search for \"Event Store\" and press Enter to add it, then connect Load Balancer → Event Store."),
       ],
       requiredNodes: ["event_store"],
       requiredEdges: [edge("load_balancer", "event_store")],
@@ -1034,7 +1034,7 @@ const l3 = level({
       messages: [
         msg("Leaky Bucket Rate Limiter smooths analytics API burst queries."),
         msg("Dashboard queries are rate-limited to prevent analytics workloads from impacting redirect latency."),
-        msg('Press ⌘K, search for "Leaky Bucket Rate Limiter", add it, then connect CDC Cache → Leaky Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Leaky Bucket Rate Limiter\" and press Enter to add it, then connect CDC Cache → Leaky Bucket Rate Limiter."),
       ],
       requiredNodes: ["leaky_bucket_limiter"],
       requiredEdges: [edge("change_data_cache", "leaky_bucket_limiter")],

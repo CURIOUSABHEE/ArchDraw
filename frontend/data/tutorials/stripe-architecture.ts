@@ -48,7 +48,7 @@ const l1 = level({
         msg(
           "The client is the merchant's checkout page. Stripe.js runs in the browser, tokenizes card data locally, and sends a token to Stripe — raw card numbers never touch the merchant's server."
         ),
-        msg('Press ⌘K and search for "Web" to add the client to the canvas.'),
+        msg("Press ⌘K and search for \"Web\" and press Enter to add the client to the canvas."),
       ],
       requiredNodes: ['client_web'],
       requiredEdges: [],
@@ -81,7 +81,7 @@ const l1 = level({
         msg(
           "The gateway also handles idempotency key deduplication — if the same payment request is sent twice (network retry), the gateway returns the first result instead of charging twice."
         ),
-        msg('Press ⌘K, search for "API Gateway", add it, then connect Web → API Gateway.'),
+        msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
       requiredEdges: [edge('client_web', 'api_gateway')],
@@ -121,7 +121,7 @@ const l1 = level({
         msg(
           "The Auth Service validates these keys on every request and enforces permission scopes. A restricted key might only be allowed to create charges, not issue refunds."
         ),
-        msg('Press ⌘K, search for "Auth Service", add it, then connect API Gateway → Auth Service.'),
+        msg("Press ⌘K and search for \"Auth Service\" and press Enter to add it, then connect API Gateway → Auth Service."),
       ],
       requiredNodes: ['auth_service'],
       requiredEdges: [edge('api_gateway', 'auth_service')],
@@ -161,7 +161,7 @@ const l1 = level({
         msg(
           "It implements idempotency keys: a unique ID per payment attempt. If the same request arrives twice (network retry), the second one returns the first result. This is one of the hardest problems in distributed payments."
         ),
-        msg('Press ⌘K, search for "Microservice", add it, then connect Auth Service → Payment Service.'),
+        msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Auth Service → Payment Service."),
       ],
       requiredNodes: ['microservice'],
       requiredEdges: [edge('auth_service', 'microservice')],
@@ -200,7 +200,7 @@ const l1 = level({
           "Radar evaluates 1000+ signals in under 50ms: card velocity (how many charges in the last hour), device fingerprint, email age, IP reputation, and behavioral patterns across Stripe's entire network."
         ),
         msg(
-          'Press ⌘K, search for "Microservice", add another one for Fraud Detection, then connect Payment Service → Fraud Detection.'
+          'Press ⌘K and search for "Microservice" and press Enter to add another one for Fraud Detection, then connect Payment Service → Fraud Detection.'
         ),
       ],
       requiredNodes: ['microservice'],
@@ -239,7 +239,7 @@ const l1 = level({
         msg(
           "Banks use ISO 8583 — a message format from the 1980s. The Payment Gateway translates Stripe's modern API request into this format and sends it to Visa, Mastercard, or the ACH network."
         ),
-        msg('Press ⌘K, search for "Payment Gateway", add it, then connect Fraud Detection → Payment Gateway.'),
+        msg("Press ⌘K and search for \"Payment Gateway\" and press Enter to add it, then connect Fraud Detection → Payment Gateway."),
       ],
       requiredNodes: ['payment_gateway'],
       requiredEdges: [edge('microservice', 'payment_gateway')],
@@ -280,7 +280,7 @@ const l1 = level({
           "The Webhook Service retries with exponential backoff: immediately, then 1hr, 4hr, 24hr, 72hr. Because of retries, merchants must handle the same event twice gracefully — idempotent webhook handlers."
         ),
         msg(
-          'Press ⌘K, search for "Microservice", add another one for the Webhook Service, then connect Payment Service → Webhook Service.'
+          'Press ⌘K and search for "Microservice" and press Enter to add another one for the Webhook Service, then connect Payment Service → Webhook Service.'
         ),
       ],
       requiredNodes: ['microservice'],
@@ -321,7 +321,7 @@ const l1 = level({
         msg(
           "A Message Queue decouples all of this. The Payment Service publishes one event. Every downstream service consumes it independently. A slow webhook delivery doesn't block the ledger update."
         ),
-        msg('Press ⌘K, search for "Message Queue", add it, then connect Payment Service → Message Queue.'),
+        msg("Press ⌘K and search for \"Message Queue\" and press Enter to add it, then connect Payment Service → Message Queue."),
       ],
       requiredNodes: ['message_queue'],
       requiredEdges: [edge('microservice', 'message_queue')],
@@ -361,7 +361,7 @@ const l1 = level({
         msg(
           "The ledger is append-only and immutable. No record is ever updated or deleted. This makes the entire payment history auditable forever — critical for financial compliance."
         ),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Payment Service → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Payment Service → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('microservice', 'sql_db')],
@@ -402,7 +402,7 @@ const l1 = level({
           "The Logger captures detailed payment traces for debugging. The Metrics Collector tracks payment success rates, fraud block rates, and webhook delivery rates in real time."
         ),
         msg(
-          'Press ⌘K, search for "Logger", add it. Then search for "Metrics Collector" and add that too. Connect both from the Payment Service.'
+          'Press ⌘K and search for "Logger" and press Enter to add it. Then search for "Metrics Collector" and add that too. Connect both from the Payment Service.'
         ),
       ],
       requiredNodes: ['logger', 'metrics_collector'],
@@ -459,7 +459,7 @@ const l2 = level({
       messages: [
         msg("Level 2 — Production Ready. Every payment, refund, and dispute is published to Kafka for downstream consumers."),
         msg("Real-time revenue dashboards update within seconds. Dispute prediction models consume chargeback events for real-time fraud scoring."),
-        msg('Press ⌘K, search for "Kafka / Streaming", add it, then connect Load Balancer → Kafka Streaming.'),
+        msg("Press ⌘K and search for \"Kafka / Streaming\" and press Enter to add it, then connect Load Balancer → Kafka Streaming."),
       ],
       requiredNodes: ['kafka_streaming'],
       requiredEdges: [edge('load_balancer', 'kafka_streaming')],
@@ -495,7 +495,7 @@ const l2 = level({
       messages: [
         msg("Notification workers consume Kafka events to send payment receipts, refund confirmations, and dispute alerts."),
         msg("All notification delivery is asynchronous — payment responses are never delayed by slow email or SMS delivery."),
-        msg('Press ⌘K, search for "Worker / Background Job", add it, then connect Kafka Streaming → Notification Worker.'),
+        msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Kafka Streaming → Notification Worker."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('kafka_streaming', 'worker_job')],
@@ -531,7 +531,7 @@ const l2 = level({
       messages: [
         msg("Rate limit counters are cached in Redis with 1-second TTL — enabling sub-millisecond rate limit checks."),
         msg("Every API request checks Redis first — no database load for rate limit enforcement. 99.9% of checks hit the cache."),
-        msg('Press ⌘K, search for "In-Memory Cache", add it, then connect API Gateway → In-Memory Cache.'),
+        msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect API Gateway → In-Memory Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('api_gateway', 'in_memory_cache')],
@@ -567,7 +567,7 @@ const l2 = level({
       messages: [
         msg("CDC Connector captures row-level changes from the SQL ledger and streams them to Kafka for analytics."),
         msg("Without CDC, analytics queries would add load to the production ledger. CDC captures changes from the transaction log — zero query overhead."),
-        msg('Press ⌘K, search for "CDC Connector (Debezium)", add it, then connect SQL Database → CDC Connector.'),
+        msg("Press ⌘K and search for \"CDC Connector (Debezium)\" and press Enter to add it, then connect SQL Database → CDC Connector."),
       ],
       requiredNodes: ['cdc_connector'],
       requiredEdges: [edge('sql_db', 'cdc_connector')],
@@ -603,7 +603,7 @@ const l2 = level({
       messages: [
         msg("Merchant profiles, API keys, and subscription data need ACID compliance. PostgreSQL stores the authoritative records."),
         msg("API key management requires auditable records — every key creation, rotation, and revocation is tracked for compliance."),
-        msg('Press ⌘K, search for "SQL Database", add it, then connect Auth Service → SQL Database.'),
+        msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Auth Service → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('auth_service', 'sql_db')],
@@ -639,7 +639,7 @@ const l2 = level({
       messages: [
         msg("Structured Logger emits JSON-formatted payment traces with consistent schemas."),
         msg("PCI-compliant logging excludes card numbers. LogQL queries aggregate metrics across billions of payment events for debugging and analytics."),
-        msg('Press ⌘K, search for "Structured Logger", add it, then connect Load Balancer → Structured Logger.'),
+        msg("Press ⌘K and search for \"Structured Logger\" and press Enter to add it, then connect Load Balancer → Structured Logger."),
       ],
       requiredNodes: ['structured_logger'],
       requiredEdges: [edge('load_balancer', 'structured_logger')],
@@ -675,7 +675,7 @@ const l2 = level({
       messages: [
         msg("The SLO/SLI Tracker monitors payment success rate, API latency, and webhook delivery rate against defined Service Level Objectives."),
         msg("Stripe's payment success rate SLO: 99.99% — maximum 52 minutes of downtime per year. When error budgets burn, on-call is paged."),
-        msg('Press ⌘K, search for "SLO/SLI Tracker", add it, then connect Metrics Collector → SLO/SLI Tracker.'),
+        msg("Press ⌘K and search for \"SLO/SLI Tracker\" and press Enter to add it, then connect Metrics Collector → SLO/SLI Tracker."),
       ],
       requiredNodes: ['slo_tracker'],
       requiredEdges: [edge('metrics_collector', 'slo_tracker')],
@@ -711,7 +711,7 @@ const l2 = level({
       messages: [
         msg("The Error Budget Monitor tracks remaining reliability budget for payment success rate SLO."),
         msg("When the error budget burns faster than acceptable, feature launches pause until reliability improves. For payments, reliability is non-negotiable."),
-        msg('Press ⌘K, search for "Error Budget Monitor", add it, then connect SLO/SLI Tracker → Error Budget Monitor.'),
+        msg("Press ⌘K and search for \"Error Budget Monitor\" and press Enter to add it, then connect SLO/SLI Tracker → Error Budget Monitor."),
       ],
       requiredNodes: ['error_budget_alert'],
       requiredEdges: [edge('slo_tracker', 'error_budget_alert')],
@@ -763,7 +763,7 @@ const l3 = level({
       messages: [
         msg("Level 3 — Expert Architecture. The Service Mesh (Istio) adds sidecar proxies to every pod — handling mTLS, retries, circuit breaking, and load balancing transparently."),
         msg("Automatic mTLS encrypts every service-to-service call. PCI DSS compliance requires consistent encryption — the Control Plane enforces this across the entire cluster."),
-        msg('Press ⌘K, search for "Service Mesh (Istio)", add it, then connect Load Balancer → Service Mesh.'),
+        msg("Press ⌘K and search for \"Service Mesh (Istio)\" and press Enter to add it, then connect Load Balancer → Service Mesh."),
       ],
       requiredNodes: ['service_mesh'],
       requiredEdges: [edge('load_balancer', 'service_mesh')],
@@ -799,7 +799,7 @@ const l3 = level({
       messages: [
         msg("GraphQL Federation combines payment, subscription, and invoice schemas into a unified supergraph."),
         msg("Enterprise dashboards query one endpoint — the gateway fans out to multiple subgraphs and composes the response. API calls reduced by 70%."),
-        msg('Press ⌘K, search for "GraphQL Federation Gateway", add it, then connect API Gateway → GraphQL Federation Gateway.'),
+        msg("Press ⌘K and search for \"GraphQL Federation Gateway\" and press Enter to add it, then connect API Gateway → GraphQL Federation Gateway."),
       ],
       requiredNodes: ['graphql_federation'],
       requiredEdges: [edge('api_gateway', 'graphql_federation')],
@@ -835,7 +835,7 @@ const l3 = level({
       messages: [
         msg("Token Bucket Rate Limiter uses the token bucket algorithm — allowing burst traffic up to a bucket size while maintaining a steady average rate."),
         msg("Enterprise batch payment clients get larger buckets. The steady average rate prevents abuse while enabling legitimate bursts."),
-        msg('Press ⌘K, search for "Token Bucket Rate Limiter", add it, then connect API Gateway → Token Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Token Bucket Rate Limiter\" and press Enter to add it, then connect API Gateway → Token Bucket Rate Limiter."),
       ],
       requiredNodes: ['token_bucket_limiter'],
       requiredEdges: [edge('api_gateway', 'token_bucket_limiter')],
@@ -871,7 +871,7 @@ const l3 = level({
       messages: [
         msg("Leaky Bucket Rate Limiter smooths outgoing bank network traffic at a constant rate."),
         msg("Bank networks have connection limits. The leaky bucket prevents traffic bursts from overwhelming the ISO 8583 connection — constant throughput, no connection drops."),
-        msg('Press ⌘K, search for "Leaky Bucket Rate Limiter", add it, then connect Payment Gateway → Leaky Bucket Rate Limiter.'),
+        msg("Press ⌘K and search for \"Leaky Bucket Rate Limiter\" and press Enter to add it, then connect Payment Gateway → Leaky Bucket Rate Limiter."),
       ],
       requiredNodes: ['leaky_bucket_limiter'],
       requiredEdges: [edge('payment_gateway', 'leaky_bucket_limiter')],
@@ -907,7 +907,7 @@ const l3 = level({
       messages: [
         msg("The OpenTelemetry Collector is the unified observability pipeline — receiving spans, metrics, and logs from all services, normalizing the format, and exporting to multiple backends."),
         msg("Without OTel, adding a new tracing backend requires changing every payment service. With OTel, services instrument once and the collector routes to any backend."),
-        msg('Press ⌘K, search for "OpenTelemetry Collector", add it, then connect Structured Logger → OpenTelemetry Collector.'),
+        msg("Press ⌘K and search for \"OpenTelemetry Collector\" and press Enter to add it, then connect Structured Logger → OpenTelemetry Collector."),
       ],
       requiredNodes: ['otel_collector'],
       requiredEdges: [edge('structured_logger', 'otel_collector')],
@@ -943,7 +943,7 @@ const l3 = level({
       messages: [
         msg("The Correlation ID Injector generates a unique trace ID at request entry and propagates it via HTTP headers through every payment service call."),
         msg("All logs for a payment request share one correlation ID — instant debugging across Fraud Detection, Payment Gateway, and Ledger."),
-        msg('Press ⌘K, search for "Correlation ID Injector", add it, then connect OpenTelemetry Collector → Correlation ID Injector.'),
+        msg("Press ⌘K and search for \"Correlation ID Injector\" and press Enter to add it, then connect OpenTelemetry Collector → Correlation ID Injector."),
       ],
       requiredNodes: ['correlation_id_handler'],
       requiredEdges: [edge('otel_collector', 'correlation_id_handler')],
@@ -979,7 +979,7 @@ const l3 = level({
       messages: [
         msg("mTLS Certificate Authority issues and rotates TLS certificates for all service-to-service authentication."),
         msg("Mutual TLS ensures both client and server verify each other. Automatic rotation every 24 hours prevents expired certificates from causing outages."),
-        msg('Press ⌘K, search for "mTLS Certificate Authority", add it, then connect Service Mesh → mTLS CA.'),
+        msg("Press ⌘K and search for \"mTLS Certificate Authority\" and press Enter to add it, then connect Service Mesh → mTLS CA."),
       ],
       requiredNodes: ['mtls_certificate_authority'],
       requiredEdges: [edge('service_mesh', 'mtls_certificate_authority')],
@@ -1015,7 +1015,7 @@ const l3 = level({
       messages: [
         msg("JWT Validation Service parses and verifies JWT tokens at the API gateway."),
         msg("Signature, expiration, and merchant permissions are verified without hitting the auth server on every request — zero added latency."),
-        msg('Press ⌘K, search for "JWT Validation Service", add it, then connect API Gateway → JWT Validation Service.'),
+        msg("Press ⌘K and search for \"JWT Validation Service\" and press Enter to add it, then connect API Gateway → JWT Validation Service."),
       ],
       requiredNodes: ['jwt_validator'],
       requiredEdges: [edge('api_gateway', 'jwt_validator')],
@@ -1051,7 +1051,7 @@ const l3 = level({
       messages: [
         msg("Token Rotation Service automatically rotates API keys and refresh tokens on schedule and after security incidents."),
         msg("Automatic rotation reduces the window of exposure from compromised credentials — no manual process, no service restarts."),
-        msg('Press ⌘K, search for "Token Rotation Service", add it, then connect Auth Service → Token Rotation Service.'),
+        msg("Press ⌘K and search for \"Token Rotation Service\" and press Enter to add it, then connect Auth Service → Token Rotation Service."),
       ],
       requiredNodes: ['token_rotation'],
       requiredEdges: [edge('auth_service', 'token_rotation')],
@@ -1087,7 +1087,7 @@ const l3 = level({
       messages: [
         msg("Data Warehouse stores all historical transaction data for business intelligence and financial analytics."),
         msg("The SQL ledger cannot answer multi-year dispute trend questions — columnar storage optimized for analytics is required."),
-        msg('Press ⌘K, search for "Data Warehouse", add it, then connect CDC Connector → Data Warehouse.'),
+        msg("Press ⌘K and search for \"Data Warehouse\" and press Enter to add it, then connect CDC Connector → Data Warehouse."),
       ],
       requiredNodes: ['data_warehouse'],
       requiredEdges: [edge('cdc_connector', 'data_warehouse')],
@@ -1123,7 +1123,7 @@ const l3 = level({
       messages: [
         msg("Event Store (EventStoreDB) maintains an immutable log of all payment lifecycle events — charged, disputed, refunded, paid out."),
         msg("The entire ledger state can be reconstructed by replaying events. Financial regulators require a complete audit trail — the Event Store provides immutable evidence for SOC 2 and PCI DSS compliance."),
-        msg('Press ⌘K, search for "Event Store (EventStoreDB)", add it, then connect Payment Service → Event Store. This completes the expert architecture!'),
+        msg("Press ⌘K and search for \"Event Store (EventStoreDB)\" and press Enter to add it, then connect Payment Service → Event Store. This completes the expert architecture!"),
       ],
       requiredNodes: ['event_store'],
       requiredEdges: [edge('microservice', 'event_store')],

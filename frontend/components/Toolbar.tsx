@@ -41,6 +41,7 @@ export function Toolbar() {
     undo, redo, past, future,
     canvases, activeCanvasId, addCanvas, removeCanvas, switchCanvas, renameCanvas,
     savingState, userProfile, setSidebarOpen, sidebarOpen,
+    aiPanelOpen, closeAIPanel,
   } = useDiagramStore();
 
   const { user } = useAuthStore();
@@ -53,7 +54,6 @@ export function Toolbar() {
   const [shareUrl, setShareUrl] = useState('');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [emailCapture, setEmailCapture] = useState<EmailCaptureReason | null>(null);
-  const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -372,7 +372,7 @@ export function Toolbar() {
           <ThemeToggle />
 
           <button
-            onClick={() => setAiPanelOpen(!aiPanelOpen)}
+            onClick={() => closeAIPanel()}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
             style={{
               background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
@@ -540,7 +540,7 @@ export function Toolbar() {
         />
       )}
       <AnimatePresence>
-        {aiPanelOpen && <GenerateDiagramPanel onClose={() => setAiPanelOpen(false)} />}
+        {aiPanelOpen && <GenerateDiagramPanel onClose={() => closeAIPanel()} />}
       </AnimatePresence>
       {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}
 
