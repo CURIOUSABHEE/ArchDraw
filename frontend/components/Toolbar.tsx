@@ -5,14 +5,14 @@ import {
   Download, Trash2, Upload, ChevronDown, FileJson,
   Undo2, Redo2, Share2, Loader2, Check,
   GraduationCap, Sparkles, MoreHorizontal, HelpCircle,
+  Plus, X, PanelLeftClose, LayoutTemplate,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
-import { TemplateModal } from '@/components/TemplateModal';
-import { TooltipWrapper } from '@/components/TooltipWrapper';
 import { ShareModal } from '@/components/ShareModal';
+import { TemplateModal } from '@/components/TemplateModal';
 import { EmailCaptureModal, type EmailCaptureReason } from '@/components/EmailCaptureModal';
 import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { useOnboardingStore } from '@/store/onboardingStore';
@@ -20,8 +20,17 @@ import { GenerateDiagramPanel } from '@/components/ai/GenerateDiagramPanel';
 import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from 'next-themes';
+import { useDiagramStore as useDiagramStoreTyped } from '@/store/diagramStore';
 
 type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf';
+
+function formatRelative(ts: number): string {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
 
 export function Toolbar() {
   const { resolvedTheme } = useTheme();
@@ -30,8 +39,8 @@ export function Toolbar() {
   const {
     clearDiagram, nodes, edges, importDiagram,
     undo, redo, past, future,
-    canvases, activeCanvasId,
-    savingState, userProfile,
+    canvases, activeCanvasId, addCanvas, removeCanvas, switchCanvas, renameCanvas,
+    savingState, userProfile, setSidebarOpen, sidebarOpen,
   } = useDiagramStore();
 
   const { user } = useAuthStore();
@@ -39,7 +48,6 @@ export function Toolbar() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exportOpen, setExportOpen] = useState(false);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
@@ -47,6 +55,11 @@ export function Toolbar() {
   const [emailCapture, setEmailCapture] = useState<EmailCaptureReason | null>(null);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   const openGuide = useOnboardingStore((s) => s.open);
 
@@ -75,7 +88,7 @@ export function Toolbar() {
     const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
     if (!element) return;
     setIsExporting(true);
-    const { fitView } = useDiagramStore.getState();
+    const { fitView } = useDiagramStoreTyped.getState();
     fitView();
     await new Promise((r) => setTimeout(r, 120));
     try {
@@ -202,225 +215,310 @@ export function Toolbar() {
     }
   };
 
+  const startRename = (id: string, currentName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(id);
+    setEditDraft(currentName);
+  };
+
+  const commitRename = () => {
+    if (editingId && editDraft.trim()) {
+      renameCanvas(editingId, editDraft.trim());
+    }
+    setEditingId(null);
+  };
+
+  const handleCloseClick = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const canvas = canvases.find((c) => c.id === id);
+    if (canvas && canvas.nodes.length > 0) {
+      setConfirmDeleteId(id);
+    } else {
+      removeCanvas(id);
+    }
+  };
+
   return (
     <>
-      <header className="h-11 border-b border-border/60 bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 z-20 shrink-0 gap-2">
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="w-5 h-5 bg-indigo-600 rounded-md flex items-center justify-center">
-            <div className="w-2 h-2 border border-white/80 rounded-sm" />
-          </div>
-          <span className="font-semibold text-foreground text-sm tracking-tight">Archflow</span>
-          <div className="flex items-center gap-1 ml-2">
-            <TooltipWrapper label="Undo (Cmd+Z)">
-              <ToolBtn onClick={undo} disabled={!past.length}><Undo2 className="w-3.5 h-3.5" /></ToolBtn>
-            </TooltipWrapper>
-            <TooltipWrapper label="Redo (Cmd+Shift+Z)">
-              <ToolBtn onClick={redo} disabled={!future.length}><Redo2 className="w-3.5 h-3.5" /></ToolBtn>
-            </TooltipWrapper>
+      {/* Gradient accent line at top */}
+      <div 
+        className="h-[2px] w-full"
+        style={{
+          background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
+        }}
+      />
+      <header 
+        className="h-12 flex items-center justify-between px-4 z-30 shrink-0"
+        style={{
+          background: isDark 
+            ? 'linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.9) 100%)' 
+            : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: isDark 
+            ? '1px solid rgba(255, 255, 255, 0.06)' 
+            : '1px solid rgba(0, 0, 0, 0.08)',
+        }}
+      >
+        {/* LEFT: Sidebar toggle + Canvas tabs */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-1.5 rounded-md transition-colors hover:bg-accent/50"
+            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          >
+            <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            {canvases.map((canvas) => {
+              const isActive = canvas.id === activeCanvasId;
+              const isEditing = editingId === canvas.id;
+
+              return (
+                <button
+                  key={canvas.id}
+                  onClick={() => !isEditing && switchCanvas(canvas.id)}
+                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    isActive
+                      ? 'bg-accent/80 text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+                  }`}
+                >
+                  {isEditing ? (
+                    <input
+                      ref={editInputRef}
+                      value={editDraft}
+                      onChange={(e) => setEditDraft(e.target.value)}
+                      onBlur={commitRename}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+                        if (e.key === 'Escape') setEditingId(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-transparent outline-none border-none text-xs font-medium w-20"
+                      autoFocus
+                    />
+                  ) : (
+                    <span
+                      onDoubleClick={(e) => startRename(canvas.id, canvas.name, e)}
+                      title={canvas.updatedAt ? `Last edited ${formatRelative(canvas.updatedAt)}` : canvas.name}
+                    >
+                      {canvas.name}
+                    </span>
+                  )}
+
+                  {canvases.length > 1 && !isEditing && (
+                    <button
+                      onClick={(e) => handleCloseClick(canvas.id, e)}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/15 hover:text-destructive transition-all"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={addCanvas}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
+              title="New canvas"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground font-medium">
-          <span>{nodes.length} nodes &middot; {edges.length} edges</span>
+        {/* CENTER: Context info */}
+        <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+          <span>{nodes.length} nodes</span>
+          <span className="w-px h-3 bg-border/50" />
+          <span>{edges.length} edges</span>
           {userProfile && savingState !== 'idle' && (
-            <span className="flex items-center gap-1 text-slate-400">
-              {savingState === 'saving'
-                ? <><Loader2 className="w-3 h-3 animate-spin" /> Saving...</>
-                : <><Check className="w-3 h-3 text-green-500" /> Saved</>
-              }
-            </span>
+            <>
+              <span className="w-px h-3 bg-border/50" />
+              <span className="flex items-center gap-1">
+                {savingState === 'saving' ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" /> Saving</>
+                ) : (
+                  <><Check className="w-3 h-3 text-emerald-500" /> Saved</>
+                )}
+              </span>
+            </>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* RIGHT: Actions */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={undo}
+            disabled={!past.length}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Undo (Cmd+Z)"
+          >
+            <Undo2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={redo}
+            disabled={!future.length}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Redo (Cmd+Shift+Z)"
+          >
+            <Redo2 className="w-4 h-4" />
+          </button>
+
+          <span className="w-px h-4 bg-border/50 mx-1" />
+
           <ThemeToggle />
 
-          <TooltipWrapper label="Generate with AI">
-            <button
-              onClick={() => setAiPanelOpen(!aiPanelOpen)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-medium rounded-md transition-all shadow-sm"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">AI Generate</span>
-            </button>
-          </TooltipWrapper>
+          <button
+            onClick={() => setAiPanelOpen(!aiPanelOpen)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
+              color: 'white',
+              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+            }}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>AI Generate</span>
+          </button>
+
+          <button
+            onClick={handleShare}
+            disabled={isSharing || nodes.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/60 hover:bg-accent text-foreground transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isSharing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
+            <span>Share</span>
+          </button>
 
           <div className="relative">
-            <TooltipWrapper label="More options">
-              <button
-                onClick={() => setMoreOpen(!moreOpen)}
-                className="inline-flex items-center justify-center w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-            </TooltipWrapper>
+            <button
+              onClick={() => setExportOpen(!exportOpen)}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/60 hover:bg-accent text-foreground transition-all disabled:opacity-40"
+            >
+              {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              <span>Export</span>
+              <ChevronDown className="w-3 h-3 ml-0.5" />
+            </button>
 
-            {moreOpen && (
+            {exportOpen && (
               <>
-                <style>{`
-                  @keyframes dropdown-in {
-                    from {
-                      opacity: 0;
-                      transform: translateY(-4px) scale(0.98);
-                    }
-                    to {
-                      opacity: 1;
-                      transform: translateY(0) scale(1);
-                    }
-                  }
-                `}</style>
-                <div className="fixed inset-0 z-30" onClick={() => setMoreOpen(false)} />
+                <div className="fixed inset-0 z-20" onClick={() => setExportOpen(false)} />
                 <div
-                  className="absolute right-0 top-full mt-2 w-48 z-40 rounded-xl overflow-hidden"
+                  className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden z-30"
                   style={{
-                    background: isDark ? 'rgba(13, 17, 23, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+                    background: isDark ? 'rgba(15, 23, 42, 0.98)' : 'rgba(255, 255, 255, 0.98)',
                     border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.1)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    boxShadow: isDark
-                      ? '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.04)'
-                      : '0 8px 32px rgba(0, 0, 0, 0.15)',
-                    animation: 'dropdown-in 0.12s ease-out forwards',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
                   }}
                 >
-                  <button
-                    onClick={() => { router.push('/tutorials'); setMoreOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-100 cursor-pointer ${
-                      isDark
-                        ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-black/[0.04]'
-                    }`}
-                  >
-                    <GraduationCap className="w-4 h-4 text-[#6366f1] flex-shrink-0" />
-                    <span>Learn</span>
-                  </button>
-                  <button
-                    onClick={() => { openGuide(); setMoreOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-100 cursor-pointer ${
-                      isDark
-                        ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-black/[0.04]'
-                    }`}
-                  >
-                    <HelpCircle className="w-4 h-4 text-[#64748b] flex-shrink-0" />
-                    <span>Guide</span>
-                  </button>
-                  <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-                  <button
-                    onClick={() => { fileInputRef.current?.click(); setMoreOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-100 cursor-pointer ${
-                      isDark
-                        ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-black/[0.04]'
-                    }`}
-                  >
-                    <Upload className="w-4 h-4 text-[#64748b] flex-shrink-0" />
-                    <span>Import</span>
-                  </button>
-                  <div className={`mx-3 my-1 border-t ${isDark ? 'border-white/[0.06]' : 'border-black/[0.06]'}`} />
-                  <button
-                    onClick={() => { handleClear(); setMoreOpen(false); }}
-                    disabled={nodes.length === 0}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                      isDark
-                        ? 'text-slate-300 hover:text-red-400 hover:bg-[rgba(239,68,68,0.08)]'
-                        : 'text-slate-600 hover:text-red-600 hover:bg-red-50'
-                    }`}
-                  >
-                    <Trash2 className="w-4 h-4 text-[#ef4444] flex-shrink-0" />
-                    <span>Clear Canvas</span>
-                  </button>
+                  <div className="px-3 py-2 border-b border-border/50">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG</p>
+                  </div>
+                  {([
+                    { label: 'Dark background', format: 'png-dark' },
+                    { label: 'Light background', format: 'png-light' },
+                    { label: 'Transparent', format: 'png-transparent' },
+                  ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
+                    <button
+                      key={format}
+                      onClick={() => handleExport(format)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <div className="px-3 py-2 border-t border-b border-border/50">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Other</p>
+                  </div>
+                  {([
+                    { label: 'JSON', format: 'json' },
+                    { label: 'PDF', format: 'pdf' },
+                  ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
+                    <button
+                      key={format}
+                      onClick={() => handleExport(format)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </>
             )}
           </div>
 
-          <TooltipWrapper label={nodes.length === 0 ? 'Add nodes to share' : 'Share this diagram'}>
-            <button
-              onClick={handleShare}
-              disabled={isSharing || nodes.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {isSharing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
-              {isSharing ? 'Sharing...' : 'Share'}
-            </button>
-          </TooltipWrapper>
-
           <div className="relative">
-            <TooltipWrapper label="Export diagram">
-              <button
-                onClick={() => setExportOpen(!exportOpen)}
-                disabled={isExporting}
-                data-onboarding="export-btn"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-md transition-all shadow-sm active:scale-95 disabled:opacity-60"
-              >
-                {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                {isExporting ? 'Exporting...' : 'Export'}
-                {!isExporting && <ChevronDown className="w-3 h-3 ml-0.5" />}
-              </button>
-            </TooltipWrapper>
+            <button
+              onClick={() => setMoreOpen(!moreOpen)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
 
-            {exportOpen && (
+            {moreOpen && (
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setExportOpen(false)} />
+                <div className="fixed inset-0 z-20" onClick={() => setMoreOpen(false)} />
                 <div
-                  className="absolute right-0 mt-2 w-52 rounded-lg z-40 overflow-hidden"
+                  className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden z-30"
                   style={{
-                    background: isDark ? 'rgba(13, 17, 23, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+                    background: isDark ? 'rgba(15, 23, 42, 0.98)' : 'rgba(255, 255, 255, 0.98)',
                     border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.1)',
-                    backdropFilter: 'blur(20px)',
-                    boxShadow: isDark
-                      ? '0 8px 32px rgba(0, 0, 0, 0.4)'
-                      : '0 8px 32px rgba(0, 0, 0, 0.15)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
                   }}
                 >
-                  <div
-                    className="px-3 py-2"
-                    style={{ borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.06)' }}
-                  >
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: isDark ? '#64748b' : '#64748b' }}>PNG Export</p>
+                  {/* Resources Section */}
+                  <div className="px-3 py-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Resources</p>
                   </div>
-                  {([
-                    { label: 'Dark background',        format: 'png-dark'        },
-                    { label: 'Light background',       format: 'png-light'       },
-                    { label: 'Transparent background', format: 'png-transparent' },
-                  ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
-                    <button
-                      key={format}
-                      onClick={() => handleExport(format)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors ${
-                        isDark
-                          ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-black/[0.04]'
-                      }`}
-                    >
-                      <Download className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isDark ? '#64748b' : '#94a3b8' }} />
-                      {label}
-                    </button>
-                  ))}
-                  <div
-                    className="px-3 py-2"
-                    style={{ borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.06)' }}
+                  <button
+                    onClick={() => { router.push('/tutorials'); setMoreOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
                   >
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: isDark ? '#64748b' : '#64748b' }}>Other</p>
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    Learn
+                  </button>
+                  <button
+                    onClick={() => { openGuide(); setMoreOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    Guide
+                  </button>
+                  
+                  {/* Workspace Section */}
+                  <div className="px-3 pt-2 pb-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Workspace</p>
                   </div>
-                  {([
-                    { label: 'Export as JSON', format: 'json' },
-                    { label: 'Export as PDF',  format: 'pdf'  },
-                  ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
-                    <button
-                      key={format}
-                      onClick={() => handleExport(format)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors ${
-                        isDark
-                          ? 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-black/[0.04]'
-                      }`}
-                    >
-                      <FileJson className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isDark ? '#64748b' : '#94a3b8' }} />
-                      {label}
-                    </button>
-                  ))}
+                  <button
+                    onClick={() => { setTemplatesOpen(true); setMoreOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                  >
+                    <LayoutTemplate className="w-3.5 h-3.5" />
+                    Templates
+                  </button>
+                  <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+                  <button
+                    onClick={() => { fileInputRef.current?.click(); setMoreOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Import JSON
+                  </button>
+                  
+                  {/* Danger Zone */}
+                  <div className="border-t border-border/50 my-1.5" />
+                  <button
+                    onClick={() => { handleClear(); setMoreOpen(false); }}
+                    disabled={nodes.length === 0}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Clear Canvas
+                  </button>
                 </div>
               </>
             )}
@@ -428,7 +526,6 @@ export function Toolbar() {
         </div>
       </header>
 
-      {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}
       {shareModalOpen && (
         <ShareModal
           shareUrl={shareUrl}
@@ -445,30 +542,40 @@ export function Toolbar() {
       <AnimatePresence>
         {aiPanelOpen && <GenerateDiagramPanel onClose={() => setAiPanelOpen(false)} />}
       </AnimatePresence>
-    </>
-  );
-}
+      {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}
 
-function ToolBtn({
-  children, onClick, disabled, active, ...rest
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  active?: boolean;
-} & React.HTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      {...rest}
-      className={`p-1.5 rounded-md transition-all duration-150 ${
-        active
-          ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-      } disabled:opacity-30 disabled:cursor-not-allowed`}
-    >
-      {children}
-    </button>
+      {/* Delete confirmation modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div 
+            className="rounded-xl p-5 w-64"
+            style={{
+              background: isDark ? 'rgba(15, 23, 42, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 16px 64px rgba(0, 0, 0, 0.4)',
+            }}
+          >
+            <p className="text-sm font-semibold text-foreground mb-1">Delete canvas?</p>
+            <p className="text-[11px] text-muted-foreground mb-4">
+              This canvas has nodes. Deleting it is permanent.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 py-2 text-xs font-medium rounded-lg border border-border hover:bg-accent/40 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { removeCanvas(confirmDeleteId); setConfirmDeleteId(null); }}
+                className="flex-1 py-2 text-xs font-medium rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

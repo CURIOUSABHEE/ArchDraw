@@ -19,12 +19,13 @@ import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu';
 import { useSnapping } from '@/hooks/useSnapping';
 import { useCallback, useEffect, useRef, DragEvent, useState, Fragment } from 'react';
 import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Sparkles, LayoutTemplate, MousePointer2 } from 'lucide-react';
 import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import { EdgeLegend } from '@/components/edges/EdgeLegend';
 import { EDGE_TYPE_CONFIGS, EdgeType } from '@/data/edgeTypes';
 import { useTheme } from 'next-themes';
+import { TemplateModal } from '@/components/TemplateModal';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -56,6 +57,7 @@ function CanvasInner() {
   const labelInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   // Keep module ref in sync so store.fitView() can call it directly
   useEffect(() => {
@@ -191,8 +193,27 @@ function CanvasInner() {
   }, []);
 
   return (
-    <div className="flex-1 relative bg-background">
-      <ReactFlow
+    <div className="flex-1 relative overflow-hidden">
+      {/* Canvas background with radial gradient */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: resolvedTheme === 'dark'
+            ? 'radial-gradient(ellipse at center, rgba(30, 41, 59, 0.3) 0%, rgba(15, 23, 42, 1) 70%)'
+            : 'radial-gradient(ellipse at center, rgba(241, 245, 249, 0.5) 0%, rgba(248, 250, 252, 1) 70%)',
+        }}
+      />
+      {/* Vignette overlay */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: resolvedTheme === 'dark'
+            ? 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.15) 100%)'
+            : 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.02) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 bg-background">
+        <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -325,6 +346,7 @@ function CanvasInner() {
           );
         })()}
       </ReactFlow>
+      </div>
 
       <GuideLines />
       <EdgeLegend />
@@ -334,10 +356,47 @@ function CanvasInner() {
       )}
 
       {nodes.length === 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none dark:text-slate-500 text-slate-400">
-          <LayoutGrid className="w-12 h-12 mb-3 dark:text-slate-600 text-slate-400" />
-          <p className="text-sm font-medium">Start building your architecture</p>
-          <p className="text-xs mt-1 dark:text-slate-600 text-slate-500">Drag components from the sidebar or load a template</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center select-none">
+          <div className="text-center mb-8">
+            <LayoutGrid className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
+            <h2 className="text-lg font-semibold text-foreground/60 mb-2">Start building your architecture</h2>
+            <p className="text-xs text-muted-foreground/50">Choose how you want to begin</p>
+          </div>
+          
+          <div className="flex items-center gap-3 pointer-events-auto">
+            {/* AI Generate - Primary */}
+            <button
+              onClick={() => {/* TODO: open AI panel */}}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
+                boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)',
+              }}
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate with AI
+            </button>
+            
+            {/* Templates - Secondary */}
+            <button
+              onClick={() => setTemplatesOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-accent/60 hover:bg-accent text-foreground border border-border/50 transition-all hover:scale-105 active:scale-95"
+            >
+              <LayoutTemplate className="w-4 h-4" />
+              Use Template
+            </button>
+            
+            {/* Start from Scratch - Ghost */}
+            <button
+              onClick={() => {/* User can start dragging components */}}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
+            >
+              <MousePointer2 className="w-4 h-4" />
+              Start from Scratch
+            </button>
+          </div>
+          
+          <p className="text-[10px] text-muted-foreground/40 mt-6">Press ? for keyboard shortcuts</p>
         </div>
       )}
 
@@ -351,6 +410,7 @@ function CanvasInner() {
       </button>
 
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
+      {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { ComponentSidebar } from '@/components/ComponentSidebar';
 import { Canvas } from '@/components/Canvas';
 import { CommandPalette } from '@/components/CommandPalette';
 import { PropertiesPanel } from '@/components/PropertiesPanel';
-import { CanvasTabBar } from '@/components/CanvasTabBar';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -16,7 +15,7 @@ import { useOnboarding } from '@/components/onboarding/useOnboarding';
 import { EdgeType } from '@/data/edgeTypes';
 
 export default function EditorPage() {
-  const { darkMode, selectedNodeId, selectedEdgeId, nodes } = useDiagramStore();
+  const { darkMode, selectedNodeId, selectedEdgeId, nodes, sidebarOpen } = useDiagramStore();
   const { user } = useAuthStore();
 
   // Initialize onboarding (auto-open + drag detection)
@@ -146,9 +145,8 @@ export default function EditorPage() {
       <div className="flex flex-col h-screen w-screen overflow-hidden">
         <Toolbar />
         <div className="flex flex-1 overflow-hidden">
-          <ComponentSidebar />
+          {sidebarOpen && <ComponentSidebar />}
           <div className="flex flex-col flex-1 overflow-hidden">
-            <CanvasTabBar />
             <Canvas />
           </div>
           {selectedNodeId && <PropertiesPanel />}

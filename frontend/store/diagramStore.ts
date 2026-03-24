@@ -103,10 +103,12 @@ interface DiagramState {
   edgeAnimations: boolean;
   showGrid: boolean;
   darkMode: boolean;
+  sidebarOpen: boolean;
   setGuideLines: (lines: GuideLine[]) => void;
   toggleEdgeAnimations: () => void;
   toggleGrid: () => void;
   toggleDarkMode: () => void;
+  setSidebarOpen: (open: boolean) => void;
 
   // ── History ───────────────────────────────────────────────────────────────
   past: HistoryEntry[];
@@ -292,7 +294,9 @@ export const useDiagramStore = create<DiagramState>()(
       guideLines: [],
       edgeAnimations: true,
       showGrid: true,
-      darkMode: false,
+      darkMode: true,
+      sidebarOpen: true,
+      setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setGuideLines: (lines) => set({ guideLines: lines }),
       toggleGrid: () => set({ showGrid: !get().showGrid }),
       toggleDarkMode: () => {
