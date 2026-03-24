@@ -257,82 +257,83 @@ export function GenerateDiagramPanel({ onClose }: Props) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
         <AnimatePresence mode="wait">
 
-          {/* IDLE / ERROR */}
-          {(phase === 'idle' || phase === 'error') && (
+          {/* IDLE / COMING SOON */}
+          {phase === 'idle' && (
             <motion.div key="idle" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', padding: '40px 20px', textAlign: 'center' }}>
 
-              {phase === 'error' && (
-                <div style={{ background: '#1c0a0a', border: '1px solid #450a0a', borderRadius: 8, padding: '9px 11px', display: 'flex', gap: 7 }}>
-                  <AlertCircle size={12} color="#f87171" style={{ flexShrink: 0, marginTop: 1 }} />
-                  <span style={{ fontSize: 11, color: '#fca5a5', lineHeight: 1.5 }}>{errorMsg}</span>
-                </div>
-              )}
+              <div style={{ 
+                width: 64, height: 64, borderRadius: 16, 
+                background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 8
+              }}>
+                <Sparkles size={28} color="#fff" />
+              </div>
 
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#52525b', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Describe your system</div>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  onKeyDown={(e) => {
-                    e.stopPropagation();
-                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && description.trim().length >= 3) {
-                      runGeneration(description.trim());
-                    }
-                  }}
-                  placeholder={'Describe your system — brief or detailed.\nExamples:\n• "App like Uber"\n• "Food delivery app with real-time tracking, payments, and push notifications"'}
-                  rows={7}
-                  style={{
-                    width: '100%', background: '#0f0f12', border: '1.5px solid #27272a',
-                    borderRadius: 8, color: '#e4e4e7', fontSize: 12, padding: '9px 11px',
-                    outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.65,
-                    caretColor: '#6366f1', boxSizing: 'border-box',
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = '#6366f1'; }}
-                  onBlur={(e) => { e.target.style.borderColor = '#27272a'; }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                  <span style={{ fontSize: 10, color: '#3f3f46' }}>More detail = better diagram</span>
-                  <span style={{ fontSize: 10, color: qualityColor, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{wordCount}w</span>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#fafafa', marginBottom: 6 }}>Coming Soon</div>
+                <div style={{ fontSize: 13, color: '#71717a', lineHeight: 1.6, maxWidth: 320 }}>
+                  AI-powered diagram generation is temporarily unavailable while we make improvements.
                 </div>
-                <div style={{ height: 2, background: '#18181b', borderRadius: 1, marginTop: 3 }}>
-                  <div style={{ height: '100%', width: qualityWidth, background: qualityColor, borderRadius: 1, transition: 'all 0.3s' }} />
+              </div>
+
+              <div style={{ 
+                background: '#0f0f12', border: '1px solid #27272a', 
+                borderRadius: 8, padding: '12px 16px', marginTop: 8 
+              }}>
+                <div style={{ fontSize: 11, color: '#52525b', marginBottom: 6 }}>What will be available:</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left' }}>
+                  {[
+                    'Describe systems in plain English',
+                    'Auto-generate architecture diagrams',
+                    'Layer-based component layout',
+                    'AI-powered explanations',
+                  ].map((feature, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />
+                      <span style={{ fontSize: 12, color: '#a1a1aa' }}>{feature}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               <button
-                onClick={() => { if (description.trim().length >= 3) runGeneration(description.trim()); }}
-                disabled={description.trim().length < 3}
+                onClick={onClose}
                 style={{
-                  background: description.trim().length >= 3
-                    ? 'linear-gradient(135deg, #6366f1, #a855f7)' : '#18181b',
-                  color: description.trim().length >= 3 ? '#fff' : '#52525b',
-                  border: 'none', borderRadius: 8, padding: '10px 0', fontSize: 13,
-                  fontWeight: 600, cursor: description.trim().length >= 3 ? 'pointer' : 'not-allowed',
-                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                  transition: 'opacity 0.2s', letterSpacing: '-0.01em',
+                  background: '#18181b', border: '1px solid #27272a',
+                  borderRadius: 8, padding: '10px 24px', fontSize: 13,
+                  fontWeight: 500, color: '#a1a1aa', cursor: 'pointer',
+                  marginTop: 8,
                 }}
               >
-                <Sparkles size={13} /> Generate Diagram <span style={{ fontSize: 10, opacity: 0.65 }}>⌘↵</span>
+                Close
               </button>
+            </motion.div>
+          )}
 
-              {/* Example prompts */}
-              <div style={{ borderTop: '1px solid #18181b', paddingTop: 10 }}>
-                <div style={{ fontSize: 10, color: '#3f3f46', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.06em' }}>Quick examples</div>
-                {[
-                  'App like Uber',
-                  'E-commerce platform with payments and inventory',
-                  'Real-time chat app with media sharing',
-                  'Food delivery app like Zomato',
-                ].map((ex, i) => (
-                  <button key={i} onClick={() => setDescription(ex)}
-                    style={{ display: 'block', width: '100%', textAlign: 'left', background: '#0f0f12', border: '1px solid #27272a', borderRadius: 6, padding: '6px 9px', fontSize: 11, color: '#a1a1aa', cursor: 'pointer', marginBottom: 4, transition: 'border-color 0.15s, color 0.15s', letterSpacing: '-0.01em' }}
-                    onMouseEnter={(e) => { (e.currentTarget).style.borderColor = '#6366f1'; (e.currentTarget).style.color = '#e4e4e7'; }}
-                    onMouseLeave={(e) => { (e.currentTarget).style.borderColor = '#27272a'; (e.currentTarget).style.color = '#a1a1aa'; }}>
-                    {ex}
-                  </button>
-                ))}
+          {/* ERROR */}
+          {phase === 'error' && (
+            <motion.div key="error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', padding: '40px 20px', textAlign: 'center' }}>
+
+              <AlertCircle size={32} color="#f87171" />
+              
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#f87171', marginBottom: 6 }}>Generation Failed</div>
+                <div style={{ fontSize: 12, color: '#71717a', lineHeight: 1.6 }}>{errorMsg}</div>
               </div>
+
+              <button
+                onClick={onClose}
+                style={{
+                  background: '#18181b', border: '1px solid #27272a',
+                  borderRadius: 8, padding: '10px 24px', fontSize: 13,
+                  fontWeight: 500, color: '#a1a1aa', cursor: 'pointer',
+                }}
+              >
+                Close
+              </button>
             </motion.div>
           )}
 
