@@ -2,19 +2,16 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EDGE_TYPE_CONFIGS, EdgeType } from '@/data/edgeTypes';
 import { useDiagramStore } from '@/store/diagramStore';
 
 interface EdgeLabelProps {
   edgeId: string;
-  edgeType: EdgeType;
-  label?: string;       // current stored label (may be undefined)
-  labelX: number;       // from getBezierPath / getSmoothStepPath
+  label?: string;
+  labelX: number;
   labelY: number;
 }
 
-export function EdgeLabel({ edgeId, edgeType, label, labelX, labelY }: EdgeLabelProps) {
-  const cfg = EDGE_TYPE_CONFIGS[edgeType];
+export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
   const updateEdgeLabel = useDiagramStore((s) => s.updateEdgeLabel);
 
   const [editing, setEditing] = useState(false);

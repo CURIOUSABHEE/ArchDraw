@@ -1,30 +1,29 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Toolbar } from '@/components/Toolbar';
 import { ComponentSidebar } from '@/components/ComponentSidebar';
 import { Canvas } from '@/components/Canvas';
 import { CommandPalette } from '@/components/CommandPalette';
 import { PropertiesPanel } from '@/components/PropertiesPanel';
+import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData } from '@/components/CreateComponentModal';
+import type { ComponentToEdit } from '@/components/CreateComponentModal';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { OnboardingOverlay } from '@/components/onboarding/OnboardingOverlay';
 import { useOnboarding } from '@/components/onboarding/useOnboarding';
-import { EdgeType } from '@/data/edgeTypes';
+import { componentRegistry } from '@/lib/componentRegistry';
 
 export default function EditorPage() {
-  const { darkMode, selectedNodeId, selectedEdgeId, nodes, sidebarOpen } = useDiagramStore();
+  const { selectedNodeId, nodes, sidebarOpen } = useDiagramStore();
   const { user } = useAuthStore();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
 
   // Initialize onboarding (auto-open + drag detection)
   useOnboarding();
-
-  // Sync dark mode class on mount
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
-  }, [darkMode]);
 
   // Auth init + canvas restore
   useEffect(() => {
@@ -102,24 +101,11 @@ export default function EditorPage() {
         deleteSelected();
       }
 
-      // Edge type cycling (e key)
-      if (e.key === 'e' || e.key === 'E') {
-        const store = useDiagramStore.getState();
-        const selectedEdgeIds = store.edges
-          .filter((edge) => edge.selected)
-          .map((edge) => edge.id);
-
-        if (selectedEdgeIds.length > 0) {
-          e.preventDefault();
-          const EDGE_TYPE_ORDER: EdgeType[] = ['sync', 'async', 'stream', 'event', 'dep'];
-          selectedEdgeIds.forEach((edgeId) => {
-            const edge = store.edges.find((e) => e.id === edgeId);
-            const currentType: EdgeType = edge?.data?.edgeType ?? 'sync';
-            const currentIndex = EDGE_TYPE_ORDER.indexOf(currentType);
-            const nextType = EDGE_TYPE_ORDER[(currentIndex + 1) % EDGE_TYPE_ORDER.length];
-            store.updateEdgeType(edgeId, nextType);
-          });
-        }
+      // Cmd/Ctrl + Shift + N: Create new component
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setEditComponent(null);
+        setShowCreateModal(true);
       }
     };
     window.addEventListener('keydown', handler);
@@ -145,7 +131,11 @@ export default function EditorPage() {
       <div className="flex flex-col h-screen w-screen overflow-hidden">
         <Toolbar />
         <div className="flex flex-1 overflow-hidden">
-          {sidebarOpen && <ComponentSidebar />}
+          {sidebarOpen && (
+            <ComponentSidebar
+              onOpenCreateModal={() => setShowCreateModal(true)}
+            />
+          )}
           <div className="flex flex-col flex-1 overflow-hidden">
             <Canvas />
           </div>
@@ -154,6 +144,39 @@ export default function EditorPage() {
         <CommandPalette />
       </div>
       <OnboardingOverlay />
+        <CreateComponentModal
+        isOpen={showCreateModal}
+        onClose={() => { setShowCreateModal(false); setEditComponent(null); }}
+        onCreate={(data: CreateComponentData) => {
+          const typeInfo = COMPONENT_TYPES.find(t => t.id === data.type);
+          const id = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+          componentRegistry.addCustomComponent({
+            id,
+            label: data.name,
+            category: typeInfo?.label || 'Other',
+            color: typeInfo?.color || '#6366f1',
+            description: data.description,
+            technology: 'custom',
+          });
+          setShowCreateModal(false);
+          setEditComponent(null);
+          window.dispatchEvent(new CustomEvent('custom-component-added'));
+        }}
+        onUpdate={(id: string, data: CreateComponentData) => {
+          const typeInfo = COMPONENT_TYPES.find(t => t.id === data.type);
+          componentRegistry.updateCustomComponent(id, {
+            label: data.name,
+            category: typeInfo?.label || 'Other',
+            color: typeInfo?.color || '#6366f1',
+            description: data.description,
+          });
+          setShowCreateModal(false);
+          setEditComponent(null);
+          window.dispatchEvent(new CustomEvent('custom-component-added'));
+        }}
+        existingNames={componentRegistry.getAll().map(c => c.label.toLowerCase())}
+        editComponent={editComponent}
+      />
     </ErrorBoundary>
   );
 }

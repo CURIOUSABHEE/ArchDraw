@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { Navbar } from '@/components/landing/Navbar';
 import { Hero } from '@/components/landing/Hero';
+import { IntegrationsRibbon } from '@/components/landing/IntegrationsRibbon';
 import { SocialProof } from '@/components/landing/SocialProof';
 import { Features } from '@/components/landing/Features';
 
@@ -36,6 +37,7 @@ export default function Home() {
         <Navbar />
         <main>
           <Hero />
+          <IntegrationsRibbon />
           <SocialProof />
           <Features />
           <HowItWorks />

@@ -248,22 +248,18 @@ export function Toolbar() {
         }}
       />
       <header 
-        className="h-12 flex items-center justify-between px-4 z-30 shrink-0"
+        className="h-12 flex items-center justify-between px-4 z-30 shrink-0 border-b"
         style={{
-          background: isDark 
-            ? 'linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.9) 100%)' 
-            : 'rgba(255, 255, 255, 0.95)',
+          backgroundColor: 'var(--card)',
+          borderColor: 'var(--border)',
           backdropFilter: 'blur(12px)',
-          borderBottom: isDark 
-            ? '1px solid rgba(255, 255, 255, 0.06)' 
-            : '1px solid rgba(0, 0, 0, 0.08)',
         }}
       >
         {/* LEFT: Sidebar toggle + Canvas tabs */}
         <div className="flex items-center gap-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-md transition-colors hover:bg-accent/50"
+            className="p-1.5 rounded-md transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring"
             title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           >
             <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
@@ -275,10 +271,19 @@ export function Toolbar() {
               const isEditing = editingId === canvas.id;
 
               return (
-                <button
+                <div
                   key={canvas.id}
+                  role="tab"
                   onClick={() => !isEditing && switchCanvas(canvas.id)}
-                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  onDoubleClick={(e) => isEditing ? undefined : startRename(canvas.id, canvas.name, e)}
+                  aria-selected={isActive}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isEditing) {
+                      switchCanvas(canvas.id);
+                    }
+                  }}
+                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring ${
                     isActive
                       ? 'bg-accent/80 text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
@@ -300,7 +305,6 @@ export function Toolbar() {
                     />
                   ) : (
                     <span
-                      onDoubleClick={(e) => startRename(canvas.id, canvas.name, e)}
                       title={canvas.updatedAt ? `Last edited ${formatRelative(canvas.updatedAt)}` : canvas.name}
                     >
                       {canvas.name}
@@ -310,18 +314,18 @@ export function Toolbar() {
                   {canvases.length > 1 && !isEditing && (
                     <button
                       onClick={(e) => handleCloseClick(canvas.id, e)}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/15 hover:text-destructive transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/15 hover:text-destructive focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring transition-all"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   )}
-                </button>
+                </div>
               );
             })}
 
             <button
               onClick={addCanvas}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring"
               title="New canvas"
             >
               <Plus className="w-3.5 h-3.5" />

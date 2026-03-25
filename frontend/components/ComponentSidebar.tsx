@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, ChevronDown, ChevronRight, Server, LucideIcon } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, Server, LucideIcon, Plus, Pencil, Trash2 } from 'lucide-react';
+import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData, type ComponentToEdit } from './CreateComponentModal';
+import { componentRegistry } from '@/lib/componentRegistry';
 import {
   Monitor, Globe, RadioTower, Webhook, Scale, Shuffle,
   Boxes, Zap, Timer, Box,
@@ -169,6 +171,10 @@ interface SectionProps {
   onAdd: (comp: ComponentEntry) => void;
 }
 
+interface ComponentSidebarProps {
+  onOpenCreateModal?: () => void;
+}
+
 function SidebarSection({ title, items, sectionKey, collapsed, onToggle, onAdd }: SectionProps) {
   const grouped = items.reduce<Record<string, ComponentEntry[]>>((acc, c) => {
     (acc[c.category] ??= []).push(c);
@@ -272,16 +278,46 @@ const TOP_SECTIONS = [
   { key: 'ai',        title: 'AI & ML',               data: (componentsData as ComponentEntry[]).filter(c => AI_CATEGORIES.includes(c.category)) },
 ];
 
-export function ComponentSidebar() {
+export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [customComponents, setCustomComponents] = useState(() => componentRegistry.getCustomComponents());
   const addNode = useDiagramStore((s) => s.addNode);
+  const existingNames = componentRegistry.getAll().map(c => c.label.toLowerCase());
 
   const toggleKey = (key: string) =>
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleAdd = (comp: ComponentEntry) => {
     addNode(comp.id, comp.label, comp.category, comp.color, comp.icon, comp.technology, getViewportCenter());
+  };
+
+  const handleEdit = (comp: ComponentToEdit) => {
+    setEditComponent(comp);
+    setShowCreateModal(true);
+  };
+
+  const handleDelete = (id: string) => {
+    componentRegistry.deleteCustomComponent(id);
+    setCustomComponents(componentRegistry.getCustomComponents());
+    setDeleteConfirm(null);
+    window.dispatchEvent(new CustomEvent('custom-component-added'));
+  };
+
+  const handleUpdate = (id: string, data: CreateComponentData) => {
+    const typeInfo = COMPONENT_TYPES.find(t => t.id === data.type);
+    componentRegistry.updateCustomComponent(id, {
+      label: data.name,
+      category: typeInfo?.label || 'Other',
+      color: typeInfo?.color || '#6366f1',
+      description: data.description,
+    });
+    setCustomComponents(componentRegistry.getCustomComponents());
+    setEditComponent(null);
+    window.dispatchEvent(new CustomEvent('custom-component-added'));
   };
 
   const q = search.toLowerCase().trim();
@@ -380,7 +416,105 @@ export function ComponentSidebar() {
             onAdd={handleAdd}
           />
         ))}
+        
+        {customComponents.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="px-3 py-2">
+              <span className="text-xs font-medium text-indigo-500">Custom Components</span>
+            </div>
+            <div className="space-y-0.5">
+              {customComponents.map((comp) => (
+                <div
+                  key={comp.id}
+                  className="group flex items-center gap-2 px-2 py-1.5 text-xs text-foreground rounded hover:bg-accent"
+                >
+                  <div
+                    className="flex items-center justify-center rounded shrink-0"
+                    style={{ width: 20, height: 20, background: `${comp.color}15`, border: `1px solid ${comp.color}30` }}
+                  >
+                    <Server size={10} style={{ color: comp.color }} strokeWidth={1.75} />
+                  </div>
+                  <span className="flex-1 text-left truncate">{comp.label}</span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleEdit({ id: comp.id, label: comp.label, category: comp.category, description: comp.description })}
+                      className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                      title="Edit"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(comp.id)}
+                      className="p-1 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
+                      title="Delete"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+      <div className="p-2 border-t border-border">
+        <button
+          onClick={() => { setEditComponent(null); setShowCreateModal(true); }}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-muted-foreground border border-dashed border-border rounded-lg hover:border-primary hover:text-primary transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          New component
+        </button>
+      </div>
+
+      <CreateComponentModal
+        isOpen={showCreateModal}
+        onClose={() => { setShowCreateModal(false); setEditComponent(null); }}
+        onCreate={(data: CreateComponentData) => {
+          const typeInfo = COMPONENT_TYPES.find(t => t.id === data.type);
+          const id = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+          componentRegistry.addCustomComponent({
+            id,
+            label: data.name,
+            category: typeInfo?.label || 'Other',
+            color: typeInfo?.color || '#6366f1',
+            description: data.description,
+            technology: 'custom',
+          });
+          setShowCreateModal(false);
+          setCustomComponents(componentRegistry.getCustomComponents());
+          setSearch(data.name);
+          window.dispatchEvent(new CustomEvent('custom-component-added'));
+        }}
+        onUpdate={handleUpdate}
+        existingNames={existingNames}
+        editComponent={editComponent}
+      />
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl p-5 w-64 shadow-2xl border border-zinc-200 dark:border-zinc-800">
+            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Delete component?</p>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mb-4">
+              This will permanently delete the custom component.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 py-2 text-xs font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="flex-1 py-2 text-xs font-medium rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

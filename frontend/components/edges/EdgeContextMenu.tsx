@@ -1,17 +1,25 @@
 import React, { useEffect, useRef } from 'react';
-import { EDGE_TYPE_CONFIGS, EdgeType } from '@/data/edgeTypes';
 import { useDiagramStore } from '@/store/diagramStore';
+import { Trash2, GitBranch, Spline, ChevronRight } from 'lucide-react';
+import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
 
 interface Props {
   edgeId: string;
-  currentType: EdgeType;
   position: { x: number; y: number };
   onClose: () => void;
+  currentEdgeType?: EdgeType;
+  currentPathType?: PathType;
 }
 
-export function EdgeContextMenu({ edgeId, currentType, position, onClose }: Props) {
-  const updateEdgeType = useDiagramStore((s) => s.updateEdgeType);
+const EDGE_TYPES: EdgeType[] = ['sync', 'async', 'stream', 'event', 'dep'];
+const PATH_TYPES: PathType[] = ['smooth', 'bezier', 'step', 'straight'];
+
+export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, currentPathType }: Props) {
+  const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
+  const deleteEdge = useDiagramStore((s) => s.deleteEdge);
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  const [showSubmenu, setShowSubmenu] = React.useState<'type' | 'path' | null>(null);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -26,15 +34,28 @@ export function EdgeContextMenu({ edgeId, currentType, position, onClose }: Prop
     };
   }, [onClose]);
 
-  const MENU_W = 240;
-  const MENU_H = 300;
+  const MENU_W = 160;
+  const MENU_H = 180;
   const left = Math.min(position.x, window.innerWidth - MENU_W - 8);
   const top  = Math.min(position.y, window.innerHeight - MENU_H - 8);
 
-  const handleSelect = (type: EdgeType) => {
-    updateEdgeType(edgeId, type);
+  const handleDelete = () => {
+    deleteEdge(edgeId);
     onClose();
   };
+
+  const handleEdgeTypeChange = (type: EdgeType) => {
+    updateEdgeData(edgeId, { edgeType: type });
+    onClose();
+  };
+
+  const handlePathTypeChange = (type: PathType) => {
+    updateEdgeData(edgeId, { pathType: type });
+    onClose();
+  };
+
+  const activeConfig = EDGE_TYPE_CONFIGS[currentEdgeType || 'sync'];
+  const activePathType = currentPathType || activeConfig.pathType;
 
   return (
     <div
@@ -53,57 +74,192 @@ export function EdgeContextMenu({ edgeId, currentType, position, onClose }: Prop
         fontFamily: 'system-ui, sans-serif',
       }}
     >
-      <div style={{ padding: '4px 10px 8px', fontSize: 10, color: '#6b7280', letterSpacing: '0.06em', fontWeight: 600, textTransform: 'uppercase' }}>
-        Connection type
-      </div>
-      {(Object.values(EDGE_TYPE_CONFIGS)).map((cfg) => {
-        const isActive = cfg.id === currentType;
-        return (
-          <button
-            key={cfg.id}
-            onClick={() => handleSelect(cfg.id)}
+      {/* Change Type Submenu */}
+      <div style={{ position: 'relative' }}>
+        <button
+          onMouseEnter={() => setShowSubmenu('type')}
+          onClick={() => setShowSubmenu(showSubmenu === 'type' ? null : 'type')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            padding: '8px 12px',
+            background: showSubmenu === 'type' ? '#1f2937' : 'transparent',
+            border: 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: '#e5e7eb',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <GitBranch size={14} style={{ color: activeConfig.color }} />
+            <span style={{ fontSize: 12, fontWeight: 500 }}>Edge Type</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 10, color: activeConfig.color, fontWeight: 600 }}>{activeConfig.label}</span>
+            <ChevronRight size={12} style={{ color: '#6b7280' }} />
+          </div>
+        </button>
+        
+        {showSubmenu === 'type' && (
+          <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              width: '100%',
-              padding: '8px 10px',
-              background: isActive ? '#1a1d2e' : 'transparent',
-              border: 'none',
-              borderRadius: 7,
-              cursor: 'pointer',
-              textAlign: 'left',
+              position: 'absolute',
+              left: '100%',
+              top: 0,
+              marginLeft: 4,
+              background: '#111827',
+              border: '1px solid #1f2937',
+              borderRadius: 8,
+              padding: 4,
+              minWidth: 120,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
             }}
           >
-            {/* Color swatch + mini edge preview */}
-            <svg width="36" height="14" viewBox="0 0 36 14" style={{ flexShrink: 0 }}>
-              <defs>
-                <marker id={`cm-${cfg.id}`} markerWidth="6" markerHeight="6" refX="5" refY="2" orient="auto">
-                  <path d="M0,0 L0,4 L5,2 z" fill={cfg.color} />
-                </marker>
-              </defs>
-              <line
-                x1="2" y1="7" x2="30" y2="7"
-                stroke={cfg.color}
-                strokeWidth={cfg.strokeWidth > 2 ? 2 : cfg.strokeWidth}
-                strokeDasharray={cfg.strokeDasharray || undefined}
-                markerEnd={`url(#cm-${cfg.id})`}
-              />
-            </svg>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#e5e7eb', lineHeight: 1.3 }}>
-                {cfg.label}
-                {isActive && (
-                  <span style={{ marginLeft: 6, fontSize: 10, color: cfg.color }}>✓</span>
-                )}
-              </div>
-              <div style={{ fontSize: 10, color: '#6b7280', marginTop: 1, lineHeight: 1.4 }}>
-                {cfg.description}
-              </div>
-            </div>
-          </button>
-        );
-      })}
+            {EDGE_TYPES.map((type) => {
+              const cfg = EDGE_TYPE_CONFIGS[type];
+              const isActive = type === currentEdgeType;
+              return (
+                <button
+                  key={type}
+                  onClick={() => handleEdgeTypeChange(type)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '8px 10px',
+                    background: isActive ? `${cfg.color}20` : 'transparent',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    color: isActive ? cfg.color : '#9ca3af',
+                  }}
+                >
+                  <span style={{
+                    width: 24,
+                    height: 3,
+                    background: cfg.color,
+                    borderRadius: 2,
+                    opacity: cfg.animated ? 0.7 : 1,
+                  }} />
+                  {cfg.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Change Path Submenu */}
+      <div style={{ position: 'relative' }}>
+        <button
+          onMouseEnter={() => setShowSubmenu('path')}
+          onClick={() => setShowSubmenu(showSubmenu === 'path' ? null : 'path')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            padding: '8px 12px',
+            background: showSubmenu === 'path' ? '#1f2937' : 'transparent',
+            border: 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: '#e5e7eb',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Spline size={14} style={{ color: '#6b7280' }} />
+            <span style={{ fontSize: 12, fontWeight: 500 }}>Path Shape</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 500, textTransform: 'capitalize' }}>{activePathType}</span>
+            <ChevronRight size={12} style={{ color: '#6b7280' }} />
+          </div>
+        </button>
+        
+        {showSubmenu === 'path' && (
+          <div
+            style={{
+              position: 'absolute',
+              left: '100%',
+              top: 40,
+              marginLeft: 4,
+              background: '#111827',
+              border: '1px solid #1f2937',
+              borderRadius: 8,
+              padding: 4,
+              minWidth: 100,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            }}
+          >
+            {PATH_TYPES.map((type) => {
+              const isActive = type === activePathType;
+              return (
+                <button
+                  key={type}
+                  onClick={() => handlePathTypeChange(type)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '8px 10px',
+                    background: isActive ? '#374151' : 'transparent',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    color: isActive ? '#e5e7eb' : '#9ca3af',
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  <svg width="24" height="16" viewBox="0 0 24 16">
+                    {type === 'smooth' && (
+                      <path d="M 2 14 Q 6 2, 12 8 Q 18 14, 22 2" stroke="#6366f1" strokeWidth="2" fill="none" />
+                    )}
+                    {type === 'bezier' && (
+                      <path d="M 2 14 C 8 14, 6 2, 12 8 C 18 14, 16 2, 22 2" stroke="#6366f1" strokeWidth="2" fill="none" />
+                    )}
+                    {type === 'step' && (
+                      <path d="M 2 14 L 12 14 L 12 2 L 22 2" stroke="#6366f1" strokeWidth="2" fill="none" />
+                    )}
+                    {type === 'straight' && (
+                      <path d="M 2 14 L 22 2" stroke="#6366f1" strokeWidth="2" fill="none" />
+                    )}
+                  </svg>
+                  {type}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div style={{ height: 1, background: '#1f2937', margin: '6px 0' }} />
+
+      <button
+        onClick={handleDelete}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          width: '100%',
+          padding: '8px 12px',
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 6,
+          cursor: 'pointer',
+          textAlign: 'left',
+          color: '#ef4444',
+        }}
+      >
+        <Trash2 size={14} />
+        <span style={{ fontSize: 12, fontWeight: 500 }}>Delete Edge</span>
+      </button>
     </div>
   );
 }

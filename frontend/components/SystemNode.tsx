@@ -26,14 +26,14 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
       ? 'linear-gradient(145deg, #1e2138 0%, #161928 100%)'
       : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
     border: selected
-      ? '1px solid #6366f1'
+      ? `1px solid ${resolvedAccent}`
       : hasError
         ? '1px solid rgba(239,68,68,0.4)'
         : isDark
-          ? '1px solid rgba(99,102,241,0.2)'
-          : '1px solid rgba(99,102,241,0.15)',
+          ? `1px solid ${resolvedAccent}30`
+          : `1px solid ${resolvedAccent}25`,
     boxShadow: selected
-      ? '0 0 0 2px #6366f1, 0 4px 20px rgba(99,102,241,0.3)'
+      ? `0 0 0 2px ${resolvedAccent}, 0 4px 20px ${resolvedAccent}50`
       : hasError
         ? '0 0 0 1px rgba(239,68,68,0.3), 0 2px 8px rgba(0,0,0,0.3)'
         : isDark
@@ -52,8 +52,8 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     width: 40,
     height: 40,
     borderRadius: 10,
-    background: isDark ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.08)',
-    border: isDark ? '1px solid rgba(99,102,241,0.2)' : '1px solid rgba(99,102,241,0.15)',
+    background: isDark ? `${resolvedAccent}15` : `${resolvedAccent}10`,
+    border: isDark ? `1px solid ${resolvedAccent}30` : `1px solid ${resolvedAccent}20`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -76,16 +76,16 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
       onClick={() => setSelectedNodeId(id)}
       onMouseEnter={(e) => {
         if (!selected) {
-          e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)';
+          e.currentTarget.style.borderColor = `${resolvedAccent}80`;
           e.currentTarget.style.transform = 'translateY(-1px)';
           e.currentTarget.style.boxShadow = isDark
-            ? '0 4px 16px rgba(99,102,241,0.2)'
-            : '0 4px 16px rgba(99,102,241,0.15)';
+            ? `0 4px 16px ${resolvedAccent}30`
+            : `0 4px 16px ${resolvedAccent}25`;
         }
       }}
       onMouseLeave={(e) => {
         if (!selected) {
-          e.currentTarget.style.borderColor = isDark ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.15)';
+          e.currentTarget.style.borderColor = isDark ? `${resolvedAccent}30` : `${resolvedAccent}25`;
           e.currentTarget.style.transform = 'translateY(0)';
           e.currentTarget.style.boxShadow = isDark
             ? '0 2px 8px rgba(0,0,0,0.3)'

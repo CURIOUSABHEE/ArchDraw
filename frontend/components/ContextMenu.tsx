@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useReactFlow } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
+import { 
+  Copy, Clipboard, Scissors, Trash2, Group, Type, 
+  MessageSquare, CheckSquare, Layers, ZoomIn, ZoomOut,
+  Maximize2
+} from 'lucide-react';
 
 export interface ContextMenuState {
   x: number;
@@ -19,14 +24,13 @@ interface Props {
 
 export function ContextMenu({ menu, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
   const {
-    nodes, removeNode, selectedNodeId, setSelectedNodeId,
+    nodes, removeNode, setSelectedNodeId,
     selectedNodeIds, createGroup,
-    pushHistory,
+    pushHistory, fitView: storeFitView,
   } = useDiagramStore();
 
-  // Close on outside click or Escape
   useEffect(() => {
     const handler = (e: MouseEvent | KeyboardEvent) => {
       if (e instanceof KeyboardEvent && e.key === 'Escape') { onClose(); return; }
@@ -85,6 +89,41 @@ export function ContextMenu({ menu, onClose }: Props) {
     onClose();
   }, [nodes, onClose]);
 
+  const resetZoom = useCallback(() => {
+    fitView({ padding: 0.1, duration: 300 });
+    onClose();
+  }, [fitView, onClose]);
+
+  const zoomIn = useCallback(() => {
+    const viewport = document.querySelector('.react-flow__viewport') as HTMLElement | null;
+    if (viewport) {
+      const transform = viewport.style.transform;
+      const match = transform.match(/scale\(([^)]+)\)/);
+      const currentZoom = match ? parseFloat(match[1]) : 1;
+      const newZoom = Math.min(currentZoom * 1.2, 2);
+      viewport.style.transform = viewport.style.transform.replace(
+        /scale\([^)]+\)/,
+        `scale(${newZoom})`
+      );
+    }
+    onClose();
+  }, [onClose]);
+
+  const zoomOut = useCallback(() => {
+    const viewport = document.querySelector('.react-flow__viewport') as HTMLElement | null;
+    if (viewport) {
+      const transform = viewport.style.transform;
+      const match = transform.match(/scale\(([^)]+)\)/);
+      const currentZoom = match ? parseFloat(match[1]) : 1;
+      const newZoom = Math.max(currentZoom / 1.2, 0.1);
+      viewport.style.transform = viewport.style.transform.replace(
+        /scale\([^)]+\)/,
+        `scale(${newZoom})`
+      );
+    }
+    onClose();
+  }, [onClose]);
+
   const isNodeMenu = !!menu.nodeId;
 
   return (
@@ -95,43 +134,93 @@ export function ContextMenu({ menu, onClose }: Props) {
         top: menu.y,
         left: menu.x,
         zIndex: 1000,
-        minWidth: 180,
+        minWidth: 200,
       }}
-      className="bg-card border border-border rounded-lg shadow-lg overflow-hidden py-1"
+      className="bg-card border border-border rounded-lg shadow-xl overflow-hidden py-1 animate-in fade-in-0 zoom-in-95 duration-100"
     >
       {isNodeMenu ? (
         <>
-          <MenuItem onClick={duplicateNode}>Duplicate</MenuItem>
-          <MenuItem onClick={deleteNode} danger>Delete</MenuItem>
+          <MenuItem icon={<Copy size={14} />} onClick={duplicateNode}>
+            Duplicate
+            <Shortcut>kbd ⌘D</Shortcut>
+          </MenuItem>
+          <MenuItem icon={<Scissors size={14} />} onClick={deleteNode} danger>
+            Delete
+            <Shortcut>kbd Del</Shortcut>
+          </MenuItem>
           <Separator />
-          <MenuItem onClick={addToGroup}>Add to Group</MenuItem>
+          <MenuItem icon={<Group size={14} />} onClick={addToGroup}>
+            Add to Group
+          </MenuItem>
+          <Separator />
+          <MenuItem icon={<Type size={14} />} onClick={() => addAtPosition('textLabelNode', { text: 'Label', fontSize: 'medium' })}>
+            Add Text Label
+          </MenuItem>
+          <MenuItem icon={<MessageSquare size={14} />} onClick={() => addAtPosition('annotationNode', { title: 'Note', body: '' })}>
+            Add Note
+          </MenuItem>
         </>
       ) : (
         <>
-          <MenuItem onClick={() => addAtPosition('textLabelNode', { text: 'Label', fontSize: 'medium' })}>
+          <MenuItem icon={<Type size={14} />} onClick={() => addAtPosition('textLabelNode', { text: 'Label', fontSize: 'medium' })}>
             Add Text Label
           </MenuItem>
-          <MenuItem onClick={() => addAtPosition('annotationNode', { title: 'Note', body: '' })}>
+          <MenuItem icon={<MessageSquare size={14} />} onClick={() => addAtPosition('annotationNode', { title: 'Note', body: '' })}>
             Add Note
           </MenuItem>
           <Separator />
-          <MenuItem onClick={selectAll}>Select All</MenuItem>
+          <MenuItem icon={<ZoomIn size={14} />} onClick={zoomIn}>
+            Zoom In
+            <Shortcut>kbd ⌘+</Shortcut>
+          </MenuItem>
+          <MenuItem icon={<ZoomOut size={14} />} onClick={zoomOut}>
+            Zoom Out
+            <Shortcut>kbd ⌘-</Shortcut>
+          </MenuItem>
+          <MenuItem icon={<Maximize2 size={14} />} onClick={resetZoom}>
+            Fit to Screen
+            <Shortcut>kbd ⌘0</Shortcut>
+          </MenuItem>
+          <Separator />
+          <MenuItem icon={<CheckSquare size={14} />} onClick={selectAll}>
+            Select All
+            <Shortcut>kbd ⌘A</Shortcut>
+          </MenuItem>
         </>
       )}
     </div>
   );
 }
 
-function MenuItem({ children, onClick, danger }: { children: React.ReactNode; onClick: () => void; danger?: boolean }) {
+function MenuItem({ 
+  children, 
+  onClick, 
+  danger,
+  icon 
+}: { 
+  children: React.ReactNode; 
+  onClick: () => void; 
+  danger?: boolean;
+  icon?: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors hover:bg-muted ${
+      className={`w-full flex items-center gap-3 px-3 py-2 text-xs transition-colors hover:bg-muted group ${
         danger ? 'text-destructive hover:bg-destructive/10' : 'text-foreground'
       }`}
     >
-      {children}
+      {icon && <span className="w-4 h-4 opacity-60 group-hover:opacity-100">{icon}</span>}
+      <span className="flex-1 text-left">{children}</span>
     </button>
+  );
+}
+
+function Shortcut({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[10px] text-muted-foreground/60 font-mono ml-2">
+      {children}
+    </span>
   );
 }
 

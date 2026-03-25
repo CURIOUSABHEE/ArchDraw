@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search } from 'lucide-react';
-import componentsData from '@/data/components.json';
 import { useDiagramStore } from '@/store/diagramStore';
+import { componentRegistry, type ComponentDefinition } from '@/lib/componentRegistry';
 
 function getViewportCenter(): { x: number; y: number } {
   const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
@@ -19,6 +19,23 @@ function getViewportCenter(): { x: number; y: number } {
   };
 }
 
+let globalSearchVersion = 0;
+
+function useCustomComponentListener() {
+  const [version, setVersion] = useState(0);
+  
+  useEffect(() => {
+    const handler = () => {
+      globalSearchVersion++;
+      setVersion(v => v + 1);
+    };
+    window.addEventListener('custom-component-added', handler);
+    return () => window.removeEventListener('custom-component-added', handler);
+  }, []);
+  
+  return version;
+}
+
 /** Command palette triggered by ⌘K — searches components and adds to canvas on click */
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -26,11 +43,11 @@ export function CommandPalette() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const addNode = useDiagramStore((s) => s.addNode);
+  
+  const registryVersion = useCustomComponentListener();
+  const version = registryVersion + globalSearchVersion;
 
-  const filtered = componentsData.filter((c) =>
-    c.label.toLowerCase().includes(search.toLowerCase()) ||
-    c.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = componentRegistry.search(search);
 
   // Listen for ⌘K / Ctrl+K
   useEffect(() => {
@@ -58,7 +75,7 @@ export function CommandPalette() {
     setSelectedIndex(0);
   }, [search]);
 
-  const handleSelect = useCallback((comp: typeof componentsData[0]) => {
+  const handleSelect = useCallback((comp: ComponentDefinition) => {
     addNode(comp.id, comp.label, comp.category, undefined, undefined, undefined, getViewportCenter());
     setOpen(false);
     setSearch('');
@@ -85,7 +102,8 @@ export function CommandPalette() {
       <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setOpen(false)} />
 
       {/* Palette */}
-      <div className="relative w-full max-w-lg mx-4 bg-card rounded-xl border border-border overflow-hidden"
+      <div 
+        className="relative w-full max-w-lg mx-4 bg-card rounded-xl border border-border overflow-hidden"
         style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.08), 0 16px 48px -8px rgba(0,0,0,0.2)' }}
       >
         {/* Search input */}
@@ -122,7 +140,10 @@ export function CommandPalette() {
             >
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: comp.color }} />
               <span className="flex-1 text-left font-medium">{comp.label}</span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{comp.category}</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                {comp.category}
+                {comp.isCustom && <span className="ml-1 text-indigo-500">(custom)</span>}
+              </span>
             </button>
           ))}
         </div>

@@ -1,25 +1,32 @@
 import { useState, useRef, useEffect } from 'react';
 import { EdgeLabelRenderer } from 'reactflow';
-import { EDGE_TYPE_CONFIGS, EdgeType } from '@/data/edgeTypes';
 import { useDiagramStore } from '@/store/diagramStore';
-import { Trash2, Edit3, Check, X } from 'lucide-react';
+import { Trash2, Edit3, Check, X, ChevronDown, GitBranch, Spline } from 'lucide-react';
+import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
 
 interface Props {
   edgeId: string;
-  currentType: EdgeType;
   currentLabel?: string;
+  currentEdgeType?: EdgeType;
+  currentPathType?: PathType;
   labelX: number;
   labelY: number;
 }
 
-export function EdgeToolbar({ edgeId, currentType, currentLabel, labelX, labelY }: Props) {
-  const updateEdgeType = useDiagramStore((s) => s.updateEdgeType);
+const EDGE_TYPES: EdgeType[] = ['sync', 'async', 'stream', 'event', 'dep'];
+const PATH_TYPES: PathType[] = ['smooth', 'bezier', 'step', 'straight'];
+
+export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPathType, labelX, labelY }: Props) {
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
   const deleteEdge = useDiagramStore((s) => s.deleteEdge);
   
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(currentLabel || '');
+  const [showTypeMenu, setShowTypeMenu] = useState(false);
+  const [showPathMenu, setShowPathMenu] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const typeMenuRef = useRef<HTMLDivElement>(null);
+  const pathMenuRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -32,6 +39,19 @@ export function EdgeToolbar({ edgeId, currentType, currentLabel, labelX, labelY 
     setEditValue(currentLabel || '');
   }, [currentLabel]);
 
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (typeMenuRef.current && !typeMenuRef.current.contains(e.target as Node)) {
+        setShowTypeMenu(false);
+      }
+      if (pathMenuRef.current && !pathMenuRef.current.contains(e.target as Node)) {
+        setShowPathMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+  
   const handleSaveLabel = () => {
     updateEdgeData(edgeId, { label: editValue });
     setIsEditing(false);
@@ -46,6 +66,19 @@ export function EdgeToolbar({ edgeId, currentType, currentLabel, labelX, labelY 
     deleteEdge(edgeId);
   };
 
+  const handleEdgeTypeChange = (type: EdgeType) => {
+    updateEdgeData(edgeId, { edgeType: type });
+    setShowTypeMenu(false);
+  };
+
+  const handlePathTypeChange = (type: PathType) => {
+    updateEdgeData(edgeId, { pathType: type });
+    setShowPathMenu(false);
+  };
+
+  const activeConfig = EDGE_TYPE_CONFIGS[currentEdgeType || 'sync'];
+  const activePathType = currentPathType || activeConfig.pathType;
+
   return (
     <EdgeLabelRenderer>
       <div
@@ -56,48 +89,163 @@ export function EdgeToolbar({ edgeId, currentType, currentLabel, labelX, labelY 
           zIndex: 20,
           display: 'flex',
           alignItems: 'center',
-          gap: 2,
+          gap: 4,
           background: '#111827',
           border: '1px solid #1f2937',
           borderRadius: 999,
-          padding: '4px 6px',
+          padding: '4px 8px',
           boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
         }}
       >
-        {Object.values(EDGE_TYPE_CONFIGS).map((cfg) => {
-          const isActive = cfg.id === currentType;
-          return (
-            <button
-              key={cfg.id}
-              title={cfg.label}
-              onClick={() => updateEdgeType(edgeId, cfg.id)}
+        {/* Edge Type Selector */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => { setShowTypeMenu(!showTypeMenu); setShowPathMenu(false); }}
+            title="Change edge type"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 6px',
+              borderRadius: 4,
+              background: `${activeConfig.color}20`,
+              border: `1px solid ${activeConfig.color}50`,
+              cursor: 'pointer',
+              fontSize: 9,
+              fontWeight: 600,
+              color: activeConfig.color,
+              textTransform: 'uppercase',
+            }}
+          >
+            {activeConfig.label}
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          
+          {showTypeMenu && (
+            <div
+              ref={typeMenuRef}
               style={{
-                width: 20,
-                height: 20,
-                borderRadius: '50%',
-                background: isActive ? cfg.color + '33' : 'transparent',
-                border: isActive ? `2px solid ${cfg.color}` : '2px solid transparent',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.15s',
-                padding: 0,
+                position: 'absolute',
+                bottom: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginBottom: 6,
+                background: '#111827',
+                border: '1px solid #1f2937',
+                borderRadius: 8,
+                padding: 4,
+                minWidth: 100,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
               }}
             >
-              <div style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: cfg.color,
-                opacity: isActive ? 1 : 0.5,
-              }} />
-            </button>
-          );
-        })}
-        
-        <div style={{ width: 1, height: 14, background: '#1f2937', margin: '0 2px' }} />
-        
+              {EDGE_TYPES.map((type) => {
+                const cfg = EDGE_TYPE_CONFIGS[type];
+                const isActive = type === currentEdgeType;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => handleEdgeTypeChange(type)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      width: '100%',
+                      padding: '6px 8px',
+                      background: isActive ? `${cfg.color}20` : 'transparent',
+                      border: 'none',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      color: isActive ? cfg.color : '#9ca3af',
+                    }}
+                  >
+                    <span style={{
+                      width: 16,
+                      height: 2,
+                      background: cfg.color,
+                      borderRadius: 1,
+                      opacity: cfg.animated ? 0.6 : 1,
+                    }} />
+                    {cfg.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Path Type Selector */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => { setShowPathMenu(!showPathMenu); setShowTypeMenu(false); }}
+            title="Change path type"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              padding: '2px 6px',
+              borderRadius: 4,
+              background: '#1f2937',
+              border: '1px solid #374151',
+              cursor: 'pointer',
+              fontSize: 9,
+              fontWeight: 500,
+              color: '#9ca3af',
+              textTransform: 'capitalize',
+            }}
+          >
+            <Spline className="w-3 h-3" />
+            {activePathType}
+          </button>
+          
+          {showPathMenu && (
+            <div
+              ref={pathMenuRef}
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginBottom: 6,
+                background: '#111827',
+                border: '1px solid #1f2937',
+                borderRadius: 8,
+                padding: 4,
+                minWidth: 90,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              }}
+            >
+              {PATH_TYPES.map((type) => {
+                const isActive = type === activePathType;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => handlePathTypeChange(type)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      width: '100%',
+                      padding: '6px 8px',
+                      background: isActive ? '#374151' : 'transparent',
+                      border: 'none',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      color: isActive ? '#e5e7eb' : '#9ca3af',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {type}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div style={{ width: 1, height: 16, background: '#374151', margin: '0 4px' }} />
+
         {isEditing ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <input
@@ -109,7 +257,7 @@ export function EdgeToolbar({ edgeId, currentType, currentLabel, labelX, labelY 
                 if (e.key === 'Escape') handleCancelEdit();
               }}
               style={{
-                width: 80,
+                width: 60,
                 padding: '2px 6px',
                 fontSize: 10,
                 borderRadius: 4,
@@ -120,85 +268,37 @@ export function EdgeToolbar({ edgeId, currentType, currentLabel, labelX, labelY 
               }}
               placeholder="Label..."
             />
-            <button
-              onClick={handleSaveLabel}
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: 4,
-                background: '#3b82f6',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-              }}
-            >
+            <button onClick={handleSaveLabel} style={iconBtnStyle('#3b82f6')}>
               <Check className="w-3 h-3" style={{ color: 'white' }} />
             </button>
-            <button
-              onClick={handleCancelEdit}
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: 4,
-                background: '#374151',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-              }}
-            >
+            <button onClick={handleCancelEdit} style={iconBtnStyle('#374151')}>
               <X className="w-3 h-3" style={{ color: '#9ca3af' }} />
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            title="Edit label"
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: 4,
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-            }}
-          >
-            <Edit3 className="w-3 h-3" style={{ color: '#6b7280' }} />
-          </button>
+          <>
+            <button onClick={() => setIsEditing(true)} title="Edit label" style={iconBtnStyle('transparent')}>
+              <Edit3 className="w-3.5 h-3.5" style={{ color: '#6b7280' }} />
+            </button>
+            <button onClick={handleDelete} title="Delete edge" style={iconBtnStyle('transparent')}>
+              <Trash2 className="w-3.5 h-3.5" style={{ color: '#ef4444' }} />
+            </button>
+          </>
         )}
-        
-        <button
-          onClick={handleDelete}
-          title="Delete edge"
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: 4,
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0,
-          }}
-        >
-          <Trash2 className="w-3 h-3" style={{ color: '#ef4444' }} />
-        </button>
-        
-        <span style={{ fontSize: 10, color: '#9ca3af', paddingRight: 2, whiteSpace: 'nowrap' }}>
-          {EDGE_TYPE_CONFIGS[currentType].label}
-        </span>
       </div>
     </EdgeLabelRenderer>
   );
 }
+
+const iconBtnStyle = (bg: string) => ({
+  width: 24,
+  height: 24,
+  borderRadius: 4,
+  background: bg,
+  border: 'none',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 0,
+});

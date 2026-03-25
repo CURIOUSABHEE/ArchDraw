@@ -31,17 +31,20 @@ export const HeroNode = memo(function HeroNode({ data }: NodeProps<HeroNodeData>
 
       <div style={{
         position: 'relative',
-        width: 110,
+        width: 100,
         background: 'linear-gradient(145deg, #1a2235 0%, #0f172a 100%)',
         border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 14,
-        padding: '14px 10px',
+        borderRadius: 12,
+        padding: '10px 8px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 7,
+        gap: 5,
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
-      }}>
+        cursor: 'grab',
+      }}
+      className="hero-node-card"
+      >
         {/* Shine overlay */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: 'inherit',
@@ -51,26 +54,26 @@ export const HeroNode = memo(function HeroNode({ data }: NodeProps<HeroNodeData>
 
         {/* Icon */}
         <div style={{
-          width: 40, height: 40, borderRadius: 10,
+          width: 32, height: 32, borderRadius: 8,
           background: data.color + '15',
           border: `1px solid ${data.color}25`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative',
         }}>
-          <Icon style={{ width: 18, height: 18, color: data.color }} />
+          <Icon style={{ width: 14, height: 14, color: data.color }} />
         </div>
 
         {/* Label */}
         <span style={{
-          fontSize: 11, fontWeight: 600, color: '#f1f5f9',
-          textAlign: 'center', lineHeight: 1.3, position: 'relative',
+          fontSize: 10, fontWeight: 600, color: '#f1f5f9',
+          textAlign: 'center', lineHeight: 1.2, position: 'relative',
         }}>
           {data.label}
         </span>
 
         {/* Category */}
         <span style={{
-          fontSize: 9, color: '#475569', position: 'relative',
+          fontSize: 8, color: '#475569', position: 'relative',
           textTransform: 'uppercase', letterSpacing: '0.05em',
         }}>
           {data.category}

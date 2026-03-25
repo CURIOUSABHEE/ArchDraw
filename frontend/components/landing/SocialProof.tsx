@@ -4,9 +4,9 @@ const techs = ['Next.js', 'Supabase', 'AWS', 'Vercel', 'Docker', 'Kubernetes', '
 
 export function SocialProof() {
   return (
-    <section className="py-16 overflow-hidden" style={{ backgroundColor: '#0d1117', borderTop: '1px solid rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)', opacity: 1 }}>
+    <section style={{ backgroundColor: '#0d1117', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 8, paddingBottom: 48 }}>
       <div className="max-w-7xl mx-auto px-4">
-        <p className="mb-10 text-center text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: '#334155' }}>
+        <p className="mb-6 text-center text-xs font-medium" style={{ color: '#475569', letterSpacing: '0.02em' }}>
           Built for engineers who think in systems
         </p>
 

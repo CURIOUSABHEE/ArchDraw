@@ -208,3 +208,147 @@ body {
   .reveal-delay-4 { transition-delay: 0.4s; }
   .reveal-delay-5 { transition-delay: 0.5s; }
 }
+
+/* ── Canvas interaction styles ── */
+
+/* Selection box styling */
+.react-flow__selection {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border: 1.5px solid rgba(99, 102, 241, 0.4) !important;
+  border-radius: 6px !important;
+}
+
+/* Panning cursor */
+.pan-active {
+  cursor: grab !important;
+}
+
+.pan-active:active {
+  cursor: grabbing !important;
+}
+
+/* Connection line styling */
+.react-flow__connection-line {
+  stroke: hsl(var(--ring)) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 5 5 !important;
+  animation: connectionDash 0.5s linear infinite;
+}
+
+@keyframes connectionDash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* Handle styling */
+.react-flow__handle {
+  width: 10px !important;
+  height: 10px !important;
+  background: hsl(var(--card)) !important;
+  border: 2px solid hsl(var(--ring)) !important;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle {
+  opacity: 1;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.3);
+  background: hsl(var(--ring)) !important;
+}
+
+/* Edge selection */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: hsl(var(--ring)) !important;
+  stroke-width: 2.5px !important;
+}
+
+/* Smooth zoom transition */
+.react-flow__viewport {
+  transition: transform 0.1s ease-out;
+}
+
+/* Mini map styling */
+.react-flow__minimap {
+  background: hsl(var(--card)) !important;
+  border-radius: 8px;
+}
+
+/* Controls styling */
+.react-flow__controls {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Prevent text selection during drag */
+.dragging {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Loading state */
+.react-flow__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* Flowing edge animations */
+@keyframes flowSync {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -28; }
+}
+
+@keyframes flowAsync {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -20; }
+}
+
+@keyframes flowStream {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -32; }
+}
+
+@keyframes flowEvent {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -16; }
+}
+
+@keyframes flowDep {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -24; }
+}
+
+.flow-sync {
+  animation: flowSync 1.2s linear infinite;
+}
+
+.flow-async {
+  animation: flowAsync 0.8s linear infinite;
+}
+
+.flow-stream {
+  animation: flowStream 1s linear infinite;
+}
+
+.flow-event {
+  animation: flowEvent 0.6s linear infinite;
+}
+
+.flow-dep {
+  animation: flowDep 0.9s linear infinite;
+}
+
+.flow-sync:hover,
+.flow-async:hover,
+.flow-stream:hover,
+.flow-event:hover,
+.flow-dep:hover {
+  opacity: 1;
+  filter: brightness(1.1);
+}

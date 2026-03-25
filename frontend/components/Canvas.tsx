@@ -4,7 +4,7 @@ import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap,
   useReactFlow, ReactFlowProvider,
   NodeMouseHandler, EdgeMouseHandler, NodeDragHandler,
-  SelectionMode, ConnectionLineType, MarkerType,
+  SelectionMode, ConnectionLineType,
   type OnSelectionChangeParams,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -17,13 +17,12 @@ import { AnnotationNode } from '@/components/AnnotationNode';
 import { GuideLines } from '@/components/GuideLines';
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu';
 import { useSnapping } from '@/hooks/useSnapping';
+import { useMiddleMousePan } from '@/hooks/useCanvasInteractions';
 import { useCallback, useEffect, useRef, DragEvent, useState, Fragment } from 'react';
 import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
 import { LayoutGrid, Sparkles, LayoutTemplate, MousePointer2 } from 'lucide-react';
 import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { FlowEdge } from '@/components/edges/FlowEdge';
-import { EdgeLegend } from '@/components/edges/EdgeLegend';
-import { EDGE_TYPE_CONFIGS, EdgeType } from '@/data/edgeTypes';
 import { useTheme } from 'next-themes';
 import { TemplateModal } from '@/components/TemplateModal';
 
@@ -45,6 +44,7 @@ const EDGE_TYPES = {
 function CanvasInner() {
   const {
     nodes, edges, onNodesChange, onEdgesChange, onConnect,
+    selectedNodeIds, selectedEdgeId,
     setSelectedNodeId, setSelectedNodeIds, setSelectedEdgeId,
     showGrid,
     pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData,
@@ -54,6 +54,7 @@ function CanvasInner() {
 
   const reactFlowInstance = useReactFlow();
   const { onNodeDrag, onNodeDragStop: onNodeDragStopSnap } = useSnapping();
+  const isMiddlePan = useMiddleMousePan();
   const [labelDraft, setLabelDraft] = useState('');
   const labelInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -194,7 +195,7 @@ function CanvasInner() {
   }, []);
 
   return (
-    <div className="flex-1 relative overflow-hidden">
+    <div className="flex-1 relative overflow-hidden bg-background">
       {/* Canvas background with radial gradient */}
       <div 
         className="absolute inset-0 pointer-events-none"
@@ -213,7 +214,7 @@ function CanvasInner() {
             : 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.02) 100%)',
         }}
       />
-      <div className="absolute inset-0 bg-background">
+      <div className="absolute inset-0">
         <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -234,44 +235,31 @@ function CanvasInner() {
         onNodeContextMenu={onNodeContextMenu}
         onSelectionChange={onSelectionChange}
         selectionMode={SelectionMode.Partial}
+        multiSelectionKeyCode="Shift"
         snapToGrid
         snapGrid={[20, 20]}
         minZoom={0.1}
         maxZoom={2}
         fitView
+        elevateNodesOnSelect
         elevateEdgesOnSelect={true}
+        selectNodesOnDrag={false}
+        panOnScroll
+        panOnDrag={[1, 2]}
+        zoomOnScroll
+        zoomOnPinch
+        zoomOnDoubleClick={false}
         proOptions={{ hideAttribution: true }}
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
           type: 'smoothstep',
-          animated: true,
-          style: {
-            stroke: '#94a3b8',
-            strokeWidth: 1.5,
-          },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: '#94a3b8',
-          },
         }}
       >
         <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
           <defs>
-            {Object.values(EDGE_TYPE_CONFIGS).map((cfg) => (
-              <Fragment key={cfg.id}>
-                <marker id={`marker-${cfg.id}-end`} markerWidth="5" markerHeight="5" refX="4" refY="2" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,4 L4,2 z" fill={cfg.color} />
-                </marker>
-                {cfg.markerStart && (
-                  <marker id={`marker-${cfg.id}-start`} markerWidth="5" markerHeight="5" refX="0" refY="2" orient="auto-start-reverse" markerUnits="strokeWidth">
-                    <path d="M0,0 L0,4 L4,2 z" fill={cfg.color} />
-                  </marker>
-                )}
-              </Fragment>
-            ))}
-            <style>{`
-              @keyframes edgeDash { to { stroke-dashoffset: -20; } }
-            `}</style>
+            <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#6366f1" />
+            </marker>
           </defs>
         </svg>
         {showGrid && (
@@ -350,25 +338,25 @@ function CanvasInner() {
       </div>
 
       <GuideLines />
-      <EdgeLegend />
 
       {contextMenu && (
         <ContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />
       )}
 
-      {canvasMode === 'empty' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center select-none">
+      {/* Empty State - ONLY when no nodes exist */}
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center select-none pointer-events-auto z-20">
           <div className="text-center mb-8">
             <LayoutGrid className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
             <h2 className="text-lg font-semibold text-foreground/60 mb-2">Start building your architecture</h2>
             <p className="text-xs text-muted-foreground/50">Choose how you want to begin</p>
           </div>
           
-          <div className="flex items-center gap-3 pointer-events-auto">
+          <div className="flex items-center gap-3">
             {/* AI Generate - Primary */}
             <button
               onClick={() => openAIPanel()}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-background"
               style={{
                 background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
                 boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)',
@@ -381,7 +369,7 @@ function CanvasInner() {
             {/* Templates - Secondary */}
             <button
               onClick={() => { setTemplatesOpen(true); setCanvasMode('template'); }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-accent/60 hover:bg-accent text-foreground border border-border/50 transition-all hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-accent/60 hover:bg-accent text-foreground border border-border/50 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
             >
               <LayoutTemplate className="w-4 h-4" />
               Use Template
@@ -390,21 +378,37 @@ function CanvasInner() {
             {/* Start from Scratch - Ghost */}
             <button
               onClick={() => setCanvasMode('editing')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
             >
               <MousePointer2 className="w-4 h-4" />
               Start from Scratch
             </button>
           </div>
           
-          <p className="text-[10px] text-muted-foreground/40 mt-6">Press ? for keyboard shortcuts</p>
+          <div className="flex items-center gap-4 mt-6 text-[10px] text-muted-foreground/40">
+            <span>Press ? for shortcuts</span>
+            <span>•</span>
+            <span>⌘K for components</span>
+          </div>
+        </div>
+      )}
+
+      {/* Status bar with selection info */}
+      {(selectedNodeIds.length > 0 || selectedEdgeId) && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/90 border border-border/60 backdrop-blur-sm shadow-sm">
+          <span className="text-[10px] text-muted-foreground">
+            {selectedNodeIds.length > 0 && `${selectedNodeIds.length} node${selectedNodeIds.length > 1 ? 's' : ''} selected`}
+            {selectedNodeIds.length > 0 && selectedEdgeId && ' • '}
+            {selectedEdgeId && '1 edge selected'}
+          </span>
+          <span className="text-[10px] text-muted-foreground/50">⌘C copy • Del delete</span>
         </div>
       )}
 
       {/* Keyboard shortcuts button */}
       <button
         onClick={() => setShowShortcuts(true)}
-        className="absolute bottom-4 right-4 z-10 w-7 h-7 rounded-full bg-card/80 border border-border/60 text-muted-foreground hover:text-foreground hover:bg-card transition-colors flex items-center justify-center text-xs font-semibold shadow-sm"
+        className="absolute bottom-4 right-4 z-10 w-7 h-7 rounded-full bg-card/80 border border-border/60 text-muted-foreground hover:text-foreground hover:bg-card transition-colors flex items-center justify-center text-xs font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
         title="Keyboard shortcuts (?)"
       >
         ?

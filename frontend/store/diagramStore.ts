@@ -12,7 +12,6 @@ import {
   applyEdgeChanges,
 } from 'reactflow';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
-import { EdgeType, DEFAULT_EDGE_TYPE } from '@/data/edgeTypes';
 
 // Module-level fitView callback — set by Canvas on mount, avoids circular imports
 type FitViewOptions = { padding?: number; duration?: number; maxZoom?: number };
@@ -149,8 +148,6 @@ interface DiagramState {
   pendingLabelEdgeId: string | null;
   setPendingLabelEdgeId: (id: string | null) => void;
   
-  // ── Edge Types ────────────────────────────────────────────────────────────
-  updateEdgeType: (edgeId: string, edgeType: EdgeType) => void;
   updateEdgeLabel: (edgeId: string, label: string) => void;
 
   // ── AI Streaming (real-time canvas building) ──────────────────────────────
@@ -371,7 +368,7 @@ export const useDiagramStore = create<DiagramState>()(
             ...connection, 
             id: edgeId, 
             type: 'custom', 
-            data: { edgeType: DEFAULT_EDGE_TYPE }
+            data: { edgeType: 'sync' },
           },
           get().edges
         );
@@ -488,14 +485,6 @@ export const useDiagramStore = create<DiagramState>()(
       pendingLabelEdgeId: null,
       setPendingLabelEdgeId: (id) => set({ pendingLabelEdgeId: id }),
       
-      // ── Edge Types ────────────────────────────────────────────────────────────
-      updateEdgeType: (edgeId, edgeType) => {
-        const edges = get().edges.map((e) =>
-          e.id === edgeId ? { ...e, type: 'custom', data: { ...e.data, edgeType } } : e
-        );
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases });
-      },
       updateEdgeLabel: (edgeId, label) => {
         const edges = get().edges.map((e) =>
           e.id === edgeId ? { ...e, data: { ...e.data, label: label.trim() } } : e
@@ -544,25 +533,10 @@ export const useDiagramStore = create<DiagramState>()(
           const active = state.canvases.find((c: CanvasTab) => c.id === state.activeCanvasId);
           if (active) {
             state.nodes = active.nodes;
-            
-            // Migrate legacy edges to custom type
-            state.edges = active.edges.map(e => ({
-              ...e,
-              type: 'custom',
-              data: {
-                edgeType: e.data?.edgeType ?? 'sync',
-                ...e.data
-              }
-            }));
-            
-            // Also update the canvas representations directly
+            state.edges = active.edges.map((e: Edge) => ({ ...e, type: 'custom' }));
             state.canvases = state.canvases.map(c => ({
               ...c,
-              edges: c.edges.map(e => ({
-                ...e,
-                type: 'custom',
-                data: { edgeType: e.data?.edgeType ?? 'sync', ...e.data }
-              }))
+              edges: c.edges.map((e: Edge) => ({ ...e, type: 'custom' }))
             }));
           }
         }

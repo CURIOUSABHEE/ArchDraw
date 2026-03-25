@@ -4,71 +4,83 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-const NAV_LINKS = ['Features', 'Templates', 'Use Cases'];
-const NAV_TUTORIALS_HREF = '/tutorials';
+const NAV_LINKS = ['Features', 'Templates', 'Blog', 'Use Cases'];
 
 export function Navbar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
+  const scrollTriggerRef = useRef<{ kill: () => void; gsapKill: () => void } | null>(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let gsap: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let ScrollTrigger: any;
+    const nav = navRef.current;
 
     Promise.all([
       import('gsap'),
       import('gsap/ScrollTrigger'),
-    ]).then(([{ default: g }, { ScrollTrigger: ST }]) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      gsap = g as any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ScrollTrigger = ST as any;
+    ]).then(([gsapModule, scrollTriggerModule]) => {
+      const gsap = gsapModule.default;
+      const { ScrollTrigger } = scrollTriggerModule;
       gsap.registerPlugin(ScrollTrigger);
 
-      gsap.fromTo(navRef.current,
+      gsap.fromTo(nav,
         { y: -20 },
         { y: 0, duration: 0.5, ease: 'power2.out', delay: 0.1 }
       );
 
-      ScrollTrigger.create({
+      const trigger = ScrollTrigger.create({
         start: 'top -60',
-        onEnter: () => gsap.to(navRef.current, {
-          backgroundColor: 'rgba(8,12,20,0.92)',
-          backdropFilter: 'blur(20px)',
+        onEnter: () => gsap.to(nav, {
+          backgroundColor: 'rgba(8,12,20,0.85)',
+          backdropFilter: 'blur(16px)',
           borderBottomColor: 'rgba(255,255,255,0.06)',
           duration: 0.3,
         }),
-        onLeaveBack: () => gsap.to(navRef.current, {
+        onLeaveBack: () => gsap.to(nav, {
           backgroundColor: 'transparent',
+          backdropFilter: 'none',
           borderBottomColor: 'transparent',
           duration: 0.3,
         }),
       });
+
+      const entranceTl = gsap.globalTimeline[gsap.globalTimeline.length - 1];
+      scrollTriggerRef.current = {
+        kill: () => trigger.kill(),
+        gsapKill: () => entranceTl?.kill(),
+      };
     });
 
-    return () => { ScrollTrigger?.getAll().forEach((t: { kill: () => void }) => t.kill()); };
+    return () => {
+      if (nav) {
+        nav.style.backgroundColor = 'transparent';
+        nav.style.backdropFilter = 'none';
+        nav.style.borderBottomColor = 'transparent';
+      }
+      scrollTriggerRef.current?.kill();
+      scrollTriggerRef.current?.gsapKill();
+    };
   }, []);
 
   return (
     <header
       ref={navRef}
-      className="navbar fixed top-0 z-50 w-full border-b border-transparent transition-colors duration-300"
-      style={{ backgroundColor: 'transparent' }}
+      className="navbar fixed top-0 z-50 w-full transition-all duration-300"
+      style={{ backgroundColor: 'transparent', borderBottom: '1px solid transparent' }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <svg className="h-7 w-7 text-indigo-400 transition-transform group-hover:scale-105" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <svg className="h-8 w-8 text-indigo-400 transition-transform group-hover:scale-105" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
             </svg>
-            <span className="text-lg font-semibold text-white tracking-tight">Archflow</span>
+            <span className="text-xl font-bold text-white tracking-tight">Archflow</span>
           </Link>
 
           {/* Desktop nav */}
@@ -76,33 +88,25 @@ export function Navbar() {
             {NAV_LINKS.map((item) => (
               <Link
                 key={item}
-                href={`#${item.toLowerCase().replace(' ', '-')}`}
-                className="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                href={item === 'Blog' ? '/blog' : `#${item.toLowerCase().replace(' ', '-')}`}
+                className="nav-link text-sm font-medium text-zinc-400 hover:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#080c14] rounded"
               >
                 {item}
-                <span className="nav-underline absolute -bottom-0.5 left-0 right-0 h-px bg-indigo-400 scale-x-0 origin-left transition-transform duration-300" />
               </Link>
             ))}
-            <Link
-              href={NAV_TUTORIALS_HREF}
-              className="nav-link relative text-sm font-medium text-slate-400 hover:text-white transition-colors"
-            >
-              Tutorials
-              <span className="nav-underline absolute -bottom-0.5 left-0 right-0 h-px bg-indigo-400 scale-x-0 origin-left transition-transform duration-300" />
-            </Link>
           </nav>
 
           {/* Desktop actions */}
           <div className="hidden md:flex items-center gap-3">
             <button
               onClick={() => router.push('/editor')}
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white border border-white/10 hover:border-white/20 rounded-lg transition-all"
+              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white border border-white/10 hover:border-white/20 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#080c14]"
             >
               Sign in
             </button>
             <button
               onClick={() => router.push('/editor')}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-lg shadow-indigo-500/20 transition-all"
+              className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-lg shadow-indigo-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#080c14]"
             >
               Start designing
             </button>
@@ -110,7 +114,7 @@ export function Navbar() {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden text-slate-400 hover:text-white p-2"
+            className="md:hidden text-slate-400 hover:text-white p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#080c14] rounded"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
@@ -129,23 +133,27 @@ export function Navbar() {
             {NAV_LINKS.map((item) => (
               <Link
                 key={item}
-                href={`#${item.toLowerCase().replace(' ', '-')}`}
-                className="block px-3 py-3 text-base font-medium text-slate-400 hover:text-white rounded-lg"
+                href={item === 'Blog' ? '/blog' : `#${item.toLowerCase().replace(' ', '-')}`}
+                className="block px-3 py-3 text-base font-medium text-slate-400 hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-inset"
                 onClick={() => setMobileOpen(false)}
               >
                 {item}
               </Link>
             ))}
-            <Link
-              href={NAV_TUTORIALS_HREF}
-              className="block px-3 py-3 text-base font-medium text-slate-400 hover:text-white rounded-lg"
-              onClick={() => setMobileOpen(false)}
-            >
-              Tutorials
-            </Link>
+
             <div className="pt-4 flex flex-col gap-3">
-              <button onClick={() => router.push('/editor')} className="w-full px-4 py-2.5 text-center font-medium text-slate-300 border border-white/10 rounded-lg">Sign in</button>
-              <button onClick={() => router.push('/editor')} className="w-full px-4 py-2.5 text-center font-medium text-white bg-indigo-600 rounded-lg">Start designing</button>
+              <button 
+                onClick={() => router.push('/editor')} 
+                className="w-full px-4 py-2.5 text-center font-medium text-slate-300 border border-white/10 rounded-lg hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-inset"
+              >
+                Sign in
+              </button>
+              <button 
+                onClick={() => router.push('/editor')} 
+                className="w-full px-4 py-2.5 text-center font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-inset"
+              >
+                Start designing
+              </button>
             </div>
           </div>
         </div>
