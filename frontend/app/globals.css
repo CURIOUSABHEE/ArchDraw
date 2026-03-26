@@ -3,22 +3,9 @@
 /* ── Dark mode variant for Tailwind v4 ── */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ── Landing page dark theme tokens ── */
-:root {
-  --land-bg: #080c14;
-  --land-bg-alt: #0d1117;
-  --land-card: rgba(255,255,255,0.03);
-  --land-border: rgba(255,255,255,0.06);
-  --land-border-hover: rgba(255,255,255,0.12);
-  --land-text: #f1f5f9;
-  --land-muted: #64748b;
-  --land-accent: #6366f1;
-  --land-accent-glow: rgba(99,102,241,0.15);
-}
-
 @layer base {
   :root {
-    /* Neutral light palette */
+    /* Background and Foreground */
     --background: 210 20% 98%;
     --foreground: 222 47% 8%;
     
@@ -28,8 +15,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 8%;
     
-    /* Primary */
-    --primary: 222 47% 8%;
+    /* Primary - Indigo for brand identity */
+    --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
     
     /* Secondary */
@@ -48,7 +35,7 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Borders */
+    /* Borders and inputs */
     --border: 214 14% 85%;
     --input: 214 14% 85%;
     --ring: 217 91% 60%;
@@ -80,8 +67,8 @@
     --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
     
-    --primary: 210 40% 98%;
-    --primary-foreground: 222 47% 8%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
     
     --secondary: 217 33% 14%;
     --secondary-foreground: 210 40% 98%;
@@ -137,7 +124,7 @@ body {
   transition: stroke 0.15s ease, stroke-width 0.15s ease;
 }
 
-/* Custom scrollbar - minimal */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -156,38 +143,13 @@ body {
   background: hsl(var(--muted-foreground));
 }
 
-/* Focus styles - subtle */
+/* Focus styles */
 *:focus-visible {
   outline: 1px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
-/* ── Landing float animations ── */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-8px); }
-}
-.animate-float          { animation: float 4s ease-in-out infinite; will-change: transform; }
-.animate-float-delay-1  { animation-delay: 0.7s; }
-.animate-float-delay-2  { animation-delay: 1.4s; }
-
-/* ── Ghost background node float animations ── */
-@keyframes bgFloat1 {
-  0%, 100% { transform: translateY(0px) translateX(0px); }
-  33%       { transform: translateY(-8px) translateX(3px); }
-  66%       { transform: translateY(-4px) translateX(-2px); }
-}
-@keyframes bgFloat2 {
-  0%, 100% { transform: translateY(0px) translateX(0px); }
-  50%       { transform: translateY(-10px) translateX(-4px); }
-}
-@keyframes bgFloat3 {
-  0%, 100% { transform: translateY(0px) translateX(0px); }
-  40%       { transform: translateY(-6px) translateX(5px); }
-  80%       { transform: translateY(-12px) translateX(2px); }
-}
-
-/* ── Scroll reveal — CSS-only, JS-independent fallback ── */
+/* ── Scroll reveal — CSS-only fallback ── */
 .reveal {
   opacity: 1;
   transform: translateY(0);
@@ -210,15 +172,12 @@ body {
 }
 
 /* ── Canvas interaction styles ── */
-
-/* Selection box styling */
 .react-flow__selection {
-  background: rgba(99, 102, 241, 0.08) !important;
-  border: 1.5px solid rgba(99, 102, 241, 0.4) !important;
+  background: hsl(var(--primary) / 0.08) !important;
+  border: 1.5px solid hsl(var(--primary) / 0.4) !important;
   border-radius: 6px !important;
 }
 
-/* Panning cursor */
 .pan-active {
   cursor: grab !important;
 }
@@ -227,7 +186,6 @@ body {
   cursor: grabbing !important;
 }
 
-/* Connection line styling */
 .react-flow__connection-line {
   stroke: hsl(var(--ring)) !important;
   stroke-width: 2px !important;
@@ -241,7 +199,6 @@ body {
   }
 }
 
-/* Handle styling */
 .react-flow__handle {
   width: 10px !important;
   height: 10px !important;
@@ -261,35 +218,29 @@ body {
   background: hsl(var(--ring)) !important;
 }
 
-/* Edge selection */
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: hsl(var(--ring)) !important;
   stroke-width: 2.5px !important;
 }
 
-/* Smooth zoom transition */
 .react-flow__viewport {
   transition: transform 0.1s ease-out;
 }
 
-/* Mini map styling */
 .react-flow__minimap {
   background: hsl(var(--card)) !important;
   border-radius: 8px;
 }
 
-/* Controls styling */
 .react-flow__controls {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.1);
 }
 
-/* Prevent text selection during drag */
 .dragging {
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* Loading state */
 .react-flow__loading {
   display: flex;
   align-items: center;
@@ -298,7 +249,7 @@ body {
   height: 100%;
 }
 
-/* Flowing edge animations */
+/* ── Flowing edge animations ── */
 @keyframes flowSync {
   0% { stroke-dashoffset: 0; }
   100% { stroke-dashoffset: -28; }
@@ -351,4 +302,10 @@ body {
 .flow-dep:hover {
   opacity: 1;
   filter: brightness(1.1);
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
 }

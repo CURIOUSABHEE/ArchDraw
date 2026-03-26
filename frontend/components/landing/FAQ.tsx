@@ -1,6 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 const faqs = [
   { q: 'Is ArchFlow really free?', a: 'Yes. ArchFlow is completely free during beta. You can create unlimited diagrams, use all templates, and export without any limits.' },
@@ -12,7 +18,6 @@ const faqs = [
 ];
 
 export function FAQ() {
-  const [open, setOpen] = useState<number | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -35,43 +40,31 @@ export function FAQ() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#0d1117', opacity: 1 }} id="faq">
-      <div className="max-w-2xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
+    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8 bg-background" id="faq">
+      <div className="max-w-2xl mx-auto h-px mb-20 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
       <div className="max-w-2xl mx-auto">
-        <header className="reveal text-center mb-16" style={{ opacity: 1 }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>FAQ</p>
-          <h2 className="text-4xl font-bold text-white tracking-tight">Frequently asked questions</h2>
+        <header className="reveal text-center mb-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4 text-primary">FAQ</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Frequently asked questions</h2>
         </header>
 
-        <div className="space-y-3">
+        <Accordion type="single" collapsible className="w-full space-y-3">
           {faqs.map((faq, i) => (
-            <div
+            <AccordionItem
               key={i}
-              className={`reveal reveal-delay-${Math.min(i + 1, 5)} rounded-2xl overflow-hidden`}
-              style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', opacity: 1 }}
+              value={`item-${i}`}
+              className={`reveal reveal-delay-${Math.min(i + 1, 5)} rounded-xl border border-border/50 bg-card px-4 overflow-hidden`}
             >
-              <button
-                className="w-full flex items-center justify-between px-6 py-4 text-left"
-                onClick={() => setOpen(open === i ? null : i)}
-              >
-                <span className="font-medium text-white">{faq.q}</span>
-                <svg
-                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${open === i ? 'rotate-180' : ''}`}
-                  style={{ color: '#475569' }}
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {open === i && (
-                <div className="px-6 pb-5 text-sm leading-relaxed" style={{ color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '1rem' }}>
-                  {faq.a}
-                </div>
-              )}
-            </div>
+              <AccordionTrigger className="hover:no-underline text-left">
+                <span className="font-medium text-foreground">{faq.q}</span>
+              </AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-4">
+                {faq.a}
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       </div>
     </section>
   );

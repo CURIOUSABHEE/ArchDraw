@@ -7,7 +7,6 @@ import { X, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 import type { Node, Edge } from 'reactflow';
 
-// SSE event types from the API
 type SSEEvent =
   | { type: 'status'; phase: string; message: string; detail?: string }
   | { type: 'clarification'; question: string }
@@ -40,7 +39,6 @@ const LAYER_META: Record<string, { color: string }> = {
 };
 
 export function GenerateDiagramPanel({ onClose }: Props) {
-  const [description, setDescription] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [statusDetail, setStatusDetail] = useState('');
@@ -83,7 +81,6 @@ export function GenerateDiagramPanel({ onClose }: Props) {
   const drainEdges = useCallback(async () => {
     if (drainingEdges.current) return;
     drainingEdges.current = true;
-    // Wait for node drain to finish + 200ms pause
     await new Promise((r) => {
       const interval = setInterval(() => {
         if (!drainingNodes.current && nodeBufferRef.current.length === 0) {
@@ -100,7 +97,6 @@ export function GenerateDiagramPanel({ onClose }: Props) {
       await new Promise((r) => setTimeout(r, 60));
     }
     drainingEdges.current = false;
-    // Fit view after all edges are placed
     setTimeout(() => fitView?.(), 200);
   }, [appendEdge, fitView]);
 
@@ -160,7 +156,6 @@ export function GenerateDiagramPanel({ onClose }: Props) {
         setPhase('complete');
         toast.success(`✓ ${event.meta.projectName} — ${event.meta.nodeCount} nodes, ${event.meta.edgeCount} edges`);
         
-        // Fit view after all nodes finish rendering — ensures Layer D is never clipped
         setTimeout(() => {
           const store = useDiagramStore.getState();
           if (typeof store.fitView === 'function') {
@@ -176,51 +171,9 @@ export function GenerateDiagramPanel({ onClose }: Props) {
     }
   }, [pushHistory, setNodes, setEdges, drainNodes, drainEdges]);
 
-  const runGeneration = useCallback(async (text: string) => {
-    setPhase('thinking');
-    setLayers([]);
-    setStatusMessage('Analysing your description...');
-    setStatusDetail('');
-    nodeBufferRef.current = [];
-    edgeBufferRef.current = [];
-
-    abortRef.current = new AbortController();
-
-    try {
-      const response = await fetch('/api/generate-diagram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: text }),
-        signal: abortRef.current.signal,
-      });
-
-      if (!response.ok || !response.body) throw new Error(`Server error: ${response.status}`);
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n\n');
-        buffer = parts.pop() ?? '';
-        for (const part of parts) {
-          if (!part.startsWith('data: ')) continue;
-          try { handleSSEEvent(JSON.parse(part.slice(6))); } catch { /* skip malformed */ }
-        }
-      }
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') return;
-      setPhase('error');
-      setErrorMsg((err as Error).message ?? 'Generation failed');
-    }
-  }, [handleSSEEvent]);
-
-  const wordCount = description.trim().split(/\s+/).filter(Boolean).length;
-  const qualityColor = wordCount < 10 ? '#f59e0b' : wordCount < 30 ? '#6366f1' : '#22d3ee';
-  const qualityWidth = `${Math.min(100, (wordCount / 60) * 100)}%`;
+  const wordCount = 0;
+  const qualityColor = '#6366f1';
+  const qualityWidth = '0%';
 
   return (
     <motion.div
@@ -228,71 +181,62 @@ export function GenerateDiagramPanel({ onClose }: Props) {
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: '100%', opacity: 0 }}
       transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-      style={{
-        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        width: '100%', maxWidth: 600, height: 'auto', maxHeight: '80vh',
-        background: '#09090b', borderTop: '1px solid #18181b', borderLeft: '1px solid #18181b', borderRight: '1px solid #18181b',
-        borderRadius: '16px 16px 0 0',
-        zIndex: 1000, display: 'flex', flexDirection: 'column',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        boxShadow: '0 -20px 60px rgba(0,0,0,.5)',
-      }}
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[600px] h-auto max-h-[80vh] bg-background border border-border rounded-t-2xl z-[1000] flex flex-col shadow-[-20px_0_60px_rgba(0,0,0,.25)]"
     >
       {/* Header */}
-      <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid #18181b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Sparkles size={12} color="#fff" />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.01em' }}>AI Architect</span>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+            <Sparkles size={14} className="text-white" />
           </div>
-          <div style={{ fontSize: 10, color: '#52525b', marginTop: 2, marginLeft: 33 }}>Multi-agent · Groq · Real-time canvas</div>
+          <span className="text-sm font-bold text-foreground tracking-tight">AI Architect</span>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#52525b', cursor: 'pointer', padding: 5, borderRadius: 6, display: 'flex' }}>
-          <X size={15} />
-        </button>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-muted-foreground">Multi-agent · Groq · Real-time canvas</span>
+          <button 
+            onClick={onClose} 
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+      <div className="flex-1 overflow-y-auto p-4">
         <AnimatePresence mode="wait">
 
           {/* IDLE / COMING SOON */}
           {phase === 'idle' && (
-            <motion.div key="idle" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', padding: '40px 20px', textAlign: 'center' }}>
-
-              <div style={{ 
-                width: 64, height: 64, borderRadius: 16, 
-                background: 'linear-gradient(135deg, #6366f1, #a855f7)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: 8
-              }}>
-                <Sparkles size={28} color="#fff" />
+            <motion.div 
+              key="idle" 
+              initial={{ opacity: 0, y: 8 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center gap-4 py-10 text-center px-5"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-2">
+                <Sparkles size={28} className="text-white" />
               </div>
 
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#fafafa', marginBottom: 6 }}>Coming Soon</div>
-                <div style={{ fontSize: 13, color: '#71717a', lineHeight: 1.6, maxWidth: 320 }}>
+                <div className="text-base font-bold text-foreground mb-1.5">Coming Soon</div>
+                <div className="text-sm text-muted-foreground leading-relaxed max-w-80">
                   AI-powered diagram generation is temporarily unavailable while we make improvements.
                 </div>
               </div>
 
-              <div style={{ 
-                background: '#0f0f12', border: '1px solid #27272a', 
-                borderRadius: 8, padding: '12px 16px', marginTop: 8 
-              }}>
-                <div style={{ fontSize: 11, color: '#52525b', marginBottom: 6 }}>What will be available:</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left' }}>
+              <div className="bg-accent/50 border border-border rounded-lg p-3 mt-2">
+                <div className="text-[11px] text-muted-foreground mb-2">What will be available:</div>
+                <div className="flex flex-col gap-1.5 text-left">
                   {[
                     'Describe systems in plain English',
                     'Auto-generate architecture diagrams',
                     'Layer-based component layout',
                     'AI-powered explanations',
                   ].map((feature, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />
-                      <span style={{ fontSize: 12, color: '#a1a1aa' }}>{feature}</span>
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                      <span className="text-xs text-muted-foreground">{feature}</span>
                     </div>
                   ))}
                 </div>
@@ -300,12 +244,7 @@ export function GenerateDiagramPanel({ onClose }: Props) {
 
               <button
                 onClick={onClose}
-                style={{
-                  background: '#18181b', border: '1px solid #27272a',
-                  borderRadius: 8, padding: '10px 24px', fontSize: 13,
-                  fontWeight: 500, color: '#a1a1aa', cursor: 'pointer',
-                  marginTop: 8,
-                }}
+                className="mt-2 px-6 py-2.5 text-sm font-medium bg-secondary text-secondary-foreground rounded-lg border border-border hover:bg-accent transition-colors"
               >
                 Close
               </button>
@@ -314,23 +253,22 @@ export function GenerateDiagramPanel({ onClose }: Props) {
 
           {/* ERROR */}
           {phase === 'error' && (
-            <motion.div key="error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', padding: '40px 20px', textAlign: 'center' }}>
-
-              <AlertCircle size={32} color="#f87171" />
+            <motion.div 
+              key="error" 
+              initial={{ opacity: 0, y: 8 }} 
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center gap-4 py-10 text-center px-5"
+            >
+              <AlertCircle size={32} className="text-red-400" />
               
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#f87171', marginBottom: 6 }}>Generation Failed</div>
-                <div style={{ fontSize: 12, color: '#71717a', lineHeight: 1.6 }}>{errorMsg}</div>
+                <div className="text-sm font-semibold text-red-400 mb-1.5">Generation Failed</div>
+                <div className="text-xs text-muted-foreground leading-relaxed">{errorMsg}</div>
               </div>
 
               <button
                 onClick={onClose}
-                style={{
-                  background: '#18181b', border: '1px solid #27272a',
-                  borderRadius: 8, padding: '10px 24px', fontSize: 13,
-                  fontWeight: 500, color: '#a1a1aa', cursor: 'pointer',
-                }}
+                className="px-6 py-2.5 text-sm font-medium bg-secondary text-secondary-foreground rounded-lg border border-border hover:bg-accent transition-colors"
               >
                 Close
               </button>
@@ -339,25 +277,40 @@ export function GenerateDiagramPanel({ onClose }: Props) {
 
           {/* CLARIFICATION */}
           {phase === 'clarifying' && (
-            <motion.div key="clarify" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ background: '#111118', border: '1px solid #4338ca', borderRadius: 8, padding: '12px 13px' }}>
-                <div style={{ fontSize: 10, color: '#818cf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Quick question</div>
-                <div style={{ fontSize: 13, color: '#e4e4e7', lineHeight: 1.6 }}>{clarificationQ}</div>
+            <motion.div 
+              key="clarify" 
+              initial={{ opacity: 0, y: 8 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0 }}
+              className="flex flex-col gap-3"
+            >
+              <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-3">
+                <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Quick question</div>
+                <div className="text-sm text-foreground leading-relaxed">{clarificationQ}</div>
               </div>
-              <textarea value={clarificationAnswer} onChange={(e) => setClarificationAnswer(e.target.value)}
+              <textarea 
+                value={clarificationAnswer} 
+                onChange={(e) => setClarificationAnswer(e.target.value)}
                 onKeyDown={(e) => e.stopPropagation()}
                 placeholder="Your answer..."
                 rows={3}
-                style={{ width: '100%', background: '#0f0f12', border: '1.5px solid #27272a', borderRadius: 8, color: '#e4e4e7', fontSize: 12, padding: '9px 11px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                className="w-full bg-accent border border-input rounded-lg text-sm text-foreground p-2.5 outline-none resize-y font-inherit placeholder:text-muted-foreground"
               />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setPhase('idle')} style={{ flex: 1, background: 'none', border: '1px solid #27272a', borderRadius: 7, color: '#71717a', padding: '8px 0', fontSize: 12, cursor: 'pointer' }}>Back</button>
-                <button onClick={() => {
-                  if (clarificationAnswer.trim()) {
-                    runGeneration(`${description.trim()}\n\nAdditional context: ${clarificationAnswer.trim()}`);
-                  }
-                }} style={{ flex: 2, background: 'linear-gradient(135deg, #6366f1, #a855f7)', border: 'none', borderRadius: 7, color: '#fff', padding: '8px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setPhase('idle')} 
+                  className="flex-1 py-2 text-xs font-medium bg-secondary text-secondary-foreground rounded-lg border border-border hover:bg-accent transition-colors"
+                >
+                  Back
+                </button>
+                <button 
+                  onClick={() => {
+                    if (clarificationAnswer.trim()) {
+                      // runGeneration(`${description.trim()}\n\nAdditional context: ${clarificationAnswer.trim()}`);
+                    }
+                  }} 
+                  className="flex-[2] py-2 text-xs font-semibold bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg"
+                >
                   Continue →
                 </button>
               </div>
@@ -366,33 +319,41 @@ export function GenerateDiagramPanel({ onClose }: Props) {
 
           {/* THINKING / STREAMING */}
           {(phase === 'thinking' || phase === 'streaming') && (
-            <motion.div key="thinking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+            <motion.div 
+              key="thinking" 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              className="flex flex-col gap-3"
+            >
+              <div className="flex items-start gap-2">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  style={{ width: 14, height: 14, border: '2px solid #27272a', borderTopColor: '#6366f1', borderRadius: '50%', flexShrink: 0, marginTop: 1 }}
+                  className="w-3.5 h-3.5 border-2 border-muted border-t-indigo-500 rounded-full shrink-0 mt-0.5"
                 />
                 <div>
-                  <div style={{ fontSize: 12, color: '#fafafa', fontWeight: 600, lineHeight: 1.4 }}>{statusMessage}</div>
-                  {statusDetail && <div style={{ fontSize: 10, color: '#6366f1', marginTop: 3, lineHeight: 1.4 }}>{statusDetail}</div>}
+                  <div className="text-sm font-semibold text-foreground leading-snug">{statusMessage}</div>
+                  {statusDetail && <div className="text-[10px] text-indigo-400 mt-1 leading-snug">{statusDetail}</div>}
                 </div>
               </div>
 
               {/* Layer completion badges */}
               {layers.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  <div style={{ fontSize: 10, color: '#3f3f46', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>Layers analysed</div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold">Layers analysed</div>
                   {layers.map((l) => (
-                    <motion.div key={l.layer}
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#0f0f12', borderRadius: 6, padding: '6px 9px', border: `1px solid ${l.color}25` }}>
-                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: l.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 11, color: '#d4d4d8', flex: 1 }}>{l.name}</span>
-                      <span style={{ fontSize: 10, color: l.color, fontWeight: 700 }}>{l.serviceCount} services</span>
-                      <CheckCircle2 size={11} color={l.color} />
+                    <motion.div 
+                      key={l.layer}
+                      initial={{ opacity: 0, x: -4 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-center gap-2 bg-accent rounded-md p-1.5 border"
+                      style={{ borderColor: `${l.color}25` }}
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: l.color }} />
+                      <span className="text-xs text-foreground flex-1">{l.name}</span>
+                      <span className="text-[10px] font-bold" style={{ color: l.color }}>{l.serviceCount} services</span>
+                      <CheckCircle2 size={11} style={{ color: l.color }} />
                     </motion.div>
                   ))}
                 </div>
@@ -400,25 +361,29 @@ export function GenerateDiagramPanel({ onClose }: Props) {
 
               {/* Streaming counters */}
               {phase === 'streaming' && (
-                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
-                  style={{ background: '#0f0f12', border: '1px solid #18181b', borderRadius: 8, padding: '11px 12px' }}>
-                  <div style={{ fontSize: 10, color: '#3f3f46', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700, marginBottom: 8 }}>Live canvas</div>
-                  <div style={{ display: 'flex', gap: 12 }}>
+                <motion.div 
+                  initial={{ opacity: 0, y: 2 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-accent border border-border rounded-lg p-3"
+                >
+                  <div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold mb-2">Live canvas</div>
+                  <div className="flex gap-3">
                     {[
                       { label: 'Nodes', value: streamProgress.nodes, total: streamProgress.totalNodes, color: '#6366f1' },
                       { label: 'Edges', value: streamProgress.edges, total: streamProgress.totalEdges, color: '#22d3ee' },
                     ].map((item) => (
-                      <div key={item.label} style={{ flex: 1 }}>
-                        <div style={{ fontSize: 10, color: '#52525b', marginBottom: 4 }}>{item.label}</div>
-                        <div style={{ height: 3, background: '#27272a', borderRadius: 2, overflow: 'hidden' }}>
+                      <div key={item.label} className="flex-1">
+                        <div className="text-[10px] text-muted-foreground mb-1">{item.label}</div>
+                        <div className="h-0.5 bg-muted rounded-full overflow-hidden">
                           <motion.div
-                            style={{ height: '100%', background: item.color, borderRadius: 2 }}
+                            className="h-full rounded-full"
+                            style={{ backgroundColor: item.color }}
                             animate={{ width: item.total > 0 ? `${(item.value / item.total) * 100}%` : '0%' }}
                             transition={{ duration: 0.1 }}
                           />
                         </div>
-                        <div style={{ fontSize: 12, color: item.color, fontWeight: 700, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
-                          {item.value} <span style={{ color: '#52525b', fontWeight: 400 }}>/ {item.total}</span>
+                        <div className="text-sm font-bold mt-1 tabular-nums" style={{ color: item.color }}>
+                          {item.value} <span className="text-muted-foreground font-normal">/ {item.total}</span>
                         </div>
                       </div>
                     ))}
@@ -426,8 +391,10 @@ export function GenerateDiagramPanel({ onClose }: Props) {
                 </motion.div>
               )}
 
-              <button onClick={() => { abortRef.current?.abort(); setPhase('idle'); }}
-                style={{ background: 'none', border: '1px solid #27272a', borderRadius: 7, color: '#52525b', padding: '7px 0', fontSize: 11, cursor: 'pointer', width: '100%' }}>
+              <button 
+                onClick={() => { abortRef.current?.abort(); setPhase('idle'); }}
+                className="w-full py-1.5 text-xs text-muted-foreground bg-transparent border border-border rounded-lg hover:bg-accent transition-colors"
+              >
                 Cancel
               </button>
             </motion.div>
@@ -435,23 +402,36 @@ export function GenerateDiagramPanel({ onClose }: Props) {
 
           {/* COMPLETE */}
           {phase === 'complete' && completeMeta && (
-            <motion.div key="complete" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ background: '#051a0f', border: '1px solid #14532d', borderRadius: 10, padding: '16px', textAlign: 'center' }}>
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 18 }}>
-                  <CheckCircle2 size={28} color="#22c55e" style={{ margin: '0 auto 10px' }} />
+            <motion.div 
+              key="complete" 
+              initial={{ opacity: 0, scale: 0.97 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              exit={{ opacity: 0 }}
+              className="flex flex-col gap-2.5"
+            >
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center">
+                <motion.div 
+                  initial={{ scale: 0 }} 
+                  animate={{ scale: 1 }} 
+                  transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+                >
+                  <CheckCircle2 size={28} className="text-emerald-500 mx-auto mb-2.5" />
                 </motion.div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', marginBottom: 3, letterSpacing: '-0.01em' }}>{completeMeta.projectName}</div>
-                <div style={{ fontSize: 12, color: '#86efac' }}>{completeMeta.nodeCount} nodes · {completeMeta.edgeCount} edges</div>
-                <div style={{ fontSize: 10, color: '#4ade80', marginTop: 4, opacity: 0.7 }}>Quality score: {completeMeta.criticScore}/10</div>
+                <div className="text-sm font-bold text-emerald-400 mb-0.5 tracking-tight">{completeMeta.projectName}</div>
+                <div className="text-xs text-emerald-400/80">{completeMeta.nodeCount} nodes · {completeMeta.edgeCount} edges</div>
+                <div className="text-[10px] text-emerald-400/70 mt-1">Quality score: {completeMeta.criticScore}/10</div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => { setPhase('idle'); setDescription(''); setLayers([]); }}
-                  style={{ flex: 1, background: 'none', border: '1px solid #27272a', borderRadius: 7, color: '#71717a', padding: '8px 0', fontSize: 11, cursor: 'pointer' }}>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => { setPhase('idle'); setLayers([]); }}
+                  className="flex-1 py-2 text-xs font-medium bg-secondary text-secondary-foreground rounded-lg border border-border hover:bg-accent transition-colors"
+                >
                   New
                 </button>
-                <button onClick={onClose}
-                  style={{ flex: 2, background: 'linear-gradient(135deg, #6366f1, #a855f7)', border: 'none', borderRadius: 7, color: '#fff', padding: '8px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                <button 
+                  onClick={onClose}
+                  className="flex-[2] py-2 text-xs font-semibold bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg"
+                >
                   View diagram
                 </button>
               </div>

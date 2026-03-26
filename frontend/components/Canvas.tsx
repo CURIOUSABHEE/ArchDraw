@@ -345,7 +345,7 @@ function CanvasInner() {
 
       {/* Empty State - ONLY when no nodes exist */}
       {nodes.length === 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center select-none pointer-events-auto z-20">
+        <div className="absolute inset-0 flex flex-col items-center justify-center select-none pointer-events-auto z-[5]">
           <div className="text-center mb-8">
             <LayoutGrid className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
             <h2 className="text-lg font-semibold text-foreground/60 mb-2">Start building your architecture</h2>
@@ -395,7 +395,7 @@ function CanvasInner() {
 
       {/* Status bar with selection info */}
       {(selectedNodeIds.length > 0 || selectedEdgeId) && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/90 border border-border/60 backdrop-blur-sm shadow-sm">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[5] flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/90 border border-border/60 backdrop-blur-sm shadow-sm">
           <span className="text-[10px] text-muted-foreground">
             {selectedNodeIds.length > 0 && `${selectedNodeIds.length} node${selectedNodeIds.length > 1 ? 's' : ''} selected`}
             {selectedNodeIds.length > 0 && selectedEdgeId && ' • '}
@@ -408,7 +408,7 @@ function CanvasInner() {
       {/* Keyboard shortcuts button */}
       <button
         onClick={() => setShowShortcuts(true)}
-        className="absolute bottom-4 right-4 z-10 w-7 h-7 rounded-full bg-card/80 border border-border/60 text-muted-foreground hover:text-foreground hover:bg-card transition-colors flex items-center justify-center text-xs font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        className="absolute bottom-4 right-4 z-[6] w-7 h-7 rounded-full bg-card/80 border border-border/60 text-muted-foreground hover:text-foreground hover:bg-card transition-colors flex items-center justify-center text-xs font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
         title="Keyboard shortcuts (?)"
       >
         ?

@@ -14,12 +14,12 @@ import { toast } from 'sonner';
 import { ShareModal } from '@/components/ShareModal';
 import { TemplateModal } from '@/components/TemplateModal';
 import { EmailCaptureModal, type EmailCaptureReason } from '@/components/EmailCaptureModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { GenerateDiagramPanel } from '@/components/ai/GenerateDiagramPanel';
 import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { useTheme } from 'next-themes';
 import { useDiagramStore as useDiagramStoreTyped } from '@/store/diagramStore';
 
 type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf';
@@ -33,8 +33,6 @@ function formatRelative(ts: number): string {
 }
 
 export function Toolbar() {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
   const router = useRouter();
   const {
     clearDiagram, nodes, edges, importDiagram,
@@ -412,12 +410,7 @@ export function Toolbar() {
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setExportOpen(false)} />
                 <div
-                  className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden z-30"
-                  style={{
-                    background: isDark ? 'rgba(15, 23, 42, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-                    border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.1)',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                  }}
+                  className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden z-30 bg-card/98 border border-border/80 shadow-lg backdrop-blur-md"
                 >
                   <div className="px-3 py-2 border-b border-border/50">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG</p>
@@ -467,12 +460,7 @@ export function Toolbar() {
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setMoreOpen(false)} />
                 <div
-                  className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden z-30"
-                  style={{
-                    background: isDark ? 'rgba(15, 23, 42, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-                    border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.1)',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                  }}
+                  className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden z-30 bg-card/98 border border-border/80 shadow-lg backdrop-blur-md"
                 >
                   {/* Resources Section */}
                   <div className="px-3 py-1.5">
@@ -549,37 +537,20 @@ export function Toolbar() {
       {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}
 
       {/* Delete confirmation modal */}
-      {confirmDeleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div 
-            className="rounded-xl p-5 w-64"
-            style={{
-              background: isDark ? 'rgba(15, 23, 42, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
-              boxShadow: '0 16px 64px rgba(0, 0, 0, 0.4)',
-            }}
-          >
-            <p className="text-sm font-semibold text-foreground mb-1">Delete canvas?</p>
-            <p className="text-[11px] text-muted-foreground mb-4">
-              This canvas has nodes. Deleting it is permanent.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 py-2 text-xs font-medium rounded-lg border border-border hover:bg-accent/40 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { removeCanvas(confirmDeleteId); setConfirmDeleteId(null); }}
-                className="flex-1 py-2 text-xs font-medium rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={!!confirmDeleteId}
+        title="Delete canvas?"
+        description="This canvas has nodes. Deleting it is permanent."
+        confirmText="Delete"
+        destructive
+        onConfirm={() => {
+          if (confirmDeleteId) {
+            removeCanvas(confirmDeleteId);
+            setConfirmDeleteId(null);
+          }
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </>
   );
 }

@@ -4,13 +4,14 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import gsap from 'gsap';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export function CTASection() {
   const router = useRouter();
   const sectionRef = useRef<HTMLElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
-  // CSS IntersectionObserver reveal
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
@@ -30,7 +31,6 @@ export function CTASection() {
     return () => observer.disconnect();
   }, []);
 
-  // GSAP magnetic button only — no opacity
   useEffect(() => {
     const btn = btnRef.current;
     if (!btn) return;
@@ -52,48 +52,45 @@ export function CTASection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden" style={{ backgroundColor: '#080c14', opacity: 1 }}>
-      <div className="max-w-3xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
+    <section ref={sectionRef} className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-background">
+      <div className="max-w-3xl mx-auto h-px mb-20 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
-      {/* Glow */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-indigo-500/8 blur-3xl rounded-full" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-primary/5 blur-3xl rounded-full" />
       </div>
 
       <div className="max-w-3xl mx-auto text-center relative">
-        <h2 className="reveal text-5xl sm:text-6xl font-extrabold tracking-tight mb-6" style={{ opacity: 1 }}>
-          <span className="bg-gradient-to-br from-white via-white/90 to-white/40 bg-clip-text text-transparent">
+        <h2 className="reveal text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6">
+          <span className="text-foreground">
             Start building your
           </span>
           <br />
-          <span className="bg-gradient-to-r from-indigo-300 via-indigo-400 to-indigo-500 bg-clip-text text-transparent">
+          <span className="text-primary">
             architecture today.
           </span>
         </h2>
-        <p className="reveal reveal-delay-1 text-xl mb-10" style={{ color: '#64748b', opacity: 1 }}>
+        <p className="reveal reveal-delay-1 text-lg text-muted-foreground mb-10">
           No account needed. No credit card. Just your ideas.
         </p>
-        <button
+        <Button
           ref={btnRef}
+          size="lg"
           onClick={() => router.push('/editor')}
-          className="reveal reveal-delay-2 will-change-transform inline-flex items-center px-10 py-4 text-white font-bold text-lg rounded-2xl transition-colors"
-          style={{ backgroundColor: '#6366f1', boxShadow: '0 0 40px rgba(99,102,241,0.4)', opacity: 1 }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#4f46e5')}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#6366f1')}
+          className="reveal reveal-delay-2 will-change-transform text-lg px-10 py-6"
         >
           Open the canvas →
-        </button>
-        <p className="text-slate-600 text-sm mt-4">
+        </Button>
+        <p className="text-sm text-muted-foreground mt-4">
           New to system design?{' '}
-          <Link href="/tutorials" className="text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-2">
+          <Link href="/tutorials" className="text-primary hover:text-primary/80 transition-colors underline underline-offset-2">
             Start with an interactive tutorial →
           </Link>
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
           {['Next.js', 'Supabase', 'Vercel', 'React'].map((t) => (
-            <span key={t} className="px-3 py-1.5 text-xs font-medium rounded-full" style={{ color: '#475569', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <Badge key={t} variant="secondary" className="text-xs">
               {t}
-            </span>
+            </Badge>
           ))}
         </div>
       </div>

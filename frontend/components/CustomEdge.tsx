@@ -194,6 +194,7 @@ function CustomEdgeComponent({
   const strokeColor = selected ? '#6366f1' : (hovered ? color : '#94a3b8');
   const strokeWidth = selected ? 2 : (hovered ? 1.5 : 1.25);
   const strokeDasharray = getStrokeDasharray(edgeStyle);
+  const isAnimated = edgeStyle === 'dashed' || edgeStyle === 'dotted';
   const markerEnd = `arrow-${id}-end`;
   const markerStart = `arrow-${id}-start`;
   const cpHandles = selected ? (cps.length > 0 ? cps : defaultCPs(sourceX, sourceY, targetX, targetY)) : [];
@@ -253,6 +254,10 @@ function CustomEdgeComponent({
           opacity: selected || hovered ? 1 : 0.65,
           transition: 'stroke 0.15s, stroke-width 0.15s, opacity 0.15s',
           filter: hovered ? `url(#glow-${id})` : undefined,
+          ...(isAnimated && {
+            strokeDashoffset: 20,
+            animation: `dash 0.8s linear infinite`,
+          }),
         }}
       />
 

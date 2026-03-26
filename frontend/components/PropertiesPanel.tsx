@@ -25,91 +25,76 @@ const ACCENT_SWATCHES = [
   { color: '#ef4444', label: 'Red' },
 ];
 
+function EdgePropertiesPanel() {
+  const { selectedEdgeId, edges, updateEdgeLabel, setSelectedEdgeId } = useDiagramStore();
+  const edge = edges.find((e) => e.id === selectedEdgeId);
+  const [localLabel, setLocalLabel] = useState(edge?.data?.label ?? '');
+
+  useEffect(() => {
+    if (edge) setLocalLabel(edge.data?.label ?? '');
+  }, [edge?.data?.label]);
+
+  if (!edge) return null;
+
+  return (
+    <aside
+      className="w-64 border-l border-border bg-card flex flex-col h-full shrink-0 animate-in slide-in-from-right-4 duration-200"
+      style={{ boxShadow: '-4px 0 16px rgba(0,0,0,0.06)' }}
+    >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <span className="text-xs font-semibold text-foreground">Edge Properties</span>
+        <button 
+          onClick={() => setSelectedEdgeId(null)} 
+          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <p className="text-[10px] text-muted-foreground leading-relaxed mb-4">
+          Double-click the edge to add a label.
+        </p>
+        
+        <div>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+            Edge label
+          </label>
+          <input
+            type="text"
+            value={localLabel}
+            placeholder="e.g. calls user API"
+            onChange={(e) => setLocalLabel(e.target.value)}
+            onBlur={() => {
+              if (selectedEdgeId) updateEdgeLabel(selectedEdgeId, localLabel);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                if (selectedEdgeId) updateEdgeLabel(selectedEdgeId, localLabel);
+                (e.target as HTMLInputElement).blur();
+              }
+              e.stopPropagation();
+            }}
+            className="w-full px-2.5 py-1.5 text-xs bg-accent border border-indigo-500/30 rounded-md outline-none focus:ring-1 focus:ring-indigo-500 text-indigo-500 placeholder:text-indigo-500/50"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Press Enter or click away to save.
+          </p>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 export function PropertiesPanel() {
   const {
     selectedNodeId, nodes, updateNodeData, removeNode, setSelectedNodeId,
-    selectedEdgeId, edges, updateEdgeData, setSelectedEdgeId,
+    selectedEdgeId,
   } = useDiagramStore();
 
   const node = nodes.find((n) => n.id === selectedNodeId);
-  const edge = edges.find((e) => e.id === selectedEdgeId);
 
-  const labelRef = useRef<HTMLInputElement>(null);
-  const [localLabel, setLocalLabel] = useState('');
-
-  useEffect(() => {
-    if (node) setLocalLabel(node.data.label ?? '');
-  }, [node?.id]);
-
-  // ── Edge panel ──────────────────────────────────────────────────────────────
-  if (edge && !node) {
-    return (
-      <aside
-        className="w-64 border-l border-border bg-card flex flex-col h-full shrink-0 animate-in slide-in-from-right-4 duration-200"
-        style={{ boxShadow: '-4px 0 16px rgba(0,0,0,0.06)' }}
-      >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <span className="text-xs font-semibold text-foreground">Edge Properties</span>
-          <button onClick={() => setSelectedEdgeId(null)} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <p className="text-[10px] text-muted-foreground leading-relaxed mb-4">
-            Double-click the edge to add a label.
-          </p>
-          
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              color: '#6b7280',
-              textTransform: 'uppercase',
-              marginBottom: 6,
-            }}>
-              Edge label
-            </label>
-            <input
-              type="text"
-              defaultValue={edge.data?.label ?? ''}
-              placeholder="e.g. calls user API"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  useDiagramStore.getState().updateEdgeLabel(edge.id, (e.target as HTMLInputElement).value);
-                  (e.target as HTMLInputElement).blur();
-                }
-                e.stopPropagation();
-              }}
-              onBlur={(e) => {
-                useDiagramStore.getState().updateEdgeLabel(edge.id, e.target.value);
-              }}
-              style={{
-                width: '100%',
-                background: '#0f172a',
-                border: '1px solid #6366f166',
-                borderRadius: 7,
-                color: '#6366f1',
-                fontSize: 13,
-                padding: '7px 10px',
-                outline: 'none',
-                fontFamily: 'system-ui, sans-serif',
-                caretColor: '#6366f1',
-                transition: 'border-color 0.15s, box-shadow 0.15s',
-              }}
-              onFocus={(e) => {
-                (e.target as HTMLInputElement).style.borderColor = '#6366f1';
-                (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px #6366f122';
-              }}
-            />
-            <p style={{ fontSize: 10, color: '#4b5563', marginTop: 4 }}>
-              Press Enter or click away to save.
-            </p>
-          </div>
-        </div>
-      </aside>
-    );
+  if (selectedEdgeId && !node) {
+    return <EdgePropertiesPanel />;
   }
 
   if (!node) return null;
@@ -117,6 +102,13 @@ export function PropertiesPanel() {
   const data = node.data;
   const techOptions = TECH_OPTIONS[data.category] ?? [];
   const activeAccent = data.accentColor ?? data.color ?? '#6366f1';
+
+  const labelRef = useRef<HTMLInputElement>(null);
+  const [localLabel, setLocalLabel] = useState(node.data.label ?? '');
+
+  useEffect(() => {
+    if (node) setLocalLabel(node.data.label ?? '');
+  }, [node?.id]);
 
   const commitLabel = () => {
     if (localLabel.trim()) updateNodeData(node.id, { label: localLabel.trim() });

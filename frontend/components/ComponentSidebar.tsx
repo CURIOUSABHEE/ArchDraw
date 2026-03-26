@@ -1,37 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, ChevronDown, ChevronRight, Server, LucideIcon, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Search, ChevronDown, Plus, Pencil, Trash2, Server } from 'lucide-react';
 import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData, type ComponentToEdit } from './CreateComponentModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { componentRegistry } from '@/lib/componentRegistry';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import {
-  Monitor, Globe, RadioTower, Webhook, Scale, Shuffle,
-  Boxes, Zap, Timer, Box,
-  Database, Leaf, HardDrive, FolderOpen, Building2,
-  Layers, AppWindow,
-  MessageSquare, Radio, Activity,
-  Shield, KeyRound, Key, ShieldAlert,
-  ScrollText, BarChart2, GitBranch, Bell, LayoutDashboard,
-  Brain, Network, GitMerge, Bot,
-  Mail, CreditCard, Smartphone, Map, Plug,
-  GitPullRequest, Package, Lock, Settings,
-  Cpu,
-  UserCheck, Flame, Users, ShieldCheck,
-  Wallet, ShoppingCart,
-  Phone,
-  Sparkles, Wind, Image, Mic, AudioLines, AudioWaveform,
-  Container, AlertTriangle, TrendingUp, TrendingDown,
-  FileText, BookOpen,
-  Flag, Clock,
-  Chrome, Github, Twitter, Linkedin,
-  Upload, Video,
-  MessageSquareWarning, ListTodo, Wrench, Play,
-  FileCode, FileInput, ScanSearch, ScanText, ImagePlus, Eye,
-  ArrowUpDown, ArrowLeftRight, Expand, Share2,
-  Braces, Hash, DollarSign, ThumbsUp, Lightbulb,
-  FlaskConical, Dumbbell, Table, Minimize, Split, Copy,
-  LayoutList, GraduationCap, Tag, Download, Wand2, Code,
-  Link, Volume2, CheckCheck, Sliders,
+  Monitor, Boxes, Database, Cpu, Brain,
+  type LucideIcon,
 } from 'lucide-react';
 import componentsData from '@/data/components.json';
 import awsData from '@/data/aws-components.json';
@@ -60,34 +40,14 @@ function getViewportCenter(): { x: number; y: number } {
 }
 
 const ICON_MAP: Record<string, LucideIcon> = {
-  Monitor, Globe, RadioTower, Webhook, Scale, Shuffle,
-  Server, Boxes, Zap, Timer, Box,
-  Database, Leaf, HardDrive, FolderOpen, Search, Building2,
-  Layers, AppWindow,
-  MessageSquare, Radio, Activity,
-  Shield, KeyRound, Key, ShieldAlert,
-  ScrollText, BarChart2, GitBranch, Bell, LayoutDashboard,
-  Brain, Network, GitMerge, Bot,
-  Mail, CreditCard, Smartphone, Map, Plug,
-  GitPullRequest, Package, Lock, Settings,
-  Cpu,
-  UserCheck, Flame, Users, ShieldCheck,
-  Wallet, ShoppingCart,
-  Phone,
-  Sparkles, Wind, Image, Mic, AudioLines, AudioWaveform,
-  Container, AlertTriangle, TrendingUp, TrendingDown,
-  FileText, BookOpen,
-  Flag, Clock,
-  Chrome, Github, Twitter, Linkedin,
-  Upload, Video,
-  MessageSquareWarning, ListTodo, Wrench, Play,
-  FileCode, FileInput, ScanSearch, ScanText, ImagePlus, Eye,
-  ArrowUpDown, ArrowLeftRight, Expand, Share2,
-  Braces, Hash, DollarSign, ThumbsUp, Lightbulb,
-  FlaskConical, Dumbbell, Table, Minimize, Split, Copy,
-  LayoutList, GraduationCap, Tag, Download, Wand2, Code,
-  Link, Volume2, CheckCheck, Sliders,
+  Monitor, Boxes, Database, Cpu, Brain,
 };
+
+const AI_CATEGORIES = [
+  'AI Agents', 'LLM Models', 'RAG', 'Vector Databases',
+  'ML Infrastructure', 'ML Serving', 'MLOps', 'LLM Ops',
+  'AI Frameworks', 'AI Data Pipeline', 'Speech & Audio', 'Vision AI',
+];
 
 interface ComponentEntry {
   id: string;
@@ -105,48 +65,16 @@ const COMPONENT_DESCRIPTIONS: Record<string, string> = {
   cdn: 'Distributes static assets globally for low latency',
   api_gateway: 'Single entry point that routes and authenticates API calls',
   load_balancer: 'Distributes traffic across multiple backend instances',
-  reverse_proxy: 'Forwards client requests to backend servers',
   server_monolith: 'Single deployable unit containing all application logic',
   microservice: 'Small, independently deployable service',
   serverless_fn: 'Event-driven function that scales to zero',
   worker_job: 'Background process for async or scheduled tasks',
-  container: 'Isolated runtime environment for your application',
   sql_db: 'Relational database with ACID guarantees',
   nosql_db: 'Schema-flexible database for unstructured data',
   object_storage: 'Scalable blob storage for files and backups',
-  file_system: 'Hierarchical file storage mounted to compute',
-  search_engine: 'Full-text search over large datasets',
-  data_warehouse: 'Columnar store optimized for analytics',
-  in_memory_cache: 'Sub-millisecond key-value store for hot data',
-  cdn_cache: 'Edge-cached responses from CDN nodes',
-  app_cache: 'Application-level cache layer',
-  message_queue: 'Durable queue decoupling producers and consumers',
-  event_bus: 'Publish-subscribe system for domain events',
-  kafka_streaming: 'High-throughput distributed log for real-time streams',
-  webhook: 'HTTP callback triggered by external events',
-  auth_service: 'Issues and validates JWT tokens',
-  oauth_provider: 'Handles OAuth 2.0 / OIDC flows',
-  api_key_manager: 'Generates and validates API keys',
-  firewall_waf: 'Filters malicious traffic and enforces security rules',
-  logger: 'Collects and stores structured application logs',
-  metrics_collector: 'Aggregates time-series metrics from services',
-  tracing_service: 'Tracks distributed request traces',
-  alert_manager: 'Routes and deduplicates monitoring alerts',
-  dashboard: 'Visualizes metrics and logs in real-time',
   llm_api: 'Large language model API for text generation',
   vector_db: 'Stores and queries high-dimensional embeddings',
-  embedding_service: 'Converts text or media into vector embeddings',
   rag_pipeline: 'Retrieval-augmented generation pipeline',
-  model_server: 'Serves ML model inference over HTTP or gRPC',
-  email_service: 'Transactional and marketing email delivery',
-  payment_gateway: 'Processes payments and manages billing',
-  sms_push: 'Sends SMS and mobile push notifications',
-  maps_api: 'Geolocation, routing, and mapping services',
-  third_party_api: 'Generic external API integration',
-  cicd_pipeline: 'Automates build, test, and deployment workflows',
-  container_registry: 'Stores and distributes container images',
-  secret_manager: 'Securely stores and rotates credentials',
-  config_service: 'Centralized configuration management',
 };
 
 function getDescription(comp: ComponentEntry): string {
@@ -162,134 +90,75 @@ function makeDragGhost(label: string, color: string) {
   return ghost;
 }
 
-interface SectionProps {
+interface CategorySection {
+  key: string;
   title: string;
-  items: ComponentEntry[];
-  sectionKey: string;
-  collapsed: Record<string, boolean>;
-  onToggle: (key: string) => void;
+  icon: LucideIcon;
+  data: ComponentEntry[];
+}
+
+const TOP_SECTIONS: CategorySection[] = [
+  { key: 'general',   title: 'General',               icon: Monitor,    data: (componentsData as ComponentEntry[]).filter(c => !AI_CATEGORIES.includes(c.category)) },
+  { key: 'aws',       title: 'AWS Services',           icon: Boxes,      data: awsData as ComponentEntry[] },
+  { key: 'databases', title: 'Databases & Storage',   icon: Database,   data: (dbData as ComponentEntry[]).filter(c => ['Databases','ORMs & Tools','Search'].includes(c.category)) },
+  { key: 'devtools',  title: 'Developer Tools',        icon: Cpu,       data: (dbData as ComponentEntry[]).filter(c => !['Databases','ORMs & Tools','Search'].includes(c.category)) },
+  { key: 'services',  title: 'Services',               icon: Boxes,     data: servicesData as ComponentEntry[] },
+  { key: 'ai',        title: 'AI & ML',               icon: Brain,     data: (componentsData as ComponentEntry[]).filter(c => AI_CATEGORIES.includes(c.category)) },
+];
+
+interface ComponentItemProps {
+  comp: ComponentEntry;
   onAdd: (comp: ComponentEntry) => void;
+}
+
+function ComponentItem({ comp, onAdd }: ComponentItemProps) {
+  const FallbackIcon: LucideIcon = (comp.icon ? ICON_MAP[comp.icon] : undefined) ?? Server;
+  const displayColor = comp.technology
+    ? (iconRegistry[comp.technology]?.color ?? comp.color)
+    : comp.color;
+
+  return (
+    <button
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
+        e.dataTransfer.effectAllowed = 'move';
+        const ghost = makeDragGhost(comp.label, displayColor);
+        document.body.appendChild(ghost);
+        e.dataTransfer.setDragImage(ghost, 0, 0);
+        setTimeout(() => document.body.removeChild(ghost), 0);
+      }}
+      onClick={() => onAdd(comp)}
+      title={getDescription(comp)}
+      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors cursor-grab active:cursor-grabbing"
+    >
+      <div
+        className="flex items-center justify-center rounded shrink-0"
+        style={{ width: 28, height: 28, background: `${displayColor}15`, border: `1px solid ${displayColor}30` }}
+      >
+        {comp.technology ? (
+          <NodeIcon technology={comp.technology} size={12} />
+        ) : (
+          <FallbackIcon size={12} style={{ color: displayColor }} strokeWidth={1.75} />
+        )}
+      </div>
+      <span className="flex-1 text-left truncate">{comp.label}</span>
+    </button>
+  );
 }
 
 interface ComponentSidebarProps {
   onOpenCreateModal?: () => void;
 }
 
-function SidebarSection({ title, items, sectionKey, collapsed, onToggle, onAdd }: SectionProps) {
-  const grouped = items.reduce<Record<string, ComponentEntry[]>>((acc, c) => {
-    (acc[c.category] ??= []).push(c);
-    return acc;
-  }, {});
-
-  const isCollapsed = collapsed[sectionKey];
-
-  return (
-    <div className="mb-2">
-      <button
-        onClick={() => onToggle(sectionKey)}
-        className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-accent transition-colors"
-      >
-        <span className="text-xs font-medium text-muted-foreground">{title}</span>
-        {isCollapsed
-          ? <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          : <ChevronDown className="w-4 h-4 text-muted-foreground" />
-        }
-      </button>
-
-      {!isCollapsed && (
-        <div className="pl-2">
-          {Object.entries(grouped).map(([category, catItems]) => {
-            const catKey = `${sectionKey}:${category}`;
-            const isCatCollapsed = collapsed[catKey];
-            return (
-              <div key={category}>
-                <button
-                  onClick={() => onToggle(catKey)}
-                  className="w-full flex items-center justify-between px-3 py-1 rounded hover:bg-accent transition-colors"
-                >
-                  <span className="text-[10px] font-medium text-muted-foreground/70">{category}</span>
-                  {isCatCollapsed
-                    ? <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
-                    : <ChevronDown className="w-3 h-3 text-muted-foreground/50" />
-                  }
-                </button>
-
-                {!isCatCollapsed && (
-                  <div className="space-y-0.5 mb-2 ml-2">
-                    {catItems.map((comp) => {
-                      const FallbackIcon: LucideIcon = (comp.icon ? ICON_MAP[comp.icon] : undefined) ?? Server;
-                      const displayColor = comp.technology
-                        ? (iconRegistry[comp.technology]?.color ?? comp.color)
-                        : comp.color;
-                      return (
-                        <button
-                          key={comp.id}
-                          draggable
-                          data-onboarding="component-item"
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
-                            e.dataTransfer.effectAllowed = 'move';
-                            const ghost = makeDragGhost(comp.label, displayColor);
-                            document.body.appendChild(ghost);
-                            e.dataTransfer.setDragImage(ghost, 0, 0);
-                            setTimeout(() => document.body.removeChild(ghost), 0);
-                          }}
-                          onClick={() => onAdd(comp)}
-                          title={getDescription(comp)}
-                          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-foreground rounded hover:bg-accent cursor-grab active:cursor-grabbing"
-                        >
-                          <div
-                            className="flex items-center justify-center rounded shrink-0"
-                            style={{ width: 20, height: 20, background: `${displayColor}15`, border: `1px solid ${displayColor}30` }}
-                          >
-                            {comp.technology ? (
-                              <NodeIcon technology={comp.technology} size={10} />
-                            ) : (
-                              <FallbackIcon size={10} style={{ color: displayColor }} strokeWidth={1.75} />
-                            )}
-                          </div>
-                          <span className="flex-1 text-left">{comp.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const AI_CATEGORIES = [
-  'AI Agents', 'LLM Models', 'RAG', 'Vector Databases',
-  'ML Infrastructure', 'ML Serving', 'MLOps', 'LLM Ops',
-  'AI Frameworks', 'AI Data Pipeline', 'Speech & Audio', 'Vision AI',
-];
-
-const TOP_SECTIONS = [
-  { key: 'general',   title: 'General',               data: (componentsData as ComponentEntry[]).filter(c => !AI_CATEGORIES.includes(c.category)) },
-  { key: 'aws',       title: 'AWS Services',           data: awsData as ComponentEntry[] },
-  { key: 'databases', title: 'Databases & Storage',   data: (dbData as ComponentEntry[]).filter(c => ['Databases','ORMs & Tools','Search'].includes(c.category)) },
-  { key: 'devtools',  title: 'Developer Tools',        data: (dbData as ComponentEntry[]).filter(c => !['Databases','ORMs & Tools','Search'].includes(c.category)) },
-  { key: 'services',  title: 'Services',               data: servicesData as ComponentEntry[] },
-  { key: 'ai',        title: 'AI & ML',               data: (componentsData as ComponentEntry[]).filter(c => AI_CATEGORIES.includes(c.category)) },
-];
-
 export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
   const [search, setSearch] = useState('');
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [customComponents, setCustomComponents] = useState(() => componentRegistry.getCustomComponents());
   const addNode = useDiagramStore((s) => s.addNode);
   const existingNames = componentRegistry.getAll().map(c => c.label.toLowerCase());
-
-  const toggleKey = (key: string) =>
-    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleAdd = (comp: ComponentEntry) => {
     addNode(comp.id, comp.label, comp.category, comp.color, comp.icon, comp.technology, getViewportCenter());
@@ -321,150 +190,113 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
   };
 
   const q = search.toLowerCase().trim();
-
-  if (q) {
-    const allItems = TOP_SECTIONS.flatMap((s) => s.data);
-    const filtered = allItems.filter(
-      (c) =>
-        c.label.toLowerCase().includes(q) ||
-        c.category.toLowerCase().includes(q) ||
-        (c.technology && c.technology.toLowerCase().includes(q))
-    );
-
-    return (
-      <aside className="w-60 border-r border-border bg-sidebar flex flex-col h-full shrink-0">
-        <div className="p-2 border-b border-border">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-accent border-transparent rounded-md outline-none placeholder:text-muted-foreground"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              autoFocus
-            />
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2">
-          {filtered.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-8">No components found</p>
-          ) : (
-            filtered.map((comp) => {
-              const FallbackIcon: LucideIcon = (comp.icon ? ICON_MAP[comp.icon] : undefined) ?? Server;
-              const displayColor = comp.technology
-                ? (iconRegistry[comp.technology]?.color ?? comp.color)
-                : comp.color;
-              return (
-                <button
-                  key={comp.id}
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
-                    e.dataTransfer.effectAllowed = 'move';
-                    const ghost = makeDragGhost(comp.label, displayColor);
-                    document.body.appendChild(ghost);
-                    e.dataTransfer.setDragImage(ghost, 0, 0);
-                    setTimeout(() => document.body.removeChild(ghost), 0);
-                  }}
-                  onClick={() => handleAdd(comp)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-foreground rounded hover:bg-accent cursor-grab active:cursor-grabbing"
-                >
-                  <div
-                    className="flex items-center justify-center rounded shrink-0"
-                    style={{ width: 20, height: 20, background: `${displayColor}15`, border: `1px solid ${displayColor}30` }}
-                  >
-                    {comp.technology ? (
-                      <NodeIcon technology={comp.technology} size={10} />
-                    ) : (
-                      <FallbackIcon size={10} style={{ color: displayColor }} strokeWidth={1.75} />
-                    )}
-                  </div>
-                  <span className="flex-1 text-left">{comp.label}</span>
-                </button>
-              );
-            })
-          )}
-        </div>
-      </aside>
-    );
-  }
+  const defaultOpen = TOP_SECTIONS[0]?.key;
 
   return (
-    <aside className="w-60 border-r border-border bg-sidebar flex flex-col h-full shrink-0">
-      <div className="p-2 border-b border-border">
+    <aside className="w-60 border-r border-border bg-background flex flex-col h-full shrink-0">
+      <div className="p-4 border-b border-border/50 sticky top-0 bg-background z-10">
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
             type="text"
             placeholder="Search..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-accent border-transparent rounded-md outline-none placeholder:text-muted-foreground"
+            className="pl-9 pr-3 h-9 bg-accent border-transparent rounded-lg text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-2">
-        {TOP_SECTIONS.map((section) => (
-          <SidebarSection
-            key={section.key}
-            title={section.title}
-            items={section.data}
-            sectionKey={section.key}
-            collapsed={collapsed}
-            onToggle={toggleKey}
+
+      <div className="flex-1 overflow-y-auto p-4">
+        {q ? (
+          <SearchResults
+            query={q}
+            sections={TOP_SECTIONS}
             onAdd={handleAdd}
           />
-        ))}
-        
-        {customComponents.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-border">
-            <div className="px-3 py-2">
-              <span className="text-xs font-medium text-indigo-500">Custom Components</span>
-            </div>
-            <div className="space-y-0.5">
-              {customComponents.map((comp) => (
-                <div
-                  key={comp.id}
-                  className="group flex items-center gap-2 px-2 py-1.5 text-xs text-foreground rounded hover:bg-accent"
-                >
-                  <div
-                    className="flex items-center justify-center rounded shrink-0"
-                    style={{ width: 20, height: 20, background: `${comp.color}15`, border: `1px solid ${comp.color}30` }}
-                  >
-                    <Server size={10} style={{ color: comp.color }} strokeWidth={1.75} />
+        ) : (
+          <>
+            <Accordion type="single" defaultValue={defaultOpen} collapsible className="space-y-2">
+              {TOP_SECTIONS.map((section) => {
+                const Icon = section.icon;
+                return (
+                  <AccordionItem key={section.key} value={section.key} className="border-0">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent rounded-lg transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium">{section.title}</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-2">
+                      <div className="space-y-1 pl-2">
+                        {section.data.slice(0, 20).map((comp) => (
+                          <ComponentItem key={comp.id} comp={comp} onAdd={handleAdd} />
+                        ))}
+                        {section.data.length > 20 && (
+                          <p className="px-4 py-2 text-xs text-muted-foreground">
+                            +{section.data.length - 20} more items
+                          </p>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+
+            {customComponents.length > 0 && (
+              <div className="mt-6">
+                <Separator className="my-4 bg-border/50" />
+                <div className="space-y-1">
+                  <div className="px-4 py-2">
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">Custom Components</span>
                   </div>
-                  <span className="flex-1 text-left truncate">{comp.label}</span>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleEdit({ id: comp.id, label: comp.label, category: comp.category, description: comp.description })}
-                      className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary"
-                      title="Edit"
+                  {customComponents.map((comp) => (
+                    <div
+                      key={comp.id}
+                      className="group flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
                     >
-                      <Pencil size={12} />
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(comp.id)}
-                      className="p-1 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
-                      title="Delete"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
+                      <div
+                        className="flex items-center justify-center rounded shrink-0"
+                        style={{ width: 28, height: 28, background: `${comp.color}15`, border: `1px solid ${comp.color}30` }}
+                      >
+                        <Server size={12} style={{ color: comp.color }} strokeWidth={1.75} />
+                      </div>
+                      <span className="flex-1 text-left truncate">{comp.label}</span>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleEdit({ id: comp.id, label: comp.label, category: comp.category, description: comp.description })}
+                          className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(comp.id)}
+                          className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
+          </>
         )}
       </div>
-      <div className="p-2 border-t border-border">
-        <button
+
+      <div className="p-4 border-t border-border/50">
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2 h-11 rounded-xl border-dashed text-muted-foreground hover:text-foreground hover:border-primary"
           onClick={() => { setEditComponent(null); setShowCreateModal(true); }}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-muted-foreground border border-dashed border-border rounded-lg hover:border-primary hover:text-primary transition-colors"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus className="w-4 h-4" />
           New component
-        </button>
+        </Button>
       </div>
 
       <CreateComponentModal
@@ -491,30 +323,51 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
         editComponent={editComponent}
       />
 
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl p-5 w-64 shadow-2xl border border-zinc-200 dark:border-zinc-800">
-            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Delete component?</p>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mb-4">
-              This will permanently delete the custom component.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2 text-xs font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 py-2 text-xs font-medium rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        title="Delete component?"
+        description="This will permanently delete the custom component."
+        confirmText="Delete"
+        destructive
+        onConfirm={() => {
+          if (deleteConfirm) {
+            handleDelete(deleteConfirm);
+          }
+        }}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </aside>
+  );
+}
+
+interface SearchResultsProps {
+  query: string;
+  sections: CategorySection[];
+  onAdd: (comp: ComponentEntry) => void;
+}
+
+function SearchResults({ query, sections, onAdd }: SearchResultsProps) {
+  const allItems = sections.flatMap((s) => s.data);
+  const filtered = allItems.filter(
+    (c) =>
+      c.label.toLowerCase().includes(query) ||
+      c.category.toLowerCase().includes(query) ||
+      (c.technology && c.technology.toLowerCase().includes(query))
+  );
+
+  if (filtered.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-muted-foreground">No components found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      {filtered.map((comp) => (
+        <ComponentItem key={comp.id} comp={comp} onAdd={onAdd} />
+      ))}
+    </div>
   );
 }

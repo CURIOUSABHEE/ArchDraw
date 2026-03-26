@@ -6,6 +6,9 @@ import Link from 'next/link';
 import gsap from 'gsap';
 import { Bot, Camera, Film, Car, Layers, Brain, GraduationCap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 
 const templates: { Icon: LucideIcon; name: string; desc: string; nodes: string; tags: string[]; accent: string }[] = [
   { Icon: Bot,    name: 'ChatGPT Architecture', desc: 'LLM RAG pipeline, vector DB, streaming',          nodes: '14', tags: ['AI', 'LLM', 'RAG'],        accent: '#6366f1' },
@@ -20,7 +23,6 @@ export function Templates() {
   const router = useRouter();
   const sectionRef = useRef<HTMLElement>(null);
 
-  // CSS IntersectionObserver reveal
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
@@ -40,7 +42,6 @@ export function Templates() {
     return () => observer.disconnect();
   }, []);
 
-  // GSAP hover-only
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
@@ -51,75 +52,64 @@ export function Templates() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-28 px-6 sm:px-12 lg:px-24" style={{ backgroundColor: '#080c14', opacity: 1 }} id="templates">
-      <div className="max-w-6xl mx-auto h-px mb-20" style={{ background: 'linear-gradient(to right, transparent, rgba(99,102,241,0.3), transparent)' }} />
+    <section ref={sectionRef} className="py-28 px-6 sm:px-12 lg:px-24 bg-background" id="templates">
+      <div className="max-w-6xl mx-auto h-px mb-20 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
       <div className="max-w-6xl mx-auto">
-        <header className="reveal text-center mb-16" style={{ opacity: 1 }}>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: '#6366f1' }}>Templates</p>
-          <h2 className="text-4xl font-bold text-white tracking-tight mb-4">
+        <header className="reveal text-center mb-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4 text-primary">Templates</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight mb-4">
             Start from real-world architectures
           </h2>
-          <p className="text-lg max-w-xl mx-auto" style={{ color: '#64748b' }}>
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
             Learn system design by exploring how the world&apos;s biggest products are built.
           </p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {templates.map((t, i) => (
-            <article
+            <Card
               key={t.name}
-              className={`template-card reveal reveal-delay-${Math.min(i + 1, 5)} will-change-transform p-5 rounded-2xl flex flex-col justify-between cursor-pointer`}
-              style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', opacity: 1 }}
+              className={`template-card reveal reveal-delay-${Math.min(i + 1, 5)} will-change-transform p-5 flex flex-col justify-between cursor-pointer border-border/50 hover:border-primary/20 transition-colors`}
               onClick={() => router.push('/editor')}
             >
-              <div>
-                <div className="flex items-center justify-between mb-3">
+              <CardContent className="p-0 space-y-3">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: t.accent + '15', border: `1px solid ${t.accent}25` }}>
                       <t.Icon style={{ width: 15, height: 15, color: t.accent }} />
                     </div>
-                    <h3 className="font-semibold text-white">{t.name}</h3>
+                    <h3 className="font-semibold text-foreground">{t.name}</h3>
                   </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-wider" style={{ color: '#475569', backgroundColor: 'rgba(255,255,255,0.04)' }}>{t.nodes} Nodes</span>
+                  <Badge variant="secondary" className="text-[10px] font-semibold uppercase tracking-wider">{t.nodes} Nodes</Badge>
                 </div>
-                <p className="text-sm mb-4 leading-relaxed" style={{ color: '#64748b' }}>{t.desc}</p>
-                <div className="flex flex-wrap gap-2 mb-5">
+                <p className="text-sm text-muted-foreground leading-relaxed">{t.desc}</p>
+                <div className="flex flex-wrap gap-2">
                   {t.tags.map((tag) => (
-                    <span key={tag} className="px-2.5 py-0.5 text-xs font-medium rounded-full" style={{ color: t.accent, backgroundColor: t.accent + '15', border: `1px solid ${t.accent}25` }}>{tag}</span>
+                    <Badge key={tag} variant="secondary" className="text-xs" style={{ borderColor: t.accent + '30', color: t.accent, backgroundColor: t.accent + '10' }}>{tag}</Badge>
                   ))}
                 </div>
-              </div>
-              <button className="text-sm flex items-center gap-1 font-semibold transition-colors" style={{ color: '#6366f1' }}>
+              </CardContent>
+              <div className="mt-4 text-sm flex items-center gap-1 font-semibold text-primary">
                 Load template
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
                 </svg>
-              </button>
-            </article>
+              </div>
+            </Card>
           ))}
         </div>
 
         <div className="mt-14 text-center flex flex-wrap items-center justify-center gap-4">
-          <button
-            onClick={() => router.push('/editor')}
-            className="inline-flex items-center px-6 py-3 rounded-xl font-semibold text-sm transition-all"
-            style={{ color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'transparent' }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
-          >
+          <Button variant="outline" onClick={() => router.push('/editor')}>
             Browse all templates →
-          </button>
-          <Link
-            href="/tutorials"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-slate-300 hover:text-white text-sm transition-colors"
-            style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-            onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.2)')}
-            onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.1)')}
-          >
-            <GraduationCap className="w-4 h-4" />
-            Try interactive tutorials
-          </Link>
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link href="/tutorials" className="gap-2">
+              <GraduationCap className="w-4 h-4" />
+              Try interactive tutorials
+            </Link>
+          </Button>
         </div>
       </div>
     </section>

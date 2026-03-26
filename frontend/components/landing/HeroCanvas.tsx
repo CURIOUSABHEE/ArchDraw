@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, useNodesState, useEdgesState, ReactFlowProvider, type NodeTypes,
   type Node, type Edge, applyNodeChanges, type NodeChange,
@@ -10,7 +10,13 @@ import { HeroNode } from './HeroNode';
 
 const nodeTypes: NodeTypes = { heroNode: HeroNode };
 
-const ES = { stroke: '#6366f1', strokeWidth: 1.5, strokeOpacity: 0.7 };
+const ES = { 
+  stroke: '#6366f1', 
+  strokeWidth: 1.5, 
+  strokeOpacity: 0.7,
+  strokeDasharray: '6 4',
+  style: { animation: 'dash 0.8s linear infinite' },
+};
 
 const initialNodes: Node[] = [
   { id: 'client_web',   type: 'heroNode', position: { x: 0,   y: 140 }, data: { label: 'Web',          category: 'Entry',    icon: 'Monitor',  color: '#6366f1' } },
@@ -39,7 +45,6 @@ const animatedNodeIds = ['auth-service', 'llm-api', 'rag-pipeline'];
 function HeroCanvasContent() {
   const [nodes, setNodes] = useNodesState(initialNodes);
   const [edges] = useEdgesState(initialEdges);
-  const gsapCtxRef = useRef<{ revert: () => void } | null>(null);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -47,48 +52,6 @@ function HeroCanvasContent() {
     },
     [setNodes]
   );
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const initAnimations = async () => {
-      const { gsap } = await import('gsap');
-
-      timeoutId = setTimeout(() => {
-        const nodeEls = document.querySelectorAll('.react-flow__node-heroNode');
-        
-        if (nodeEls.length === 0) return;
-
-        gsapCtxRef.current = gsap.context(() => {
-          nodeEls.forEach((nodeEl) => {
-            const nodeId = (nodeEl as HTMLElement).getAttribute('data-id');
-            if (nodeId && animatedNodeIds.includes(nodeId)) {
-              const nodeIndex = animatedNodeIds.indexOf(nodeId);
-              gsap.to(nodeEl, {
-                y: -6,
-                duration: 2.5,
-                repeat: -1,
-                yoyo: true,
-                ease: 'sine.inOut',
-                delay: nodeIndex * 0.4,
-              });
-            }
-          });
-        });
-      }, 100);
-    };
-
-    initAnimations();
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      gsapCtxRef.current?.revert();
-      gsapCtxRef.current = null;
-    };
-  }, []);
 
   return (
     <ReactFlow
@@ -109,7 +72,7 @@ function HeroCanvasContent() {
       preventScrolling={false}
       elevateNodesOnSelect={false}
       onlyRenderVisibleElements={true}
-      defaultEdgeOptions={{ type: 'default', animated: true, style: ES }}
+      defaultEdgeOptions={{ type: 'default', style: ES }}
       proOptions={{ hideAttribution: true }}
       style={{ width: '100%', height: '100%', background: '#0f172a' }}
       onKeyDown={(e) => {

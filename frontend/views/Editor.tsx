@@ -17,7 +17,7 @@ import { useOnboarding } from '@/components/onboarding/useOnboarding';
 import { componentRegistry } from '@/lib/componentRegistry';
 
 export default function EditorPage() {
-  const { selectedNodeId, nodes, sidebarOpen } = useDiagramStore();
+  const { selectedNodeId, selectedEdgeId, nodes, sidebarOpen } = useDiagramStore();
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
@@ -139,7 +139,7 @@ export default function EditorPage() {
           <div className="flex flex-col flex-1 overflow-hidden">
             <Canvas />
           </div>
-          {selectedNodeId && <PropertiesPanel />}
+          {(selectedNodeId || selectedEdgeId) && <PropertiesPanel />}
         </div>
         <CommandPalette />
       </div>
