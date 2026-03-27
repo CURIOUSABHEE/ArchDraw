@@ -185,6 +185,7 @@ export function Toolbar() {
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [embedUrl, setEmbedUrl] = useState('');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [emailCapture, setEmailCapture] = useState<EmailCaptureReason | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -336,6 +337,7 @@ export function Toolbar() {
       }
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
       setShareUrl(baseUrl + '/share/' + data.id);
+      setEmbedUrl(baseUrl + '/embed/' + data.id);
       setShareModalOpen(true);
     } catch (err) {
       console.error('Share exception:', err);
@@ -680,6 +682,7 @@ export function Toolbar() {
       {shareModalOpen && (
         <ShareModal
           shareUrl={shareUrl}
+          embedUrl={embedUrl}
           canvasName={activeCanvas?.name ?? 'Untitled'}
           onClose={() => setShareModalOpen(false)}
         />

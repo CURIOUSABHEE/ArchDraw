@@ -190,6 +190,52 @@
 
 ---
 
+## 16. Embed Diagrams
+**What:** Embed live, read-only diagrams in external platforms (Notion, blogs, docs).
+
+**How:**
+- `app/embed/[id]/page.tsx` - Server component with metadata
+- `app/embed/[id]/EmbedPageClient.tsx` - Client component for rendering
+- `app/api/embed/[id]/route.ts` - API endpoint with caching & CORS
+- `components/embed/EmbedCanvasViewer.tsx` - Lightweight viewer-only canvas
+- `components/ShareModal.tsx` - Three tabs: Link, Notion, HTML
+
+**Three Embed Options:**
+1. **Link** - Simple share URL (30 days)
+2. **Notion** - Just paste URL, Notion auto-embeds
+3. **HTML** - Custom iframe with full options
+
+**Features:**
+- View-only mode: pan, zoom, hover (no editing)
+- Theme: dark/light via `?theme=dark|light`
+- Zoom: `?zoom=0.8`
+- Edge style: `?path=smooth|step|straight|bezier`
+- Controls: `?controls=false`
+- Live preview in modal
+- One-click copy
+- CORS for allowed origins
+- Redis caching
+
+**Query Params:**
+| Param | Values | Default |
+|-------|--------|---------|
+| `theme` | `dark`, `light` | `dark` |
+| `zoom` | `0.1` - `2` | `1` |
+| `path` | `smooth`, `step`, `straight`, `bezier` | `smooth` |
+| `controls` | `true`, `false` | `true` |
+
+**Production URL:**
+```
+https://archdraw.abhishekjamdade.xyz/embed/{id}?theme=dark
+```
+
+**Notion Usage:**
+1. Click Share → Notion tab
+2. Copy embed link
+3. Paste into Notion - it auto-embeds!
+
+---
+
 ## Tech Stack Summary
 
 | Layer | Technology |

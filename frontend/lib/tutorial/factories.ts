@@ -438,6 +438,6 @@ export const EDGE_LABEL: Record<string, string> = {
   dashboard: 'Dashboard',
   bff_gateway: 'BFF Gateway',
   serverless_fn: 'Serverless Function',
-  token_bucket_rate_limiter: 'Token Bucket Rate Limimiter',
+  token_bucket_rate_limiter: 'Token Bucket Rate Limiter',
   otel_collector: 'OpenTelemetry Collector',
 };
