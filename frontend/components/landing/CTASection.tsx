@@ -76,7 +76,7 @@ export function CTASection() {
           ref={btnRef}
           size="lg"
           onClick={() => router.push('/editor')}
-          className="reveal reveal-delay-2 will-change-transform text-lg px-10 py-6"
+          className="reveal reveal-delay-2 will-change-transform text-lg px-10 py-6 shadow-lg shadow-primary/40 hover:shadow-xl hover:shadow-primary/50 hover:scale-105 transition-all pulse-glow-btn"
         >
           Open the canvas →
         </Button>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, ChevronDown, Plus, Pencil, Trash2, Server } from 'lucide-react';
 import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData, type ComponentToEdit } from './CreateComponentModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -56,6 +56,8 @@ interface ComponentEntry {
   color: string;
   icon?: string;
   technology?: string;
+  description?: string;
+  isCustom?: boolean;
 }
 
 const COMPONENT_DESCRIPTIONS: Record<string, string> = {
@@ -156,9 +158,21 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [customComponents, setCustomComponents] = useState(() => componentRegistry.getCustomComponents());
+  const [customComponents, setCustomComponents] = useState<ComponentEntry[]>([]);
   const addNode = useDiagramStore((s) => s.addNode);
   const existingNames = componentRegistry.getAll().map(c => c.label.toLowerCase());
+
+  useEffect(() => {
+    setCustomComponents(componentRegistry.getCustomComponents() as ComponentEntry[]);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      setCustomComponents(componentRegistry.getCustomComponents() as ComponentEntry[]);
+    };
+    window.addEventListener('custom-component-added', handler);
+    return () => window.removeEventListener('custom-component-added', handler);
+  }, []);
 
   const handleAdd = (comp: ComponentEntry) => {
     addNode(comp.id, comp.label, comp.category, comp.color, comp.icon, comp.technology, getViewportCenter());
@@ -212,10 +226,63 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
           <SearchResults
             query={q}
             sections={TOP_SECTIONS}
+            customComponents={customComponents}
             onAdd={handleAdd}
           />
         ) : (
           <>
+            {customComponents.length > 0 && (
+              <div className="mb-4 p-3 rounded-xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-primary uppercase tracking-wider">Your Components</span>
+                  <span className="text-[10px] text-muted-foreground">{customComponents.length} item{customComponents.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="space-y-1">
+                  {customComponents.map((comp) => (
+                    <div
+                      key={comp.id}
+                      className="group flex items-center gap-2 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-background/80 rounded-lg transition-colors cursor-grab active:cursor-grabbing"
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
+                        e.dataTransfer.effectAllowed = 'move';
+                        const ghost = makeDragGhost(comp.label, comp.color);
+                        document.body.appendChild(ghost);
+                        e.dataTransfer.setDragImage(ghost, 0, 0);
+                        setTimeout(() => document.body.removeChild(ghost), 0);
+                      }}
+                      onClick={() => handleAdd(comp)}
+                      title={comp.description || comp.label}
+                    >
+                      <div
+                        className="flex items-center justify-center rounded shrink-0"
+                        style={{ width: 24, height: 24, background: `${comp.color}15`, border: `1px solid ${comp.color}30` }}
+                      >
+                        <Server size={10} style={{ color: comp.color }} strokeWidth={1.75} />
+                      </div>
+                      <span className="flex-1 text-left truncate text-xs">{comp.label}</span>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEdit({ id: comp.id, label: comp.label, category: comp.category, description: comp.description }); }}
+                          className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(comp.id); }}
+                          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <Accordion type="single" defaultValue={defaultOpen} collapsible className="space-y-2">
               {TOP_SECTIONS.map((section) => {
                 const Icon = section.icon;
@@ -243,47 +310,6 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
                 );
               })}
             </Accordion>
-
-            {customComponents.length > 0 && (
-              <div className="mt-6">
-                <Separator className="my-4 bg-border/50" />
-                <div className="space-y-1">
-                  <div className="px-4 py-2">
-                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">Custom Components</span>
-                  </div>
-                  {customComponents.map((comp) => (
-                    <div
-                      key={comp.id}
-                      className="group flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-                    >
-                      <div
-                        className="flex items-center justify-center rounded shrink-0"
-                        style={{ width: 28, height: 28, background: `${comp.color}15`, border: `1px solid ${comp.color}30` }}
-                      >
-                        <Server size={12} style={{ color: comp.color }} strokeWidth={1.75} />
-                      </div>
-                      <span className="flex-1 text-left truncate">{comp.label}</span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleEdit({ id: comp.id, label: comp.label, category: comp.category, description: comp.description })}
-                          className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(comp.id)}
-                          className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
@@ -343,19 +369,28 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
 interface SearchResultsProps {
   query: string;
   sections: CategorySection[];
+  customComponents: ComponentEntry[];
   onAdd: (comp: ComponentEntry) => void;
 }
 
-function SearchResults({ query, sections, onAdd }: SearchResultsProps) {
-  const allItems = sections.flatMap((s) => s.data);
-  const filtered = allItems.filter(
+function SearchResults({ query, sections, customComponents, onAdd }: SearchResultsProps) {
+  const nativeItems = sections.flatMap((s) => s.data);
+  
+  const customFiltered = customComponents.filter(
+    (c) =>
+      c.label.toLowerCase().includes(query) ||
+      c.category.toLowerCase().includes(query) ||
+      (c.description && c.description.toLowerCase().includes(query))
+  );
+  
+  const nativeFiltered = nativeItems.filter(
     (c) =>
       c.label.toLowerCase().includes(query) ||
       c.category.toLowerCase().includes(query) ||
       (c.technology && c.technology.toLowerCase().includes(query))
   );
 
-  if (filtered.length === 0) {
+  if (nativeFiltered.length === 0 && customFiltered.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-sm text-muted-foreground">No components found</p>
@@ -365,9 +400,51 @@ function SearchResults({ query, sections, onAdd }: SearchResultsProps) {
 
   return (
     <div className="space-y-1">
-      {filtered.map((comp) => (
-        <ComponentItem key={comp.id} comp={comp} onAdd={onAdd} />
-      ))}
+      {customFiltered.length > 0 && (
+        <>
+          <div className="px-2 py-1.5">
+            <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">Your Components</span>
+          </div>
+          {customFiltered.map((comp) => (
+            <div
+              key={comp.id}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors cursor-grab active:cursor-grabbing"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
+                e.dataTransfer.effectAllowed = 'move';
+                const ghost = makeDragGhost(comp.label, comp.color);
+                document.body.appendChild(ghost);
+                e.dataTransfer.setDragImage(ghost, 0, 0);
+                setTimeout(() => document.body.removeChild(ghost), 0);
+              }}
+              onClick={() => onAdd(comp)}
+              title={comp.description || comp.label}
+            >
+              <div
+                className="flex items-center justify-center rounded shrink-0"
+                style={{ width: 28, height: 28, background: `${comp.color}15`, border: `1px solid ${comp.color}30` }}
+              >
+                <Server size={12} style={{ color: comp.color }} strokeWidth={1.75} />
+              </div>
+              <span className="flex-1 text-left truncate">{comp.label}</span>
+              <span className="text-[10px] text-muted-foreground">custom</span>
+            </div>
+          ))}
+        </>
+      )}
+      {nativeFiltered.length > 0 && (
+        <>
+          {customFiltered.length > 0 && (
+            <div className="px-2 py-1.5 mt-2">
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Built-in</span>
+            </div>
+          )}
+          {nativeFiltered.map((comp) => (
+            <ComponentItem key={comp.id} comp={comp} onAdd={onAdd} />
+          ))}
+        </>
+      )}
     </div>
   );
 }

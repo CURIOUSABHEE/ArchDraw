@@ -117,7 +117,7 @@ export function Hero() {
             </p>
 
             <div className="hero-cta-group flex items-center gap-4 flex-wrap">
-              <Button size="lg" onClick={() => router.push('/editor')} className="gap-2 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow">
+              <Button size="lg" onClick={() => router.push('/editor')} className="gap-2 shadow-lg shadow-primary/40 hover:shadow-xl hover:shadow-primary/50 hover:scale-105 transition-all bg-primary pulse-glow-btn">
                 Start designing — it&apos;s free <ArrowRight className="w-4 h-4" />
               </Button>
               <Button variant="outline" size="lg" onClick={() => document.getElementById('templates')?.scrollIntoView({ behavior: 'smooth' })} className="gap-2">

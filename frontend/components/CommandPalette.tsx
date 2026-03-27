@@ -33,6 +33,15 @@ function useCustomComponentListener() {
     return () => window.removeEventListener('custom-component-added', handler);
   }, []);
   
+  useEffect(() => {
+    const handler = () => {
+      globalSearchVersion++;
+      setVersion(v => v + 1);
+    };
+    window.addEventListener('custom-component-deleted', handler);
+    return () => window.removeEventListener('custom-component-deleted', handler);
+  }, []);
+  
   return version;
 }
 
@@ -46,6 +55,14 @@ export function CommandPalette() {
   
   const registryVersion = useCustomComponentListener();
   const version = registryVersion + globalSearchVersion;
+
+  useEffect(() => {
+    const handler = () => {
+      globalSearchVersion++;
+    };
+    window.addEventListener('custom-component-added', handler);
+    return () => window.removeEventListener('custom-component-added', handler);
+  }, []);
 
   const filtered = componentRegistry.search(search);
 
@@ -64,9 +81,12 @@ export function CommandPalette() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Auto-focus input when opened
+  // Auto-focus input when opened and refresh registry
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 0);
+    if (open) {
+      globalSearchVersion++;
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
   }, [open]);
 
   // Reset selection when search changes

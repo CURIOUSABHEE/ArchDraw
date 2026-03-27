@@ -142,41 +142,41 @@ export default function EditorPage() {
           {(selectedNodeId || selectedEdgeId) && <PropertiesPanel />}
         </div>
         <CommandPalette />
-      </div>
-      <OnboardingOverlay />
+        <OnboardingOverlay />
         <CreateComponentModal
-        isOpen={showCreateModal}
-        onClose={() => { setShowCreateModal(false); setEditComponent(null); }}
-        onCreate={(data: CreateComponentData) => {
-          const typeInfo = COMPONENT_TYPES.find(t => t.id === data.type);
-          const id = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-          componentRegistry.addCustomComponent({
-            id,
-            label: data.name,
-            category: typeInfo?.label || 'Other',
-            color: typeInfo?.color || '#6366f1',
-            description: data.description,
-            technology: 'custom',
-          });
-          setShowCreateModal(false);
-          setEditComponent(null);
-          window.dispatchEvent(new CustomEvent('custom-component-added'));
-        }}
-        onUpdate={(id: string, data: CreateComponentData) => {
-          const typeInfo = COMPONENT_TYPES.find(t => t.id === data.type);
-          componentRegistry.updateCustomComponent(id, {
-            label: data.name,
-            category: typeInfo?.label || 'Other',
-            color: typeInfo?.color || '#6366f1',
-            description: data.description,
-          });
-          setShowCreateModal(false);
-          setEditComponent(null);
-          window.dispatchEvent(new CustomEvent('custom-component-added'));
-        }}
-        existingNames={componentRegistry.getAll().map(c => c.label.toLowerCase())}
-        editComponent={editComponent}
-      />
+          isOpen={showCreateModal}
+          onClose={() => { setShowCreateModal(false); setEditComponent(null); }}
+          onCreate={(data: CreateComponentData) => {
+            const typeInfo = COMPONENT_TYPES.find(t => t.id === data.type);
+            const id = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            componentRegistry.addCustomComponent({
+              id,
+              label: data.name,
+              category: typeInfo?.label || 'Other',
+              color: typeInfo?.color || '#6366f1',
+              description: data.description,
+              technology: 'custom',
+            });
+            setShowCreateModal(false);
+            setEditComponent(null);
+            window.dispatchEvent(new CustomEvent('custom-component-added'));
+          }}
+          onUpdate={(id: string, data: CreateComponentData) => {
+            const typeInfo = COMPONENT_TYPES.find(t => t.id === data.type);
+            componentRegistry.updateCustomComponent(id, {
+              label: data.name,
+              category: typeInfo?.label || 'Other',
+              color: typeInfo?.color || '#6366f1',
+              description: data.description,
+            });
+            setShowCreateModal(false);
+            setEditComponent(null);
+            window.dispatchEvent(new CustomEvent('custom-component-added'));
+          }}
+          existingNames={componentRegistry.getAll().map(c => c.label.toLowerCase())}
+          editComponent={editComponent}
+        />
+      </div>
     </ErrorBoundary>
   );
 }
