@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { EmbedCanvasViewer } from '@/components/embed/EmbedCanvasViewer';
 import type { Node, Edge } from 'reactflow';
 
@@ -16,7 +16,7 @@ interface EmbedPageClientProps {
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
-function EmbedContent({ id, searchParams }: EmbedPageClientProps) {
+export default function EmbedPageClient({ id, searchParams }: EmbedPageClientProps) {
   const [diagram, setDiagram] = useState<DiagramData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ function EmbedContent({ id, searchParams }: EmbedPageClientProps) {
   const pathType = (searchParams.path as 'smooth' | 'step' | 'straight' | 'bezier') || 'smooth';
 
   useEffect(() => {
-    async function fetchDiagram() {
+    const fetchDiagram = async () => {
       try {
         const response = await fetch(`/api/embed/${id}`);
         if (!response.ok) {
@@ -41,62 +41,69 @@ function EmbedContent({ id, searchParams }: EmbedPageClientProps) {
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     fetchDiagram();
   }, [id]);
 
+  const styles: React.CSSProperties = {
+    width: '100vw',
+    height: '100vh',
+    margin: 0,
+    padding: 0,
+    overflow: 'hidden',
+    background: theme === 'dark' ? '#0f172a' : '#ffffff',
+    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+  };
+
   if (loading) {
     return (
-      <div
-        style={{
-          width: '100vw',
-          height: '100vh',
-          background: theme === 'dark' ? '#0f172a' : '#ffffff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <div
-          style={{
+      <div style={styles}>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+        }}>
+          <div style={{
             width: 32,
             height: 32,
             border: '3px solid transparent',
             borderTopColor: '#6366f1',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
-          }}
-        />
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
+          }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
       </div>
     );
   }
 
   if (error === 'not_found') {
     return (
-      <div
-        style={{
-          width: '100vw',
-          height: '100vh',
-          background: theme === 'dark' ? '#0f172a' : '#ffffff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
+      <div style={styles}>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+        }}>
           <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>📊</div>
-          <p style={{ color: theme === 'dark' ? '#f1f5f9' : '#1e293b', fontSize: 18, fontWeight: 600 }}>
+          <p style={{ 
+            color: theme === 'dark' ? '#f1f5f9' : '#1e293b', 
+            fontSize: 18, 
+            fontWeight: 600,
+            margin: 0,
+          }}>
             Diagram not found
           </p>
-          <p style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontSize: 14, marginTop: 8 }}>
-            This diagram may have been deleted or the link is invalid.
+          <p style={{ 
+            color: theme === 'dark' ? '#94a3b8' : '#64748b', 
+            fontSize: 14, 
+            marginTop: 8,
+          }}>
+            This diagram may have been deleted.
           </p>
         </div>
       </div>
@@ -105,23 +112,28 @@ function EmbedContent({ id, searchParams }: EmbedPageClientProps) {
 
   if (error === 'failed' || !diagram) {
     return (
-      <div
-        style={{
-          width: '100vw',
-          height: '100vh',
-          background: theme === 'dark' ? '#0f172a' : '#ffffff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ color: theme === 'dark' ? '#f1f5f9' : '#1e293b', fontSize: 18, fontWeight: 600 }}>
+      <div style={styles}>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+        }}>
+          <p style={{ 
+            color: theme === 'dark' ? '#f1f5f9' : '#1e293b', 
+            fontSize: 18, 
+            fontWeight: 600,
+            margin: 0,
+          }}>
             Failed to load diagram
           </p>
-          <p style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontSize: 14, marginTop: 8 }}>
-            Please try refreshing the page.
+          <p style={{ 
+            color: theme === 'dark' ? '#94a3b8' : '#64748b', 
+            fontSize: 14, 
+            marginTop: 8,
+          }}>
+            Please try refreshing.
           </p>
         </div>
       </div>
@@ -129,31 +141,15 @@ function EmbedContent({ id, searchParams }: EmbedPageClientProps) {
   }
 
   return (
-    <EmbedCanvasViewer
-      nodes={diagram.nodes}
-      edges={diagram.edges}
-      theme={theme}
-      zoom={zoom}
-      showControls={showControls}
-      pathType={pathType}
-    />
-  );
-}
-
-export default function EmbedPageClient({ id, searchParams }: EmbedPageClientProps) {
-  return (
-    <Suspense
-      fallback={
-        <div
-          style={{
-            width: '100vw',
-            height: '100vh',
-            background: '#0f172a',
-          }}
-        />
-      }
-    >
-      <EmbedContent id={id} searchParams={searchParams} />
-    </Suspense>
+    <div style={styles}>
+      <EmbedCanvasViewer
+        nodes={diagram.nodes}
+        edges={diagram.edges}
+        theme={theme}
+        zoom={zoom}
+        showControls={showControls}
+        pathType={pathType}
+      />
+    </div>
   );
 }
