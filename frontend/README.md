@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ArchDraw
+
+A free, open-source tool for designing system architecture diagrams. Built with Next.js, React Flow, and Tailwind CSS.
+
+**Live:** [https://archdraw.abhishekjamdade.xyz](https://archdraw.abhishekjamdade.xyz)
+
+## Features
+
+- **Drag & Drop Components** - Build diagrams by dragging components from a curated library
+- **150+ Components** - Includes AWS services, databases, AI/ML tools, and more
+- **Custom Components** - Create and save your own reusable components
+- **AI-Powered** - Generate diagrams from text descriptions
+- **Interactive Tutorials** - Learn system design patterns with guided tutorials
+- **Real-time Templates** - Start from battle-tested architectures (ChatGPT, Instagram, Netflix, etc.)
+- **Export Options** - Download as PNG, PDF, JSON, or embed as HTML
+- **Shareable Links** - Share your diagrams with a single click
+- **Dark/Light Mode** - Works in both themes
+
+## Tech Stack
+
+- **Framework:** Next.js 15 (App Router)
+- **Diagramming:** React Flow
+- **Styling:** Tailwind CSS + shadcn/ui
+- **Animations:** Framer Motion + GSAP
+- **Backend:** Supabase (auth, database, real-time)
+- **Icons:** Lucide React
+- **State:** Zustand
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm/yarn/pnpm/bun
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/anomalyco/archdraw.git
+cd archdraw/frontend
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to start designing.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Keyboard Shortcuts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Shortcut | Action |
+|----------|--------|
+| `Cmd/Ctrl + K` | Open component search |
+| `Cmd/Ctrl + Z` | Undo |
+| `Cmd/Ctrl + Shift + Z` | Redo |
+| `Delete/Backspace` | Delete selected |
+| `Cmd/Ctrl + D` | Duplicate selected |
+| `Cmd/Ctrl + Shift + N` | Create new component |
+| `?` | Show shortcuts |
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+frontend/
+├── app/                    # Next.js app router
+├── components/
+│   ├── landing/           # Landing page components
+│   ├── ui/                # shadcn/ui components
+│   └── ...                # Core editor components
+├── data/                  # Component definitions
+├── hooks/                 # Custom React hooks
+├── lib/                   # Utilities & registries
+├── store/                 # Zustand stores
+└── views/                 # Page views
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Deploy to Vercel with one click:
 
-## Deploy on Vercel
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/anomalyco/archdraw)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contributing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT License

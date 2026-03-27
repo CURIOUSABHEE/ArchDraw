@@ -17,6 +17,7 @@ const PATH_TYPES: PathType[] = ['smooth', 'bezier', 'step', 'straight'];
 export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, currentPathType }: Props) {
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
   const deleteEdge = useDiagramStore((s) => s.deleteEdge);
+  const setCurrentEdgeType = useDiagramStore((s) => s.setCurrentEdgeType);
   const menuRef = useRef<HTMLDivElement>(null);
   
   const [showSubmenu, setShowSubmenu] = React.useState<'type' | 'path' | null>(null);
@@ -46,6 +47,7 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
 
   const handleEdgeTypeChange = (type: EdgeType) => {
     updateEdgeData(edgeId, { edgeType: type });
+    setCurrentEdgeType(type);
     onClose();
   };
 

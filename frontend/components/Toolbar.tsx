@@ -21,8 +21,142 @@ import { GenerateDiagramPanel } from '@/components/ai/GenerateDiagramPanel';
 import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDiagramStore as useDiagramStoreTyped } from '@/store/diagramStore';
+import { EDGE_TYPE_CONFIGS, type EdgeType } from '@/data/edgeTypes';
 
-type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf';
+type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf' | 'html-embed';
+
+function generateEmbedHTML(nodes: any[], edges: any[]): string {
+  const svgWidth = 1200;
+  const svgHeight = 800;
+  
+  const nodeMap = new Map<string, { x: number; y: number; width: number; height: number }>();
+  const renderedNodes = nodes.map(node => {
+    const width = node.width || 140;
+    const height = node.height || 72;
+    nodeMap.set(node.id, { x: node.position.x, y: node.position.y, width, height });
+    return {
+      ...node,
+      width,
+      height,
+      color: node.data?.color || '#6366f1',
+      label: node.data?.label || node.id,
+    };
+  });
+  
+  const renderedEdges = edges.map(edge => ({
+    source: edge.source,
+    target: edge.target,
+    label: edge.data?.label || '',
+    color: edge.style?.stroke || '#64748b',
+  }));
+  
+  const nodesSVG = renderedNodes.map(node => {
+    const { x, y, width, height, color, label } = node;
+    return `
+    <g transform="translate(${x}, ${y})" class="node">
+      <rect width="${width}" height="${height}" rx="8" fill="#1e293b" stroke="${color}" stroke-width="2"/>
+      <rect width="${width}" height="4" rx="2" fill="${color}"/>
+      <text x="${width/2}" y="${height/2 + 5}" text-anchor="middle" fill="#f1f5f9" font-family="system-ui,sans-serif" font-size="12" font-weight="500">${label}</text>
+    </g>`;
+  }).join('');
+  
+  const edgesSVG = renderedEdges.map(edge => {
+    const source = nodeMap.get(edge.source);
+    const target = nodeMap.get(edge.target);
+    if (!source || !target) return '';
+    
+    const sx = source.x + source.width;
+    const sy = source.y + source.height / 2;
+    const tx = target.x;
+    const ty = target.y + target.height / 2;
+    const mx = (sx + tx) / 2;
+    
+    const path = `M ${sx} ${sy} C ${mx} ${sy}, ${mx} ${ty}, ${tx} ${ty}`;
+    const labelX = (sx + tx) / 2;
+    const labelY = (sy + ty) / 2 - 8;
+    
+    return `
+    <g class="edge">
+      <path d="${path}" fill="none" stroke="${edge.color}" stroke-width="2" marker-end="url(#arrowhead)"/>
+      ${edge.label ? `<text x="${labelX}" y="${labelY}" text-anchor="middle" fill="#94a3b8" font-family="system-ui,sans-serif" font-size="10">${edge.label}</text>` : ''}
+    </g>`;
+  }).join('');
+  
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArchFlow Diagram</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #0f172a; 
+      min-height: 100vh; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: #1e293b;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      padding: 20px;
+      max-width: 100%;
+      overflow: auto;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #334155;
+    }
+    .title {
+      color: #f1f5f9;
+      font-family: system-ui, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .badge {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    svg { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="title">Architecture Diagram</span>
+      <span class="badge">Created with ArchFlow</span>
+    </div>
+    <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
+      <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+        </marker>
+      </defs>
+      <!-- Grid pattern -->
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.5" opacity="0.5"/>
+      </pattern>
+      <rect width="100%" height="100%" fill="url(#grid)"/>
+      <!-- Edges -->
+      ${edgesSVG}
+      <!-- Nodes -->
+      ${nodesSVG}
+    </svg>
+  </div>
+</body>
+</html>`;
+}
 
 function formatRelative(ts: number): string {
   const diff = Math.floor((Date.now() - ts) / 1000);
@@ -40,6 +174,7 @@ export function Toolbar() {
     canvases, activeCanvasId, addCanvas, removeCanvas, switchCanvas, renameCanvas,
     savingState, userProfile, setSidebarOpen, sidebarOpen,
     aiPanelOpen, closeAIPanel,
+    currentEdgeType, setCurrentEdgeType,
   } = useDiagramStore();
 
   const { user } = useAuthStore();
@@ -81,6 +216,19 @@ export function Toolbar() {
       const blob = new Blob([JSON.stringify({ nodes, edges }, null, 2)], { type: 'application/json' });
       downloadFile(blob, 'diagram.json');
       toast.success('Exported as JSON');
+      return;
+    }
+    if (format === 'html-embed') {
+      const htmlContent = generateEmbedHTML(nodes, edges);
+      const iframeCode = `<iframe 
+  src="data:text/html,${encodeURIComponent(htmlContent)}" 
+  width="100%" 
+  height="600" 
+  style="border:none;border-radius:12px;"
+  title="ArchFlow Diagram"
+></iframe>`;
+      await navigator.clipboard.writeText(iframeCode);
+      toast.success('Embed code (iframe) copied to clipboard');
       return;
     }
     const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
@@ -373,6 +521,16 @@ export function Toolbar() {
 
           <ThemeToggle />
 
+          <EdgeTypeSelector currentType={currentEdgeType} onChange={setCurrentEdgeType} />
+
+          <button
+            onClick={() => setTemplatesOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/60 hover:bg-accent text-foreground transition-all"
+          >
+            <LayoutTemplate className="w-3.5 h-3.5" />
+            <span>Templates</span>
+          </button>
+
           <button
             onClick={() => closeAIPanel()}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -434,6 +592,7 @@ export function Toolbar() {
                   {([
                     { label: 'JSON', format: 'json' },
                     { label: 'PDF', format: 'pdf' },
+                    { label: 'HTML Embed', format: 'html-embed' },
                   ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
                     <button
                       key={format}
@@ -552,5 +711,78 @@ export function Toolbar() {
         onCancel={() => setConfirmDeleteId(null)}
       />
     </>
+  );
+}
+
+function EdgeTypeSelector({ currentType, onChange }: { currentType: EdgeType; onChange: (type: EdgeType) => void }) {
+  const [open, setOpen] = useState(false);
+  const currentConfig = EDGE_TYPE_CONFIGS[currentType];
+
+  const getPath = (pathType: string) => {
+    if (pathType === 'step') return 'M 1 1 L 6 1 L 6 11 L 15 11';
+    if (pathType === 'straight') return 'M 1 6 L 15 6';
+    return 'M 1 6 C 6 1, 10 11, 15 6';
+  };
+
+  const getLargePath = (pathType: string) => {
+    if (pathType === 'step') return 'M 1 1 L 8 1 L 8 11 L 19 11';
+    if (pathType === 'straight') return 'M 1 6 L 19 6';
+    return 'M 1 6 C 6 1, 14 11, 19 6';
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-accent/60 hover:bg-accent text-foreground transition-all border border-border/50"
+        title="Edge type for new connections"
+      >
+        <svg width="16" height="12" viewBox="0 0 16 12" className="shrink-0">
+          <path
+            d={getPath(currentConfig.pathType)}
+            fill="none"
+            stroke={currentConfig.color}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <polygon points="14,4 15,6 14,8" fill={currentConfig.color} />
+        </svg>
+        <span className="hidden sm:inline">{currentConfig.label}</span>
+        <ChevronDown className="w-3 h-3" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 w-40 rounded-xl overflow-hidden z-30 bg-card/98 border border-border/80 shadow-lg backdrop-blur-md">
+            {(Object.keys(EDGE_TYPE_CONFIGS) as EdgeType[]).map((type) => {
+              const config = EDGE_TYPE_CONFIGS[type];
+              return (
+                <button
+                  key={type}
+                  onClick={() => { onChange(type); setOpen(false); }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
+                    type === currentType ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+                  }`}
+                >
+                  <svg width="20" height="12" viewBox="0 0 20 12" className="shrink-0">
+                    <path
+                      d={getLargePath(config.pathType)}
+                      fill="none"
+                      stroke={config.color}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                    <polygon points="18,4 19,6 18,8" fill={config.color} />
+                  </svg>
+                  <span className="flex-1 text-left">{config.label}</span>
+                  {type === currentType && <Check className="w-3 h-3 text-primary" />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
   );
 }

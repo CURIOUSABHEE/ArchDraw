@@ -93,6 +93,13 @@ export function PropertiesPanel() {
 
   const node = nodes.find((n) => n.id === selectedNodeId);
 
+  const labelRef = useRef<HTMLInputElement>(null);
+  const [localLabel, setLocalLabel] = useState(node?.data?.label ?? '');
+
+  useEffect(() => {
+    if (node) setLocalLabel(node.data.label ?? '');
+  }, [node?.id]);
+
   if (selectedEdgeId && !node) {
     return <EdgePropertiesPanel />;
   }
@@ -102,13 +109,6 @@ export function PropertiesPanel() {
   const data = node.data;
   const techOptions = TECH_OPTIONS[data.category] ?? [];
   const activeAccent = data.accentColor ?? data.color ?? '#6366f1';
-
-  const labelRef = useRef<HTMLInputElement>(null);
-  const [localLabel, setLocalLabel] = useState(node.data.label ?? '');
-
-  useEffect(() => {
-    if (node) setLocalLabel(node.data.label ?? '');
-  }, [node?.id]);
 
   const commitLabel = () => {
     if (localLabel.trim()) updateNodeData(node.id, { label: localLabel.trim() });
