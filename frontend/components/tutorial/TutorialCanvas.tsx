@@ -23,6 +23,8 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
+import { MessageBrokerNode } from '@/components/MessageBrokerNode';
+import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
 import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
 import { ComponentPalette } from '@/components/tutorial/ComponentPalette';
 import { NodeTooltip } from '@/components/tutorial/NodeTooltip';
@@ -89,11 +91,15 @@ function TutorialSystemNodeWrapper(props: NodeProps<NodeData>) {
 }
 
 const NODE_TYPES = {
-  systemNode: TutorialSystemNodeWrapper,
-  shapeNode: ShapeNode,
-  groupNode: GroupNode,
-  textLabelNode: TextLabelNode,
-  annotationNode: AnnotationNode,
+  systemNode:        TutorialSystemNodeWrapper,
+  baseNode:          BaseNode,
+  databaseNode:     DatabaseNode,
+  cacheNode:         CacheNode,
+  shapeNode:         ShapeNode,
+  groupNode:         GroupNode,
+  textLabelNode:     TextLabelNode,
+  annotationNode:    AnnotationNode,
+  messageBrokerNode: MessageBrokerNode,
 };
 
 interface TutorialCanvasInnerProps {

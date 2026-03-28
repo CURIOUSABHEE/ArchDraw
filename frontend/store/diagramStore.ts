@@ -13,6 +13,8 @@ import {
 } from 'reactflow';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { DEFAULT_EDGE_TYPE, type EdgeType } from '@/data/edgeTypes';
+import { getNodeShape } from '@/lib/nodeShapes';
+import { validateStrictConnection, getStrictPortConfig } from '@/lib/componentPorts';
 
 // Module-level fitView callback — set by Canvas on mount, avoids circular imports
 type FitViewOptions = { padding?: number; duration?: number; maxZoom?: number };
@@ -39,6 +41,7 @@ export interface GuideLine {
 export interface NodeData {
   label: string;
   category: string;
+  componentType?: string;
   color?: string;
   icon?: string;
   description?: string;
@@ -48,6 +51,7 @@ export interface NodeData {
   accentColor?: string;
   technology?: string;
   nodeWidth?: number;
+  shape?: string;
 }
 
 export interface CanvasTab {
@@ -128,7 +132,7 @@ interface DiagramState {
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
-  addNode: (type: string, label: string, category: string, color?: string, icon?: string, technology?: string, position?: { x: number; y: number }) => void;
+  addNode: (node: Node<NodeData> | string, label?: string, category?: string, color?: string, icon?: string, technology?: string, position?: { x: number; y: number }) => void;
   removeNode: (id: string) => void;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
   updateEdgeData: (id: string, data: Record<string, unknown>) => void;
@@ -366,6 +370,24 @@ export const useDiagramStore = create<DiagramState>()(
       },
 
       onConnect: (connection) => {
+        const sourceNode = get().nodes.find(n => n.id === connection.source);
+        const targetNode = get().nodes.find(n => n.id === connection.target);
+        let connectionValidation = null;
+        
+        if (sourceNode && targetNode) {
+          const sourceType = sourceNode.data.componentType;
+          const targetType = targetNode.data.componentType;
+          
+          if (sourceType && targetType) {
+            connectionValidation = validateStrictConnection(sourceType, targetType);
+            
+            if (!connectionValidation.allowed) {
+              console.warn(`Connection blocked: ${connectionValidation.reason}`);
+              return;
+            }
+          }
+        }
+        
         get().pushHistory();
         const edgeId = `edge-${Date.now()}`;
         const edgeType = get().currentEdgeType;
@@ -374,7 +396,10 @@ export const useDiagramStore = create<DiagramState>()(
             ...connection, 
             id: edgeId, 
             type: 'custom', 
-            data: { edgeType },
+            data: { 
+              edgeType,
+              validation: connectionValidation,
+            },
           },
           get().edges
         );
@@ -385,9 +410,41 @@ export const useDiagramStore = create<DiagramState>()(
 
       addNode: (type, label, category, color, icon, technology, position) => {
         get().pushHistory();
-        const id = `${type}-${Date.now()}`;
-        const pos = position ?? { x: 400 + Math.random() * 200 - 100, y: 300 + Math.random() * 200 - 100 };
-        const newNode: Node<NodeData> = { id, type: 'systemNode', position: pos, data: { label, category, color, icon, technology } };
+        
+        let newNode: Node<NodeData>;
+        
+        // Check if first arg is a pre-built node (from factory)
+        if (typeof type === 'object' && 'id' in type && 'data' in type) {
+          newNode = type as Node<NodeData>;
+        } else {
+          // Legacy path - construct node manually (should be deprecated)
+          const id = `${type}-${Date.now()}`;
+          const pos = position ?? { x: 400 + Math.random() * 200 - 100, y: 300 + Math.random() * 200 - 100 };
+          const shape = getNodeShape(category || 'Compute');
+          
+          let componentType = type;
+          try {
+            getStrictPortConfig(type);
+          } catch {
+            componentType = (category || 'compute').toLowerCase().replace(/[^a-z0-9]/g, '_');
+          }
+          
+          newNode = { 
+            id, 
+            type: 'baseNode', 
+            position: pos, 
+            data: { 
+              label: label || type, 
+              category: category || 'Compute', 
+              color, 
+              icon, 
+              technology, 
+              shape, 
+              componentType 
+            } 
+          };
+        }
+        
         const nodes = [...get().nodes, newNode];
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
         set({ nodes, canvases });

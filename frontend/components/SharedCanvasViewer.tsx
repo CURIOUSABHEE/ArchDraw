@@ -13,16 +13,22 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
+import { MessageBrokerNode } from '@/components/MessageBrokerNode';
+import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
 import { EmailCaptureModal } from '@/components/EmailCaptureModal';
 
 const NODE_TYPES = {
-  systemNode:     SystemNode,
-  shapeNode:      ShapeNode,
-  groupNode:      GroupNode,
-  textLabelNode:  TextLabelNode,
-  annotationNode: AnnotationNode,
+  systemNode:        SystemNode,
+  baseNode:          BaseNode,
+  databaseNode:     DatabaseNode,
+  cacheNode:         CacheNode,
+  shapeNode:         ShapeNode,
+  groupNode:         GroupNode,
+  textLabelNode:     TextLabelNode,
+  annotationNode:    AnnotationNode,
+  messageBrokerNode: MessageBrokerNode,
 };
 
 const EDGE_TYPES = { custom: FlowEdge };

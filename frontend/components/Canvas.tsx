@@ -14,6 +14,10 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
+import { MessageBrokerNode } from '@/components/MessageBrokerNode';
+import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
+import { getNodeShape } from '@/lib/nodeShapes';
+import { createNode } from '@/lib/nodeFactory';
 import { GuideLines } from '@/components/GuideLines';
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu';
 import { useSnapping } from '@/hooks/useSnapping';
@@ -30,11 +34,15 @@ import { TemplateModal } from '@/components/TemplateModal';
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
 
 const NODE_TYPES = {
-  systemNode:     SystemNode,
-  shapeNode:      ShapeNode,
-  groupNode:      GroupNode,
-  textLabelNode:  TextLabelNode,
-  annotationNode: AnnotationNode,
+  systemNode:        SystemNode,
+  baseNode:          BaseNode,
+  databaseNode:     DatabaseNode,
+  cacheNode:         CacheNode,
+  shapeNode:         ShapeNode,
+  groupNode:         GroupNode,
+  textLabelNode:     TextLabelNode,
+  annotationNode:    AnnotationNode,
+  messageBrokerNode: MessageBrokerNode,
 };
 
 const EDGE_TYPES = {
@@ -161,14 +169,23 @@ function CanvasInner() {
     if (!raw) return;
     const comp = JSON.parse(raw);
     const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
-    const id = `${comp.id}-${Date.now()}`;
+    
+    const result = createNode(
+      {
+        componentId: comp.id,
+        label: comp.label,
+        category: comp.category,
+        color: comp.color,
+        icon: comp.icon,
+        technology: comp.technology,
+        position,
+      },
+      'drag'
+    );
+    
     const store = useDiagramStore.getState();
     store.pushHistory();
-    const newNode = {
-      id, type: 'systemNode' as const, position,
-      data: { label: comp.label, category: comp.category, color: comp.color, icon: comp.icon, technology: comp.technology },
-    };
-    store.importDiagram([...store.nodes, newNode], store.edges);
+    store.importDiagram([...store.nodes, result.node], store.edges);
     store.setCanvasMode('editing');
     dismissOnboarding();
   }, [reactFlowInstance, dismissOnboarding]);
