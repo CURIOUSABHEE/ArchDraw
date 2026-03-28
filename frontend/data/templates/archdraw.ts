@@ -2,7 +2,7 @@ import { Node, Edge } from 'reactflow';
 
 // All positions are { x: 0, y: 0 } — Dagre calculates layout on load
 
-export const archflowNodes: Node[] = [
+export const archdrawNodes: Node[] = [
   // Col 0 — Client & Entry
   { id: 'af_browser',     type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'User Browser',         category: 'Client & Entry',     color: '#6366f1', icon: 'Monitor'      } },
   { id: 'af_cdn',         type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Vercel CDN',           category: 'Client & Entry',     color: '#6366f1', icon: 'RadioTower'   } },
@@ -51,7 +51,7 @@ const E = (id: string, source: string, target: string, label: string): Edge => (
   label,
 });
 
-export const archflowEdges: Edge[] = [
+export const archdrawEdges: Edge[] = [
   E('af_e1',  'af_browser',      'af_cdn',          'static assets'),
   E('af_e2',  'af_browser',      'af_approuter',    'HTTPS requests'),
   E('af_e3',  'af_edge',         'af_approuter',    'route requests'),

@@ -123,7 +123,7 @@ export function ArchflowEmbed({
     } else {
       const diagramData = JSON.stringify({ nodes, edges: initialEdges });
       const encoded = btoa(diagramData);
-      window.open(`https://archflow.app?embed=${encoded}`, "_blank");
+      window.open(`https://archdraw.app?embed=${encoded}`, "_blank");
     }
   }, [nodes, initialEdges, onOpenInArchflow]);
 

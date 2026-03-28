@@ -270,10 +270,10 @@ export function Toolbar() {
           format: [img.width, img.height],
         });
         pdf.addImage(dataUrl, 'PNG', 0, 0, img.width, img.height);
-        pdf.save('archflow-export.pdf');
+        pdf.save('archdraw-export.pdf');
         toast.success('Exported as PDF');
       } else {
-        downloadFile(await (await fetch(dataUrl)).blob(), 'archflow-export.png');
+        downloadFile(await (await fetch(dataUrl)).blob(), 'archdraw-export.png');
         toast.success('Exported as PNG');
       }
     } catch (err) {

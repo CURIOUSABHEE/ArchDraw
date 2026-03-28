@@ -11,7 +11,7 @@ export function Footer() {
               <svg className="h-7 w-7 text-primary" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24">
                 <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
               </svg>
-              <span className="text-foreground font-semibold text-lg">Archflow</span>
+              <span className="text-foreground font-semibold text-lg">ArchDraw</span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">Visual system architecture for engineers.</p>
             <div className="flex gap-4">
@@ -56,7 +56,7 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link></li>
               <li><Link href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link></li>
-              <li><a href="mailto:hello@archflow.app" className="text-muted-foreground hover:text-foreground transition-colors">hello@archflow.app</a></li>
+              <li><a href="mailto:hello@archdraw.app" className="text-muted-foreground hover:text-foreground transition-colors">hello@archdraw.app</a></li>
             </ul>
           </div>
         </div>
@@ -66,7 +66,7 @@ export function Footer() {
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
         <p className="text-sm text-center text-muted-foreground">
-          © 2026 ArchFlow. Built for engineers who think in systems.
+          © 2026 ArchDraw. Built for engineers who think in systems.
         </p>
       </div>
     </footer>

@@ -12,7 +12,7 @@ interface EmbedChromeProps {
 export function EmbedChrome({
   children,
   title = "Architecture Diagram",
-  url = "archflow.app",
+  url = "archdraw.app",
   onOpenInArchflow,
 }: EmbedChromeProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -156,7 +156,7 @@ export function EmbedChrome({
             <polyline points="15 3 21 3 21 9" />
             <line x1="10" y1="14" x2="21" y2="3" />
           </svg>
-          Open in Archflow
+          Open in ArchDraw
         </button>
       </div>
 

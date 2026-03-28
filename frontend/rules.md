@@ -258,7 +258,7 @@ When given a task:
   /templates
     chatgpt.ts
     instagram.ts
-    archflow.ts
+    archdraw.ts
     index.ts
   components.json
 /lib

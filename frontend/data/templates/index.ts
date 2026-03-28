@@ -1,7 +1,7 @@
 import { Node, Edge } from 'reactflow';
 import { chatgptNodes, chatgptEdges } from './chatgpt';
 import { instagramNodes, instagramEdges } from './instagram';
-import { archflowNodes, archflowEdges } from './archflow';
+import { archdrawNodes, archdrawEdges } from './archdraw';
 
 export interface Template {
   id: string;
@@ -15,13 +15,13 @@ export interface Template {
 
 export const TEMPLATES: Template[] = [
   {
-    id: 'archflow_self',
-    name: 'ArchFlow Architecture',
-    description: 'The system architecture of ArchFlow itself — Next.js, React Flow, Supabase, and Vercel.',
+    id: 'archdraw_self',
+    name: 'ArchDraw Architecture',
+    description: 'The system architecture of ArchDraw itself — Next.js, React Flow, Supabase, and Vercel.',
     tags: ['Next.js', 'Supabase', 'Vercel', 'SaaS'],
     icon: '🏗️',
-    nodes: archflowNodes,
-    edges: archflowEdges,
+    nodes: archdrawNodes,
+    edges: archdrawEdges,
   },
   {
     id: 'chatgpt',

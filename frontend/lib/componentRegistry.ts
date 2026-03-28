@@ -22,7 +22,7 @@ export interface ComponentCategory {
   count: number;
 }
 
-const CUSTOM_COMPONENTS_KEY = 'archflow-custom-components';
+const CUSTOM_COMPONENTS_KEY = 'archdraw-custom-components';
 
 class ComponentRegistry {
   private components: Map<string, ComponentDefinition> = new Map();

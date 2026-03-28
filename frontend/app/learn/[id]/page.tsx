@@ -92,9 +92,9 @@ export default async function LearnPage({
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://archflow.app' },
-      { '@type': 'ListItem', position: 2, name: 'Tutorials', item: 'https://archflow.app/tutorials' },
-      { '@type': 'ListItem', position: 3, name: tutorial.title, item: `https://archflow.app/learn/${tutorial.id}` },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://archdraw.app' },
+      { '@type': 'ListItem', position: 2, name: 'Tutorials', item: 'https://archdraw.app/tutorials' },
+      { '@type': 'ListItem', position: 3, name: tutorial.title, item: `https://archdraw.app/learn/${tutorial.id}` },
     ],
   };
 

@@ -147,7 +147,7 @@ function ShareMockup() {
         </div>
         <div className="flex gap-2">
           <div className="flex-1 flex items-center px-3 py-2 rounded-lg bg-muted border border-border/50">
-            <span className="text-xs truncate text-muted-foreground">archflow.app/share/abc123xyz</span>
+                    <span className="text-xs truncate text-muted-foreground">archdraw.app/share/abc123xyz</span>
           </div>
           <Button
             size="sm"
@@ -337,7 +337,7 @@ export function HowItWorks() {
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
                   <div className="flex-1 mx-3">
                     <div className="rounded px-3 py-0.5 text-xs text-center max-w-[180px] mx-auto bg-muted text-muted-foreground">
-                      archflow.app/editor
+                      archdraw.app/editor
                     </div>
                   </div>
                 </div>

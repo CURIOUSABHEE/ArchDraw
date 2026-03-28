@@ -4,7 +4,7 @@ import { Navbar } from '@/components/landing/Navbar';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'ArchFlow Privacy Policy — how we collect, use, and protect your data.',
+  description: 'ArchDraw Privacy Policy — how we collect, use, and protect your data.',
 };
 
 export default function PrivacyPage() {
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         <div className="prose prose-slate max-w-none space-y-10 text-slate-700">
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-3">Introduction</h2>
-            <p>ArchFlow is a visual system architecture design tool. This policy explains how we collect, use, and protect your information when you use our service at archflow.app.</p>
+            <p>ArchDraw is a visual system architecture design tool. This policy explains how we collect, use, and protect your information when you use our service at archdraw.app.</p>
           </section>
 
           <section>
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
               <li>Auth provider data (name, avatar from Google/GitHub OAuth)</li>
               <li>Diagram data (nodes, edges, canvas structure)</li>
               <li>Usage analytics (page views, feature usage via Vercel Analytics)</li>
-              <li>No payment data is collected — ArchFlow is free</li>
+              <li>No payment data is collected — ArchDraw is free</li>
             </ul>
           </section>
 
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-3">Your Rights</h2>
-            <p>You may request access to, export of, or deletion of your data at any time. Contact us at <a href="mailto:hello@archflow.app" className="text-indigo-600 hover:underline">hello@archflow.app</a>.</p>
+            <p>You may request access to, export of, or deletion of your data at any time. Contact us at <a href="mailto:hello@archdraw.app" className="text-indigo-600 hover:underline">hello@archdraw.app</a>.</p>
           </section>
 
           <section>
@@ -73,7 +73,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-3">Contact</h2>
-            <p>Questions? Email us at <a href="mailto:hello@archflow.app" className="text-indigo-600 hover:underline">hello@archflow.app</a>.</p>
+            <p>Questions? Email us at <a href="mailto:hello@archdraw.app" className="text-indigo-600 hover:underline">hello@archdraw.app</a>.</p>
           </section>
         </div>
       </main>

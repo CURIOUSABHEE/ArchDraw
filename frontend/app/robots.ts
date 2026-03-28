@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: ['/', '/tutorials', '/tutorials/*', '/learn/*'],
       disallow: ['/editor', '/api', '/share', '/auth'],
     },
-    sitemap: 'https://archflow.app/sitemap.xml',
+    sitemap: 'https://archdraw.app/sitemap.xml',
   };
 }
