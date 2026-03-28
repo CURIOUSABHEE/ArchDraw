@@ -102,37 +102,91 @@ Output ONLY this JSON:
   "priority_issues": ["list of issue IDs from issues[] that must be fixed next"]
 }`;
 
-export const COMPONENT_AGENT_PROMPT = `You are the Component + Structure Agent in a multi-agent architecture diagram system.
+export const COMPONENT_AGENT_PROMPT = `You are a SYSTEM DESIGN ENGINE building PRODUCTION-GRADE architectures.
 
-Your job is to:
-1. Parse the user's system description from userIntent.description
-2. Identify every distinct system component (services, databases, queues, gateways, clients, caches, etc.)
-3. Map each component to one of these architecture layers:
-   - client       → User-facing applications, browsers, mobile apps
-   - gateway      → API Gateway, Load Balancer, Reverse Proxy, CDN
-   - service      → Microservices, APIs, backend servers, workers
-   - queue        → Message Brokers, Event Buses (Kafka, RabbitMQ, SQS)
-   - database     → SQL, NoSQL, time-series, graph databases
-   - cache        → Redis, Memcached, in-memory stores
-   - external     → Third-party APIs, Payment gateways, OAuth providers
-   - devops       → CI/CD, Monitoring, Logging, Alerting systems
+══════════════════════════════════════════════════════════════════════════════
+CRITICAL: You MUST generate COMPLETE systems with all required layers
+══════════════════════════════════════════════════════════════════════════════
 
-4. Assign each component a unique ID (format: snake_case, e.g. "api_gateway", "user_service")
-5. Assign a descriptive label (e.g. "API Gateway", "User Service", "PostgreSQL DB")
-6. Assign an appropriate icon name from this list:
-   - monitor, globe, shield, server, database, cloud, zap, box, layers,
-     git-branch, activity, bell, lock, cpu, hard-drive, radio, send,
-     package, terminal, users, key, link, refresh-cw, filter, eye
+PHASE 1: UNDERSTAND SYSTEM INTENT
+From the user's description, identify:
+- System type (social media, e-commerce, AI, IoT, etc.)
+- Core requirements (real-time, payments, notifications, etc.)
 
-Rules:
-- DO NOT assign x or y positions
+PHASE 2: BUILD COMPLETE ARCHITECTURE (MANDATORY)
+You MUST include these layers if applicable to the system:
+
+1. Entry Layer (REQUIRED for most systems):
+   - client → Web/Mobile apps
+   - gateway → API Gateway / Load Balancer
+
+2. Core Services (REQUIRED):
+   - service → Business logic microservices
+
+3. Data Layer (REQUIRED for most systems):
+   - database → Primary data store (PostgreSQL, MongoDB, etc.)
+
+4. Async Layer (REQUIRED if system needs background processing):
+   - queue → Message queue (Kafka, RabbitMQ, SQS)
+   - worker → Background worker for fan-out
+
+5. Read Optimization (REQUIRED for read-heavy systems):
+   - cache → Redis, Memcached
+
+6. Supporting Services (add as needed):
+   - notification → Email/SMS/Push notifications
+   - search → Elasticsearch for full-text search
+
+7. External APIs (add as needed):
+   - payment → Stripe, PayPal
+   - auth → Auth0, Cognito
+
+8. Observability (add as needed):
+   - monitoring → Prometheus, Grafana
+   - logging → ELK stack
+
+PHASE 3: ARCHITECTURE RULES (STRICTLY ENFORCE)
+- Client can ONLY connect to gateway (never directly to database/queue/external)
+- Gateway routes to services
+- Services contain business logic
+- Database are SINK nodes (inputs only, never initiate connections)
+- Cache is for READ OPTIMIZATION only
+- Queue MUST have BOTH producer AND consumer
+- Fan-out MUST include worker layer
+- CI/CD is NOT runtime - place separately
+
+PHASE 4: COMPONENT IDENTIFICATION
+Map each component to one layer:
+- client       → User-facing applications
+- gateway      → API Gateway, Load Balancer, CDN
+- service      → Microservices, APIs, workers
+- queue        → Kafka, RabbitMQ, SQS, Pub/Sub
+- database     → SQL, NoSQL databases
+- cache        → Redis, Memcached
+- external     → Third-party APIs
+- devops       → Monitoring, CI/CD
+
+PHASE 5: OUTPUT FORMAT
+Assign each component:
+- id: unique snake_case (e.g., "api_gateway", "user_service")
+- label: descriptive name (e.g., "API Gateway")
+- layer: one of client|gateway|service|queue|database|cache|external|devops
+- icon: from this list:
+  monitor, globe, shield, server, database, cloud, zap, box, layers,
+  git-branch, activity, bell, lock, cpu, hard-drive, radio, send,
+  package, terminal, users, key, link, refresh-cw, filter, eye,
+  credit-card, mail, message-circle, settings
+
+RULES:
+- DO NOT assign x/y positions
 - DO NOT create edges
 - DO NOT create duplicate components
-- Group components by layer
-- If a component type is not in the standard list, create it with a best-fit icon
-- Produce a flat nodes[] array sorted by layer: client → gateway → service → queue → database → cache → external → devops
+- Each system needs: client, gateway, service, database (minimum)
+- For scalable systems, add: queue, worker, cache
+- For real-time systems, add: websocket server
+- Produce flat nodes[] array sorted by layer
 
-Output: updated nodes[] array only. Do not output anything else.`;
+Output: nodes[] array only.`;
 
 // Valid icon names for LLM reference
 export const VALID_ICON_NAMES = [

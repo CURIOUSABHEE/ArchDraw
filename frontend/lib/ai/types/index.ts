@@ -151,7 +151,7 @@ export type CommunicationType = 'sync' | 'async' | 'stream' | 'event' | 'dep';
 
 export type PathType = 'smoothstep' | 'smooth' | 'bezier' | 'step' | 'straight';
 
-export type HandlePosition = 'right' | 'left' | 'top' | 'bottom';
+export type HandlePosition = 'right' | 'left' | 'top' | 'bottom' | 'right-top' | 'right-mid' | 'right-bot' | 'left-top' | 'left-mid' | 'left-bot' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 export type MarkerType = 'arrowclosed' | 'arrow' | 'none';
 

@@ -347,7 +347,7 @@ export const useDiagramStore = create<DiagramState>()(
         const nodes = applyNodeChanges(changes, get().nodes);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
         set({ nodes, canvases });
-        if (structural.length) get().saveCanvasToDB(get().activeCanvasId);
+        get().saveCanvasToDB(get().activeCanvasId);
       },
 
       onEdgesChange: (changes) => {
@@ -356,7 +356,7 @@ export const useDiagramStore = create<DiagramState>()(
         const edges = applyEdgeChanges(changes, get().edges);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
-        if (structural.length) get().saveCanvasToDB(get().activeCanvasId);
+        get().saveCanvasToDB(get().activeCanvasId);
       },
 
       onConnect: (connection) => {
@@ -460,6 +460,7 @@ export const useDiagramStore = create<DiagramState>()(
         const edges = get().edges.map((e) => e.id === id ? { ...e, data: { ...e.data, ...data } } : e);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
+        get().saveCanvasToDB(get().activeCanvasId);
       },
 
       deleteEdge: (edgeId) => {
@@ -467,6 +468,7 @@ export const useDiagramStore = create<DiagramState>()(
         const edges = get().edges.filter((e) => e.id !== edgeId);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases, selectedEdgeId: null });
+        get().saveCanvasToDB(get().activeCanvasId);
       },
 
       importDiagram: (nodes, edges) => {
@@ -543,26 +545,31 @@ export const useDiagramStore = create<DiagramState>()(
         );
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
+        get().saveCanvasToDB(get().activeCanvasId);
       },
 
       // ── AI Streaming ──────────────────────────────────────────────────────
       setNodes: (nodes) => {
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
         set({ nodes, canvases });
+        get().saveCanvasToDB(get().activeCanvasId);
       },
       setEdges: (edges) => {
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
+        get().saveCanvasToDB(get().activeCanvasId);
       },
       appendNode: (node) => {
         const nodes = [...get().nodes, node];
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
         set({ nodes, canvases });
+        get().saveCanvasToDB(get().activeCanvasId);
       },
       appendEdge: (edge) => {
         const edges = [...get().edges, edge];
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
+        get().saveCanvasToDB(get().activeCanvasId);
       },
     }),
     {
