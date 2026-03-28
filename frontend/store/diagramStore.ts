@@ -12,7 +12,7 @@ import {
   applyEdgeChanges,
 } from 'reactflow';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
-import { DEFAULT_EDGE_TYPE, type EdgeType } from '@/data/edgeTypes';
+import { type EdgeType } from '@/data/edgeTypes';
 
 // Module-level fitView callback — set by Canvas on mount, avoids circular imports
 type FitViewOptions = { padding?: number; duration?: number; maxZoom?: number };
@@ -104,18 +104,13 @@ interface DiagramState {
   showGrid: boolean;
   darkMode: boolean;
   sidebarOpen: boolean;
-  canvasMode: 'empty' | 'editing' | 'ai' | 'template';
-  aiPanelOpen: boolean;
-  currentEdgeType: EdgeType;
+  canvasMode: 'empty' | 'editing' | 'template';
   setGuideLines: (lines: GuideLine[]) => void;
   toggleEdgeAnimations: () => void;
   toggleGrid: () => void;
   toggleDarkMode: () => void;
   setSidebarOpen: (open: boolean) => void;
-  setCanvasMode: (mode: 'empty' | 'editing' | 'ai' | 'template') => void;
-  openAIPanel: () => void;
-  closeAIPanel: () => void;
-  setCurrentEdgeType: (type: EdgeType) => void;
+  setCanvasMode: (mode: 'empty' | 'editing' | 'template') => void;
 
   // ── History ───────────────────────────────────────────────────────────────
   past: HistoryEntry[];
@@ -303,14 +298,9 @@ export const useDiagramStore = create<DiagramState>()(
       darkMode: true,
       sidebarOpen: true,
       canvasMode: 'empty',
-      aiPanelOpen: false,
-      currentEdgeType: DEFAULT_EDGE_TYPE,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setGuideLines: (lines) => set({ guideLines: lines }),
       setCanvasMode: (mode) => set({ canvasMode: mode }),
-      openAIPanel: () => set({ aiPanelOpen: true, canvasMode: 'ai' }),
-      closeAIPanel: () => set({ aiPanelOpen: false }),
-      setCurrentEdgeType: (type) => set({ currentEdgeType: type }),
       toggleGrid: () => set({ showGrid: !get().showGrid }),
       toggleDarkMode: () => {
         const next = !get().darkMode;
@@ -368,13 +358,12 @@ export const useDiagramStore = create<DiagramState>()(
       onConnect: (connection) => {
         get().pushHistory();
         const edgeId = `edge-${Date.now()}`;
-        const edgeType = get().currentEdgeType;
         const edges = addEdge(
           { 
             ...connection, 
             id: edgeId, 
             type: 'custom', 
-            data: { edgeType },
+            data: { edgeType: 'bezier' as EdgeType },
           },
           get().edges
         );

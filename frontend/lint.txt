@@ -1,0 +1,14 @@
+﻿
+C:\Users\Shyam\OneDrive\Desktop\Python\ArchDraw\frontend\components\Canvas.tsx
+  21:63  warning  'Fragment' is defined but never used              @typescript-eslint/no-unused-vars
+  51:5   warning  'canvasMode' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  57:9   warning  'isMiddlePan' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Shyam\OneDrive\Desktop\Python\ArchDraw\frontend\components\Toolbar.tsx
+    5:42  warning  'FileJson' is defined but never used          @typescript-eslint/no-unused-vars
+   27:35  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   27:49  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  704:10  warning  'EdgeTypeSelector' is defined but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 7 problems (2 errors, 5 warnings)
+
