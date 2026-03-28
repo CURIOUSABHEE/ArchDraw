@@ -10,6 +10,7 @@ import type {
   PathType,
   HandlePosition,
   CommunicationType,
+  LayoutHints,
 } from '../types';
 import {
   runPlannerAgent,
@@ -17,6 +18,7 @@ import {
   runEdgeAgent,
   runScorerAgent,
 } from '../agents';
+import { generateLayoutHints } from './layoutHints';
 import {
   MAX_ITERATIONS,
   SCORE_THRESHOLD,
@@ -56,6 +58,21 @@ export async function generateDiagram(
   userIntent: UserIntent,
   onProgress?: ProgressCallback
 ): Promise<GenerationResult> {
+  const initialLayoutHints: LayoutHints = {
+    primaryFlow: [],
+    groups: [],
+    layers: {
+      client: { x: 0, y: 200 },
+      gateway: { x: 200, y: 200 },
+      service: { x: 400, y: 200 },
+      queue: { x: 600, y: 200 },
+      database: { x: 800, y: 200 },
+      cache: { x: 800, y: 100 },
+      external: { x: 1000, y: 200 },
+      devops: { x: 600, y: 400 }
+    }
+  };
+
   const state: SharedState = {
     userIntent,
     components: [],
@@ -69,6 +86,7 @@ export async function generateDiagram(
       totalWidth: 0,
       totalHeight: 0,
     },
+    layoutHints: initialLayoutHints,
     issues: [],
     score: 0,
     iteration: 0,
@@ -234,6 +252,8 @@ export async function generateDiagram(
 
   console.log(`[EdgeLayout] Complete - Resolved: ${totalCollisionsResolved}, Remaining: ${remainingCollisions}`);
 
+  const layoutHints = generateLayoutHints(state.components, state.edges);
+
   return {
     nodes: reactFlowNodes,
     edges: finalEdges,
@@ -251,6 +271,7 @@ export async function generateDiagram(
         edgeCrossings: finalCrossings,
         remainingLabelCollisions: remainingCollisions,
       },
+      layoutHints,
     },
   };
 }

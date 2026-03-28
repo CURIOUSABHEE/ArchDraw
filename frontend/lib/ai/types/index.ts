@@ -67,6 +67,7 @@ export interface SharedState {
   nodes: ArchitectureNode[];
   edges: ArchitectureEdge[];
   layout: LayoutConfig;
+  layoutHints: LayoutHints;
   issues: ValidationIssue[];
   score: number;
   iteration: number;
@@ -134,6 +135,7 @@ export interface GenerationResult {
       edgeCrossings: number;
       remainingLabelCollisions?: number;
     };
+    layoutHints?: LayoutHints;
   };
 }
 
@@ -189,4 +191,23 @@ export interface GenerationProgress {
   score: number;
   message: string;
   progress: number;
+}
+
+export interface PrimaryFlow {
+  id: string;
+  nodeIds: string[];
+  flowType: 'request' | 'processing' | 'async' | 'response';
+}
+
+export interface ComponentGroup {
+  id: string;
+  label: string;
+  nodeIds: string[];
+  color: string;
+}
+
+export interface LayoutHints {
+  primaryFlow: PrimaryFlow[];
+  groups: ComponentGroup[];
+  layers: Record<LayerType, { x: number; y: number }>;
 }
