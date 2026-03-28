@@ -290,7 +290,7 @@ export default function LandingPage() {
               {['#f87171','#fbbf24','#34d399'].map(c => (
                 <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />
               ))}
-              <span style={{ marginLeft: 8, fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>archflow — system-design.af</span>
+              <span style={{ marginLeft: 8, fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>archdraw — system-design.af</span>
             </div>
             <div style={{ height: 'calc(100% - 36px)' }}>
               <CanvasPreview />

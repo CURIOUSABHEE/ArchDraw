@@ -18,6 +18,7 @@ import awsData from '@/data/aws-components.json';
 import dbData from '@/data/db-components.json';
 import servicesData from '@/data/services-components.json';
 import { useDiagramStore } from '@/store/diagramStore';
+import { createNode } from '@/lib/nodeFactory';
 import { NodeIcon } from '@/components/NodeIcon';
 import { iconRegistry } from '@/lib/iconRegistry';
 
@@ -175,7 +176,19 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
   }, []);
 
   const handleAdd = (comp: ComponentEntry) => {
-    addNode(comp.id, comp.label, comp.category, comp.color, comp.icon, comp.technology, getViewportCenter());
+    const result = createNode(
+      {
+        componentId: comp.id,
+        label: comp.label,
+        category: comp.category,
+        color: comp.color,
+        icon: comp.icon,
+        technology: comp.technology,
+        position: getViewportCenter(),
+      },
+      'sidebar'
+    );
+    addNode(result.node);
   };
 
   const handleEdit = (comp: ComponentToEdit) => {

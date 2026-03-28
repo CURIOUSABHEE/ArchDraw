@@ -24,7 +24,7 @@ interface IntroCardFlowProps {
   tutorialColor?: string;
 }
 
-const INTRO_SHOWN_COUNT_KEY = 'archflow-intro-shown-count';
+const INTRO_SHOWN_COUNT_KEY = 'archdraw-intro-shown-count';
 const MAX_INTRO_SHOWS = 2;
 
 function getIntroShownCount(): number {

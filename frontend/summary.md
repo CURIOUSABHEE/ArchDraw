@@ -78,7 +78,7 @@
 **How:**
 - `components/CreateComponentModal.tsx` - Modal with type selection and form
 - `lib/componentRegistry.ts` - `addCustomComponent()`, `updateCustomComponent()`, `deleteCustomComponent()`
-- localStorage persistence with key `archflow-custom-components`
+- localStorage persistence with key `archdraw-custom-components`
 - Custom components appear at top of sidebar with gradient highlight
 - Same drag-and-drop behavior as built-in components
 

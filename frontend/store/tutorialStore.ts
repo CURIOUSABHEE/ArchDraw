@@ -498,7 +498,7 @@ export const useTutorialStore = create<TutorialState>()(
       },
     }),
     {
-      name: 'archflow-tutorials',
+      name: 'archdraw-tutorials',
       storage: createJSONStorage(() => serializedStorage),
       partialize: (s) => ({
         completedTutorials: s.completedTutorials,

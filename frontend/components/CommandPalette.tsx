@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 import { componentRegistry, type ComponentDefinition } from '@/lib/componentRegistry';
+import { createNode } from '@/lib/nodeFactory';
 
 function getViewportCenter(): { x: number; y: number } {
   const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
@@ -96,7 +97,19 @@ export function CommandPalette() {
   }, [search]);
 
   const handleSelect = useCallback((comp: ComponentDefinition) => {
-    addNode(comp.id, comp.label, comp.category, undefined, undefined, undefined, getViewportCenter());
+    const result = createNode(
+      {
+        componentId: comp.id,
+        label: comp.label,
+        category: comp.category,
+        color: comp.color,
+        icon: comp.icon,
+        technology: comp.technology,
+        position: getViewportCenter(),
+      },
+      'cmdk'
+    );
+    addNode(result.node);
     setOpen(false);
     setSearch('');
   }, [addNode]);

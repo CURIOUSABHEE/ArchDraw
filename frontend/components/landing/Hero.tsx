@@ -151,7 +151,7 @@ export function Hero() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="rounded-md px-3 py-1 text-[10px] text-center max-w-[180px] mx-auto bg-muted text-muted-foreground">
-                    archflow.app/editor
+                    archdraw.app/editor
                   </div>
                 </div>
                 <div className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
