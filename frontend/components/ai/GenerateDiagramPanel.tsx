@@ -176,13 +176,25 @@ export function GenerateDiagramPanel({ onClose }: Props) {
   const qualityWidth = '0%';
 
   return (
-    <motion.div
-      initial={{ y: '100%', opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: '100%', opacity: 0 }}
-      transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[600px] h-auto max-h-[80vh] bg-background border border-border rounded-t-2xl z-[1000] flex flex-col shadow-[-20px_0_60px_rgba(0,0,0,.25)]"
-    >
+    <>
+      {/* Backdrop blur overlay */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 bg-background/20 backdrop-blur-sm z-[999]"
+        onClick={onClose}
+      />
+      
+      {/* Panel */}
+      <motion.div
+        initial={{ y: '100%', opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: '100%', opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[600px] h-auto max-h-[80vh] bg-background/80 backdrop-blur-xl border border-border/80 rounded-t-2xl z-[1000] flex flex-col shadow-2xl"
+      >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2">
@@ -441,5 +453,6 @@ export function GenerateDiagramPanel({ onClose }: Props) {
         </AnimatePresence>
       </div>
     </motion.div>
+    </>
   );
 }

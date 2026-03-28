@@ -235,7 +235,6 @@ function TutorialCanvasInner({
       const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
       const id = `${comp.id}-${Date.now()}`;
       const updated = [
-        ...nodes,
         {
           id,
           type: 'systemNode',
@@ -252,8 +251,9 @@ function TutorialCanvasInner({
       ];
       setNodes(updated);
       setTutorialNodes(updated);
+      setTutorialEdges([]);
     },
-    [nodes, setNodes, setTutorialNodes, reactFlowInstance]
+    [setNodes, setTutorialNodes, setTutorialEdges, reactFlowInstance]
   );
 
   const handleAddComponent = useCallback(

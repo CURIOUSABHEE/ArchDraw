@@ -60,6 +60,10 @@ function CanvasInner() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  
+  // Onboarding state - only show when canvas is empty
+  const [isOnboardingVisible, setIsOnboardingVisible] = useState(nodes.length === 0);
+  const [isOnboardingFading, setIsOnboardingFading] = useState(false);
 
   // Keep module ref in sync so store.fitView() can call it directly
   useEffect(() => {
@@ -130,11 +134,21 @@ function CanvasInner() {
     setLabelDraft('');
   }, [setPendingLabelEdgeId]);
 
+  // Dismiss onboarding with fade animation - ONLY affects UI state
+  const dismissOnboarding = useCallback(() => {
+    if (!isOnboardingVisible) return;
+    setIsOnboardingFading(true);
+    setTimeout(() => {
+      setIsOnboardingVisible(false);
+      setIsOnboardingFading(false);
+    }, 200);
+  }, [isOnboardingVisible]);
 
   const onNodeDragStop: NodeDragHandler = useCallback((_e, node) => {
     onNodeDragStopSnap(_e, node, reactFlowInstance.getNodes());
     useDiagramStore.getState().pushHistory();
-  }, [onNodeDragStopSnap, reactFlowInstance]);
+    dismissOnboarding();
+  }, [onNodeDragStopSnap, reactFlowInstance, dismissOnboarding]);
 
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -149,11 +163,15 @@ function CanvasInner() {
     const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
     const id = `${comp.id}-${Date.now()}`;
     const store = useDiagramStore.getState();
-    store.importDiagram([...store.nodes, {
-      id, type: 'systemNode', position,
+    store.pushHistory();
+    const newNode = {
+      id, type: 'systemNode' as const, position,
       data: { label: comp.label, category: comp.category, color: comp.color, icon: comp.icon, technology: comp.technology },
-    }], store.edges);
-  }, [reactFlowInstance]);
+    };
+    store.importDiagram([...store.nodes, newNode], store.edges);
+    store.setCanvasMode('editing');
+    dismissOnboarding();
+  }, [reactFlowInstance, dismissOnboarding]);
 
   const onNodeClick: NodeMouseHandler = useCallback((_e, node) => {
     setSelectedNodeId(node.id);
@@ -178,7 +196,8 @@ function CanvasInner() {
     useDiagramStore.getState().setPendingEditEdgeId(null);
     dismissEdgeLabel();
     setContextMenu(null);
-  }, [setSelectedNodeId, setSelectedEdgeId, dismissEdgeLabel]);
+    dismissOnboarding();
+  }, [setSelectedNodeId, setSelectedEdgeId, dismissEdgeLabel, dismissOnboarding]);
 
   const onSelectionChange = useCallback(({ nodes: sel }: OnSelectionChangeParams) => {
     setSelectedNodeIds(sel.map((n) => n.id));
@@ -193,6 +212,23 @@ function CanvasInner() {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, nodeId: node.id });
   }, []);
+
+  const handleStartFromScratch = useCallback(() => {
+    useDiagramStore.getState().clearDiagram();
+    setCanvasMode('editing');
+    dismissOnboarding();
+  }, [setCanvasMode, dismissOnboarding]);
+
+  const handleOpenTemplates = useCallback(() => {
+    setTemplatesOpen(true);
+    setCanvasMode('template');
+    dismissOnboarding();
+  }, [setCanvasMode, dismissOnboarding]);
+
+  const handleOpenAIPanel = useCallback(() => {
+    openAIPanel();
+    dismissOnboarding();
+  }, [openAIPanel, dismissOnboarding]);
 
   return (
     <div className="flex-1 relative overflow-hidden bg-background">
@@ -343,19 +379,21 @@ function CanvasInner() {
         <ContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />
       )}
 
-      {/* Empty State - ONLY when no nodes exist */}
-      {nodes.length === 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center select-none pointer-events-auto z-[5]">
-          <div className="text-center mb-8">
+      {/* Non-blocking Onboarding Overlay */}
+      {isOnboardingVisible && (
+        <div 
+          className={`absolute inset-0 flex flex-col items-center justify-center select-none pointer-events-none z-[5] transition-opacity duration-200 ${isOnboardingFading ? 'opacity-0' : 'opacity-100'}`}
+        >
+          <div className="text-center mb-8 pointer-events-none">
             <LayoutGrid className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
             <h2 className="text-lg font-semibold text-foreground/60 mb-2">Start building your architecture</h2>
             <p className="text-xs text-muted-foreground/50">Choose how you want to begin</p>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 pointer-events-auto">
             {/* AI Generate - Primary */}
             <button
-              onClick={() => openAIPanel()}
+              onClick={handleOpenAIPanel}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-background"
               style={{
                 background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
@@ -368,7 +406,7 @@ function CanvasInner() {
             
             {/* Templates - Secondary */}
             <button
-              onClick={() => { setTemplatesOpen(true); setCanvasMode('template'); }}
+              onClick={handleOpenTemplates}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-accent/60 hover:bg-accent text-foreground border border-border/50 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
             >
               <LayoutTemplate className="w-4 h-4" />
@@ -377,7 +415,7 @@ function CanvasInner() {
             
             {/* Start from Scratch - Ghost */}
             <button
-              onClick={() => setCanvasMode('editing')}
+              onClick={handleStartFromScratch}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
             >
               <MousePointer2 className="w-4 h-4" />
@@ -385,7 +423,7 @@ function CanvasInner() {
             </button>
           </div>
           
-          <div className="flex items-center gap-4 mt-6 text-[10px] text-muted-foreground/40">
+          <div className="flex items-center gap-4 mt-6 text-[10px] text-muted-foreground/40 pointer-events-none">
             <span>Press ? for shortcuts</span>
             <span>•</span>
             <span>⌘K for components</span>

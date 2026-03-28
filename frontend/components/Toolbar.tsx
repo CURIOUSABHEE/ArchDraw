@@ -173,7 +173,7 @@ export function Toolbar() {
     undo, redo, past, future,
     canvases, activeCanvasId, addCanvas, removeCanvas, switchCanvas, renameCanvas,
     savingState, userProfile, setSidebarOpen, sidebarOpen,
-    aiPanelOpen, closeAIPanel,
+    aiPanelOpen, openAIPanel, closeAIPanel,
     currentEdgeType, setCurrentEdgeType,
   } = useDiagramStore();
 
@@ -534,7 +534,7 @@ export function Toolbar() {
           </button>
 
           <button
-            onClick={() => closeAIPanel()}
+            onClick={() => openAIPanel()}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
             style={{
               background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
