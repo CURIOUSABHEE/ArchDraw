@@ -430,7 +430,7 @@ export const COMMUNICATION_STYLES: Record<CommunicationType, {
     markerEnd: 'arrowclosed',
     markerStart: 'none',
     label: 'Sync',
-    pathType: 'smoothstep',
+    pathType: 'bezier',
   },
   async: {
     color: '#f59e0b',
@@ -439,7 +439,7 @@ export const COMMUNICATION_STYLES: Record<CommunicationType, {
     markerEnd: 'arrowclosed',
     markerStart: 'none',
     label: 'Async',
-    pathType: 'smoothstep',
+    pathType: 'bezier',
   },
   stream: {
     color: '#10b981',
@@ -466,7 +466,7 @@ export const COMMUNICATION_STYLES: Record<CommunicationType, {
     markerEnd: 'none',
     markerStart: 'none',
     label: 'Dep',
-    pathType: 'step',
+    pathType: 'bezier',
   },
 };
 

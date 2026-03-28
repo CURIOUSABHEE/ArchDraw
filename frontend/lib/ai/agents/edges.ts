@@ -108,7 +108,7 @@ function createFullEdge(edge: Partial<ArchitectureEdge>, nodes: ArchitectureNode
     sourceHandle: 'right',
     targetHandle: 'left',
     communicationType: commType,
-    pathType: 'step',
+    pathType: 'bezier',
     label: edge.label ?? `${commType.toUpperCase()} Call`,
     labelPosition: 'center',
     animated: style.animated,
