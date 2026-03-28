@@ -68,7 +68,7 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
         left,
         width: MENU_W,
         background: '#111827',
-        border: '1px solid #1f2937',
+        border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 10,
         padding: '6px 4px',
         boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
@@ -112,7 +112,7 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
               top: 0,
               marginLeft: 4,
               background: '#111827',
-              border: '1px solid #1f2937',
+              border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 8,
               padding: 4,
               minWidth: 120,
@@ -191,7 +191,7 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
               top: 40,
               marginLeft: 4,
               background: '#111827',
-              border: '1px solid #1f2937',
+              border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 8,
               padding: 4,
               minWidth: 100,
@@ -221,16 +221,16 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
                 >
                   <svg width="24" height="16" viewBox="0 0 24 16">
                     {type === 'smooth' && (
-                      <path d="M 2 14 Q 6 2, 12 8 Q 18 14, 22 2" stroke="#6366f1" strokeWidth="2" fill="none" />
+                      <path d="M 2 14 Q 6 2, 12 8 Q 18 14, 22 2" stroke="#6366f1" strokeWidth="0.1" fill="none" />
                     )}
                     {type === 'bezier' && (
-                      <path d="M 2 14 C 8 14, 6 2, 12 8 C 18 14, 16 2, 22 2" stroke="#6366f1" strokeWidth="2" fill="none" />
+                      <path d="M 2 14 C 8 14, 6 2, 12 8 C 18 14, 16 2, 22 2" stroke="#6366f1" strokeWidth="0.1" fill="none" />
                     )}
                     {type === 'step' && (
-                      <path d="M 2 14 L 12 14 L 12 2 L 22 2" stroke="#6366f1" strokeWidth="2" fill="none" />
+                      <path d="M 2 14 L 12 14 L 12 2 L 22 2" stroke="#6366f1" strokeWidth="0.1" fill="none" />
                     )}
                     {type === 'straight' && (
-                      <path d="M 2 14 L 22 2" stroke="#6366f1" strokeWidth="2" fill="none" />
+                      <path d="M 2 14 L 22 2" stroke="#6366f1" strokeWidth="0.1" fill="none" />
                     )}
                   </svg>
                   {type}

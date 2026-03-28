@@ -174,7 +174,7 @@ body {
 /* ── Canvas interaction styles ── */
 .react-flow__selection {
   background: hsl(var(--primary) / 0.08) !important;
-  border: 1.5px solid hsl(var(--primary) / 0.4) !important;
+  border: 1px solid hsl(var(--primary) / 0.4) !important;
   border-radius: 6px !important;
 }
 
@@ -188,7 +188,7 @@ body {
 
 .react-flow__connection-line {
   stroke: hsl(var(--ring)) !important;
-  stroke-width: 2px !important;
+  stroke-width: 1.5px !important;
   stroke-dasharray: 5 5 !important;
   animation: connectionDash 0.5s linear infinite;
 }
@@ -203,7 +203,7 @@ body {
   width: 10px !important;
   height: 10px !important;
   background: hsl(var(--card)) !important;
-  border: 2px solid hsl(var(--ring)) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
   opacity: 0;
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
@@ -220,7 +220,7 @@ body {
 
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: hsl(var(--ring)) !important;
-  stroke-width: 2.5px !important;
+  stroke-width: 1.5px !important;
 }
 
 .react-flow__viewport {

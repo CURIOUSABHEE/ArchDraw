@@ -82,7 +82,7 @@ export function SpotlightHighlight({ targetSelector, padding = 10 }: SpotlightPr
               width: rect.width + padding * 2,
               height: rect.height + padding * 2,
               borderRadius: 10,
-              border: '2px solid rgba(99,102,241,0.9)',
+              border: '1px solid rgba(99,102,241,0.9)',
               boxShadow:
                 '0 0 0 4px rgba(99,102,241,0.15), 0 0 30px 6px rgba(99,102,241,0.3)',
               zIndex: 10000,

@@ -3,12 +3,12 @@ import { Separator } from '@/components/ui/separator';
 
 export function Footer() {
   return (
-    <footer className="bg-background border-t border-border/50">
+    <footer className="bg-background border-t border-border/30">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <svg className="h-7 w-7 text-primary" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="h-7 w-7 text-primary" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24">
                 <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
               </svg>
               <span className="text-foreground font-semibold text-lg">Archflow</span>

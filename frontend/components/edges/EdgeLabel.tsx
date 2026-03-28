@@ -83,7 +83,7 @@ export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
           style={{
             width: inputWidth,
             background: '#1e293b',
-            border: '1px solid #475569',
+            border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 9999,
             color: '#f1f5f9',
             fontSize: 10,

@@ -47,10 +47,10 @@ export function Navbar() {
       className="navbar fixed top-0 z-50 w-full border-b transition-all duration-300"
       style={{ backgroundColor: 'transparent', borderColor: 'transparent' }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-border/50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-border/30">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <svg className="h-8 w-8 text-primary transition-transform group-hover:scale-105" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="h-8 w-8 text-primary transition-transform group-hover:scale-105" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24">
               <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
             </svg>
             <span className="text-xl font-bold text-foreground tracking-tight">Archflow</span>
@@ -83,7 +83,7 @@ export function Navbar() {
             aria-label="Toggle menu"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
                 d={mobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
             </svg>
           </button>

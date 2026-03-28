@@ -90,7 +90,7 @@ export function EmbedChrome({
               viewBox="0 0 24 24"
               fill="none"
               stroke="rgba(255, 255, 255, 0.5)"
-              strokeWidth="2"
+              strokeWidth="0.1"
             >
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -150,7 +150,7 @@ export function EmbedChrome({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="0.1"
           >
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
             <polyline points="15 3 21 3 21 9" />

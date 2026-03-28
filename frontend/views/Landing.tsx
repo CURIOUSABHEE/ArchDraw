@@ -61,13 +61,13 @@ const DEMO_NODES: Node[] = [
 ];
 
 const DEMO_EDGES: Edge[] = [
-  { id: 'e1', source: 'client',  target: 'apigw',   type: 'smoothstep', animated: true,  style: { stroke: '#3b82f6', strokeWidth: 1.5 } },
-  { id: 'e2', source: 'apigw',   target: 'auth',    type: 'smoothstep', animated: false, style: { stroke: '#6366f1', strokeWidth: 1.5 } },
-  { id: 'e3', source: 'apigw',   target: 'backend', type: 'smoothstep', animated: true,  style: { stroke: '#3b82f6', strokeWidth: 1.5 } },
-  { id: 'e4', source: 'backend', target: 'db',      type: 'smoothstep', animated: false, style: { stroke: '#6366f1', strokeWidth: 1.5 } },
-  { id: 'e5', source: 'backend', target: 'cache',   type: 'smoothstep', animated: false, style: { stroke: '#6366f1', strokeWidth: 1.5 } },
-  { id: 'e6', source: 'backend', target: 'queue',   type: 'smoothstep', animated: true,  style: { stroke: '#3b82f6', strokeWidth: 1.5 } },
-  { id: 'e7', source: 'queue',   target: 'worker',  type: 'smoothstep', animated: true,  style: { stroke: '#3b82f6', strokeWidth: 1.5 } },
+  { id: 'e1', source: 'client',  target: 'apigw',   type: 'smoothstep', animated: true,  style: { stroke: '#3b82f6', strokeWidth: '1.5px' } },
+  { id: 'e2', source: 'apigw',   target: 'auth',    type: 'smoothstep', animated: false, style: { stroke: '#6366f1', strokeWidth: '1.5px' } },
+  { id: 'e3', source: 'apigw',   target: 'backend', type: 'smoothstep', animated: true,  style: { stroke: '#3b82f6', strokeWidth: '1.5px' } },
+  { id: 'e4', source: 'backend', target: 'db',      type: 'smoothstep', animated: false, style: { stroke: '#6366f1', strokeWidth: '1.5px' } },
+  { id: 'e5', source: 'backend', target: 'cache',   type: 'smoothstep', animated: false, style: { stroke: '#6366f1', strokeWidth: '1.5px' } },
+  { id: 'e6', source: 'backend', target: 'queue',   type: 'smoothstep', animated: true,  style: { stroke: '#3b82f6', strokeWidth: '1.5px' } },
+  { id: 'e7', source: 'queue',   target: 'worker',  type: 'smoothstep', animated: true,  style: { stroke: '#3b82f6', strokeWidth: '1.5px' } },
 ];
 
 // ── Canvas preview ───────────────────────────────────────────────────────────

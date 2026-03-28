@@ -192,7 +192,7 @@ function CustomEdgeComponent({
 
   // ── Derived visuals ───────────────────────────────────────────────────────
   const strokeColor = selected ? '#6366f1' : (hovered ? color : '#94a3b8');
-  const strokeWidth = selected ? 2 : (hovered ? 1.5 : 1.25);
+  const strokeWidth = selected ? 2 : (hovered ? 1.5 : 1.5);
   const strokeDasharray = getStrokeDasharray(edgeStyle);
   const isAnimated = edgeStyle === 'dashed' || edgeStyle === 'dotted';
   const markerEnd = `arrow-${id}-end`;

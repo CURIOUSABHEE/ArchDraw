@@ -76,7 +76,7 @@ export function Templates() {
               <CardContent className="p-0 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: t.accent + '15', border: `1px solid ${t.accent}25` }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: t.accent + '10', border: `1px solid ${t.accent}15` }}>
                       <t.Icon style={{ width: 15, height: 15, color: t.accent }} />
                     </div>
                     <h3 className="font-semibold text-foreground">{t.name}</h3>
@@ -93,7 +93,7 @@ export function Templates() {
               <div className="mt-4 text-sm flex items-center gap-1 font-semibold text-primary">
                 Load template
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                  <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
                 </svg>
               </div>
             </Card>

@@ -87,7 +87,7 @@ function getDescription(comp: ComponentEntry): string {
 
 function makeDragGhost(label: string, color: string) {
   const ghost = document.createElement('div');
-  ghost.style.cssText = `position:fixed;top:-100px;left:-100px;background:white;border:1px solid #e2e8f0;border-left:3px solid ${color};border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;color:#1e293b;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.15);pointer-events:none;`;
+  ghost.style.cssText = `position:fixed;top:-100px;left:-100px;background:white;border:1px solid rgba(0,0,0,0.08);border-left:1px solid ${color};border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;color:#1e293b;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.08);pointer-events:none;`;
   ghost.textContent = label;
   return ghost;
 }
@@ -141,7 +141,7 @@ function ComponentItem({ comp, onAdd }: ComponentItemProps) {
         {comp.technology ? (
           <NodeIcon technology={comp.technology} size={12} />
         ) : (
-          <FallbackIcon size={12} style={{ color: displayColor }} strokeWidth={1.75} />
+          <FallbackIcon size={12} style={{ color: displayColor }} strokeWidth={1.5} />
         )}
       </div>
       <span className="flex-1 text-left truncate">{comp.label}</span>
@@ -210,7 +210,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
     <aside className="w-60 border-r border-border bg-background flex flex-col h-full shrink-0">
       <div className="p-4 border-b border-border/50 sticky top-0 bg-background z-10">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" style={{ strokeWidth: 1.5 }} />
           <Input
             type="text"
             placeholder="Search..."
@@ -258,7 +258,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
                         className="flex items-center justify-center rounded shrink-0"
                         style={{ width: 24, height: 24, background: `${comp.color}15`, border: `1px solid ${comp.color}30` }}
                       >
-                        <Server size={10} style={{ color: comp.color }} strokeWidth={1.75} />
+                        <Server size={10} style={{ color: comp.color }} strokeWidth={1.5} />
                       </div>
                       <span className="flex-1 text-left truncate text-xs">{comp.label}</span>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -267,14 +267,14 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
                           className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
                           title="Edit"
                         >
-                          <Pencil size={12} />
+                          <Pencil size={12} style={{ strokeWidth: 1.5 }} />
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeleteConfirm(comp.id); }}
                           className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                           title="Delete"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={12} style={{ strokeWidth: 1.5 }} />
                         </button>
                       </div>
                     </div>
@@ -290,7 +290,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
                   <AccordionItem key={section.key} value={section.key} className="border-0">
                     <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent rounded-lg transition-colors">
                       <div className="flex items-center gap-3">
-                        <Icon className="w-4 h-4 text-primary" />
+                        <Icon className="w-4 h-4 text-primary" style={{ strokeWidth: 1.5 }} />
                         <span className="text-sm font-medium">{section.title}</span>
                       </div>
                     </AccordionTrigger>
@@ -320,7 +320,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
           className="w-full justify-start gap-2 h-11 rounded-xl border-dashed text-muted-foreground hover:text-foreground hover:border-primary"
           onClick={() => { setEditComponent(null); setShowCreateModal(true); }}
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4" style={{ strokeWidth: 1.5 }} />
           New component
         </Button>
       </div>
@@ -425,7 +425,7 @@ function SearchResults({ query, sections, customComponents, onAdd }: SearchResul
                 className="flex items-center justify-center rounded shrink-0"
                 style={{ width: 28, height: 28, background: `${comp.color}15`, border: `1px solid ${comp.color}30` }}
               >
-                <Server size={12} style={{ color: comp.color }} strokeWidth={1.75} />
+                <Server size={12} style={{ color: comp.color }} strokeWidth={1.5} />
               </div>
               <span className="flex-1 text-left truncate">{comp.label}</span>
               <span className="text-[10px] text-muted-foreground">custom</span>

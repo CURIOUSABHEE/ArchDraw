@@ -12,7 +12,7 @@ const nodeTypes: NodeTypes = { heroNode: HeroNode };
 
 const ES = { 
   stroke: '#6366f1', 
-  strokeWidth: 1.5, 
+  strokeWidth: '1.5px', 
   strokeOpacity: 0.7,
   strokeDasharray: '6 4',
   style: { animation: 'dash 0.8s linear infinite' },

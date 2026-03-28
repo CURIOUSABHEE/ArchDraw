@@ -47,7 +47,7 @@ const E = (id: string, source: string, target: string, label: string): Edge => (
   id, source, target,
   type: 'default',
   animated: true,
-  style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+  style: { stroke: '#94a3b8', strokeWidth: '1.5px' },
   label,
 });
 

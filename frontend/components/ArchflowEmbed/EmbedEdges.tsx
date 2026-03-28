@@ -84,14 +84,14 @@ export function EmbedEdges({ edges, nodePositions }: EmbedEdgesProps) {
               d={path}
               fill="none"
               stroke="var(--edge-color, #6366f1)"
-              strokeWidth={2}
+              strokeWidth={1.5}
               opacity={0.3}
             />
             <path
               d={path}
               fill="none"
               stroke="var(--edge-color, #6366f1)"
-              strokeWidth={2}
+              strokeWidth={1.5}
               strokeDasharray="5 5"
               markerEnd="url(#arrowhead)"
               className={edge.animated ? "animate-flow" : ""}

@@ -64,7 +64,7 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     width: 8,
     height: 8,
     background: isDark ? '#161b22' : '#ffffff',
-    border: `2px solid ${selected ? resolvedAccent : isDark ? '#334155' : '#e2e8f0'}`,
+    border: `1px solid rgba(255,255,255,0.08)`,
     borderRadius: '50%',
     transition: 'all 0.15s ease',
   };

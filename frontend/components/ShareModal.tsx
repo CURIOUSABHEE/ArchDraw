@@ -296,7 +296,7 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                             }
                             fill="none"
                             stroke={pathType === type ? '#6366f1' : '#64748b'}
-                            strokeWidth="2"
+                            strokeWidth="0.1"
                             strokeLinecap="round"
                           />
                         </svg>

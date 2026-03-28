@@ -319,7 +319,7 @@ function CanvasInner() {
                   style={{
                     width: 100,
                     background: resolvedTheme === 'dark' ? '#1e293b' : '#ffffff',
-                    border: resolvedTheme === 'dark' ? '1px solid #475569' : '1px solid #cbd5e1',
+                    border: resolvedTheme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)',
                     borderRadius: 9999,
                     padding: '2px 10px',
                     fontSize: 10,

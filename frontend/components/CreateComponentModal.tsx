@@ -273,7 +273,7 @@ function ModalContent({ onClose, onCreate, onUpdate, existingNames, editComponen
                   <Icon
                     className="w-4 h-4"
                     style={{ color: type.color }}
-                    strokeWidth={1.75}
+                    strokeWidth={0.1}
                   />
                 </div>
                 <span className={`text-[11px] font-medium text-center ${isSelected

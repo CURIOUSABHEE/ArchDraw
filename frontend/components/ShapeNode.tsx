@@ -23,7 +23,7 @@ const HANDLE_STYLE = (color: string) => ({
   width: 10,
   height: 10,
   background: color,
-  border: '2px solid hsl(var(--card))',
+  border: '1px solid rgba(255,255,255,0.08)',
   borderRadius: '50%',
 });
 
@@ -89,14 +89,14 @@ function Diamond({ data, selected }: { data: ShapeNodeData; selected: boolean })
           points={`${W / 2},4 ${W - 4},${H / 2} ${W / 2},${H - 4} 4,${H / 2}`}
           fill={`${color}12`}
           stroke={selected ? color : `${color}66`}
-          strokeWidth={2}
+          strokeWidth={0.1}
         />
         {selected && (
           <polygon
             points={`${W / 2},4 ${W - 4},${H / 2} ${W / 2},${H - 4} 4,${H / 2}`}
             fill="none"
             stroke={color}
-            strokeWidth={4}
+            strokeWidth={0.1}
             strokeOpacity={0.2}
           />
         )}
@@ -151,7 +151,7 @@ function Circle({ data, selected }: { data: ShapeNodeData; selected: boolean }) 
           cx={W / 2} cy={H / 2} rx={W / 2 - 2} ry={H / 2 - 2}
           fill={`${color}12`}
           stroke={selected ? color : `${color}66`}
-          strokeWidth={2}
+          strokeWidth={0.1}
         />
       </svg>
       <Handles color={color} />
@@ -178,7 +178,7 @@ function Parallelogram({ data, selected }: { data: ShapeNodeData; selected: bool
           points={pts}
           fill={`${color}12`}
           stroke={selected ? color : `${color}66`}
-          strokeWidth={2}
+          strokeWidth={0.1}
         />
       </svg>
       <Handles color={color} />

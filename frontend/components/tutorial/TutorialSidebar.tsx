@@ -63,7 +63,7 @@ interface ComponentEntry {
 
 function makeDragGhost(label: string, color: string) {
   const ghost = document.createElement('div');
-  ghost.style.cssText = `position:fixed;top:-100px;left:-100px;background:white;border:1px solid #e2e8f0;border-left:3px solid ${color};border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;color:#1e293b;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.15);pointer-events:none;`;
+  ghost.style.cssText = `position:fixed;top:-100px;left:-100px;background:white;border:1px solid rgba(0,0,0,0.08);border-left:1px solid ${color};border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;color:#1e293b;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.08);pointer-events:none;`;
   ghost.textContent = label;
   return ghost;
 }
@@ -169,7 +169,7 @@ export function TutorialSidebar() {
           {comp.technology ? (
             <NodeIcon technology={comp.technology} size={11} />
           ) : (
-            <FallbackIcon size={11} style={{ color: displayColor }} strokeWidth={1.75} />
+            <FallbackIcon size={11} style={{ color: displayColor }} strokeWidth={1.5} />
           )}
         </div>
         <span className="flex-1 text-left leading-tight">{comp.label}</span>
@@ -185,7 +185,7 @@ export function TutorialSidebar() {
       {/* Search */}
       <div className="p-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" style={{ strokeWidth: 1.5 }} />
           <input
             type="text"
             placeholder="Search components..."
@@ -224,9 +224,9 @@ export function TutorialSidebar() {
                 >
                   <span className="text-[9px] font-medium uppercase tracking-wide">{category}</span>
                   {isCollapsed ? (
-                    <ChevronRight className="w-2.5 h-2.5" />
+                    <ChevronRight className="w-2.5 h-2.5" style={{ strokeWidth: 1.5 }} />
                   ) : (
-                    <ChevronDown className="w-2.5 h-2.5" />
+                    <ChevronDown className="w-2.5 h-2.5" style={{ strokeWidth: 1.5 }} />
                   )}
                 </button>
                 {!isCollapsed && (

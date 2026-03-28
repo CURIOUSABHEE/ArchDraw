@@ -41,7 +41,7 @@ function TapBeacon() {
           position: 'absolute',
           inset: 0,
           borderRadius: '50%',
-          border: '2px solid rgba(99,102,241,0.6)',
+          border: '1px solid rgba(99,102,241,0.6)',
         }}
         animate={{ scale: [1, 1.7, 1], opacity: [0.7, 0, 0.7] }}
         transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
@@ -52,7 +52,7 @@ function TapBeacon() {
           position: 'absolute',
           inset: 6,
           borderRadius: '50%',
-          border: '2px solid rgba(129,140,248,0.7)',
+          border: '1px solid rgba(129,140,248,0.7)',
         }}
         animate={{ scale: [1, 1.5, 1], opacity: [0.8, 0, 0.8] }}
         transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
@@ -100,7 +100,7 @@ function DragBeacon() {
           position: 'absolute',
           inset: 0,
           borderRadius: '50%',
-          border: '2px solid rgba(99,102,241,0.5)',
+          border: '1px solid rgba(99,102,241,0.5)',
         }}
         animate={{ scale: [1, 1.6], opacity: [0.6, 0] }}
         transition={{ duration: 0.9, repeat: Infinity, ease: 'easeOut' }}

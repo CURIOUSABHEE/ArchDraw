@@ -6,7 +6,7 @@ const techs = ['Next.js', 'Supabase', 'AWS', 'Vercel', 'Docker', 'Kubernetes', '
 
 export function SocialProof() {
   return (
-    <section className="bg-secondary/30 border-t border-border/50 pt-2 pb-12 overflow-hidden">
+    <section className="bg-secondary/30 border-t border-border/30 pt-2 pb-12 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4">
         <p className="mb-6 text-center text-xs font-medium text-muted-foreground tracking-wide">
           Built for engineers who think in systems

@@ -89,7 +89,7 @@ export function FlowEdge({
 
   const strokeStyle: React.CSSProperties = {
     stroke: config.color,
-    strokeWidth: selected ? 2.5 : 2,
+    strokeWidth: selected ? 2 : 1.5,
     strokeDasharray: config.dash,
     transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s',
     opacity: selected ? 1 : 0.85,

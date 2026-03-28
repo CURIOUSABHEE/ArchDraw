@@ -101,7 +101,7 @@ function generateEmbedHTML(nodes: any[], edges: any[]): string {
     .container {
       background: #1e293b;
       border-radius: 12px;
-      border: 1px solid #334155;
+      border: 1px solid rgba(255,255,255,0.08);
       padding: 20px;
       max-width: 100%;
       overflow: auto;
@@ -112,7 +112,7 @@ function generateEmbedHTML(nodes: any[], edges: any[]): string {
       justify-content: space-between;
       margin-bottom: 16px;
       padding-bottom: 12px;
-      border-bottom: 1px solid #334155;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .title {
       color: #f1f5f9;
@@ -745,7 +745,7 @@ function EdgeTypeSelector({ currentType, onChange }: { currentType: EdgeType; on
             d={getPath(currentConfig.pathType)}
             fill="none"
             stroke={currentConfig.color}
-            strokeWidth="2"
+            strokeWidth="0.1"
             strokeLinecap="round"
           />
           <polygon points="14,4 15,6 14,8" fill={currentConfig.color} />
@@ -773,7 +773,7 @@ function EdgeTypeSelector({ currentType, onChange }: { currentType: EdgeType; on
                       d={getLargePath(config.pathType)}
                       fill="none"
                       stroke={config.color}
-                      strokeWidth="2"
+                      strokeWidth="0.1"
                       strokeLinecap="round"
                     />
                     <polygon points="18,4 19,6 18,8" fill={config.color} />

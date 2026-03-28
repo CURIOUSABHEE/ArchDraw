@@ -48,7 +48,7 @@ export function NodeIcon({ technology, fallbackIcon, fallbackColor, size = 18 }:
   const iconName = entry?.icon ?? fallbackIcon ?? 'Server';
   const color = entry?.color ?? fallbackColor ?? '#6366f1';
   const Icon = LUCIDE_MAP[iconName] ?? Server;
-  return <Icon size={size} style={{ color }} strokeWidth={1.8} />;
+  return <Icon size={size} style={{ color }} strokeWidth={2} />;
 }
 
 export function resolveNodeColor(technology?: string, fallbackColor?: string): string {

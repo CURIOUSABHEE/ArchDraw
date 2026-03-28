@@ -211,7 +211,7 @@ function TutorialCanvasInner({
           id: `edge-${Date.now()}`,
           type: 'default',
           animated: true,
-          style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+          style: { stroke: '#94a3b8', strokeWidth: '1.5px' },
         },
         edges
       );
@@ -328,7 +328,7 @@ function TutorialCanvasInner({
           defaultEdgeOptions={{
             type: 'default',
             animated: true,
-            style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+            style: { stroke: '#94a3b8', strokeWidth: '1.5px' },
           }}
           deleteKeyCode={['Backspace', 'Delete', 'Meta+Backspace']}
         >

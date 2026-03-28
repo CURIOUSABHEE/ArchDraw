@@ -101,7 +101,7 @@ export const EmbedNode = memo(function EmbedNode({
           justifyContent: 'center',
         }}
       >
-        <Icon style={{ width: 16, height: 16, color, strokeWidth: 1.75 }} />
+        <Icon style={{ width: 16, height: 16, color, strokeWidth: '1.5px' }} />
       </div>
 
       {/* Label */}

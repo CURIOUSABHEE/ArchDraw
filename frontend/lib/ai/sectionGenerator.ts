@@ -49,19 +49,19 @@ export function getNodeVisualConfig(node: Node): {
 export const EDGE_STYLE_GUIDE = {
   primary: {
     stroke: '#6366f1',
-    strokeWidth: 2.5,
+    strokeWidth: '1.5px',
     opacity: 1,
     animated: true,
   },
   secondary: {
     stroke: '#64748b',
-    strokeWidth: 1.5,
+    strokeWidth: '1.5px',
     opacity: 0.8,
     animated: false,
   },
   supporting: {
     stroke: '#94a3b8',
-    strokeWidth: 1,
+    strokeWidth: '1px',
     opacity: 0.5,
     animated: false,
   },
@@ -69,12 +69,12 @@ export const EDGE_STYLE_GUIDE = {
 
 export function getEdgeStyle(sourceNode: Node | undefined, targetNode: Node | undefined): {
   stroke: string;
-  strokeWidth: number;
+  strokeWidth: number | string;
   opacity: number;
   animated: boolean;
 } {
   if (!sourceNode || !targetNode) {
-    return { stroke: '#64748b', strokeWidth: 1.5, opacity: 0.6, animated: false };
+    return { stroke: '#64748b', strokeWidth: '1.5px', opacity: 0.6, animated: false };
   }
 
   const sourceCategory = (sourceNode.data?.category as string ?? '').toLowerCase();
