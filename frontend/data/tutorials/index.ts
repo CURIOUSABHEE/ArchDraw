@@ -28,7 +28,7 @@ import type { Tutorial } from '@/lib/tutorial/types';
 export type AnyTutorial = FlatTutorial | Tutorial;
 
 // ── Import all tutorials ────────────────────────────────────────────────────────
-import { chatgptArchitecture as chatgptTutorial } from './chatgpt-architecture';
+import { chatgptTutorial } from './chatgpt-architecture';
 import { instagramTutorial } from './instagram-architecture';
 import { openclawTutorial } from './openclaw-architecture';
 import { netflixTutorial } from './netflix-architecture';
