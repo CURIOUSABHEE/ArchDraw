@@ -19,7 +19,6 @@ const PATH_TYPES: PathType[] = ['smooth', 'bezier', 'step', 'straight'];
 export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPathType, labelX, labelY }: Props) {
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
   const deleteEdge = useDiagramStore((s) => s.deleteEdge);
-  const setCurrentEdgeType = useDiagramStore((s) => s.setCurrentEdgeType);
   
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(currentLabel || '');
@@ -69,7 +68,6 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
 
   const handleEdgeTypeChange = (type: EdgeType) => {
     updateEdgeData(edgeId, { edgeType: type });
-    setCurrentEdgeType(type);
     setShowTypeMenu(false);
   };
 

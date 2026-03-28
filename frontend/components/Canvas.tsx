@@ -22,9 +22,9 @@ import { GuideLines } from '@/components/GuideLines';
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu';
 import { useSnapping } from '@/hooks/useSnapping';
 import { useMiddleMousePan } from '@/hooks/useCanvasInteractions';
-import { useCallback, useEffect, useRef, DragEvent, useState, Fragment } from 'react';
+import { useCallback, useEffect, useRef, DragEvent, useState } from 'react';
 import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
-import { LayoutGrid, Sparkles, LayoutTemplate, MousePointer2 } from 'lucide-react';
+import { LayoutGrid, LayoutTemplate, MousePointer2 } from 'lucide-react';
 import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import { useTheme } from 'next-themes';
@@ -55,14 +55,13 @@ function CanvasInner() {
     selectedNodeIds, selectedEdgeId,
     setSelectedNodeId, setSelectedNodeIds, setSelectedEdgeId,
     showGrid,
-    pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData,
-    canvasMode, setCanvasMode, openAIPanel,
+    pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData, setCanvasMode
   } = useDiagramStore();
   const { resolvedTheme } = useTheme();
 
   const reactFlowInstance = useReactFlow();
   const { onNodeDrag, onNodeDragStop: onNodeDragStopSnap } = useSnapping();
-  const isMiddlePan = useMiddleMousePan();
+  useMiddleMousePan();
   const [labelDraft, setLabelDraft] = useState('');
   const labelInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -242,11 +241,6 @@ function CanvasInner() {
     dismissOnboarding();
   }, [setCanvasMode, dismissOnboarding]);
 
-  const handleOpenAIPanel = useCallback(() => {
-    openAIPanel();
-    dismissOnboarding();
-  }, [openAIPanel, dismissOnboarding]);
-
   return (
     <div className="flex-1 relative overflow-hidden bg-background">
       {/* Canvas background with radial gradient */}
@@ -407,21 +401,8 @@ function CanvasInner() {
             <p className="text-xs text-muted-foreground/50">Choose how you want to begin</p>
           </div>
           
-          <div className="flex items-center gap-3 pointer-events-auto">
-            {/* AI Generate - Primary */}
-            <button
-              onClick={handleOpenAIPanel}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-background"
-              style={{
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
-                boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)',
-              }}
-            >
-              <Sparkles className="w-4 h-4" />
-              Generate with AI
-            </button>
-            
-            {/* Templates - Secondary */}
+          <div className="flex items-center gap-3">
+            {/* Templates - Primary */}
             <button
               onClick={handleOpenTemplates}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-accent/60 hover:bg-accent text-foreground border border-border/50 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
@@ -430,7 +411,7 @@ function CanvasInner() {
               Use Template
             </button>
             
-            {/* Start from Scratch - Ghost */}
+            {/* Start from Scratch */}
             <button
               onClick={handleStartFromScratch}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"

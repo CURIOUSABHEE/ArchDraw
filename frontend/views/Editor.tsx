@@ -8,6 +8,8 @@ import { CommandPalette } from '@/components/CommandPalette';
 import { PropertiesPanel } from '@/components/PropertiesPanel';
 import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData } from '@/components/CreateComponentModal';
 import type { ComponentToEdit } from '@/components/CreateComponentModal';
+import { AIGenerateModal } from '@/components/AIGenerateModal';
+import { GenerationProgressDisplay } from '@/components/GenerationProgress';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -15,12 +17,17 @@ import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { OnboardingOverlay } from '@/components/onboarding/OnboardingOverlay';
 import { useOnboarding } from '@/components/onboarding/useOnboarding';
 import { componentRegistry } from '@/lib/componentRegistry';
+import { toast } from 'sonner';
+import type { GenerationProgress } from '@/lib/ai/types';
 
 export default function EditorPage() {
-  const { selectedNodeId, selectedEdgeId, nodes, sidebarOpen } = useDiagramStore();
+  const { selectedNodeId, selectedEdgeId, nodes, sidebarOpen, importDiagram, fitView } = useDiagramStore();
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
+  const [showAIGenerateModal, setShowAIGenerateModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState<GenerationProgress | null>(null);
 
   // Initialize onboarding (auto-open + drag detection)
   useOnboarding();
@@ -126,6 +133,81 @@ export default function EditorPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [user, nodes.length]);
 
+  // AI Generate button event listener
+  useEffect(() => {
+    const handler = () => {
+      setShowAIGenerateModal(true);
+    };
+    window.addEventListener('open-ai-generate', handler);
+    return () => window.removeEventListener('open-ai-generate', handler);
+  }, []);
+
+  const handleGenerate = async (description: string) => {
+    setIsGenerating(true);
+    setProgress(null);
+
+    try {
+      const response = await fetch('/api/generate-diagram', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ description }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Generation failed');
+      }
+
+      const { data: result } = data;
+
+      if (result.nodes && result.edges) {
+        const processedNodes = result.nodes.map((node: Record<string, unknown>) => ({
+          ...node,
+          type: 'systemNode',
+        }));
+
+        const processedEdges = result.edges.map((edge: Record<string, unknown>) => ({
+          ...edge,
+          type: 'custom',
+        }));
+
+        importDiagram(processedNodes, processedEdges);
+        setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 100);
+        toast.success(`Generated ${result.nodes.length} nodes and ${result.edges.length} edges`);
+      }
+
+      setProgress({
+        phase: 'complete',
+        iteration: result.metadata.iterations,
+        currentAgent: 'complete',
+        score: result.metadata.score,
+        message: `Created ${result.metadata.totalNodes} nodes and ${result.metadata.totalEdges} edges`,
+        progress: 100,
+      });
+
+      setTimeout(() => {
+        setIsGenerating(false);
+        setProgress(null);
+      }, 2000);
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Generation failed';
+      setProgress({
+        phase: 'error',
+        iteration: 0,
+        currentAgent: 'error',
+        score: 0,
+        message,
+        progress: 0,
+      });
+      setIsGenerating(false);
+      throw error;
+    }
+  };
+
   return (
     <ErrorBoundary>
       <div className="flex flex-col h-screen w-screen overflow-hidden">
@@ -143,6 +225,18 @@ export default function EditorPage() {
         </div>
         <CommandPalette />
         <OnboardingOverlay />
+        <AIGenerateModal
+          isOpen={showAIGenerateModal}
+          onClose={() => setShowAIGenerateModal(false)}
+          onGenerate={handleGenerate}
+        />
+        <GenerationProgressDisplay 
+          progress={progress} 
+          onCancel={() => {
+            setIsGenerating(false);
+            setProgress(null);
+          }}
+        />
         <CreateComponentModal
           isOpen={showCreateModal}
           onClose={() => { setShowCreateModal(false); setEditComponent(null); }}

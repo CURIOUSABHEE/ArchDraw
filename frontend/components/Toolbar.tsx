@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import {
-  Download, Trash2, Upload, ChevronDown, FileJson,
+  Download, Trash2, Upload, ChevronDown,
   Undo2, Redo2, Share2, Loader2, Check,
   GraduationCap, Sparkles, MoreHorizontal, HelpCircle,
   Plus, X, PanelLeftClose, LayoutTemplate,
@@ -17,7 +17,6 @@ import { EmailCaptureModal, type EmailCaptureReason } from '@/components/EmailCa
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { useOnboardingStore } from '@/store/onboardingStore';
-import { GenerateDiagramPanel } from '@/components/ai/GenerateDiagramPanel';
 import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDiagramStore as useDiagramStoreTyped } from '@/store/diagramStore';
@@ -25,7 +24,7 @@ import { EDGE_TYPE_CONFIGS, type EdgeType } from '@/data/edgeTypes';
 
 type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf' | 'html-embed';
 
-function generateEmbedHTML(nodes: any[], edges: any[]): string {
+function generateEmbedHTML(nodes: { id: string; width?: number | null; height?: number | null; position: { x: number; y: number }; data?: any }[], edges: { source: string; target: string; data?: any; style?: any }[]): string {
   const svgWidth = 1200;
   const svgHeight = 800;
   
@@ -51,7 +50,7 @@ function generateEmbedHTML(nodes: any[], edges: any[]): string {
   }));
   
   const nodesSVG = renderedNodes.map(node => {
-    const { x, y, width, height, color, label } = node;
+    const { position: { x, y }, width, height, color, label } = node;
     return `
     <g transform="translate(${x}, ${y})" class="node">
       <rect width="${width}" height="${height}" rx="8" fill="#1e293b" stroke="${color}" stroke-width="2"/>
@@ -173,9 +172,7 @@ export function Toolbar() {
     undo, redo, past, future,
     canvases, activeCanvasId, addCanvas, removeCanvas, switchCanvas, renameCanvas,
     savingState, userProfile, setSidebarOpen, sidebarOpen,
-    aiPanelOpen, openAIPanel, closeAIPanel,
-    currentEdgeType, setCurrentEdgeType,
-  } = useDiagramStore();
+} = useDiagramStore();
 
   const { user } = useAuthStore();
   const isGuest = !user;
@@ -523,26 +520,14 @@ export function Toolbar() {
 
           <ThemeToggle />
 
-          <EdgeTypeSelector currentType={currentEdgeType} onChange={setCurrentEdgeType} />
+          <span className="w-px h-4 bg-border/50 mx-1" />
 
           <button
-            onClick={() => setTemplatesOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/60 hover:bg-accent text-foreground transition-all"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-ai-generate'))}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/30 hover:to-purple-500/30 text-foreground border border-indigo-500/30 transition-all"
+            title="AI Generate Architecture"
           >
-            <LayoutTemplate className="w-3.5 h-3.5" />
-            <span>Templates</span>
-          </button>
-
-          <button
-            onClick={() => openAIPanel()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
-              color: 'white',
-              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-            }}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
             <span>AI Generate</span>
           </button>
 
@@ -694,7 +679,6 @@ export function Toolbar() {
         />
       )}
       <AnimatePresence>
-        {aiPanelOpen && <GenerateDiagramPanel onClose={() => closeAIPanel()} />}
       </AnimatePresence>
       {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}
 
@@ -714,78 +698,5 @@ export function Toolbar() {
         onCancel={() => setConfirmDeleteId(null)}
       />
     </>
-  );
-}
-
-function EdgeTypeSelector({ currentType, onChange }: { currentType: EdgeType; onChange: (type: EdgeType) => void }) {
-  const [open, setOpen] = useState(false);
-  const currentConfig = EDGE_TYPE_CONFIGS[currentType];
-
-  const getPath = (pathType: string) => {
-    if (pathType === 'step') return 'M 1 1 L 6 1 L 6 11 L 15 11';
-    if (pathType === 'straight') return 'M 1 6 L 15 6';
-    return 'M 1 6 C 6 1, 10 11, 15 6';
-  };
-
-  const getLargePath = (pathType: string) => {
-    if (pathType === 'step') return 'M 1 1 L 8 1 L 8 11 L 19 11';
-    if (pathType === 'straight') return 'M 1 6 L 19 6';
-    return 'M 1 6 C 6 1, 14 11, 19 6';
-  };
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-accent/60 hover:bg-accent text-foreground transition-all border border-border/50"
-        title="Edge type for new connections"
-      >
-        <svg width="16" height="12" viewBox="0 0 16 12" className="shrink-0">
-          <path
-            d={getPath(currentConfig.pathType)}
-            fill="none"
-            stroke={currentConfig.color}
-            strokeWidth="0.1"
-            strokeLinecap="round"
-          />
-          <polygon points="14,4 15,6 14,8" fill={currentConfig.color} />
-        </svg>
-        <span className="hidden sm:inline">{currentConfig.label}</span>
-        <ChevronDown className="w-3 h-3" />
-      </button>
-
-      {open && (
-        <>
-          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-40 rounded-xl overflow-hidden z-30 bg-card/98 border border-border/80 shadow-lg backdrop-blur-md">
-            {(Object.keys(EDGE_TYPE_CONFIGS) as EdgeType[]).map((type) => {
-              const config = EDGE_TYPE_CONFIGS[type];
-              return (
-                <button
-                  key={type}
-                  onClick={() => { onChange(type); setOpen(false); }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
-                    type === currentType ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
-                  }`}
-                >
-                  <svg width="20" height="12" viewBox="0 0 20 12" className="shrink-0">
-                    <path
-                      d={getLargePath(config.pathType)}
-                      fill="none"
-                      stroke={config.color}
-                      strokeWidth="0.1"
-                      strokeLinecap="round"
-                    />
-                    <polygon points="18,4 19,6 18,8" fill={config.color} />
-                  </svg>
-                  <span className="flex-1 text-left">{config.label}</span>
-                  {type === currentType && <Check className="w-3 h-3 text-primary" />}
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
   );
 }

@@ -1,0 +1,918 @@
+﻿
+> nextjs-app@0.1.0 prebuild
+> npx tsx scripts/generateTutorialCache.ts
+
+
+ΓöÇΓöÇ chatgpt-architecture (23 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  chatgpt-architecture:step-1-mobile:intro:0
+  SKIP  chatgpt-architecture:step-2-web:intro:0
+  SKIP  chatgpt-architecture:step-3-cdn:intro:0
+  SKIP  chatgpt-architecture:step-4-gateway:intro:0
+  SKIP  chatgpt-architecture:step-5-loadbalancer:intro:0
+  SKIP  chatgpt-architecture:step-6-chat-service:intro:0
+  SKIP  chatgpt-architecture:step-7-llm:intro:0
+  SKIP  chatgpt-architecture:step-8-nosql:intro:0
+  SKIP  chatgpt-architecture:step-9-auth:intro:0
+  SKIP  chatgpt-architecture:step-10-sql:intro:0
+  SKIP  chatgpt-architecture:step-11-cache:intro:0
+  SKIP  chatgpt-architecture:step-12-embedding:intro:0
+  SKIP  chatgpt-architecture:step-13-vector:intro:0
+  SKIP  chatgpt-architecture:step-14-rag:intro:0
+  SKIP  chatgpt-architecture:step-15-queue:intro:0
+  SKIP  chatgpt-architecture:step-16-logger:intro:0
+  SKIP  chatgpt-architecture:step-17-metrics:intro:0
+  SKIP  chatgpt-architecture:step-18-cdn-2:intro:0
+  SKIP  chatgpt-architecture:step-19-dashboard:intro:0
+  SKIP  chatgpt-architecture:step-20-bff:intro:0
+  SKIP  chatgpt-architecture:step-21-streaming:intro:0
+  SKIP  chatgpt-architecture:step-22-rate-limiter:intro:0
+  SKIP  chatgpt-architecture:step-23-otel:intro:0
+
+ΓöÇΓöÇ instagram-architecture (28 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  instagram-architecture:1:intro:0
+  SKIP  instagram-architecture:2:intro:0
+  SKIP  instagram-architecture:3:intro:0
+  SKIP  instagram-architecture:4 (non-live, step>3)
+  SKIP  instagram-architecture:5 (non-live, step>3)
+  SKIP  instagram-architecture:6 (non-live, step>3)
+  SKIP  instagram-architecture:7 (non-live, step>3)
+  SKIP  instagram-architecture:8 (non-live, step>3)
+  SKIP  instagram-architecture:9 (non-live, step>3)
+  SKIP  instagram-architecture:10 (non-live, step>3)
+  SKIP  instagram-architecture:11 (non-live, step>3)
+  SKIP  instagram-architecture:12 (non-live, step>3)
+  SKIP  instagram-architecture:13 (non-live, step>3)
+  SKIP  instagram-architecture:14 (non-live, step>3)
+  SKIP  instagram-architecture:15 (non-live, step>3)
+  SKIP  instagram-architecture:16 (non-live, step>3)
+  SKIP  instagram-architecture:17 (non-live, step>3)
+  SKIP  instagram-architecture:18 (non-live, step>3)
+  SKIP  instagram-architecture:19 (non-live, step>3)
+  SKIP  instagram-architecture:20 (non-live, step>3)
+  SKIP  instagram-architecture:21 (non-live, step>3)
+  SKIP  instagram-architecture:22 (non-live, step>3)
+  SKIP  instagram-architecture:23 (non-live, step>3)
+  SKIP  instagram-architecture:24 (non-live, step>3)
+  SKIP  instagram-architecture:25 (non-live, step>3)
+  SKIP  instagram-architecture:26 (non-live, step>3)
+  SKIP  instagram-architecture:27 (non-live, step>3)
+  SKIP  instagram-architecture:28 (non-live, step>3)
+
+ΓöÇΓöÇ openclaw-architecture (28 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  openclaw-architecture:1:intro:0
+  SKIP  openclaw-architecture:2:intro:0
+  SKIP  openclaw-architecture:3:intro:0
+  SKIP  openclaw-architecture:4 (non-live, step>3)
+  SKIP  openclaw-architecture:5 (non-live, step>3)
+  SKIP  openclaw-architecture:6 (non-live, step>3)
+  SKIP  openclaw-architecture:7 (non-live, step>3)
+  SKIP  openclaw-architecture:8 (non-live, step>3)
+  SKIP  openclaw-architecture:9 (non-live, step>3)
+  SKIP  openclaw-architecture:10 (non-live, step>3)
+  SKIP  openclaw-architecture:11 (non-live, step>3)
+  SKIP  openclaw-architecture:12 (non-live, step>3)
+  SKIP  openclaw-architecture:13 (non-live, step>3)
+  SKIP  openclaw-architecture:14 (non-live, step>3)
+  SKIP  openclaw-architecture:15 (non-live, step>3)
+  SKIP  openclaw-architecture:16 (non-live, step>3)
+  SKIP  openclaw-architecture:17 (non-live, step>3)
+  SKIP  openclaw-architecture:18 (non-live, step>3)
+  SKIP  openclaw-architecture:19 (non-live, step>3)
+  SKIP  openclaw-architecture:20 (non-live, step>3)
+  SKIP  openclaw-architecture:21 (non-live, step>3)
+  SKIP  openclaw-architecture:22 (non-live, step>3)
+  SKIP  openclaw-architecture:23 (non-live, step>3)
+  SKIP  openclaw-architecture:24 (non-live, step>3)
+  SKIP  openclaw-architecture:25 (non-live, step>3)
+  SKIP  openclaw-architecture:26 (non-live, step>3)
+  SKIP  openclaw-architecture:27 (non-live, step>3)
+  SKIP  openclaw-architecture:28 (non-live, step>3)
+
+ΓöÇΓöÇ netflix-architecture (21 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  netflix-architecture:1:intro:0
+  SKIP  netflix-architecture:1:teaching:0
+  SKIP  netflix-architecture:1:teaching:1
+  SKIP  netflix-architecture:1:teaching:2
+  SKIP  netflix-architecture:1:action:0
+  SKIP  netflix-architecture:1:celebration:0
+  SKIP  netflix-architecture:1:wrong_component:0
+  SKIP  netflix-architecture:2:intro:0
+  SKIP  netflix-architecture:2:teaching:0
+  SKIP  netflix-architecture:2:teaching:1
+  SKIP  netflix-architecture:2:teaching:2
+  SKIP  netflix-architecture:2:action:0
+  SKIP  netflix-architecture:2:celebration:0
+  SKIP  netflix-architecture:2:wrong_component:0
+  SKIP  netflix-architecture:3:intro:0
+  SKIP  netflix-architecture:3:teaching:0
+  SKIP  netflix-architecture:3:teaching:1
+  SKIP  netflix-architecture:3:teaching:2
+  SKIP  netflix-architecture:3:action:0
+  SKIP  netflix-architecture:3:celebration:0
+  SKIP  netflix-architecture:3:wrong_component:0
+  SKIP  netflix-architecture:4:intro:0
+  SKIP  netflix-architecture:4:teaching:0
+  SKIP  netflix-architecture:4:teaching:1
+  SKIP  netflix-architecture:4:teaching:2
+  SKIP  netflix-architecture:4:action:0
+  SKIP  netflix-architecture:4:celebration:0
+  SKIP  netflix-architecture:4:wrong_component:0
+  SKIP  netflix-architecture:5:intro:0
+  SKIP  netflix-architecture:5:teaching:0
+  SKIP  netflix-architecture:5:teaching:1
+  SKIP  netflix-architecture:5:teaching:2
+  SKIP  netflix-architecture:5:action:0
+  SKIP  netflix-architecture:5:celebration:0
+  SKIP  netflix-architecture:5:wrong_component:0
+  SKIP  netflix-architecture:6:intro:0
+  SKIP  netflix-architecture:6:teaching:0
+  SKIP  netflix-architecture:6:teaching:1
+  SKIP  netflix-architecture:6:teaching:2
+  SKIP  netflix-architecture:6:action:0
+  SKIP  netflix-architecture:6:celebration:0
+  SKIP  netflix-architecture:6:wrong_component:0
+  SKIP  netflix-architecture:7:intro:0
+  SKIP  netflix-architecture:7:teaching:0
+  SKIP  netflix-architecture:7:teaching:1
+  SKIP  netflix-architecture:7:teaching:2
+  SKIP  netflix-architecture:7:action:0
+  SKIP  netflix-architecture:7:celebration:0
+  SKIP  netflix-architecture:7:wrong_component:0
+  SKIP  netflix-architecture:8:intro:0
+  SKIP  netflix-architecture:8:teaching:0
+  SKIP  netflix-architecture:8:teaching:1
+  SKIP  netflix-architecture:8:teaching:2
+  SKIP  netflix-architecture:8:action:0
+  SKIP  netflix-architecture:8:celebration:0
+  SKIP  netflix-architecture:8:wrong_component:0
+  SKIP  netflix-architecture:9:intro:0
+  SKIP  netflix-architecture:9:teaching:0
+  SKIP  netflix-architecture:9:teaching:1
+  SKIP  netflix-architecture:9:teaching:2
+  SKIP  netflix-architecture:9:action:0
+  SKIP  netflix-architecture:9:celebration:0
+  SKIP  netflix-architecture:9:wrong_component:0
+  SKIP  netflix-architecture:10:intro:0
+  SKIP  netflix-architecture:10:teaching:0
+  SKIP  netflix-architecture:10:teaching:1
+  SKIP  netflix-architecture:10:teaching:2
+  SKIP  netflix-architecture:10:action:0
+  SKIP  netflix-architecture:10:celebration:0
+  SKIP  netflix-architecture:10:wrong_component:0
+  SKIP  netflix-architecture:11:intro:0
+  SKIP  netflix-architecture:11:teaching:0
+  SKIP  netflix-architecture:11:teaching:1
+  SKIP  netflix-architecture:11:teaching:2
+  SKIP  netflix-architecture:11:action:0
+  SKIP  netflix-architecture:11:celebration:0
+  SKIP  netflix-architecture:11:wrong_component:0
+  SKIP  netflix-architecture:12:intro:0
+  SKIP  netflix-architecture:12:teaching:0
+  SKIP  netflix-architecture:12:teaching:1
+  SKIP  netflix-architecture:12:teaching:2
+  SKIP  netflix-architecture:12:action:0
+  SKIP  netflix-architecture:12:celebration:0
+  SKIP  netflix-architecture:12:wrong_component:0
+  SKIP  netflix-architecture:13:intro:0
+  SKIP  netflix-architecture:13:teaching:0
+  SKIP  netflix-architecture:13:teaching:1
+  SKIP  netflix-architecture:13:teaching:2
+  SKIP  netflix-architecture:13:action:0
+  SKIP  netflix-architecture:13:celebration:0
+  SKIP  netflix-architecture:13:wrong_component:0
+  SKIP  netflix-architecture:14:intro:0
+  SKIP  netflix-architecture:14:teaching:0
+  SKIP  netflix-architecture:14:teaching:1
+  SKIP  netflix-architecture:14:teaching:2
+  SKIP  netflix-architecture:14:action:0
+  SKIP  netflix-architecture:14:celebration:0
+  SKIP  netflix-architecture:14:wrong_component:0
+  SKIP  netflix-architecture:15:intro:0
+  SKIP  netflix-architecture:15:teaching:0
+  SKIP  netflix-architecture:15:teaching:1
+  SKIP  netflix-architecture:15:teaching:2
+  SKIP  netflix-architecture:15:action:0
+  SKIP  netflix-architecture:15:celebration:0
+  SKIP  netflix-architecture:15:wrong_component:0
+  SKIP  netflix-architecture:16:intro:0
+  SKIP  netflix-architecture:16:teaching:0
+  SKIP  netflix-architecture:16:teaching:1
+  SKIP  netflix-architecture:16:teaching:2
+  SKIP  netflix-architecture:16:action:0
+  SKIP  netflix-architecture:16:celebration:0
+  SKIP  netflix-architecture:16:wrong_component:0
+  SKIP  netflix-architecture:17:intro:0
+  SKIP  netflix-architecture:17:teaching:0
+  SKIP  netflix-architecture:17:teaching:1
+  SKIP  netflix-architecture:17:teaching:2
+  SKIP  netflix-architecture:17:action:0
+  SKIP  netflix-architecture:17:celebration:0
+  SKIP  netflix-architecture:17:wrong_component:0
+  SKIP  netflix-architecture:18:intro:0
+  SKIP  netflix-architecture:18:teaching:0
+  SKIP  netflix-architecture:18:teaching:1
+  SKIP  netflix-architecture:18:teaching:2
+  SKIP  netflix-architecture:18:action:0
+  SKIP  netflix-architecture:18:celebration:0
+  SKIP  netflix-architecture:18:wrong_component:0
+  SKIP  netflix-architecture:19:intro:0
+  SKIP  netflix-architecture:19:teaching:0
+  SKIP  netflix-architecture:19:teaching:1
+  SKIP  netflix-architecture:19:teaching:2
+  SKIP  netflix-architecture:19:action:0
+  SKIP  netflix-architecture:19:celebration:0
+  SKIP  netflix-architecture:19:wrong_component:0
+  SKIP  netflix-architecture:20:intro:0
+  SKIP  netflix-architecture:20:teaching:0
+  SKIP  netflix-architecture:20:teaching:1
+  SKIP  netflix-architecture:20:teaching:2
+  SKIP  netflix-architecture:20:action:0
+  SKIP  netflix-architecture:20:celebration:0
+  SKIP  netflix-architecture:20:wrong_component:0
+  SKIP  netflix-architecture:21:intro:0
+  SKIP  netflix-architecture:21:teaching:0
+  SKIP  netflix-architecture:21:teaching:1
+  SKIP  netflix-architecture:21:teaching:2
+  SKIP  netflix-architecture:21:action:0
+  SKIP  netflix-architecture:21:celebration:0
+  SKIP  netflix-architecture:21:wrong_component:0
+
+ΓöÇΓöÇ uber-architecture (27 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  uber-architecture:1:intro:0
+  SKIP  uber-architecture:2:intro:0
+  SKIP  uber-architecture:3:intro:0
+  SKIP  uber-architecture:4 (non-live, step>3)
+  SKIP  uber-architecture:5 (non-live, step>3)
+  SKIP  uber-architecture:6 (non-live, step>3)
+  SKIP  uber-architecture:7 (non-live, step>3)
+  SKIP  uber-architecture:8 (non-live, step>3)
+  SKIP  uber-architecture:1:intro:0
+  SKIP  uber-architecture:2:intro:0
+  SKIP  uber-architecture:3:intro:0
+  SKIP  uber-architecture:4 (non-live, step>3)
+  SKIP  uber-architecture:5 (non-live, step>3)
+  SKIP  uber-architecture:6 (non-live, step>3)
+  SKIP  uber-architecture:7 (non-live, step>3)
+  SKIP  uber-architecture:8 (non-live, step>3)
+  SKIP  uber-architecture:1:intro:0
+  SKIP  uber-architecture:2:intro:0
+  SKIP  uber-architecture:3:intro:0
+  SKIP  uber-architecture:4 (non-live, step>3)
+  SKIP  uber-architecture:5 (non-live, step>3)
+  SKIP  uber-architecture:6 (non-live, step>3)
+  SKIP  uber-architecture:7 (non-live, step>3)
+  SKIP  uber-architecture:8 (non-live, step>3)
+  SKIP  uber-architecture:9 (non-live, step>3)
+  SKIP  uber-architecture:10 (non-live, step>3)
+  SKIP  uber-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ whatsapp-architecture (28 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  whatsapp-architecture:1:intro:0
+  SKIP  whatsapp-architecture:2:intro:0
+  SKIP  whatsapp-architecture:3:intro:0
+  SKIP  whatsapp-architecture:4 (non-live, step>3)
+  SKIP  whatsapp-architecture:5 (non-live, step>3)
+  SKIP  whatsapp-architecture:6 (non-live, step>3)
+  SKIP  whatsapp-architecture:7 (non-live, step>3)
+  SKIP  whatsapp-architecture:8 (non-live, step>3)
+  SKIP  whatsapp-architecture:9 (non-live, step>3)
+  SKIP  whatsapp-architecture:10 (non-live, step>3)
+  SKIP  whatsapp-architecture:1:intro:0
+  SKIP  whatsapp-architecture:2:intro:0
+  SKIP  whatsapp-architecture:3:intro:0
+  SKIP  whatsapp-architecture:4 (non-live, step>3)
+  SKIP  whatsapp-architecture:5 (non-live, step>3)
+  SKIP  whatsapp-architecture:6 (non-live, step>3)
+  SKIP  whatsapp-architecture:7 (non-live, step>3)
+  SKIP  whatsapp-architecture:1:intro:0
+  SKIP  whatsapp-architecture:2:intro:0
+  SKIP  whatsapp-architecture:3:intro:0
+  SKIP  whatsapp-architecture:4 (non-live, step>3)
+  SKIP  whatsapp-architecture:5 (non-live, step>3)
+  SKIP  whatsapp-architecture:6 (non-live, step>3)
+  SKIP  whatsapp-architecture:7 (non-live, step>3)
+  SKIP  whatsapp-architecture:8 (non-live, step>3)
+  SKIP  whatsapp-architecture:9 (non-live, step>3)
+  SKIP  whatsapp-architecture:10 (non-live, step>3)
+  SKIP  whatsapp-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ stripe-architecture (29 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  stripe-architecture:1:intro:0
+  SKIP  stripe-architecture:2:intro:0
+  SKIP  stripe-architecture:3:intro:0
+  SKIP  stripe-architecture:4 (non-live, step>3)
+  SKIP  stripe-architecture:5 (non-live, step>3)
+  SKIP  stripe-architecture:6 (non-live, step>3)
+  SKIP  stripe-architecture:7 (non-live, step>3)
+  SKIP  stripe-architecture:8 (non-live, step>3)
+  SKIP  stripe-architecture:9 (non-live, step>3)
+  SKIP  stripe-architecture:10 (non-live, step>3)
+  SKIP  stripe-architecture:1:intro:0
+  SKIP  stripe-architecture:2:intro:0
+  SKIP  stripe-architecture:3:intro:0
+  SKIP  stripe-architecture:4 (non-live, step>3)
+  SKIP  stripe-architecture:5 (non-live, step>3)
+  SKIP  stripe-architecture:6 (non-live, step>3)
+  SKIP  stripe-architecture:7 (non-live, step>3)
+  SKIP  stripe-architecture:8 (non-live, step>3)
+  SKIP  stripe-architecture:1:intro:0
+  SKIP  stripe-architecture:2:intro:0
+  SKIP  stripe-architecture:3:intro:0
+  SKIP  stripe-architecture:4 (non-live, step>3)
+  SKIP  stripe-architecture:5 (non-live, step>3)
+  SKIP  stripe-architecture:6 (non-live, step>3)
+  SKIP  stripe-architecture:7 (non-live, step>3)
+  SKIP  stripe-architecture:8 (non-live, step>3)
+  SKIP  stripe-architecture:9 (non-live, step>3)
+  SKIP  stripe-architecture:10 (non-live, step>3)
+  SKIP  stripe-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ youtube-architecture (30 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  youtube-architecture:1:intro:0
+  SKIP  youtube-architecture:2:intro:0
+  SKIP  youtube-architecture:3:intro:0
+  SKIP  youtube-architecture:4 (non-live, step>3)
+  SKIP  youtube-architecture:5 (non-live, step>3)
+  SKIP  youtube-architecture:6 (non-live, step>3)
+  SKIP  youtube-architecture:7 (non-live, step>3)
+  SKIP  youtube-architecture:8 (non-live, step>3)
+  SKIP  youtube-architecture:9 (non-live, step>3)
+  SKIP  youtube-architecture:10 (non-live, step>3)
+  SKIP  youtube-architecture:11 (non-live, step>3)
+  SKIP  youtube-architecture:1:intro:0
+  SKIP  youtube-architecture:2:intro:0
+  SKIP  youtube-architecture:3:intro:0
+  SKIP  youtube-architecture:4 (non-live, step>3)
+  SKIP  youtube-architecture:5 (non-live, step>3)
+  SKIP  youtube-architecture:6 (non-live, step>3)
+  SKIP  youtube-architecture:7 (non-live, step>3)
+  SKIP  youtube-architecture:8 (non-live, step>3)
+  SKIP  youtube-architecture:1:intro:0
+  SKIP  youtube-architecture:2:intro:0
+  SKIP  youtube-architecture:3:intro:0
+  SKIP  youtube-architecture:4 (non-live, step>3)
+  SKIP  youtube-architecture:5 (non-live, step>3)
+  SKIP  youtube-architecture:6 (non-live, step>3)
+  SKIP  youtube-architecture:7 (non-live, step>3)
+  SKIP  youtube-architecture:8 (non-live, step>3)
+  SKIP  youtube-architecture:9 (non-live, step>3)
+  SKIP  youtube-architecture:10 (non-live, step>3)
+  SKIP  youtube-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ notion-architecture (28 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  notion-architecture:1:intro:0
+  SKIP  notion-architecture:2:intro:0
+  SKIP  notion-architecture:3:intro:0
+  SKIP  notion-architecture:4 (non-live, step>3)
+  SKIP  notion-architecture:5 (non-live, step>3)
+  SKIP  notion-architecture:6 (non-live, step>3)
+  SKIP  notion-architecture:7 (non-live, step>3)
+  SKIP  notion-architecture:8 (non-live, step>3)
+  SKIP  notion-architecture:9 (non-live, step>3)
+  SKIP  notion-architecture:1:intro:0
+  SKIP  notion-architecture:2:intro:0
+  SKIP  notion-architecture:3:intro:0
+  SKIP  notion-architecture:4 (non-live, step>3)
+  SKIP  notion-architecture:5 (non-live, step>3)
+  SKIP  notion-architecture:6 (non-live, step>3)
+  SKIP  notion-architecture:7 (non-live, step>3)
+  SKIP  notion-architecture:8 (non-live, step>3)
+  SKIP  notion-architecture:1:intro:0
+  SKIP  notion-architecture:2:intro:0
+  SKIP  notion-architecture:3:intro:0
+  SKIP  notion-architecture:4 (non-live, step>3)
+  SKIP  notion-architecture:5 (non-live, step>3)
+  SKIP  notion-architecture:6 (non-live, step>3)
+  SKIP  notion-architecture:7 (non-live, step>3)
+  SKIP  notion-architecture:8 (non-live, step>3)
+  SKIP  notion-architecture:9 (non-live, step>3)
+  SKIP  notion-architecture:10 (non-live, step>3)
+  SKIP  notion-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ twitter-architecture (30 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  twitter-architecture:1:intro:0
+  SKIP  twitter-architecture:2:intro:0
+  SKIP  twitter-architecture:3:intro:0
+  SKIP  twitter-architecture:4 (non-live, step>3)
+  SKIP  twitter-architecture:5 (non-live, step>3)
+  SKIP  twitter-architecture:6 (non-live, step>3)
+  SKIP  twitter-architecture:7 (non-live, step>3)
+  SKIP  twitter-architecture:8 (non-live, step>3)
+  SKIP  twitter-architecture:9 (non-live, step>3)
+  SKIP  twitter-architecture:10 (non-live, step>3)
+  SKIP  twitter-architecture:11 (non-live, step>3)
+  SKIP  twitter-architecture:1:intro:0
+  SKIP  twitter-architecture:2:intro:0
+  SKIP  twitter-architecture:3:intro:0
+  SKIP  twitter-architecture:4 (non-live, step>3)
+  SKIP  twitter-architecture:5 (non-live, step>3)
+  SKIP  twitter-architecture:6 (non-live, step>3)
+  SKIP  twitter-architecture:7 (non-live, step>3)
+  SKIP  twitter-architecture:8 (non-live, step>3)
+  SKIP  twitter-architecture:1:intro:0
+  SKIP  twitter-architecture:2:intro:0
+  SKIP  twitter-architecture:3:intro:0
+  SKIP  twitter-architecture:4 (non-live, step>3)
+  SKIP  twitter-architecture:5 (non-live, step>3)
+  SKIP  twitter-architecture:6 (non-live, step>3)
+  SKIP  twitter-architecture:7 (non-live, step>3)
+  SKIP  twitter-architecture:8 (non-live, step>3)
+  SKIP  twitter-architecture:9 (non-live, step>3)
+  SKIP  twitter-architecture:10 (non-live, step>3)
+  SKIP  twitter-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ airbnb-architecture (30 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  airbnb-architecture:1:intro:0
+  SKIP  airbnb-architecture:2:intro:0
+  SKIP  airbnb-architecture:3:intro:0
+  SKIP  airbnb-architecture:4 (non-live, step>3)
+  SKIP  airbnb-architecture:5 (non-live, step>3)
+  SKIP  airbnb-architecture:6 (non-live, step>3)
+  SKIP  airbnb-architecture:7 (non-live, step>3)
+  SKIP  airbnb-architecture:8 (non-live, step>3)
+  SKIP  airbnb-architecture:9 (non-live, step>3)
+  SKIP  airbnb-architecture:10 (non-live, step>3)
+  SKIP  airbnb-architecture:11 (non-live, step>3)
+  SKIP  airbnb-architecture:12 (non-live, step>3)
+  SKIP  airbnb-architecture:1:intro:0
+  SKIP  airbnb-architecture:2:intro:0
+  SKIP  airbnb-architecture:3:intro:0
+  SKIP  airbnb-architecture:4 (non-live, step>3)
+  SKIP  airbnb-architecture:5 (non-live, step>3)
+  SKIP  airbnb-architecture:6 (non-live, step>3)
+  SKIP  airbnb-architecture:7 (non-live, step>3)
+  SKIP  airbnb-architecture:1:intro:0
+  SKIP  airbnb-architecture:2:intro:0
+  SKIP  airbnb-architecture:3:intro:0
+  SKIP  airbnb-architecture:4 (non-live, step>3)
+  SKIP  airbnb-architecture:5 (non-live, step>3)
+  SKIP  airbnb-architecture:6 (non-live, step>3)
+  SKIP  airbnb-architecture:7 (non-live, step>3)
+  SKIP  airbnb-architecture:8 (non-live, step>3)
+  SKIP  airbnb-architecture:9 (non-live, step>3)
+  SKIP  airbnb-architecture:10 (non-live, step>3)
+  SKIP  airbnb-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ discord-architecture (30 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  discord-architecture:1:intro:0
+  SKIP  discord-architecture:2:intro:0
+  SKIP  discord-architecture:3:intro:0
+  SKIP  discord-architecture:4 (non-live, step>3)
+  SKIP  discord-architecture:5 (non-live, step>3)
+  SKIP  discord-architecture:6 (non-live, step>3)
+  SKIP  discord-architecture:7 (non-live, step>3)
+  SKIP  discord-architecture:8 (non-live, step>3)
+  SKIP  discord-architecture:9 (non-live, step>3)
+  SKIP  discord-architecture:10 (non-live, step>3)
+  SKIP  discord-architecture:11 (non-live, step>3)
+  SKIP  discord-architecture:1:intro:0
+  SKIP  discord-architecture:2:intro:0
+  SKIP  discord-architecture:3:intro:0
+  SKIP  discord-architecture:4 (non-live, step>3)
+  SKIP  discord-architecture:5 (non-live, step>3)
+  SKIP  discord-architecture:6 (non-live, step>3)
+  SKIP  discord-architecture:7 (non-live, step>3)
+  SKIP  discord-architecture:8 (non-live, step>3)
+  SKIP  discord-architecture:1:intro:0
+  SKIP  discord-architecture:2:intro:0
+  SKIP  discord-architecture:3:intro:0
+  SKIP  discord-architecture:4 (non-live, step>3)
+  SKIP  discord-architecture:5 (non-live, step>3)
+  SKIP  discord-architecture:6 (non-live, step>3)
+  SKIP  discord-architecture:7 (non-live, step>3)
+  SKIP  discord-architecture:8 (non-live, step>3)
+  SKIP  discord-architecture:9 (non-live, step>3)
+  SKIP  discord-architecture:10 (non-live, step>3)
+  SKIP  discord-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ zoom-architecture (30 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  zoom-architecture:1:intro:0
+  SKIP  zoom-architecture:2:intro:0
+  SKIP  zoom-architecture:3:intro:0
+  SKIP  zoom-architecture:4 (non-live, step>3)
+  SKIP  zoom-architecture:5 (non-live, step>3)
+  SKIP  zoom-architecture:6 (non-live, step>3)
+  SKIP  zoom-architecture:7 (non-live, step>3)
+  SKIP  zoom-architecture:8 (non-live, step>3)
+  SKIP  zoom-architecture:9 (non-live, step>3)
+  SKIP  zoom-architecture:10 (non-live, step>3)
+  SKIP  zoom-architecture:11 (non-live, step>3)
+  SKIP  zoom-architecture:1:intro:0
+  SKIP  zoom-architecture:2:intro:0
+  SKIP  zoom-architecture:3:intro:0
+  SKIP  zoom-architecture:4 (non-live, step>3)
+  SKIP  zoom-architecture:5 (non-live, step>3)
+  SKIP  zoom-architecture:6 (non-live, step>3)
+  SKIP  zoom-architecture:7 (non-live, step>3)
+  SKIP  zoom-architecture:8 (non-live, step>3)
+  SKIP  zoom-architecture:1:intro:0
+  SKIP  zoom-architecture:2:intro:0
+  SKIP  zoom-architecture:3:intro:0
+  SKIP  zoom-architecture:4 (non-live, step>3)
+  SKIP  zoom-architecture:5 (non-live, step>3)
+  SKIP  zoom-architecture:6 (non-live, step>3)
+  SKIP  zoom-architecture:7 (non-live, step>3)
+  SKIP  zoom-architecture:8 (non-live, step>3)
+  SKIP  zoom-architecture:9 (non-live, step>3)
+  SKIP  zoom-architecture:10 (non-live, step>3)
+  SKIP  zoom-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ spotify-architecture (30 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  spotify-architecture:1:intro:0
+  SKIP  spotify-architecture:2:intro:0
+  SKIP  spotify-architecture:3:intro:0
+  SKIP  spotify-architecture:4 (non-live, step>3)
+  SKIP  spotify-architecture:5 (non-live, step>3)
+  SKIP  spotify-architecture:6 (non-live, step>3)
+  SKIP  spotify-architecture:7 (non-live, step>3)
+  SKIP  spotify-architecture:8 (non-live, step>3)
+  SKIP  spotify-architecture:9 (non-live, step>3)
+  SKIP  spotify-architecture:10 (non-live, step>3)
+  SKIP  spotify-architecture:11 (non-live, step>3)
+  SKIP  spotify-architecture:1:intro:0
+  SKIP  spotify-architecture:2:intro:0
+  SKIP  spotify-architecture:3:intro:0
+  SKIP  spotify-architecture:4 (non-live, step>3)
+  SKIP  spotify-architecture:5 (non-live, step>3)
+  SKIP  spotify-architecture:6 (non-live, step>3)
+  SKIP  spotify-architecture:7 (non-live, step>3)
+  SKIP  spotify-architecture:8 (non-live, step>3)
+  SKIP  spotify-architecture:1:intro:0
+  SKIP  spotify-architecture:2:intro:0
+  SKIP  spotify-architecture:3:intro:0
+  SKIP  spotify-architecture:4 (non-live, step>3)
+  SKIP  spotify-architecture:5 (non-live, step>3)
+  SKIP  spotify-architecture:6 (non-live, step>3)
+  SKIP  spotify-architecture:7 (non-live, step>3)
+  SKIP  spotify-architecture:8 (non-live, step>3)
+  SKIP  spotify-architecture:9 (non-live, step>3)
+  SKIP  spotify-architecture:10 (non-live, step>3)
+  SKIP  spotify-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ linkedin-architecture (30 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  linkedin-architecture:1:intro:0
+  SKIP  linkedin-architecture:2:intro:0
+  SKIP  linkedin-architecture:3:intro:0
+  SKIP  linkedin-architecture:4 (non-live, step>3)
+  SKIP  linkedin-architecture:5 (non-live, step>3)
+  SKIP  linkedin-architecture:6 (non-live, step>3)
+  SKIP  linkedin-architecture:7 (non-live, step>3)
+  SKIP  linkedin-architecture:8 (non-live, step>3)
+  SKIP  linkedin-architecture:9 (non-live, step>3)
+  SKIP  linkedin-architecture:10 (non-live, step>3)
+  SKIP  linkedin-architecture:11 (non-live, step>3)
+  SKIP  linkedin-architecture:1:intro:0
+  SKIP  linkedin-architecture:2:intro:0
+  SKIP  linkedin-architecture:3:intro:0
+  SKIP  linkedin-architecture:4 (non-live, step>3)
+  SKIP  linkedin-architecture:5 (non-live, step>3)
+  SKIP  linkedin-architecture:6 (non-live, step>3)
+  SKIP  linkedin-architecture:7 (non-live, step>3)
+  SKIP  linkedin-architecture:8 (non-live, step>3)
+  SKIP  linkedin-architecture:1:intro:0
+  SKIP  linkedin-architecture:2:intro:0
+  SKIP  linkedin-architecture:3:intro:0
+  SKIP  linkedin-architecture:4 (non-live, step>3)
+  SKIP  linkedin-architecture:5 (non-live, step>3)
+  SKIP  linkedin-architecture:6 (non-live, step>3)
+  SKIP  linkedin-architecture:7 (non-live, step>3)
+  SKIP  linkedin-architecture:8 (non-live, step>3)
+  SKIP  linkedin-architecture:9 (non-live, step>3)
+  SKIP  linkedin-architecture:10 (non-live, step>3)
+  SKIP  linkedin-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ figma-architecture (29 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  figma-architecture:1:intro:0
+  SKIP  figma-architecture:2:intro:0
+  SKIP  figma-architecture:3:intro:0
+  SKIP  figma-architecture:4 (non-live, step>3)
+  SKIP  figma-architecture:5 (non-live, step>3)
+  SKIP  figma-architecture:6 (non-live, step>3)
+  SKIP  figma-architecture:7 (non-live, step>3)
+  SKIP  figma-architecture:8 (non-live, step>3)
+  SKIP  figma-architecture:9 (non-live, step>3)
+  SKIP  figma-architecture:10 (non-live, step>3)
+  SKIP  figma-architecture:1:intro:0
+  SKIP  figma-architecture:2:intro:0
+  SKIP  figma-architecture:3:intro:0
+  SKIP  figma-architecture:4 (non-live, step>3)
+  SKIP  figma-architecture:5 (non-live, step>3)
+  SKIP  figma-architecture:6 (non-live, step>3)
+  SKIP  figma-architecture:7 (non-live, step>3)
+  SKIP  figma-architecture:8 (non-live, step>3)
+  SKIP  figma-architecture:1:intro:0
+  SKIP  figma-architecture:2:intro:0
+  SKIP  figma-architecture:3:intro:0
+  SKIP  figma-architecture:4 (non-live, step>3)
+  SKIP  figma-architecture:5 (non-live, step>3)
+  SKIP  figma-architecture:6 (non-live, step>3)
+  SKIP  figma-architecture:7 (non-live, step>3)
+  SKIP  figma-architecture:8 (non-live, step>3)
+  SKIP  figma-architecture:9 (non-live, step>3)
+  SKIP  figma-architecture:10 (non-live, step>3)
+  SKIP  figma-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ shopify-architecture (30 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  shopify-architecture:1:intro:0
+  SKIP  shopify-architecture:2:intro:0
+  SKIP  shopify-architecture:3:intro:0
+  SKIP  shopify-architecture:4 (non-live, step>3)
+  SKIP  shopify-architecture:5 (non-live, step>3)
+  SKIP  shopify-architecture:6 (non-live, step>3)
+  SKIP  shopify-architecture:7 (non-live, step>3)
+  SKIP  shopify-architecture:8 (non-live, step>3)
+  SKIP  shopify-architecture:9 (non-live, step>3)
+  SKIP  shopify-architecture:10 (non-live, step>3)
+  SKIP  shopify-architecture:11 (non-live, step>3)
+  SKIP  shopify-architecture:12 (non-live, step>3)
+  SKIP  shopify-architecture:1:intro:0
+  SKIP  shopify-architecture:2:intro:0
+  SKIP  shopify-architecture:3:intro:0
+  SKIP  shopify-architecture:4 (non-live, step>3)
+  SKIP  shopify-architecture:5 (non-live, step>3)
+  SKIP  shopify-architecture:6 (non-live, step>3)
+  SKIP  shopify-architecture:7 (non-live, step>3)
+  SKIP  shopify-architecture:1:intro:0
+  SKIP  shopify-architecture:2:intro:0
+  SKIP  shopify-architecture:3:intro:0
+  SKIP  shopify-architecture:4 (non-live, step>3)
+  SKIP  shopify-architecture:5 (non-live, step>3)
+  SKIP  shopify-architecture:6 (non-live, step>3)
+  SKIP  shopify-architecture:7 (non-live, step>3)
+  SKIP  shopify-architecture:8 (non-live, step>3)
+  SKIP  shopify-architecture:9 (non-live, step>3)
+  SKIP  shopify-architecture:10 (non-live, step>3)
+  SKIP  shopify-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ doordash-architecture (30 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  doordash-architecture:1:intro:0
+  SKIP  doordash-architecture:2:intro:0
+  SKIP  doordash-architecture:3:intro:0
+  SKIP  doordash-architecture:4 (non-live, step>3)
+  SKIP  doordash-architecture:5 (non-live, step>3)
+  SKIP  doordash-architecture:6 (non-live, step>3)
+  SKIP  doordash-architecture:7 (non-live, step>3)
+  SKIP  doordash-architecture:8 (non-live, step>3)
+  SKIP  doordash-architecture:9 (non-live, step>3)
+  SKIP  doordash-architecture:10 (non-live, step>3)
+  SKIP  doordash-architecture:11 (non-live, step>3)
+  SKIP  doordash-architecture:1:intro:0
+  SKIP  doordash-architecture:2:intro:0
+  SKIP  doordash-architecture:3:intro:0
+  SKIP  doordash-architecture:4 (non-live, step>3)
+  SKIP  doordash-architecture:5 (non-live, step>3)
+  SKIP  doordash-architecture:6 (non-live, step>3)
+  SKIP  doordash-architecture:7 (non-live, step>3)
+  SKIP  doordash-architecture:8 (non-live, step>3)
+  SKIP  doordash-architecture:1:intro:0
+  SKIP  doordash-architecture:2:intro:0
+  SKIP  doordash-architecture:3:intro:0
+  SKIP  doordash-architecture:4 (non-live, step>3)
+  SKIP  doordash-architecture:5 (non-live, step>3)
+  SKIP  doordash-architecture:6 (non-live, step>3)
+  SKIP  doordash-architecture:7 (non-live, step>3)
+  SKIP  doordash-architecture:8 (non-live, step>3)
+  SKIP  doordash-architecture:9 (non-live, step>3)
+  SKIP  doordash-architecture:10 (non-live, step>3)
+  SKIP  doordash-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ github-architecture (31 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  github-architecture:1:intro:0
+  SKIP  github-architecture:2:intro:0
+  SKIP  github-architecture:3:intro:0
+  SKIP  github-architecture:4 (non-live, step>3)
+  SKIP  github-architecture:5 (non-live, step>3)
+  SKIP  github-architecture:6 (non-live, step>3)
+  SKIP  github-architecture:7 (non-live, step>3)
+  SKIP  github-architecture:8 (non-live, step>3)
+  SKIP  github-architecture:9 (non-live, step>3)
+  SKIP  github-architecture:10 (non-live, step>3)
+  SKIP  github-architecture:11 (non-live, step>3)
+  SKIP  github-architecture:12 (non-live, step>3)
+  SKIP  github-architecture:1:intro:0
+  SKIP  github-architecture:2:intro:0
+  SKIP  github-architecture:3:intro:0
+  SKIP  github-architecture:4 (non-live, step>3)
+  SKIP  github-architecture:5 (non-live, step>3)
+  SKIP  github-architecture:6 (non-live, step>3)
+  SKIP  github-architecture:7 (non-live, step>3)
+  SKIP  github-architecture:8 (non-live, step>3)
+  SKIP  github-architecture:1:intro:0
+  SKIP  github-architecture:2:intro:0
+  SKIP  github-architecture:3:intro:0
+  SKIP  github-architecture:4 (non-live, step>3)
+  SKIP  github-architecture:5 (non-live, step>3)
+  SKIP  github-architecture:6 (non-live, step>3)
+  SKIP  github-architecture:7 (non-live, step>3)
+  SKIP  github-architecture:8 (non-live, step>3)
+  SKIP  github-architecture:9 (non-live, step>3)
+  SKIP  github-architecture:10 (non-live, step>3)
+  SKIP  github-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ url-shortener-architecture (28 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  url-shortener-architecture:1:intro:0
+  SKIP  url-shortener-architecture:2:intro:0
+  SKIP  url-shortener-architecture:3:intro:0
+  SKIP  url-shortener-architecture:4 (non-live, step>3)
+  SKIP  url-shortener-architecture:5 (non-live, step>3)
+  SKIP  url-shortener-architecture:6 (non-live, step>3)
+  SKIP  url-shortener-architecture:7 (non-live, step>3)
+  SKIP  url-shortener-architecture:8 (non-live, step>3)
+  SKIP  url-shortener-architecture:9 (non-live, step>3)
+  SKIP  url-shortener-architecture:1:intro:0
+  SKIP  url-shortener-architecture:2:intro:0
+  SKIP  url-shortener-architecture:3:intro:0
+  SKIP  url-shortener-architecture:4 (non-live, step>3)
+  SKIP  url-shortener-architecture:5 (non-live, step>3)
+  SKIP  url-shortener-architecture:6 (non-live, step>3)
+  SKIP  url-shortener-architecture:7 (non-live, step>3)
+  SKIP  url-shortener-architecture:8 (non-live, step>3)
+  SKIP  url-shortener-architecture:1:intro:0
+  SKIP  url-shortener-architecture:2:intro:0
+  SKIP  url-shortener-architecture:3:intro:0
+  SKIP  url-shortener-architecture:4 (non-live, step>3)
+  SKIP  url-shortener-architecture:5 (non-live, step>3)
+  SKIP  url-shortener-architecture:6 (non-live, step>3)
+  SKIP  url-shortener-architecture:7 (non-live, step>3)
+  SKIP  url-shortener-architecture:8 (non-live, step>3)
+  SKIP  url-shortener-architecture:9 (non-live, step>3)
+  SKIP  url-shortener-architecture:10 (non-live, step>3)
+  SKIP  url-shortener-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ rag-application-architecture (29 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  rag-application-architecture:1:intro:0
+  SKIP  rag-application-architecture:2:intro:0
+  SKIP  rag-application-architecture:3:intro:0
+  SKIP  rag-application-architecture:4 (non-live, step>3)
+  SKIP  rag-application-architecture:5 (non-live, step>3)
+  SKIP  rag-application-architecture:6 (non-live, step>3)
+  SKIP  rag-application-architecture:7 (non-live, step>3)
+  SKIP  rag-application-architecture:8 (non-live, step>3)
+  SKIP  rag-application-architecture:9 (non-live, step>3)
+  SKIP  rag-application-architecture:10 (non-live, step>3)
+  SKIP  rag-application-architecture:1:intro:0
+  SKIP  rag-application-architecture:2:intro:0
+  SKIP  rag-application-architecture:3:intro:0
+  SKIP  rag-application-architecture:4 (non-live, step>3)
+  SKIP  rag-application-architecture:5 (non-live, step>3)
+  SKIP  rag-application-architecture:6 (non-live, step>3)
+  SKIP  rag-application-architecture:7 (non-live, step>3)
+  SKIP  rag-application-architecture:8 (non-live, step>3)
+  SKIP  rag-application-architecture:1:intro:0
+  SKIP  rag-application-architecture:2:intro:0
+  SKIP  rag-application-architecture:3:intro:0
+  SKIP  rag-application-architecture:4 (non-live, step>3)
+  SKIP  rag-application-architecture:5 (non-live, step>3)
+  SKIP  rag-application-architecture:6 (non-live, step>3)
+  SKIP  rag-application-architecture:7 (non-live, step>3)
+  SKIP  rag-application-architecture:8 (non-live, step>3)
+  SKIP  rag-application-architecture:9 (non-live, step>3)
+  SKIP  rag-application-architecture:10 (non-live, step>3)
+  SKIP  rag-application-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ ai-agent-system-architecture (30 steps across 3 levels) ΓöÇΓöÇ
+  SKIP  ai-agent-system-architecture:1:intro:0
+  SKIP  ai-agent-system-architecture:2:intro:0
+  SKIP  ai-agent-system-architecture:3:intro:0
+  SKIP  ai-agent-system-architecture:4 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:5 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:6 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:7 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:8 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:9 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:10 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:11 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:1:intro:0
+  SKIP  ai-agent-system-architecture:2:intro:0
+  SKIP  ai-agent-system-architecture:3:intro:0
+  SKIP  ai-agent-system-architecture:4 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:5 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:6 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:7 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:8 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:1:intro:0
+node.exe : (node:740) 
+[DEP0040] DeprecationWarning: 
+The `punycode` module is 
+deprecated. Please use a 
+userland alternative instead.
+At C:\Program 
+Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS 
+$args
++   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          :  
+   NotSpecified: ((node:740)   
+  [DEP...native instead.:Str   
+ ing) [], RemoteException
+    + FullyQualifiedErrorId :  
+   NativeCommandError
+ 
+(Use `node --trace-deprecation 
+...` to show where the warning 
+was created)
+  SKIP  ai-agent-system-architecture:2:intro:0
+  SKIP  ai-agent-system-architecture:3:intro:0
+  SKIP  ai-agent-system-architecture:4 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:5 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:6 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:7 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:8 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:9 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:10 (non-live, step>3)
+  SKIP  ai-agent-system-architecture:11 (non-live, step>3)
+
+ΓöÇΓöÇ Summary ΓöÇΓöÇ
+Generated: 0
+Skipped (cached): 338
+Errors: 0
+Output: C:\Users\Shyam\OneDrive\Desktop\Python\ArchDraw\frontend\data\tutorialCache.json
+Total keys: 876
+
+> nextjs-app@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+- Experiments (use with caution):
+  ┬╖ optimizePackageImports
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 10.1s
+  Running TypeScript ...
+  Collecting page data using 15 workers ...
+ΓÜá Using edge runtime on a 
+page currently disables static 
+generation for that page
+(node:24500) [DEP0040] 
+DeprecationWarning: The 
+`punycode` module is 
+deprecated. Please use a 
+userland alternative instead.
+(Use `node --trace-deprecation 
+...` to show where the warning 
+was created)
+(node:15712) [DEP0040] 
+DeprecationWarning: The 
+`punycode` module is 
+deprecated. Please use a 
+userland alternative instead.
+(Use `node --trace-deprecation 
+...` to show where the warning 
+was created)
+[ApiKeyManager] Loaded 8 API keys
+(node:2984) [DEP0040] 
+DeprecationWarning: The 
+`punycode` module is 
+deprecated. Please use a 
+userland alternative instead.
+(Use `node --trace-deprecation 
+...` to show where the warning 
+was created)
+  Generating static pages using 15 workers (0/37) ...
+[ApiKeyManager] Loaded 8 API keys
+(node:28564) [DEP0040] 
+DeprecationWarning: The 
+`punycode` module is 
+deprecated. Please use a 
+userland alternative instead.
+(Use `node --trace-deprecation 
+...` to show where the warning 
+was created)
+  Generating static pages using 15 workers (9/37) 
+  Generating static pages using 15 workers (18/37) 
+  Generating static pages using 15 workers (27/37) 
+Γ£ô Generating static pages using 15 workers (37/37) in 819.1ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ ╞Æ /api/embed/[id]
+Γö£ ╞Æ /api/generate-diagram
+Γö£ ╞Æ /api/og/[id]
+Γö£ ╞Æ /api/tutorial-chat
+Γö£ ╞Æ /api/tutorial-check
+Γö£ ╞Æ /auth/callback
+Γö£ Γùï /blog
+Γö£ Γùï /editor
+Γö£ ╞Æ /embed/[id]
+Γö£ ΓùÅ /learn/[id]
+Γöé Γö£ /learn/chatgpt-architecture
+Γöé Γö£ /learn/instagram-architecture
+Γöé Γö£ /learn/openclaw-architecture
+Γöé Γöö [+19 more paths]
+Γö£ Γùï /privacy
+Γö£ Γùï /robots.txt
+Γö£ ╞Æ /share/[id]
+Γö£ Γùï /sitemap.xml
+Γö£ Γùï /terms
+Γö£ Γùï /tutorials
+Γöö ╞Æ /tutorials/[id]
+
+
+Γùï  (Static)   prerendered as static content
+ΓùÅ  (SSG)      prerendered as static HTML (uses generateStaticParams)
+╞Æ  (Dynamic)  server-rendered on demand
+

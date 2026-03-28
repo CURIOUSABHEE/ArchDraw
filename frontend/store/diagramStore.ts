@@ -108,18 +108,13 @@ interface DiagramState {
   showGrid: boolean;
   darkMode: boolean;
   sidebarOpen: boolean;
-  canvasMode: 'empty' | 'editing' | 'ai' | 'template';
-  aiPanelOpen: boolean;
-  currentEdgeType: EdgeType;
+  canvasMode: 'empty' | 'editing' | 'template';
   setGuideLines: (lines: GuideLine[]) => void;
   toggleEdgeAnimations: () => void;
   toggleGrid: () => void;
   toggleDarkMode: () => void;
   setSidebarOpen: (open: boolean) => void;
-  setCanvasMode: (mode: 'empty' | 'editing' | 'ai' | 'template') => void;
-  openAIPanel: () => void;
-  closeAIPanel: () => void;
-  setCurrentEdgeType: (type: EdgeType) => void;
+  setCanvasMode: (mode: 'empty' | 'editing' | 'template') => void;
 
   // ── History ───────────────────────────────────────────────────────────────
   past: HistoryEntry[];
@@ -307,14 +302,9 @@ export const useDiagramStore = create<DiagramState>()(
       darkMode: true,
       sidebarOpen: true,
       canvasMode: 'empty',
-      aiPanelOpen: false,
-      currentEdgeType: DEFAULT_EDGE_TYPE,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setGuideLines: (lines) => set({ guideLines: lines }),
       setCanvasMode: (mode) => set({ canvasMode: mode }),
-      openAIPanel: () => set({ aiPanelOpen: true, canvasMode: 'ai' }),
-      closeAIPanel: () => set({ aiPanelOpen: false }),
-      setCurrentEdgeType: (type) => set({ currentEdgeType: type }),
       toggleGrid: () => set({ showGrid: !get().showGrid }),
       toggleDarkMode: () => {
         const next = !get().darkMode;
@@ -390,15 +380,14 @@ export const useDiagramStore = create<DiagramState>()(
         
         get().pushHistory();
         const edgeId = `edge-${Date.now()}`;
-        const edgeType = get().currentEdgeType;
         const edges = addEdge(
           { 
             ...connection, 
             id: edgeId, 
-            type: 'custom', 
+            type: 'custom',
             data: { 
-              edgeType,
-              validation: connectionValidation,
+              edgeType: DEFAULT_EDGE_TYPE as EdgeType,
+              validation: connectionValidation ?? null,
             },
           },
           get().edges

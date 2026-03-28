@@ -13,47 +13,54 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   const accent = data.accentColor ?? data.color ?? '#6366f1';
   const resolvedAccent = data.technology ? resolveNodeColor(data.technology, accent) : accent;
   const hasError = data.hasError;
+  const isAIGenerated = data.icon && !data.technology;
 
   const nodeStyles: React.CSSProperties = {
-    width: data.nodeWidth ?? 180,
-    minWidth: 180,
-    minHeight: 120,
-    maxHeight: 155,
+    width: data.nodeWidth ?? 200,
+    minWidth: 200,
+    minHeight: 80,
+    maxHeight: 100,
     height: 'auto',
     boxSizing: 'border-box',
-    borderRadius: 14,
+    borderRadius: 8,
     background: isDark
-      ? 'linear-gradient(145deg, #1e2138 0%, #161928 100%)'
+      ? '#1e2235'
       : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
     border: selected
-      ? `1px solid ${resolvedAccent}`
+      ? `2px solid ${resolvedAccent}`
       : hasError
-        ? '1px solid rgba(239,68,68,0.4)'
+        ? '2px solid rgba(239,68,68,0.4)'
         : isDark
-          ? `1px solid ${resolvedAccent}30`
+          ? `1px solid ${resolvedAccent}50`
           : `1px solid ${resolvedAccent}25`,
     boxShadow: selected
       ? `0 0 0 2px ${resolvedAccent}, 0 4px 20px ${resolvedAccent}50`
       : hasError
         ? '0 0 0 1px rgba(239,68,68,0.3), 0 2px 8px rgba(0,0,0,0.3)'
         : isDark
-          ? '0 2px 8px rgba(0,0,0,0.3)'
+          ? '0 4px 12px rgba(0,0,0,0.4)'
           : '0 2px 8px rgba(0,0,0,0.1)',
     transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
     cursor: 'pointer',
     position: 'relative',
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    padding: '0 16px',
+    gap: 12,
   };
 
   const iconContainerStyle: React.CSSProperties = {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    background: isDark ? `${resolvedAccent}15` : `${resolvedAccent}10`,
-    border: isDark ? `1px solid ${resolvedAccent}30` : `1px solid ${resolvedAccent}20`,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    background: isAIGenerated 
+      ? 'rgba(139, 92, 246, 0.2)' 
+      : isDark ? `${resolvedAccent}15` : `${resolvedAccent}10`,
+    border: isAIGenerated
+      ? '1px solid rgba(139, 92, 246, 0.4)'
+      : isDark ? `1px solid ${resolvedAccent}30` : `1px solid ${resolvedAccent}20`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -95,82 +102,112 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     >
       {/* Diagonal corner shine */}
       <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/10 via-white/[0.03] to-transparent group-hover:from-white/[0.15] group-hover:via-white/[0.06] transition-all duration-300 dark:from-white/10 dark:via-white/[0.03] dark:to-transparent" />
+      
+      {/* LEFT handles (targets) - for incoming edges from left */}
       <Handle
         type="target"
         position={Position.Left}
-        style={handleStyle}
+        id="left"
+        style={{ ...handleStyle, left: -4 }}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left-top"
+        style={{ ...handleStyle, left: -4, top: '25%' }}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left-mid"
+        style={{ ...handleStyle, left: -4, top: '50%' }}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left-bot"
+        style={{ ...handleStyle, left: -4, top: '75%' }}
+      />
+      
+      {/* RIGHT handles (sources) - for outgoing edges to right */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        style={{ ...handleStyle, right: -4 }}
       />
       <Handle
         type="source"
         position={Position.Right}
-        style={handleStyle}
+        id="right-top"
+        style={{ ...handleStyle, right: -4, top: '25%' }}
       />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right-mid"
+        style={{ ...handleStyle, right: -4, top: '50%' }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right-bot"
+        style={{ ...handleStyle, right: -4, top: '75%' }}
+      />
+      
+      {/* TOP/BOTTOM handles (hidden) - for vertical connections */}
       <Handle
         type="target"
         position={Position.Top}
-        style={{ ...handleStyle, opacity: 0 }}
+        id="top"
+        style={{ ...handleStyle, top: -4, opacity: 0 }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ ...handleStyle, opacity: 0 }}
+        id="bottom"
+        style={{ ...handleStyle, bottom: -4, opacity: 0 }}
       />
 
       <div style={{
-        padding: '12px 12px',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        justifyContent: 'flex-start',
+        gap: 12,
         width: '100%',
+        height: '100%',
+        minHeight: 80,
+        padding: '12px 0',
       }}>
-        {/* Big Icon */}
+        {/* Icon */}
         <div style={iconContainerStyle}>
           {data.technology ? (
-            <NodeIcon technology={data.technology} size={24} />
+            <NodeIcon technology={data.technology} size={20} />
           ) : (
-            <NodeIcon technology={undefined} fallbackIcon={data.icon} fallbackColor={resolvedAccent} size={24} />
+            <NodeIcon 
+              technology={undefined} 
+              fallbackIcon={data.icon} 
+              fallbackColor={isAIGenerated ? '#8b5cf6' : resolvedAccent} 
+              size={20} 
+            />
           )}
         </div>
 
         {/* Label */}
         <span style={{
           fontSize: 13,
-          fontWeight: 600,
-          color: isDark ? '#e5e7eb' : '#1e293b',
-          textAlign: 'center',
+          fontWeight: 700,
+          color: isDark ? '#ffffff' : '#1e293b',
+          textAlign: 'left',
           wordBreak: 'break-word',
           overflowWrap: 'break-word',
           lineHeight: 1.3,
           margin: 0,
+          flex: 1,
         }}>
           {data.label}
         </span>
-
-        {/* Sublabel — role description (only shown when non-empty and not a layer code) */}
-        {data.sublabel && data.sublabel.trim() && (
-          <span style={{
-            fontSize: 10,
-            fontWeight: 400,
-            color: isDark ? '#94a3b8' : '#64748b',
-            letterSpacing: '0.02em',
-            textAlign: 'center',
-            lineHeight: 1.3,
-          }}>
-            {data.sublabel}
-          </span>
-        )}
-
-        {/* Error state */}
-        {hasError && (
-          <span style={{
-            fontSize: 9,
-            color: '#ef4444',
-            fontWeight: 500,
-          }}>
-            No connections
-          </span>
-        )}
       </div>
     </div>
   );
