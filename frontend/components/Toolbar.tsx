@@ -5,8 +5,14 @@ import {
   Download, Trash2, Upload, ChevronDown,
   Undo2, Redo2, Share2, Loader2, Check,
   GraduationCap, Sparkles, MoreHorizontal, HelpCircle,
-  Plus, X, PanelLeftClose, LayoutTemplate,
+  Plus, X, PanelLeftClose, LayoutTemplate, Pin, FolderOpen,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
@@ -19,8 +25,14 @@ import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { useDiagramStore as useDiagramStoreTyped } from '@/store/diagramStore';
-import { EDGE_TYPE_CONFIGS, type EdgeType } from '@/data/edgeTypes';
+import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf' | 'html-embed';
 
@@ -171,8 +183,9 @@ export function Toolbar() {
     clearDiagram, nodes, edges, importDiagram,
     undo, redo, past, future,
     canvases, activeCanvasId, addCanvas, removeCanvas, switchCanvas, renameCanvas,
+    openCanvas, closeCanvas, togglePinCanvas, getVisibleCanvases, getOverflowCanvases, openCanvasIds,
     savingState, userProfile, setSidebarOpen, sidebarOpen,
-} = useDiagramStore();
+  } = useDiagramStore();
 
   const { user } = useAuthStore();
   const isGuest = !user;
@@ -191,8 +204,44 @@ export function Toolbar() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState('');
   const editInputRef = useRef<HTMLInputElement>(null);
+  const [selectedEdgeType, setSelectedEdgeType] = useState<string>('smooth');
+  const [overflowOpen, setOverflowOpen] = useState(false);
 
   const openGuide = useOnboardingStore((s) => s.open);
+
+  const visibleCanvases = getVisibleCanvases();
+  const overflowCanvases = getOverflowCanvases();
+  const overflowCount = overflowCanvases.length;
+
+  const normalizePathType = (type: string): string => {
+    // Normalize invalid values to valid ones
+    if (type === 'smoothstep') return 'smooth';
+    if (!['smooth', 'bezier', 'step', 'straight'].includes(type)) return 'smooth';
+    return type;
+  };
+
+  const updateAllEdgesPathType = (pathType: PathType) => {
+    const normalizedType = normalizePathType(pathType);
+    if (edges.length === 0) {
+      setSelectedEdgeType(normalizedType);
+      return;
+    }
+    setSelectedEdgeType(normalizedType);
+    const updatedEdges = edges.map((edge) => ({
+      ...edge,
+      data: {
+        ...edge.data,
+        connectionType: normalizedType,
+        pathType: normalizedType,
+      },
+    }));
+    const canvases = useDiagramStore.getState().canvases.map((c) =>
+      c.id === useDiagramStore.getState().activeCanvasId
+        ? { ...c, edges: updatedEdges, updatedAt: Date.now() }
+        : c
+    );
+    useDiagramStore.setState({ edges: updatedEdges, canvases });
+  };
 
   const activeCanvas = canvases.find((c) => c.id === activeCanvasId);
 
@@ -232,7 +281,7 @@ export function Toolbar() {
     const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
     if (!element) return;
     setIsExporting(true);
-    const { fitView } = useDiagramStoreTyped.getState();
+    const { fitView } = useDiagramStore.getState();
     fitView();
     await new Promise((r) => setTimeout(r, 120));
     try {
@@ -401,17 +450,32 @@ export function Toolbar() {
         }}
       >
         {/* LEFT: Sidebar toggle + Canvas tabs */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+            onClick={() => {
+              const newState = !sidebarOpen;
+              setSidebarOpen(newState);
+              if (newState) {
+                window.dispatchEvent(new CustomEvent('close-canvas-sidebar'));
+              }
+            }}
             className="p-1.5 rounded-md transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring"
             title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           >
             <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
           </button>
 
-          <div className="flex items-center gap-1.5">
-            {canvases.map((canvas) => {
+          {/* This button now toggles the canvas sidebar directly */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('toggle-canvas-sidebar'))}
+            className="p-1.5 rounded-md transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring"
+            title="Toggle canvases"
+          >
+            <FolderOpen className="w-4 h-4 text-muted-foreground" />
+          </button>
+
+          <div className="flex items-center gap-1">
+            {visibleCanvases.map((canvas) => {
               const isActive = canvas.id === activeCanvasId;
               const isEditing = editingId === canvas.id;
 
@@ -430,7 +494,7 @@ export function Toolbar() {
                   }}
                   className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring ${
                     isActive
-                      ? 'bg-accent/80 text-foreground shadow-sm'
+                      ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
                   }`}
                 >
@@ -468,6 +532,47 @@ export function Toolbar() {
               );
             })}
 
+            {overflowCount > 0 && (
+              <DropdownMenu 
+                open={overflowOpen} 
+                onOpenChange={(open) => {
+                  if (open && sidebarOpen) {
+                    setSidebarOpen(false);
+                  }
+                  setOverflowOpen(open);
+                }}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    className="h-7 px-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-transparent border-0 rounded-md hover:bg-accent"
+                    onClick={() => {
+                      if (!overflowOpen) {
+                        window.dispatchEvent(new CustomEvent('open-canvas-sidebar'));
+                      }
+                    }}
+                  >
+                    +{overflowCount} <ChevronDown className={`w-3 h-3 ml-1 transition-transform ${overflowOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="max-h-60 overflow-auto">
+                  {overflowCanvases.map((canvas) => (
+                    <DropdownMenuItem 
+                      key={canvas.id}
+                      onClick={() => {
+                        openCanvas(canvas.id);
+                        setOverflowOpen(false);
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        {canvas.isPinned && <span className="text-amber-500">📌</span>}
+                        <span>{canvas.name}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
             <button
               onClick={addCanvas}
               className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring"
@@ -483,6 +588,46 @@ export function Toolbar() {
           <span>{nodes.length} nodes</span>
           <span className="w-px h-3 bg-border/50" />
           <span>{edges.length} edges</span>
+          <span className="w-px h-3 bg-border/50" />
+          <Select value={selectedEdgeType} onValueChange={(v) => updateAllEdgesPathType(v as PathType)}>
+            <SelectTrigger className="h-7 w-32 text-[11px] gap-1">
+              <SelectValue placeholder="Edge style" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="smooth">
+                <div className="flex items-center gap-3">
+                  <svg width="40" height="16" viewBox="0 0 40 16" className="overflow-visible">
+                    <path d="M2,8 Q10,2 20,8 T38,8" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                  </svg>
+                  <span>Smooth</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="bezier">
+                <div className="flex items-center gap-3">
+                  <svg width="40" height="16" viewBox="0 0 40 16" className="overflow-visible">
+                    <path d="M2,12 C8,2 15,14 38,4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                  </svg>
+                  <span>Bezier</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="step">
+                <div className="flex items-center gap-3">
+                  <svg width="40" height="16" viewBox="0 0 40 16" className="overflow-visible">
+                    <path d="M2,12 L12,12 L12,4 L38,4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                  </svg>
+                  <span>Step</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="straight">
+                <div className="flex items-center gap-3">
+                  <svg width="40" height="16" viewBox="0 0 40 16" className="overflow-visible">
+                    <path d="M2,8 L38,8" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                  </svg>
+                  <span>Straight</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
           {userProfile && savingState !== 'idle' && (
             <>
               <span className="w-px h-3 bg-border/50" />

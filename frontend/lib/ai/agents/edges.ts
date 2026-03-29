@@ -789,7 +789,7 @@ function createFullEdge(
     sourceHandle: sourceHandle as HandlePosition,
     targetHandle: targetHandle as HandlePosition,
     communicationType: commType,
-    pathType: 'bezier',
+    pathType: style.pathType,
     label: edge.label ?? `${commType.toUpperCase()} Call`,
     labelPosition: 'center',
     animated: style.animated,

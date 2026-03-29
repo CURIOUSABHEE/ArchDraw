@@ -299,7 +299,8 @@ function CanvasInner() {
         proOptions={{ hideAttribution: true }}
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
-          type: 'bezier',
+          type: 'custom',
+          data: { connectionType: 'smooth' },
         }}
       >
         <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
@@ -325,7 +326,7 @@ function CanvasInner() {
           nodeStrokeWidth={3}
           zoomable
           pannable
-          className="!bg-card/90 !backdrop-blur-sm !border !border-border/60 !rounded-lg !shadow-md"
+          className="!bg-card/90 !backdrop-blur-sm !border !border-border/60 !rounded-lg !shadow-md hover:shadow-lg transition-shadow cursor-move"
           maskColor="rgba(0,0,0,0.04)"
         />
 
@@ -398,7 +399,7 @@ function CanvasInner() {
           <div className="text-center mb-8 pointer-events-none">
             <LayoutGrid className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
             <h2 className="text-lg font-semibold text-foreground/60 mb-2">Start building your architecture</h2>
-            <p className="text-xs text-muted-foreground/50">Choose how you want to begin</p>
+            <p className="text-xs text-muted-foreground/50">Drag components from the sidebar or click to begin</p>
           </div>
           
           <div className="flex items-center gap-3">

@@ -13,13 +13,14 @@ import {
 import { useDiagramStore } from '@/store/diagramStore';
 
 export type EdgeStyleType = 'solid' | 'dashed' | 'dotted';
-export type EdgeConnectionType = 'smoothstep' | 'straight' | 'orthogonal';
+export type EdgeConnectionType = 'smooth' | 'straight' | 'orthogonal';
 export interface ControlPoint { x: number; y: number }
 
 export interface CustomEdgeData {
   label?: string;
   edgeStyle?: EdgeStyleType;
   connectionType?: EdgeConnectionType;
+  pathType?: string;
   bidirectional?: boolean;
   color?: string;
   controlPoints?: ControlPoint[];
@@ -101,7 +102,7 @@ function CustomEdgeComponent({
 
   const color          = data.color          ?? '#94a3b8';
   const edgeStyle      = data.edgeStyle      ?? 'solid';
-  const connectionType = data.connectionType ?? 'smoothstep';
+  const connectionType = data.connectionType ?? data.pathType ?? 'smooth';
   const bidirectional  = data.bidirectional  ?? false;
   const label          = data.label          ?? '';
   const cps: ControlPoint[] = data.controlPoints ?? [];
@@ -115,6 +116,8 @@ function CustomEdgeComponent({
     [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
   } else if (connectionType === 'orthogonal') {
     [path, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: 0 });
+  } else if (connectionType === 'smooth') {
+    [path, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: 24 });
   } else {
     [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
   }

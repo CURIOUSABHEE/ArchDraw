@@ -33,7 +33,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'bezier',
+    pathType: 'smooth',
   },
   stream: {
     id: 'stream',
@@ -43,7 +43,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'straight',
+    pathType: 'smooth',
   },
   event: {
     id: 'event',
@@ -63,7 +63,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'step',
+    pathType: 'smooth',
   },
 };
 

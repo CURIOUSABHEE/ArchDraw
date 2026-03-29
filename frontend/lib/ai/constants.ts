@@ -298,18 +298,19 @@ You MUST assign one of these 5 communication types to every edge based on how th
 PATH TYPE RULES
 ═══════════════════════
 
-Choose edge path type based on these rules:
+IMPORTANT: Always use smooth curves for all edges. Avoid sharp edges.
 
-- smoothstep: DEFAULT for most connections. Use when source and target are in different layers.
+- smooth: DEFAULT and PREFERRED for ALL connections. Use for all scenarios.
   Best for: horizontal layer-to-layer connections (client → gateway → service)
+  This creates clean, curved edges that are visually consistent
 
-- bezier: Use for connections within the SAME layer, or diagonal connections.
+- bezier: AVOID unless absolutely necessary. Use only for complex routing scenarios.
   Best for: service-to-service (same layer), or cross-layer non-adjacent connections
 
-- step: Use ONLY for orthogonal, right-angle connections.
-  Best for: database connections, infrastructure dependencies (DEP type edges)
+- step: NEVER use. Step edges create sharp, inconsistent visuals.
+  Best for: (none - avoid)
 
-- straight: Use SPARINGLY. Only for direct adjacent node connections with no risk of crossing.
+- straight: USE SPARINGLY. Only for direct adjacent node connections with no risk of crossing.
   Best for: simple one-to-one relationships in uncrowded diagrams
 
 ═══════════════════════
@@ -369,13 +370,16 @@ NODE RULES:
 
 EDGE RULES:
 - [EDGE-01] Every edge must have a communicationType (sync | async | stream | event | dep)
-- [EDGE-02] Every edge must have a pathType (smoothstep | bezier | step | straight)
-- [EDGE-03] Every edge must have a non-empty label (max 30 characters)
-- [EDGE-04] No self-loops allowed (source !== target)
-- [EDGE-05] No duplicate edges (same source + target combination)
-- [EDGE-06] sourceHandle and targetHandle must be defined
-- [EDGE-07] Edge labels must not overlap with node boundaries (check labelPosition)
-- [EDGE-08] Edges must flow in the correct direction (client layer → gateway → service, not backward unless explicitly bidirectional)
+- [EDGE-02] Every edge must have a pathType (smooth | bezier | step | straight)
+- [EDGE-03] All edges must be smooth curves (preferred type: "smooth")
+- [EDGE-04] Avoid sharp or step-like edges - use smooth curves for visual consistency
+- [EDGE-05] Use consistent edge styling across diagram
+- [EDGE-06] Every edge must have a non-empty label (max 30 characters)
+- [EDGE-07] No self-loops allowed (source !== target)
+- [EDGE-08] No duplicate edges (same source + target combination)
+- [EDGE-09] sourceHandle and targetHandle must be defined
+- [EDGE-10] Edge labels must not overlap with node boundaries (check labelPosition)
+- [EDGE-11] Edges must flow in the correct direction (client layer → gateway → service, not backward unless explicitly bidirectional)
 
 LAYOUT RULES:
 - [LAYOUT-01] elkOptions must be present and non-empty
@@ -475,7 +479,7 @@ export const COMMUNICATION_STYLES: Record<CommunicationType, {
   markerEnd: string;
   markerStart: string;
   label: string;
-  pathType: 'smoothstep' | 'bezier' | 'step' | 'straight';
+  pathType: 'smooth' | 'bezier' | 'step' | 'straight';
 }> = {
   sync: {
     color: '#6366f1',
@@ -484,7 +488,7 @@ export const COMMUNICATION_STYLES: Record<CommunicationType, {
     markerEnd: 'arrowclosed',
     markerStart: 'none',
     label: 'Sync',
-    pathType: 'bezier',
+    pathType: 'smooth',
   },
   async: {
     color: '#f59e0b',
@@ -493,7 +497,7 @@ export const COMMUNICATION_STYLES: Record<CommunicationType, {
     markerEnd: 'arrowclosed',
     markerStart: 'none',
     label: 'Async',
-    pathType: 'bezier',
+    pathType: 'smooth',
   },
   stream: {
     color: '#10b981',
@@ -502,7 +506,7 @@ export const COMMUNICATION_STYLES: Record<CommunicationType, {
     markerEnd: 'arrowclosed',
     markerStart: 'none',
     label: 'Stream',
-    pathType: 'bezier',
+    pathType: 'smooth',
   },
   event: {
     color: '#ec4899',
@@ -511,7 +515,7 @@ export const COMMUNICATION_STYLES: Record<CommunicationType, {
     markerEnd: 'arrowclosed',
     markerStart: 'none',
     label: 'Event',
-    pathType: 'bezier',
+    pathType: 'smooth',
   },
   dep: {
     color: '#6b7280',
@@ -520,7 +524,7 @@ export const COMMUNICATION_STYLES: Record<CommunicationType, {
     markerEnd: 'none',
     markerStart: 'none',
     label: 'Dep',
-    pathType: 'bezier',
+    pathType: 'smooth',
   },
 };
 

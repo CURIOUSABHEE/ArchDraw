@@ -78,7 +78,7 @@ export function sanitizeEdge(edge: Edge): SanitizedEdge {
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    type: edge.type || 'smoothstep',
+    type: edge.type || 'smooth',
     animated: edge.animated || false,
     style: edge.style as object | undefined,
     label: edge.label as string | undefined,

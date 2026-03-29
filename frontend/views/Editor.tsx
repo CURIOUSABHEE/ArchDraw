@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Toolbar } from '@/components/Toolbar';
 import { ComponentSidebar } from '@/components/ComponentSidebar';
+import { CanvasSidebar } from '@/components/CanvasSidebar';
 import { Canvas } from '@/components/Canvas';
 import { CommandPalette } from '@/components/CommandPalette';
 import { PropertiesPanel } from '@/components/PropertiesPanel';
@@ -21,13 +22,20 @@ import { toast } from 'sonner';
 import type { GenerationProgress } from '@/lib/ai/types';
 
 export default function EditorPage() {
-  const { selectedNodeId, selectedEdgeId, nodes, sidebarOpen, importDiagram, fitView } = useDiagramStore();
+  const { selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, importDiagram, fitView } = useDiagramStore();
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
   const [showAIGenerateModal, setShowAIGenerateModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<GenerationProgress | null>(null);
+  const [canvasSidebarOpen, setCanvasSidebarOpen] = useState(false);
+  
+  // Refs for useEffect to avoid dependency issues
+  const sidebarOpenRef = useRef(sidebarOpen);
+  const canvasSidebarOpenRef = useRef(canvasSidebarOpen);
+  sidebarOpenRef.current = sidebarOpen;
+  canvasSidebarOpenRef.current = canvasSidebarOpen;
 
   // Initialize onboarding (auto-open + drag detection)
   useOnboarding();
@@ -114,6 +122,12 @@ export default function EditorPage() {
         setEditComponent(null);
         setShowCreateModal(true);
       }
+
+      // Cmd/Ctrl + K: Open canvas switcher
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCanvasSidebarOpen(true);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -140,6 +154,31 @@ export default function EditorPage() {
     };
     window.addEventListener('open-ai-generate', handler);
     return () => window.removeEventListener('open-ai-generate', handler);
+  }, []);
+
+  // Canvas sidebar event listeners - also close component sidebar when canvas sidebar opens
+  useEffect(() => {
+    const openHandler = () => {
+      if (sidebarOpenRef.current) setSidebarOpen(false);
+      setCanvasSidebarOpen(true);
+    };
+    const closeHandler = () => {
+      setCanvasSidebarOpen(false);
+    };
+    const toggleHandler = () => {
+      if (!canvasSidebarOpenRef.current && sidebarOpenRef.current) {
+        setSidebarOpen(false);
+      }
+      setCanvasSidebarOpen(prev => !prev);
+    };
+    window.addEventListener('open-canvas-sidebar', openHandler);
+    window.addEventListener('close-canvas-sidebar', closeHandler);
+    window.addEventListener('toggle-canvas-sidebar', toggleHandler);
+    return () => {
+      window.removeEventListener('open-canvas-sidebar', openHandler);
+      window.removeEventListener('close-canvas-sidebar', closeHandler);
+      window.removeEventListener('toggle-canvas-sidebar', toggleHandler);
+    };
   }, []);
 
   const handleGenerate = async (description: string) => {
@@ -213,6 +252,9 @@ export default function EditorPage() {
       <div className="flex flex-col h-screen w-screen overflow-hidden">
         <Toolbar />
         <div className="flex flex-1 overflow-hidden">
+          {canvasSidebarOpen && (
+            <CanvasSidebar onClose={() => setCanvasSidebarOpen(false)} />
+          )}
           {sidebarOpen && (
             <ComponentSidebar
               onOpenCreateModal={() => setShowCreateModal(true)}

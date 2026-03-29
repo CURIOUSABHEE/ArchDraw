@@ -130,6 +130,18 @@ function runLocalValidation(state: SharedState): ValidationResult {
         fixHint: 'Add a descriptive label to the edge',
       });
     }
+
+    const pathType = (edge as { pathType?: string }).pathType;
+    if (pathType && !['smooth'].includes(pathType)) {
+      issues.push({
+        id: 'EDGE-SMOOTH',
+        severity: 'warning',
+        nodeId: null,
+        edgeId: edge.id,
+        description: `Edge uses non-smooth path type: "${pathType}". Use smooth curves for consistency.`,
+        fixHint: 'Change pathType to "smooth"',
+      });
+    }
   }
 
   const nodesWithEdges = new Set<string>();

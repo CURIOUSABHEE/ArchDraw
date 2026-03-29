@@ -2,6 +2,7 @@ import { Node, Edge } from 'reactflow';
 import { chatgptNodes, chatgptEdges } from './chatgpt';
 import { instagramNodes, instagramEdges } from './instagram';
 import { archdrawNodes, archdrawEdges } from './archdraw';
+import { videoStreamingNodes, videoStreamingEdges } from './video-streaming';
 
 export interface Template {
   id: string;
@@ -40,5 +41,14 @@ export const TEMPLATES: Template[] = [
     icon: '📸',
     nodes: instagramNodes,
     edges: instagramEdges,
+  },
+  {
+    id: 'video_streaming',
+    name: 'Video Streaming',
+    description: 'Simple video streaming with CDN, API Gateway, Playback Service, Cache, and Database.',
+    tags: ['Video', 'Streaming', 'CDN', 'Microservices'],
+    icon: '🎬',
+    nodes: videoStreamingNodes,
+    edges: videoStreamingEdges,
   },
 ];

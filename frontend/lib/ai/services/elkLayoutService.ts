@@ -180,7 +180,7 @@ export async function computeELKLayout(
         sourceHandle: 'right' as const,
         targetHandle: 'left' as const,
         communicationType: 'sync' as const,
-        pathType: 'smoothstep' as const,
+        pathType: 'smooth' as const,
         labelPosition: 'center' as const,
         animated: false,
         style: {

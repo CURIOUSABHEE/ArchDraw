@@ -60,6 +60,9 @@ export interface CanvasTab {
   nodes: Node[];
   edges: Edge[];
   updatedAt?: number;
+  isOpen?: boolean;
+  isPinned?: boolean;
+  lastAccessedAt?: number;
 }
 
 export interface UserProfile {
@@ -78,6 +81,7 @@ interface DiagramState {
   // ── Multi-canvas ──────────────────────────────────────────────────────────
   canvases: CanvasTab[];
   activeCanvasId: string;
+  openCanvasIds: string[];
   nodes: Node[];
   edges: Edge[];
 
@@ -85,6 +89,12 @@ interface DiagramState {
   removeCanvas: (id: string) => void;
   switchCanvas: (id: string) => void;
   renameCanvas: (id: string, name: string) => void;
+  openCanvas: (id: string) => void;
+  closeCanvas: (id: string) => void;
+  togglePinCanvas: (id: string) => void;
+  getOpenCanvases: () => CanvasTab[];
+  getVisibleCanvases: () => CanvasTab[];
+  getOverflowCanvases: () => CanvasTab[];
 
   // ── User / Auth ───────────────────────────────────────────────────────────
   userProfile: UserProfile | null;
@@ -213,37 +223,96 @@ export const useDiagramStore = create<DiagramState>()(
   persist(
     (set, get) => ({
       // ── Multi-canvas ───────────────────────────────────────────────────────
-      canvases: [INITIAL_CANVAS],
+      canvases: [{ ...INITIAL_CANVAS, isOpen: true, lastAccessedAt: Date.now() }],
       activeCanvasId: INITIAL_CANVAS.id,
+      openCanvasIds: [INITIAL_CANVAS.id],
       nodes: [],
       edges: [],
 
       addCanvas: () => {
-        const { canvases } = get();
-        const newCanvas = makeCanvas(`Canvas ${canvases.length + 1}`);
-        set({ canvases: [...canvases, newCanvas], activeCanvasId: newCanvas.id, nodes: [], edges: [], past: [], future: [] });
+        const { canvases, openCanvasIds } = get();
+        
+        // Generate unique name to avoid duplicates
+        let baseName = 'Canvas';
+        let counter = 1;
+        let newName = baseName;
+        const existingNames = new Set(canvases.map(c => c.name));
+        
+        while (existingNames.has(newName)) {
+          counter++;
+          newName = `${baseName} ${counter}`;
+        }
+        
+        const newCanvas = makeCanvas(newName);
+        const canvasWithMeta = { ...newCanvas, isOpen: true, lastAccessedAt: Date.now() };
+        const newOpenIds = [...openCanvasIds, newCanvas.id];
+        set({ 
+          canvases: [...canvases, canvasWithMeta], 
+          openCanvasIds: newOpenIds,
+          activeCanvasId: newCanvas.id, 
+          nodes: [], 
+          edges: [], 
+          past: [], 
+          future: [] 
+        });
       },
 
       removeCanvas: (id) => {
-        const { canvases, activeCanvasId } = get();
+        const { canvases, activeCanvasId, openCanvasIds } = get();
         if (canvases.length <= 1) return;
         const idx = canvases.findIndex((c) => c.id === id);
         const next = canvases.filter((c) => c.id !== id);
+        const newOpenIds = openCanvasIds.filter((cid) => cid !== id);
+        
         let nextActiveId = activeCanvasId;
         if (activeCanvasId === id) {
           const newIdx = Math.max(0, idx - 1);
-          nextActiveId = next[newIdx].id;
+          nextActiveId = next[newIdx]?.id || next[0]?.id;
         }
-        const active = next.find((c) => c.id === nextActiveId)!;
-        set({ canvases: next, activeCanvasId: nextActiveId, nodes: active.nodes, edges: active.edges, past: [], future: [] });
+        const active = next.find((c) => c.id === nextActiveId);
+        set({ 
+          canvases: next, 
+          openCanvasIds: newOpenIds,
+          activeCanvasId: nextActiveId, 
+          nodes: active?.nodes || [], 
+          edges: active?.edges || [], 
+          past: [], 
+          future: [] 
+        });
       },
 
       switchCanvas: (id) => {
-        const { canvases, activeCanvasId, nodes, edges } = get();
+        const { canvases, activeCanvasId, nodes, edges, openCanvasIds } = get();
         if (id === activeCanvasId) return;
+        
         const saved = syncActiveCanvas(canvases, activeCanvasId, nodes, edges);
-        const target = saved.find((c) => c.id === id)!;
-        set({ canvases: saved, activeCanvasId: id, nodes: target.nodes, edges: target.edges, past: [], future: [], selectedNodeId: null, selectedEdgeId: null });
+        const target = saved.find((c) => c.id === id);
+        
+        if (!target) return;
+        
+        let newOpenIds = openCanvasIds;
+        if (!openCanvasIds.includes(id)) {
+          newOpenIds = [...openCanvasIds, id];
+        }
+        
+        const updatedCanvases = saved.map((c) => {
+          if (c.id === id) {
+            return { ...c, lastAccessedAt: Date.now() };
+          }
+          return c;
+        });
+        
+        set({ 
+          canvases: updatedCanvases, 
+          openCanvasIds: newOpenIds,
+          activeCanvasId: id, 
+          nodes: target.nodes, 
+          edges: target.edges, 
+          past: [], 
+          future: [], 
+          selectedNodeId: null, 
+          selectedEdgeId: null 
+        });
         setTimeout(() => get().fitView(), 80);
       },
 
@@ -251,6 +320,112 @@ export const useDiagramStore = create<DiagramState>()(
         const canvases = get().canvases.map((c) => c.id === id ? { ...c, name, updatedAt: Date.now() } : c);
         set({ canvases });
         get().saveCanvasToDB(id);
+      },
+
+      openCanvas: (id) => {
+        const { canvases, activeCanvasId, openCanvasIds, nodes, edges } = get();
+        const isAlreadyOpen = openCanvasIds.includes(id);
+        
+        const saved = syncActiveCanvas(canvases, activeCanvasId, nodes, edges);
+        const target = saved.find((c) => c.id === id);
+        
+        if (!target) return;
+        
+        let newOpenIds: string[];
+        if (isAlreadyOpen) {
+          newOpenIds = openCanvasIds;
+        } else {
+          newOpenIds = [...openCanvasIds, id];
+        }
+        
+        const updatedCanvases = saved.map((c) => {
+          if (c.id === id) {
+            return { ...c, isOpen: true, lastAccessedAt: Date.now() };
+          }
+          return c;
+        });
+        
+        set({ 
+          canvases: updatedCanvases, 
+          openCanvasIds: newOpenIds,
+          activeCanvasId: id,
+          nodes: target.nodes,
+          edges: target.edges,
+          past: [],
+          future: [],
+          selectedNodeId: null,
+          selectedEdgeId: null,
+        });
+        setTimeout(() => get().fitView(), 80);
+      },
+
+      closeCanvas: (id) => {
+        const { canvases, activeCanvasId, openCanvasIds, nodes, edges } = get();
+        
+        if (openCanvasIds.length <= 1) return;
+        
+        const idx = openCanvasIds.indexOf(id);
+        const newOpenIds = openCanvasIds.filter((cid) => cid !== id);
+        
+        let nextActiveId = activeCanvasId;
+        if (activeCanvasId === id) {
+          const newIdx = Math.max(0, idx - 1);
+          nextActiveId = newOpenIds[newIdx] || newOpenIds[0];
+        }
+        
+        const saved = syncActiveCanvas(canvases, activeCanvasId, nodes, edges);
+        const nextActive = saved.find((c) => c.id === nextActiveId);
+        
+        const updatedCanvases = saved.map((c) => {
+          if (c.id === id) {
+            return { ...c, isOpen: false };
+          }
+          return c;
+        });
+        
+        set({ 
+          canvases: updatedCanvases,
+          openCanvasIds: newOpenIds,
+          activeCanvasId: nextActiveId,
+          nodes: nextActive?.nodes || [],
+          edges: nextActive?.edges || [],
+          past: [],
+          future: [],
+        });
+      },
+
+      togglePinCanvas: (id) => {
+        const canvases = get().canvases.map((c) => 
+          c.id === id ? { ...c, isPinned: !c.isPinned } : c
+        );
+        set({ canvases });
+      },
+
+      getOpenCanvases: () => {
+        const { canvases, openCanvasIds } = get();
+        return openCanvasIds
+          .map((id) => canvases.find((c) => c.id === id))
+          .filter((c): c is CanvasTab => c !== undefined);
+      },
+
+      getVisibleCanvases: () => {
+        const openCanvases = get().getOpenCanvases();
+        const pinned = openCanvases.filter((c) => c.isPinned);
+        const recent = openCanvases.filter((c) => !c.isPinned);
+        
+        const MAX_VISIBLE = 5;
+        const visiblePinned = pinned.slice(0, MAX_VISIBLE);
+        const remainingSlots = MAX_VISIBLE - visiblePinned.length;
+        const visibleRecent = recent.slice(0, remainingSlots);
+        
+        return [...visiblePinned, ...visibleRecent];
+      },
+
+      getOverflowCanvases: () => {
+        const openCanvases = get().getOpenCanvases();
+        const visible = get().getVisibleCanvases();
+        const visibleIds = new Set(visible.map((c) => c.id));
+        return openCanvases.filter((c) => !visibleIds.has(c.id));
       },
 
       // ── User / Auth ────────────────────────────────────────────────────────
@@ -275,8 +450,11 @@ export const useDiagramStore = create<DiagramState>()(
               nodes: d.nodes ?? [],
               edges: d.edges ?? [],
               updatedAt: new Date(d.updated_at).getTime(),
+              isOpen: true,
+              lastAccessedAt: new Date(d.updated_at).getTime(),
             }));
-            set({ canvases, activeCanvasId: canvases[0].id, nodes: canvases[0].nodes, edges: canvases[0].edges });
+            const openIds = canvases.map((c) => c.id);
+            set({ canvases, openCanvasIds: openIds, activeCanvasId: canvases[0].id, nodes: canvases[0].nodes, edges: canvases[0].edges });
           }
         } catch {
           // silently fail — guest fallback

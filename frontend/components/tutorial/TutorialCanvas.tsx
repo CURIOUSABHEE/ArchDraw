@@ -329,11 +329,12 @@ function TutorialCanvasInner({
           fitView
           fitViewOptions={{ maxZoom: 0.7 }}
           proOptions={{ hideAttribution: true }}
-          connectionLineType={ConnectionLineType.Bezier}
+          connectionLineType={ConnectionLineType.SmoothStep}
           style={{ background: canvasBg }}
           defaultEdgeOptions={{
-            type: 'default',
+            type: 'custom',
             animated: true,
+            data: { connectionType: 'smooth', edgeType: 'sync' },
             style: { stroke: '#94a3b8', strokeWidth: '1.5px' },
           }}
           deleteKeyCode={['Backspace', 'Delete', 'Meta+Backspace']}

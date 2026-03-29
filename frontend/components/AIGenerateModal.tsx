@@ -117,13 +117,10 @@ export function AIGenerateModal({ isOpen, onClose, onGenerate }: AIGenerateModal
                 <span className="text-violet-500">●</span>
                 Describe Your Architecture
               </label>
-              <span className="text-xs text-muted-foreground">
-                {description.length}/500
-              </span>
             </div>
             <Textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder="E.g., A microservices-based e-commerce platform with user authentication, product catalog, shopping cart, payment processing, and order management services..."
               className="w-full h-32 px-4 py-3 text-sm rounded-xl border-border/50 bg-background/50 
                          placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 

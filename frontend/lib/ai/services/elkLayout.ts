@@ -160,7 +160,7 @@ function convertEdge(
     target: edge.target,
     sourceHandle: edge.sourceHandle ?? 'right',
     targetHandle: edge.targetHandle ?? 'left',
-    type: edge.pathType ?? 'smoothstep',
+    type: edge.pathType ?? 'smooth',
     animated: edge.animated ?? false,
     label: edge.label ?? '',
     labelShowBg: true,

@@ -393,7 +393,7 @@ function computeLayeredLayout(
  * For LEFT-TO-RIGHT layout:
  * - Uses right handles (source) and left handles (target)
  * - Assigns different handles for multi-edge separation
- * - Applies smoothstep path for most connections (from COMMUNICATION_STYLES)
+ * - Applies smooth path for most connections (from COMMUNICATION_STYLES)
  * - Labels have dark backgrounds to prevent collision issues
  */
 function convertToReactFlowEdges(

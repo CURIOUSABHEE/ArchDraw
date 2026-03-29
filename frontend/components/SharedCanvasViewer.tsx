@@ -148,7 +148,7 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
           type: 'custom',
-          data: { edgeType: 'sync' },
+          data: { edgeType: 'sync', connectionType: 'smooth' },
         }}
       >
         <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>

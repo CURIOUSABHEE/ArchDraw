@@ -132,8 +132,8 @@ function ComponentItem({ comp, onAdd }: ComponentItemProps) {
         setTimeout(() => document.body.removeChild(ghost), 0);
       }}
       onClick={() => onAdd(comp)}
-      title={getDescription(comp)}
-      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors cursor-grab active:cursor-grabbing"
+      title={`${comp.label} - Drag to canvas or click to add`}
+      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all duration-150 cursor-grab active:cursor-grabbing hover:scale-[1.02] active:scale-[0.98]"
     >
       <div
         className="flex items-center justify-center rounded shrink-0"
