@@ -21,24 +21,7 @@ import { useDiagramStore } from '@/store/diagramStore';
 import { createNode } from '@/lib/nodeFactory';
 import { NodeIcon } from '@/components/NodeIcon';
 import { iconRegistry } from '@/lib/iconRegistry';
-
-function getViewportCenter(): { x: number; y: number } {
-  const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
-  const vp = el ? (() => {
-    const style = el.style.transform;
-    const match = style.match(/translate\(([^,]+)px,\s*([^)]+)px\)\s*scale\(([^)]+)\)/);
-    if (!match) return null;
-    return { x: parseFloat(match[1]), y: parseFloat(match[2]), zoom: parseFloat(match[3]) };
-  })() : null;
-
-  const bounds = document.querySelector('.react-flow__renderer')?.getBoundingClientRect();
-  if (!vp || !bounds) return { x: 400 + Math.random() * 40 - 20, y: 300 + Math.random() * 40 - 20 };
-
-  return {
-    x: (bounds.width / 2 - vp.x) / vp.zoom + Math.random() * 40 - 20,
-    y: (bounds.height / 2 - vp.y) / vp.zoom + Math.random() * 40 - 20,
-  };
-}
+import { getViewportCenter } from '@/lib/utils';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Monitor, Boxes, Database, Cpu, Brain,

@@ -2,6 +2,12 @@
 
 import { useEffect } from 'react';
 import { X, Keyboard } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const SHORTCUTS = [
   { category: 'Selection', items: [
@@ -40,62 +46,57 @@ const SHORTCUTS = [
   ]},
 ];
 
-interface Props { onClose: () => void }
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
-export function KeyboardShortcutsModal({ onClose }: Props) {
+export function KeyboardShortcutsModal({ open, onOpenChange }: Props) {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e: KeyboardEvent) => { 
+      if (e.key === 'Escape') onOpenChange(false); 
+    };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [onOpenChange]);
 
   return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-[6px]" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none">
-        <div
-          className="pointer-events-auto w-full max-w-md rounded-xl shadow-2xl overflow-hidden"
-          style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)' }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
-            <div className="flex items-center gap-2">
-              <Keyboard className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="text-xs font-semibold text-white">Keyboard Shortcuts</span>
-            </div>
-            <button onClick={onClose} className="p-1 rounded-md hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="p-3 max-h-[60vh] overflow-y-auto">
-            <div className="grid grid-cols-2 gap-4">
-              {SHORTCUTS.map((section) => (
-                <div key={section.category}>
-                  <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider mb-2 px-1">
-                    {section.category}
-                  </p>
-                  <div className="space-y-0.5">
-                    {section.items.map(({ key, action }) => (
-                      <div 
-                        key={key} 
-                        className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-white/5 transition-colors"
-                      >
-                        <span className="text-xs text-slate-400">{action}</span>
-                        <kbd className="text-[10px] font-mono font-medium text-slate-300 bg-white/8 border border-white/10 rounded px-1.5 py-0.5 ml-2 shrink-0">
-                          {key}
-                        </kbd>
-                      </div>
-                    ))}
-                  </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex flex-row items-center gap-2 shrink-0">
+          <Keyboard className="w-4 h-4 text-primary" />
+          <DialogTitle className="text-sm font-semibold">Keyboard Shortcuts</DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto -mx-6 px-6">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+            {SHORTCUTS.map((section) => (
+              <div key={section.category}>
+                <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-2">
+                  {section.category}
+                </p>
+                <div className="space-y-0.5">
+                  {section.items.map(({ key, action }) => (
+                    <div 
+                      key={key} 
+                      className="flex items-center justify-between py-1.5"
+                    >
+                      <span className="text-xs text-muted-foreground">{action}</span>
+                      <kbd className="text-[10px] font-mono font-medium text-foreground bg-muted border border-border rounded px-1.5 py-0.5 ml-2 shrink-0">
+                        {key}
+                      </kbd>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-          <div className="px-4 py-2.5 border-t border-white/8">
-            <p className="text-[10px] text-slate-600 text-center">Press ? to toggle this panel</p>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-    </>
+        
+        <div className="pt-4 border-t border-border shrink-0">
+          <p className="text-[10px] text-muted-foreground text-center">Press ? to toggle this panel</p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

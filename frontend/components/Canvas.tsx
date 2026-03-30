@@ -451,7 +451,7 @@ function CanvasInner() {
         ?
       </button>
 
-      {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
+      {showShortcuts && <KeyboardShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />}
       {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}
     </div>
   );
