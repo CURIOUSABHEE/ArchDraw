@@ -118,6 +118,8 @@ const l1 = level({
         msg(
           'The Load Balancer distributes WebSocket connections across Elixir gateway servers. Connection affinity is maintained — once you connect to a gateway server, all your events come through that server.'
         ),
+        msg("PREDICTION: Why did Discord choose Elixir instead of Node.js or Go? 🤔"),
+        msg("Answer: Elixir runs on BEAM (same as Erlang) — built for telecom switches with 99.999% uptime. Each WebSocket = one lightweight process. 100K processes on one server. Node.js/Go would need 10x more servers. Elixir's fault tolerance = if one connection crashes, it doesn't take down the whole server."),
         msg("Press ⌘K and search for \"Load Balancer\" and press Enter to add it, then connect API Gateway → Load Balancer."),
       ],
       requiredNodes: ['load_balancer'],

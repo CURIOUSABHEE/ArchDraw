@@ -80,6 +80,8 @@ const l1 = level({
       messages: [
         msg("The API Gateway handles agent requests and streaming responses with token budgets and rate limits."),
         msg("AI agents consume tokens rapidly — a single agent loop (plan → execute → evaluate → repeat) can generate thousands of tokens. The API Gateway enforces token budgets: max 10,000 tokens per request. Rate limits prevent runaway agents from burning through your API quota."),
+        msg("PREDICTION: Why is token budgeting critical for agents but not chatbots? 🤔"),
+        msg("Answer: Chatbots: 1 request → 1 response. Agents: 1 request → loop of 50+ LLM calls. Without budgets, ONE agent request could cost $100+. Token budgets + max iteration limits are what make agents economically viable."),
         msg("Press ⌘K and search for \"API Gateway\" and press Enter to add it, then connect Web → API Gateway."),
       ],
       requiredNodes: ['api_gateway'],
@@ -152,6 +154,8 @@ const l1 = level({
       messages: [
         msg("The Agent Planner decomposes goals into structured execution plans before any tools are called."),
         msg("Planning before acting is what separates smart agents from dumb ones. The planner thinks: 'What do I need to know? What tools do I need? In what order?' It outputs a structured plan. ReAct (Reasoning + Acting) and chain-of-thought are common planning patterns used by GPT-4 and Claude."),
+        msg("PREDICTION: What happens if the agent executes tools WITHOUT a planner? 🤔"),
+        msg("Answer: Blind tool-calling. Agent tries random actions hoping something works. With a planner: reason about the goal first, create a structured plan, then execute systematically. This is why 'Reasoning + Acting' (ReAct) outperforms pure action-only agents."),
         msg("Press ⌘K and search for \"Agent Planner\" and press Enter to add it, then connect Agent Orchestrator → Agent Planner."),
       ],
       requiredNodes: ['agent_planner'],

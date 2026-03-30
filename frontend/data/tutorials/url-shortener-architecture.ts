@@ -142,11 +142,13 @@ const l1 = level({
       messages: [
         msg("95% of URL shortener traffic is redirects. Before hitting the database, check the cache."),
         msg("Redis stores the code → URL mapping. A redirect checks Redis first: 'code=abc123' → 'https://long-url...'. Sub-millisecond lookup. Only 5% of requests (cache misses) hit the database. This is what makes URL shorteners fast at scale."),
+        msg("PREDICTION: What happens when a user visits a short code that's NOT in the cache? 🤔"),
+        msg("Answer: Cache miss → query SQL Database → return URL → populate cache for next request. This is why cache hit ratio matters so much."),
         msg("Press ⌘K and search for \"In-Memory Cache\" and press Enter to add it, then connect Load Balancer → Cache."),
       ],
       requiredNodes: ['in_memory_cache'],
       requiredEdges: [edge('load_balancer', 'in_memory_cache')],
-      successMessage: 'Cache added and connected. Now the database layer.',
+      successMessage: 'Cache added. 95% of your traffic (redirects) now runs through Redis at sub-millisecond speed.',
       errorMessage: 'Add an In-Memory Cache and connect Load Balancer → Cache.',
     }),
     step({
@@ -178,11 +180,13 @@ const l1 = level({
       messages: [
         msg("The database stores the permanent mapping: short code, original URL, creation timestamp, click count."),
         msg("SQL's UNIQUE constraint on short_code prevents collisions — two users can never get the same short code. ACID transactions ensure that when a short URL is created, it's immediately readable. No eventual consistency delays."),
+        msg("PREDICTION: Why can't we use NoSQL (like DynamoDB) for this? 🤔"),
+        msg("Answer: We could, but SQL gives us easier UNIQUE constraint enforcement and ACID guarantees. For this data, NoSQL tradeoffs (eventual consistency, more complex unique indexes) don't offer meaningful benefits."),
         msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Load Balancer → SQL Database."),
       ],
       requiredNodes: ['sql_db'],
       requiredEdges: [edge('load_balancer', 'sql_db')],
-      successMessage: 'SQL Database added. Now analytics.',
+      successMessage: 'SQL Database added with UNIQUE constraint. Duplicate short codes are now mathematically impossible.',
       errorMessage: 'Add a SQL Database and connect Load Balancer → SQL Database.',
     }),
     step({
@@ -250,11 +254,13 @@ const l1 = level({
       messages: [
         msg("Click counters can't be written to the database in real-time at scale. Batch them with a Worker."),
         msg("The Worker flushes Redis click counters to the database every minute. In real-time, clicks increment an in-memory counter in Redis. Every 60 seconds, the Worker batches all those increments into the database. This is the standard write-batching pattern."),
+        msg("CHALLENGE: What happens if we write EVERY click to the database immediately? 🤔"),
+        msg("Answer: At 1 million clicks/minute, that's 16,666 writes/second. The database saturates, redirects slow down, users get timeouts. The Worker batches 60 seconds of clicks into ONE bulk insert = massive DB savings."),
         msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Load Balancer → Worker."),
       ],
       requiredNodes: ['worker_job'],
       requiredEdges: [edge('load_balancer', 'worker_job')],
-      successMessage: 'Worker added. Now observability.',
+      successMessage: 'Worker added. Instead of 16,666 writes/second, now you do 1 bulk insert per minute. Massive scalability.',
       errorMessage: 'Add a Worker / Background Job and connect Load Balancer → Worker.',
     }),
     step({
@@ -286,6 +292,7 @@ const l1 = level({
       messages: [
         msg("Final step — observability. Every URL creation, redirect, and error is logged."),
         msg("Logs capture: timestamp, short code, original URL, client IP, user agent, and response status. These logs feed into centralized logging (Datadog, CloudWatch) for real-time alerting and post-incident analysis. When a short URL returns 404, logs tell you what happened."),
+        msg("🎯 REFLECTION: Your URL shortener handles 95% reads (redirects) and 5% writes (creates). The cache is your bottleneck — if cache hit rate drops from 95% to 80%, database traffic quintuples. That's the key insight: optimize for the hot path."),
         msg("Press ⌘K and search for \"Logger\" and press Enter to add it, then connect Load Balancer → Logger."),
       ],
       requiredNodes: ['logger'],

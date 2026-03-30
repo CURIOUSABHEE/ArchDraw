@@ -246,6 +246,8 @@ const l1 = level({
         msg(
           "Twitter uses hybrid fan-out. Regular users (<1M followers): push model — tweet is written to all follower timeline caches immediately. Celebrities (>1M followers): pull model — followers fetch their tweets on demand when opening the app."
         ),
+        msg("PREDICTION: What happens if Twitter used PUSH for ALL tweets, including celebrities? 🤔"),
+        msg("Answer: Disaster. Elon Musk tweets → 150M followers × push = 150M writes simultaneously. Would saturate everything. Pull for celebrities = 0 writes on tweet, just reads when users open app. Much more manageable."),
         msg("Press ⌘K and search for \"Fan-out Service\" and press Enter to add it, then connect Tweet Service → Fan-out Service."),
       ],
       requiredNodes: ['fanout_service'],

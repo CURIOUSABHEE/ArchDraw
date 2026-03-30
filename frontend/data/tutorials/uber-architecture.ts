@@ -103,6 +103,8 @@ const l1 = level({
       connectingMessage: "Matching Service is on the canvas. Now connect Load Balancer → Matching Service. Hover over the Load Balancer and drag to the Matching Service. This routes all trip requests to the core matching algorithm.",
       messages: [
         msg("The Matching Service finds drivers within 2km, ranks by ETA, and sends the trip request. It runs spatial queries across millions of active driver locations every second using Uber's H3 geohash grid."),
+        msg("PREDICTION: Why use H3 geohash instead of just scanning all nearby drivers? 🤔"),
+        msg("Answer: With 5M active drivers globally, a naive scan = 5M distance calculations per request = impossible. H3 divides the world into hexagonal cells. To find nearby drivers: query ONLY drivers in your cell + neighbor cells. O(1) regardless of total drivers."),
         msg('Connect: Load Balancer → Matching Service.'),
       ],
       requiredNodes: ['microservice'],

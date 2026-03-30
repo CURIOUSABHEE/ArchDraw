@@ -161,6 +161,8 @@ const l1 = level({
         msg(
           "It implements idempotency keys: a unique ID per payment attempt. If the same request arrives twice (network retry), the second one returns the first result. This is one of the hardest problems in distributed payments."
         ),
+        msg("PREDICTION: What happens WITHOUT idempotency keys when a network timeout occurs? 🤔"),
+        msg("Answer: Double charge. User clicks 'Pay' → network times out at bank → user thinks it failed → clicks again → charged twice. Idempotency key = first request stores result with key. Second request with same key → returns first result. No double charge."),
         msg("Press ⌘K and search for \"Microservice\" and press Enter to add it, then connect Auth Service → Payment Service."),
       ],
       requiredNodes: ['microservice'],
@@ -361,6 +363,8 @@ const l1 = level({
         msg(
           "The ledger is append-only and immutable. No record is ever updated or deleted. This makes the entire payment history auditable forever — critical for financial compliance."
         ),
+        msg("PREDICTION: Why does Stripe need DOUBLE-ENTRY bookkeeping? 🤔"),
+        msg("Answer: Accountability. $100 charge → +$100 to merchant, +$3 to Stripe fees, -$2.50 to processor. Double-entry ensures every dollar is traced. Also: if you UPDATE records, you lose the audit trail. Append-only = complete history preserved."),
         msg("Press ⌘K and search for \"SQL Database\" and press Enter to add it, then connect Payment Service → SQL Database."),
       ],
       requiredNodes: ['sql_db'],

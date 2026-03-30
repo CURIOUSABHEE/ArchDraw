@@ -170,6 +170,8 @@ const l2 = level({
       messages: [
         msg("Level 2 — Production Ready. 80% of what you watch on Netflix comes from recommendations, not search. That single statistic explains why Netflix invests more in ML infrastructure than almost any other feature."),
         msg("The two-stage system: candidate generation narrows 15,000+ titles to ~500 for you. Then a ranking model scores those 500 using your viewing history, time of day, and what similar users watched."),
+        msg("PREDICTION: Why TWO stages? Why not just score all 15,000 titles directly? 🤔"),
+        msg("Answer: Computational cost. Scoring 15,000 titles × 270M users × per-second updates = impossible. Two-stage: coarse filter (cheap) → fine ranking (expensive). 15,000→500 is fast. 500→ranked is detailed. This is how they serve millions of requests/second."),
       ],
       requiredNodes: ['recommendation_service'],
       requiredEdges: [edge('load_balancer', 'recommendation_service')],

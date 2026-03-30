@@ -86,6 +86,8 @@ const l1 = level({
         msg(
           "The CDN caches popular videos at edge locations worldwide. When a video goes viral, it's served from the nearest edge node — never hitting YouTube's origin. Cache hit rates for popular content exceed 95%."
         ),
+        msg("PREDICTION: What happens to the long-tail? (The 99% of videos that aren't popular?) 🤔"),
+        msg("Answer: Long-tail videos aren't cached at edge nodes. They hit origin servers directly. This is why YouTube invests heavily in origin capacity — 95% cache hit rate still leaves 5% of a billion hours = 50 million hours hitting origin. That's still massive."),
         msg("Press ⌘K and search for \"CDN\" and press Enter to add it, then connect Web → CDN."),
       ],
       requiredNodes: ['cdn'],
@@ -238,6 +240,8 @@ const l1 = level({
         msg(
           "YouTube's Archer pipeline uses per-title encoding — it analyzes each scene's complexity and allocates more bits to action sequences. This produces better quality at lower file sizes, saving hundreds of millions in CDN costs annually."
         ),
+        msg("PREDICTION: Why 20+ versions? Couldn't YouTube just store one high-res version? 🤔"),
+        msg("Answer: No! A 4K stream needs 25 Mbps — unwatchable on mobile. 480p needs 1.5 Mbps — doable on 3G. 20 versions = optimal quality for every device + connection speed. Without this, either users buffer constantly or quality is terrible."),
         msg("Press ⌘K and search for \"Worker / Background Job\" and press Enter to add it, then connect Upload Service → Transcoding Worker."),
       ],
       requiredNodes: ['worker_job'],

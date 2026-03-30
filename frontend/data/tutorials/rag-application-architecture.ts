@@ -188,6 +188,8 @@ const l1 = level({
       messages: [
         msg("The RAG Pipeline is the retrieval engine — the 'R' in RAG."),
         msg("Given a user question: 1) Convert to embedding vector. 2) Search vector DB for semantically similar chunks. 3) Return top-k results. Semantic search means finding 'car insurance' when the user asks 'auto coverage' — keyword search would completely miss this."),
+        msg("PREDICTION: Why can't we just use keyword search (like Elasticsearch)? 🤔"),
+        msg("Answer: Keywords fail on synonyms and semantically related concepts. User asks 'phone support' → keyword search finds exact match only. Vector search finds 'customer service', 'help line', 'technical assistance' — all semantically related. This is why embeddings work."),
         msg("Press ⌘K and search for \"RAG Pipeline\" and press Enter to add it, then connect Load Balancer → RAG Pipeline."),
       ],
       requiredNodes: ['rag_pipeline'],
@@ -260,6 +262,8 @@ const l1 = level({
       messages: [
         msg("The Embedding Service converts text to vector embeddings — the foundation of semantic search."),
         msg("Embedding models turn text into dense numerical vectors. 'The car needs auto insurance' and 'Vehicle coverage policy' → similar vectors. The Embedding Service runs during ingestion (batch) and at query time (real-time). OpenAI text-embedding-3 or Sentence Transformers are common choices."),
+        msg("PREDICTION: What's the hardest part of RAG that nobody talks about? 🤔"),
+        msg("Answer: CHUNKING. Too small = lose context. Too big = include irrelevant stuff. No overlap = lose cross-chunk context. Good RAG systems spend MORE time on chunking strategy than on model selection. It's the #1 factor in RAG quality."),
         msg("Press ⌘K and search for \"Embedding Service\" and press Enter to add it, then connect Load Balancer → Embedding Service."),
       ],
       requiredNodes: ['embedding_service'],
