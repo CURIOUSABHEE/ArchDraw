@@ -4,6 +4,7 @@ import { instagramNodes, instagramEdges } from './instagram';
 import { archdrawNodes, archdrawEdges } from './archdraw';
 import { videoStreamingNodes, videoStreamingEdges } from './video-streaming';
 import { netflixNodes, netflixEdges } from './netflix';
+import { rideshareNodes, rideshareEdges } from './rideshare';
 
 export interface Template {
   id: string;
@@ -60,5 +61,14 @@ export const TEMPLATES: Template[] = [
     icon: '🎥',
     nodes: netflixNodes,
     edges: netflixEdges,
+  },
+  {
+    id: 'rideshare',
+    name: 'Ride-Sharing Backend',
+    description: 'Production-grade ride-sharing architecture with correct flows: Primary (rider request), Real-Time (driver location), Async (post-ride processing). Includes proper grouping and no orphan components.',
+    tags: ['Ride-Sharing', 'Uber', 'Lyft', 'Real-Time', 'Microservices', 'WebSocket'],
+    icon: '🚗',
+    nodes: rideshareNodes,
+    edges: rideshareEdges,
   },
 ];

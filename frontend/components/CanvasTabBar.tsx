@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Plus, X } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Plus, X, ChevronDown, Check } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 
 function formatRelative(ts: number): string {
@@ -13,12 +13,43 @@ function formatRelative(ts: number): string {
 }
 
 export function CanvasTabBar() {
-  const { canvases, activeCanvasId, addCanvas, removeCanvas, switchCanvas, renameCanvas } = useDiagramStore();
+  const { 
+    canvases, 
+    activeCanvasId, 
+    addCanvas, 
+    removeCanvas, 
+    switchCanvas, 
+    renameCanvas,
+    getVisibleCanvases,
+    getOverflowCanvases,
+  } = useDiagramStore();
+  
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState('');
+  const [overflowOpen, setOverflowOpen] = useState(false);
   const editInputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const overflowRef = useRef<HTMLDivElement>(null);
+
+  // Memoize visible and overflow canvases to avoid recalculation
+  const { visibleTabs, overflowTabs } = useMemo(() => {
+    const visible = getVisibleCanvases();
+    const overflow = getOverflowCanvases();
+    return { visibleTabs: visible, overflowTabs: overflow };
+  }, [canvases, activeCanvasId, getVisibleCanvases, getOverflowCanvases]);
+
+  // Close overflow dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
+        setOverflowOpen(false);
+      }
+    };
+    if (overflowOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [overflowOpen]);
 
   // Focus rename input when editing starts
   useEffect(() => {
@@ -53,16 +84,20 @@ export function CanvasTabBar() {
     }
   }, [canvases, removeCanvas]);
 
+  const handleOverflowClick = useCallback((id: string) => {
+    switchCanvas(id);
+    setOverflowOpen(false);
+  }, [switchCanvas]);
+
   return (
     <>
       <div className="flex items-center border-b border-border/60 bg-card/60 shrink-0 h-8 px-1 gap-0">
-        {/* Scrollable tab list + new tab button grouped together on the left */}
+        {/* Visible tabs */}
         <div
-          ref={scrollRef}
           className="flex items-end overflow-x-auto gap-0.5 px-1 scrollbar-none"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {canvases.map((canvas) => {
+          {visibleTabs.map((canvas) => {
             const isActive = canvas.id === activeCanvasId;
             const isEditing = editingId === canvas.id;
 
@@ -103,7 +138,7 @@ export function CanvasTabBar() {
                 )}
 
                 {/* Close button — only show if more than 1 tab */}
-                {canvases.length > 1 && !isEditing && (
+                {visibleTabs.length > 1 && !isEditing && (
                   <button
                     onClick={(e) => handleCloseClick(canvas.id, e)}
                     className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/15 hover:text-destructive transition-all shrink-0"
@@ -115,7 +150,7 @@ export function CanvasTabBar() {
             );
           })}
 
-          {/* New tab button — immediately after last tab */}
+          {/* New tab button */}
           <button
             onClick={addCanvas}
             className="shrink-0 self-center p-1 mx-0.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -124,6 +159,43 @@ export function CanvasTabBar() {
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {/* Overflow dropdown */}
+        {overflowTabs.length > 0 && (
+          <div className="relative" ref={overflowRef}>
+            <button
+              onClick={() => setOverflowOpen(!overflowOpen)}
+              className="flex items-center gap-1 px-2 h-7 rounded-t-md text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors shrink-0"
+            >
+              <ChevronDown className="w-3 h-3" />
+              <span>+{overflowTabs.length}</span>
+            </button>
+
+            {/* Dropdown menu */}
+            {overflowOpen && (
+              <div className="absolute top-full left-0 mt-1 min-w-[180px] max-h-[300px] overflow-y-auto bg-card border border-border rounded-lg shadow-xl z-50 py-1">
+                {overflowTabs.map((canvas) => {
+                  const isActive = canvas.id === activeCanvasId;
+                  return (
+                    <button
+                      key={canvas.id}
+                      onClick={() => handleOverflowClick(canvas.id)}
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-left hover:bg-accent/50 transition-colors ${
+                        isActive ? 'bg-accent text-foreground' : 'text-muted-foreground'
+                      }`}
+                    >
+                      {isActive && <Check className="w-3 h-3 shrink-0" />}
+                      <span className="truncate flex-1">{canvas.name}</span>
+                      {canvas.isPinned && (
+                        <span className="text-[9px] text-muted-foreground shrink-0">Pinned</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Delete confirmation */}

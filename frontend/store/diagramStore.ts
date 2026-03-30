@@ -409,22 +409,65 @@ export const useDiagramStore = create<DiagramState>()(
       },
 
       getVisibleCanvases: () => {
-        const openCanvases = get().getOpenCanvases();
-        const pinned = openCanvases.filter((c) => c.isPinned);
-        const recent = openCanvases.filter((c) => !c.isPinned);
-        
+        const { canvases, activeCanvasId, openCanvasIds } = get();
         const MAX_VISIBLE = 5;
-        const visiblePinned = pinned.slice(0, MAX_VISIBLE);
-        const remainingSlots = MAX_VISIBLE - visiblePinned.length;
-        const visibleRecent = recent.slice(0, remainingSlots);
         
-        return [...visiblePinned, ...visibleRecent];
+        // Get open canvases in order of openCanvasIds
+        const openCanvases = openCanvasIds
+          .map((id) => canvases.find((c) => c.id === id))
+          .filter((c): c is CanvasTab => c !== undefined);
+        
+        if (openCanvases.length <= MAX_VISIBLE) {
+          return openCanvases;
+        }
+        
+        // Separate active, pinned, and other canvases
+        const activeCanvas = openCanvases.find((c) => c.id === activeCanvasId);
+        const pinned = openCanvases.filter((c) => c.isPinned && c.id !== activeCanvasId);
+        const other = openCanvases.filter((c) => !c.isPinned && c.id !== activeCanvasId);
+        
+        // Build visible list: active first, then pinned, then others
+        const visible: CanvasTab[] = [];
+        
+        // 1. Always include active canvas first
+        if (activeCanvas) {
+          visible.push(activeCanvas);
+        }
+        
+        // 2. Add pinned canvases (up to remaining slots)
+        const remainingSlots = MAX_VISIBLE - visible.length;
+        for (const c of pinned) {
+          if (visible.length >= MAX_VISIBLE) break;
+          visible.push(c);
+        }
+        
+        // 3. Add other canvases by last accessed time
+        const sortedOther = [...other].sort((a, b) => (b.lastAccessedAt || 0) - (a.lastAccessedAt || 0));
+        for (const c of sortedOther) {
+          if (visible.length >= MAX_VISIBLE) break;
+          visible.push(c);
+        }
+        
+        return visible;
       },
 
       getOverflowCanvases: () => {
-        const openCanvases = get().getOpenCanvases();
+        const { canvases, activeCanvasId, openCanvasIds } = get();
+        const MAX_VISIBLE = 5;
+        
+        // Get open canvases in order of openCanvasIds
+        const openCanvases = openCanvasIds
+          .map((id) => canvases.find((c) => c.id === id))
+          .filter((c): c is CanvasTab => c !== undefined);
+        
+        if (openCanvases.length <= MAX_VISIBLE) {
+          return [];
+        }
+        
         const visible = get().getVisibleCanvases();
         const visibleIds = new Set(visible.map((c) => c.id));
+        
+        // Return overflow: open canvases not in visible
         return openCanvases.filter((c) => !visibleIds.has(c.id));
       },
 
