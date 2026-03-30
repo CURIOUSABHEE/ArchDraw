@@ -82,39 +82,24 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
   return (
     <EdgeLabelRenderer>
       <div
+        className="flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1 shadow-lg"
         style={{
           position: 'absolute',
           transform: `translate(-50%, -100%) translate(${labelX}px, ${labelY - 24}px)`,
           pointerEvents: 'all',
           zIndex: 20,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          background: '#111827',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 999,
-          padding: '4px 8px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
         }}
       >
         {/* Edge Type Selector */}
-        <div style={{ position: 'relative' }}>
+        <div className="relative">
           <button
             onClick={() => { setShowTypeMenu(!showTypeMenu); setShowPathMenu(false); }}
             title="Change edge type"
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase cursor-pointer"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '2px 6px',
-              borderRadius: 4,
               background: `${activeConfig.color}20`,
               border: `1px solid ${activeConfig.color}20`,
-              cursor: 'pointer',
-              fontSize: 9,
-              fontWeight: 600,
               color: activeConfig.color,
-              textTransform: 'uppercase',
             }}
           >
             {activeConfig.label}
@@ -124,19 +109,7 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
           {showTypeMenu && (
             <div
               ref={typeMenuRef}
-              style={{
-                position: 'absolute',
-                bottom: '100%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                marginBottom: 6,
-                background: '#111827',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 8,
-                padding: 4,
-                minWidth: 100,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-              }}
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 min-w-[100px] rounded-lg border border-border bg-card p-1 shadow-lg"
             >
               {EDGE_TYPES.map((type) => {
                 const cfg = EDGE_TYPE_CONFIGS[type];
@@ -145,27 +118,15 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
                   <button
                     key={type}
                     onClick={() => handleEdgeTypeChange(type)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      width: '100%',
-                      padding: '6px 8px',
-                      background: isActive ? `${cfg.color}20` : 'transparent',
-                      border: 'none',
-                      borderRadius: 4,
-                      cursor: 'pointer',
-                      fontSize: 11,
-                      color: isActive ? cfg.color : '#9ca3af',
-                    }}
+                    className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors ${
+                      isActive ? '' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                    }`}
+                    style={isActive ? { background: `${cfg.color}20`, color: cfg.color } : {}}
                   >
-                    <span style={{
-                      width: 16,
-                      height: 2,
-                      background: cfg.color,
-                      borderRadius: 1,
-                      opacity: cfg.animated ? 0.6 : 1,
-                    }} />
+                    <span 
+                      className="w-4 h-0.5 rounded"
+                      style={{ background: cfg.color, opacity: cfg.animated ? 0.6 : 1 }}
+                    />
                     {cfg.label}
                   </button>
                 );
@@ -175,24 +136,12 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
         </div>
 
         {/* Path Type Selector */}
-        <div style={{ position: 'relative' }}>
+        <div className="relative">
           <button
             onClick={() => { setShowPathMenu(!showPathMenu); setShowTypeMenu(false); }}
             title="Change path type"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              padding: '2px 6px',
-              borderRadius: 4,
-              background: '#1f2937',
-              border: '1px solid rgba(255,255,255,0.08)',
-              cursor: 'pointer',
-              fontSize: 9,
-              fontWeight: 500,
-              color: '#9ca3af',
-              textTransform: 'capitalize',
-            }}
+            className="flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium capitalize cursor-pointer text-muted-foreground hover:text-foreground"
+            style={{ background: 'transparent' }}
           >
             <Spline className="w-3 h-3" />
             {activePathType}
@@ -201,19 +150,7 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
           {showPathMenu && (
             <div
               ref={pathMenuRef}
-              style={{
-                position: 'absolute',
-                bottom: '100%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                marginBottom: 6,
-                background: '#111827',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 8,
-                padding: 4,
-                minWidth: 90,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-              }}
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 min-w-[90px] rounded-lg border border-border bg-card p-1 shadow-lg"
             >
               {PATH_TYPES.map((type) => {
                 const isActive = type === activePathType;
@@ -221,20 +158,9 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
                   <button
                     key={type}
                     onClick={() => handlePathTypeChange(type)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      width: '100%',
-                      padding: '6px 8px',
-                      background: isActive ? '#374151' : 'transparent',
-                      border: 'none',
-                      borderRadius: 4,
-                      cursor: 'pointer',
-                      fontSize: 11,
-                      color: isActive ? '#e5e7eb' : '#9ca3af',
-                      textTransform: 'capitalize',
-                    }}
+                    className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs capitalize transition-colors ${
+                      isActive ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                    }`}
                   >
                     {type}
                   </button>
@@ -244,61 +170,52 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
           )}
         </div>
 
-        <div style={{ width: 1, height: 16, background: '#374151', margin: '0 4px' }} />
+        <div className="mx-1 h-4 w-px bg-border" />
 
         {isEditing ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <>
             <input
               ref={inputRef}
+              type="text"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSaveLabel();
                 if (e.key === 'Escape') handleCancelEdit();
               }}
-              style={{
-                width: 60,
-                padding: '2px 6px',
-                fontSize: 10,
-                borderRadius: 4,
-                border: '1px solid rgba(59,130,246,0.3)',
-                background: '#1f2937',
-                color: '#e5e7eb',
-                outline: 'none',
-              }}
+              className="w-20 rounded border border-border bg-background px-1.5 py-0.5 text-xs text-foreground"
               placeholder="Label..."
             />
-            <button onClick={handleSaveLabel} style={iconBtnStyle('#3b82f6')}>
-              <Check className="w-3 h-3" style={{ color: 'white' }} />
+            <button onClick={handleSaveLabel} className="text-emerald-500 hover:text-emerald-400">
+              <Check className="w-3 h-3" />
             </button>
-            <button onClick={handleCancelEdit} style={iconBtnStyle('#374151')}>
-              <X className="w-3 h-3" style={{ color: '#9ca3af' }} />
-            </button>
-          </div>
-        ) : (
-          <>
-            <button onClick={() => setIsEditing(true)} title="Edit label" style={iconBtnStyle('transparent')}>
-              <Edit3 className="w-3.5 h-3.5" style={{ color: '#6b7280' }} />
-            </button>
-            <button onClick={handleDelete} title="Delete edge" style={iconBtnStyle('transparent')}>
-              <Trash2 className="w-3.5 h-3.5" style={{ color: '#ef4444' }} />
+            <button onClick={handleCancelEdit} className="text-muted-foreground hover:text-foreground">
+              <X className="w-3 h-3" />
             </button>
           </>
+        ) : (
+          <>
+            <button
+              onClick={() => setIsEditing(true)}
+              className="text-muted-foreground hover:text-foreground"
+              title="Edit label"
+            >
+              <Edit3 className="w-3 h-3" />
+            </button>
+            <span className="max-w-[100px] truncate text-[10px] text-muted-foreground">
+              {currentLabel || 'Add label'}
+            </span>
+          </>
         )}
+
+        <button
+          onClick={handleDelete}
+          className="text-muted-foreground hover:text-destructive"
+          title="Delete edge"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
       </div>
     </EdgeLabelRenderer>
   );
 }
-
-const iconBtnStyle = (bg: string) => ({
-  width: 24,
-  height: 24,
-  borderRadius: 4,
-  background: bg,
-  border: 'none',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: 0,
-});
