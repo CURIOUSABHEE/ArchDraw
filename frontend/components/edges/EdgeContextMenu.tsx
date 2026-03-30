@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDiagramStore } from '@/store/diagramStore';
 import { Trash2, GitBranch, Spline, ChevronRight } from 'lucide-react';
 import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
@@ -19,7 +19,7 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
   const deleteEdge = useDiagramStore((s) => s.deleteEdge);
   const menuRef = useRef<HTMLDivElement>(null);
   
-  const [showSubmenu, setShowSubmenu] = React.useState<'type' | 'path' | null>(null);
+  const [showSubmenu, setShowSubmenu] = useState<'type' | 'path' | null>(null);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -60,62 +60,31 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
   return (
     <div
       ref={menuRef}
-      style={{
-        position: 'fixed',
-        top,
-        left,
-        width: MENU_W,
-        background: '#111827',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 10,
-        padding: '6px 4px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-        zIndex: 99999,
-        fontFamily: 'system-ui, sans-serif',
-      }}
+      className="fixed z-[99999] rounded-lg border border-border bg-card p-1.5 shadow-xl"
+      style={{ top, left, width: MENU_W }}
     >
       {/* Change Type Submenu */}
-      <div style={{ position: 'relative' }}>
+      <div className="relative">
         <button
           onMouseEnter={() => setShowSubmenu('type')}
           onClick={() => setShowSubmenu(showSubmenu === 'type' ? null : 'type')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
-            padding: '8px 12px',
-            background: showSubmenu === 'type' ? '#1f2937' : 'transparent',
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-            color: '#e5e7eb',
-          }}
+          className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+            showSubmenu === 'type' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+          }`}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="flex items-center gap-2.5">
             <GitBranch size={14} style={{ color: activeConfig.color }} />
-            <span style={{ fontSize: 12, fontWeight: 500 }}>Edge Type</span>
+            <span>Edge Type</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 10, color: activeConfig.color, fontWeight: 600 }}>{activeConfig.label}</span>
-            <ChevronRight size={12} style={{ color: '#6b7280' }} />
+          <div className="flex items-center gap-1.5">
+            <span style={{ color: activeConfig.color }} className="text-[10px] font-semibold">{activeConfig.label}</span>
+            <ChevronRight size={12} className="text-muted-foreground" />
           </div>
         </button>
         
         {showSubmenu === 'type' && (
           <div
-            style={{
-              position: 'absolute',
-              left: '100%',
-              top: 0,
-              marginLeft: 4,
-              background: '#111827',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 8,
-              padding: 4,
-              minWidth: 120,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            }}
+            className="absolute left-full top-0 ml-1 min-w-[120px] rounded-md border border-border bg-card p-1 shadow-lg"
           >
             {EDGE_TYPES.map((type) => {
               const cfg = EDGE_TYPE_CONFIGS[type];
@@ -124,27 +93,15 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
                 <button
                   key={type}
                   onClick={() => handleEdgeTypeChange(type)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    width: '100%',
-                    padding: '8px 10px',
-                    background: isActive ? `${cfg.color}20` : 'transparent',
-                    border: 'none',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    color: isActive ? cfg.color : '#9ca3af',
-                  }}
+                  className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-xs transition-colors ${
+                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  }`}
+                  style={isActive ? { background: `${cfg.color}20` } : {}}
                 >
-                  <span style={{
-                    width: 24,
-                    height: 3,
-                    background: cfg.color,
-                    borderRadius: 2,
-                    opacity: cfg.animated ? 0.7 : 1,
-                  }} />
+                  <span 
+                    className="w-6 h-0.5 rounded"
+                    style={{ background: cfg.color, opacity: cfg.animated ? 0.7 : 1 }}
+                  />
                   {cfg.label}
                 </button>
               );
@@ -154,47 +111,27 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
       </div>
 
       {/* Change Path Submenu */}
-      <div style={{ position: 'relative' }}>
+      <div className="relative">
         <button
           onMouseEnter={() => setShowSubmenu('path')}
           onClick={() => setShowSubmenu(showSubmenu === 'path' ? null : 'path')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
-            padding: '8px 12px',
-            background: showSubmenu === 'path' ? '#1f2937' : 'transparent',
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-            color: '#e5e7eb',
-          }}
+          className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+            showSubmenu === 'path' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+          }`}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Spline size={14} style={{ color: '#6b7280' }} />
-            <span style={{ fontSize: 12, fontWeight: 500 }}>Path Shape</span>
+          <div className="flex items-center gap-2.5">
+            <Spline size={14} className="text-muted-foreground" />
+            <span>Path Shape</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 500, textTransform: 'capitalize' }}>{activePathType}</span>
-            <ChevronRight size={12} style={{ color: '#6b7280' }} />
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-medium text-muted-foreground capitalize">{activePathType}</span>
+            <ChevronRight size={12} className="text-muted-foreground" />
           </div>
         </button>
         
         {showSubmenu === 'path' && (
           <div
-            style={{
-              position: 'absolute',
-              left: '100%',
-              top: 40,
-              marginLeft: 4,
-              background: '#111827',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 8,
-              padding: 4,
-              minWidth: 100,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            }}
+            className="absolute left-full top-10 ml-1 min-w-[100px] rounded-md border border-border bg-card p-1 shadow-lg"
           >
             {PATH_TYPES.map((type) => {
               const isActive = type === activePathType;
@@ -202,33 +139,22 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
                 <button
                   key={type}
                   onClick={() => handlePathTypeChange(type)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    width: '100%',
-                    padding: '8px 10px',
-                    background: isActive ? '#374151' : 'transparent',
-                    border: 'none',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    color: isActive ? '#e5e7eb' : '#9ca3af',
-                    textTransform: 'capitalize',
-                  }}
+                  className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-xs capitalize transition-colors ${
+                    isActive ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  }`}
                 >
-                  <svg width="24" height="16" viewBox="0 0 24 16">
+                  <svg width="24" height="16" viewBox="0 0 24 16" className="shrink-0">
                     {type === 'smooth' && (
-                      <path d="M 2 14 Q 6 2, 12 8 Q 18 14, 22 2" stroke="#6366f1" strokeWidth="0.1" fill="none" />
+                      <path d="M 2 14 Q 6 2, 12 8 Q 18 14, 22 2" stroke="currentColor" strokeWidth="0.1" fill="none" className="text-primary" />
                     )}
                     {type === 'bezier' && (
-                      <path d="M 2 14 C 8 14, 6 2, 12 8 C 18 14, 16 2, 22 2" stroke="#6366f1" strokeWidth="0.1" fill="none" />
+                      <path d="M 2 14 C 8 14, 6 2, 12 8 C 18 14, 16 2, 22 2" stroke="currentColor" strokeWidth="0.1" fill="none" className="text-primary" />
                     )}
                     {type === 'step' && (
-                      <path d="M 2 14 L 12 14 L 12 2 L 22 2" stroke="#6366f1" strokeWidth="0.1" fill="none" />
+                      <path d="M 2 14 L 12 14 L 12 2 L 22 2" stroke="currentColor" strokeWidth="0.1" fill="none" className="text-primary" />
                     )}
                     {type === 'straight' && (
-                      <path d="M 2 14 L 22 2" stroke="#6366f1" strokeWidth="0.1" fill="none" />
+                      <path d="M 2 14 L 22 2" stroke="currentColor" strokeWidth="0.1" fill="none" className="text-primary" />
                     )}
                   </svg>
                   {type}
@@ -239,26 +165,14 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
         )}
       </div>
 
-      <div style={{ height: 1, background: '#1f2937', margin: '6px 0' }} />
+      <div className="my-1.5 h-px bg-border" />
 
       <button
         onClick={handleDelete}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          width: '100%',
-          padding: '8px 12px',
-          background: 'transparent',
-          border: 'none',
-          borderRadius: 6,
-          cursor: 'pointer',
-          textAlign: 'left',
-          color: '#ef4444',
-        }}
+        className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
       >
         <Trash2 size={14} />
-        <span style={{ fontSize: 12, fontWeight: 500 }}>Delete Edge</span>
+        <span>Delete Edge</span>
       </button>
     </div>
   );
