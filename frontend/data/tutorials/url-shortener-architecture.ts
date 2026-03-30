@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build the classic system design interview question — a URL shortening service like Bitly. Learn hash generation, redirect logic, analytics, and the tradeoffs between consistent hashing and base-62 encoding.',
   estimatedTime: '~15 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build a URL shortener from scratch — the classic system design interview question. Services like Bitly and TinyURL handle billions of redirects daily. The challenge: converting long URLs into short, unique codes that redirect reliably at massive scale.",
   steps: [

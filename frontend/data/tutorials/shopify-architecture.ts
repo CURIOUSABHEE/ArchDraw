@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build an e-commerce platform for 2 million merchants processing $235B in annual sales. Learn cart management, inventory locking, checkout flows, payment processing, and Black Friday traffic spikes.',
   estimatedTime: '~30 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build Shopify from scratch. 2 million merchants, $235 billion in annual sales, and a Black Friday peak of 4.2 million orders per hour. The hardest problem: a merchant with 10 orders/day and one with 10 million orders/day run on the same infrastructure.",
   steps: [

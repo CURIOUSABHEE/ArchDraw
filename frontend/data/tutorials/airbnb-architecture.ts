@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build a global home rental marketplace from scratch. Master availability calendars, geo-spatial search with Elasticsearch, dynamic ML-powered pricing, trust systems, and the two-sided payment escrow that makes strangers booking strangers feel safe.',
   estimatedTime: '~34 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build Airbnb from scratch. A global marketplace where 150 million guests book stays in 4 million homes managed by strangers — and trust the whole thing enough to actually complete a booking.",
   steps: [

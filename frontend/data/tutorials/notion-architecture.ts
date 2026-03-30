@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build a real-time collaborative workspace. Learn operational transforms, block-based data models, conflict resolution, and how 35 million users edit documents simultaneously.',
   estimatedTime: '~28 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build Notion from scratch. 35 million users collaboratively editing documents, databases, and wikis in real time. The hardest problem: when two people edit the same sentence simultaneously, neither should lose their work. This is the fundamental challenge of real-time collaboration that shapes every architectural decision.",
   steps: [

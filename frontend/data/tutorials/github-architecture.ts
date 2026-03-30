@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build a code hosting platform for 100 million developers with 420 million repositories. Learn Git object storage, pull request workflows, CI/CD pipelines, code search, and webhook delivery at scale.',
   estimatedTime: '~30 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build GitHub from scratch. 100 million developers, 420 million repositories, and a push that triggers CI/CD pipelines, notifies collaborators, and updates integrations — all within seconds. GitHub's scale of Git storage alone is staggering.",
   steps: [

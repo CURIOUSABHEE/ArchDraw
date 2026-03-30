@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build a production RAG (Retrieval-Augmented Generation) system. Learn document ingestion, chunking strategies, vector embeddings, semantic search, reranking, and LLM synthesis at scale.',
   estimatedTime: '~25 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build a production RAG system from scratch. RAG combines your private data with LLMs — the system retrieves relevant documents and feeds them to the LLM as context. This is how ChatGPT Enterprise, Claude for Work, and Perplexity answer questions about your specific data.",
   steps: [

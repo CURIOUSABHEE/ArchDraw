@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build a production AI agent system. Learn multi-agent orchestration, tool calling, memory systems, agent supervision, and LangGraph-style workflows that power autonomous AI systems like AutoGPT and CrewAI.',
   estimatedTime: '~30 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build an AI Agent System from scratch. AI agents are LLMs that take actions — they plan, use tools, make decisions, and learn from feedback. This is the architecture behind AutoGPT, CrewAI, and Claude's tool use. Agents are the next frontier of AI applications.",
   steps: [

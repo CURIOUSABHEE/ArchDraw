@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build a video conferencing system for 300 million daily meeting participants. Master WebRTC, media relay, adaptive bitrate, recording pipelines, and breakout rooms.',
   estimatedTime: '~32 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build Zoom from scratch. 300 million daily meeting participants at peak — a 30x growth during the pandemic. The architecture must handle millions of simultaneous video streams, adapt to varying network conditions, and maintain quality even on 3G connections.",
   steps: [
@@ -415,7 +415,7 @@ const l2 = level({
   description:
     "Add Kafka event streaming, real-time quality monitoring, and CDC pipelines to Zoom's architecture. Handle millions of concurrent meeting events and track SLA compliance for 300 million daily participants.",
   estimatedTime: "~28 mins",
-  unlocks: undefined,
+  unlocks: 'Expert Architecture',
   contextMessage:
     "Let's scale Zoom. 300 million daily participants, millions of concurrent meetings, and 99.99% uptime guarantees. This requires event streaming, quality-of-experience monitoring, and real-time analytics.",
   steps: [

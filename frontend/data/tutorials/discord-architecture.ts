@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build Discord from scratch — a real-time voice and text platform for 19 million active servers. Understand WebRTC peer connections, guild sharding, voice channel architecture, and message history at Cassandra scale.',
   estimatedTime: '~33 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build Discord from scratch. 19 million active servers, 200 million users, 4 billion messages monthly — all delivered in real-time to clients that maintain persistent WebSocket connections even when you're not actively chatting.",
   steps: [

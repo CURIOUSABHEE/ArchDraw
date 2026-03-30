@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build a music streaming platform for 600 million users. Learn audio transcoding, CDN delivery, offline sync, recommendation algorithms, and real-time listening sessions.',
   estimatedTime: '~30 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build Spotify from scratch. 600 million users, 100 million songs and podcasts, and a recommendation system that feels like it reads your mind. The architecture must handle millions of concurrent streams while delivering personalized playlists in real-time.",
   steps: [

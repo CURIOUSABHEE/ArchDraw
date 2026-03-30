@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build a production payment processing system. Learn idempotency keys, webhook delivery, fraud detection, and distributed ledger design that handles trillions in payments.',
   estimatedTime: '~28 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build Stripe from scratch. Hundreds of billions of dollars processed annually across 197 countries. Every design decision is shaped by the hardest problem in distributed systems: making financial transactions safe, consistent, and retry-safe in an unreliable network.",
   steps: [

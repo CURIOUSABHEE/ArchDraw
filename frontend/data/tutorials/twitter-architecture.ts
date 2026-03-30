@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Solve the fan-out problem serving 500M users. Build tweet delivery, real-time feeds, trending topics, and a timeline that scales to millions of concurrent reads.',
   estimatedTime: '~32 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build Twitter from scratch. 500 million users, 500 million tweets per day, and the hardest fan-out problem in social media. When a celebrity tweets, 150 million followers need to see it in under 5 seconds. This hybrid push/pull architecture is what makes that possible.",
   steps: [

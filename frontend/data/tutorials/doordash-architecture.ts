@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build a food delivery platform completing 2 billion deliveries annually. Learn real-time order routing, dasher dispatch, ETA prediction, geofencing, and the three-sided marketplace problem.',
   estimatedTime: '~30 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build DoorDash from scratch. 2 billion deliveries annually, 27 countries, and a real-time system that must predict your delivery time accurately enough that you trust it. The hardest problem: predicting delivery time accurately at scale.",
   steps: [

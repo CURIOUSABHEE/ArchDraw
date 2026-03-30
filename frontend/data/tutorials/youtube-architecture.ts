@@ -16,7 +16,7 @@ const l1 = level({
   description:
     "Design the world's largest video platform. Learn video upload pipelines, transcoding at scale, CDN distribution, and recommendation ML serving billions of views.",
   estimatedTime: '~32 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build YouTube from scratch. 2.7 billion users, 500 hours of video uploaded every minute, 1 billion hours watched daily. Every design decision is shaped by three relentless constraints: enormous upload volumes, massive storage requirements, and the need for instant playback anywhere in the world.",
   steps: [

@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Design a messaging system for 2 billion users. Understand message delivery guarantees, presence detection, offline queuing, and end-to-end encryption architecture.',
   estimatedTime: '~28 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build WhatsApp from scratch. 2 billion users, 100 billion messages per day, end-to-end encrypted. Every design decision is shaped by the unique constraint of client-side encryption — WhatsApp's servers never see plaintext messages.",
   steps: [

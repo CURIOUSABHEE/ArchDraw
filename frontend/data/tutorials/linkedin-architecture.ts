@@ -16,7 +16,7 @@ const l1 = level({
   description:
     'Build a professional social network for 1 billion members. Learn social graph traversal, feed ranking, connection degrees, job matching, and real-time messaging at scale.',
   estimatedTime: '~30 mins',
-  unlocks: undefined,
+  unlocks: 'Production Layer',
   contextMessage:
     "Let's build LinkedIn from scratch. 1 billion members, 40 million job postings, and a social graph with billions of connections. The hardest problem: when you search for '2nd-degree connections who work at Google', LinkedIn must traverse a graph of billions of edges in milliseconds.",
   steps: [
