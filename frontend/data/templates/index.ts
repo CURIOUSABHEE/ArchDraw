@@ -3,6 +3,7 @@ import { chatgptNodes, chatgptEdges } from './chatgpt';
 import { instagramNodes, instagramEdges } from './instagram';
 import { archdrawNodes, archdrawEdges } from './archdraw';
 import { videoStreamingNodes, videoStreamingEdges } from './video-streaming';
+import { netflixNodes, netflixEdges } from './netflix';
 
 export interface Template {
   id: string;
@@ -50,5 +51,14 @@ export const TEMPLATES: Template[] = [
     icon: '🎬',
     nodes: videoStreamingNodes,
     edges: videoStreamingEdges,
+  },
+  {
+    id: 'netflix',
+    name: 'Netflix Streaming',
+    description: 'FAANG-level Netflix architecture with 7 layers: Client, Edge, Gateway, Microservices (grouped by domain), Data, Streaming Pipeline, Analytics. Clean layered structure for system design interviews.',
+    tags: ['Netflix', 'Streaming', 'FAANG', 'System Design', 'Microservices', 'CDN'],
+    icon: '🎥',
+    nodes: netflixNodes,
+    edges: netflixEdges,
   },
 ];

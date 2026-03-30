@@ -22,6 +22,8 @@ import { generateLayoutHints } from './layoutHints';
 import {
   MAX_ITERATIONS,
   SCORE_THRESHOLD,
+  MAX_NODES,
+  MAX_EDGES_PER_NODE,
   LAYER_ORDER,
   DEFAULT_ELK_OPTIONS,
   LAYER_X_POSITIONS,
@@ -128,18 +130,40 @@ export async function generateDiagram(
 
     // PHASE 4: Score the diagram (1 API call)
     emit('scoring', 'Calculating quality score...', 80);
-    const scoreResult = await runScorerAgent({
+    let scoreResult = await runScorerAgent({
       ...state,
       nodes: state.components.map(c => ({ ...c, position: elkLayoutResult!.nodes.find(n => n.id === c.id)?.position ?? { x: 0, y: 0 } })),
     });
     state.score = scoreResult.score;
     emit('scoring', `Score: ${scoreResult.score}/100 - ${scoreResult.verdict}`, 85);
 
-    // PHASE 5: If score is low, regenerate edges once (1 API call)
-    if (scoreResult.score < 70) {
-      console.log('[Orchestrator] Score low, regenerating edges...');
-      emit('edges', 'Regenerating connections...', 75);
+    // PHASE 5: Iteration Strategy - reduce complexity if needed
+    let iteration = 0;
+    while (scoreResult.score < SCORE_THRESHOLD && iteration < MAX_ITERATIONS) {
+      iteration++;
+      console.log(`[Orchestrator] Iteration ${iteration}: Score ${scoreResult.score} < ${SCORE_THRESHOLD}, reducing complexity...`);
+      
+      // Iteration 1: Reduce node count
+      if (state.components.length > MAX_NODES) {
+        emit('components', `Reducing nodes (${state.components.length} → ${MAX_NODES})...`, 60);
+        state.components = state.components.slice(0, MAX_NODES);
+        console.log(`[Orchestrator] Reduced to ${state.components.length} nodes`);
+      }
+      
+      // Regenerate edges with reduced components
+      emit('edges', 'Recreating connections...', 70);
       state.edges = await runEdgeAgent(state);
+      
+      // Re-layout
+      elkLayoutResult = await computeELKLayout(state.components, state.edges);
+      
+      // Re-score
+      scoreResult = await runScorerAgent({
+        ...state,
+        nodes: state.components.map(c => ({ ...c, position: elkLayoutResult!.nodes.find(n => n.id === c.id)?.position ?? { x: 0, y: 0 } })),
+      });
+      state.score = scoreResult.score;
+      emit('scoring', `Score: ${scoreResult.score}/100 - ${scoreResult.verdict}`, 80 + (iteration * 5));
     }
 
     emit('complete', 'Generation complete!', 100);

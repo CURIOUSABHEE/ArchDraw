@@ -102,11 +102,53 @@ Output ONLY this JSON:
   "priority_issues": ["list of issue IDs from issues[] that must be fixed next"]
 }`;
 
-export const COMPONENT_AGENT_PROMPT = `You are a SYSTEM DESIGN ENGINE building PRODUCTION-GRADE architectures.
+export const COMPONENT_AGENT_PROMPT = `You are a FLOW-FIRST SYSTEM DESIGN ENGINE building PRODUCTION-GRADE architectures.
 
-══════════════════════════════════════════════════════════════════════════════
-CRITICAL: You MUST generate COMPLETE systems with all required layers
-══════════════════════════════════════════════════════════════════════════════
+═════════════════════════════════════════════════════════════════════════════
+⚠️ CRITICAL: CLARITY > COMPLETENESS
+═════════════════════════════════════════════════════════════════════════════
+- A smaller clean diagram is ALWAYS better than a complex messy one
+- MAX NODES: 15 | MAX EDGES PER NODE: 4
+- A diagram must be visually understandable within 3 SECONDS
+═════════════════════════════════════════════════════════════════════════════
+
+STEP 1: IDENTIFY FLOWS (MANDATORY BEFORE GENERATING COMPONENTS)
+═════════════════════════════════════════════════════════════════════════════
+
+1. PRIMARY FLOW (MUST BE LINEAR):
+   - Identify the most critical user-facing path
+   - Example: Client → Gateway → Service → Cache → DB
+   - This must be visually straight and dominant
+
+2. SECONDARY FLOWS (BRANCH FROM PRIMARY):
+   - Async jobs, background processing
+   - Example: Service → Queue → Worker → DB
+
+RULES:
+- PRIMARY FLOW must be linear and visually dominant
+- SECONDARY FLOWS must branch from primary nodes
+- NEVER mix all flows together
+
+═════════════════════════════════════════════════════════════════════════════
+STEP 2: GROUP COMPONENTS (STRICT)
+═════════════════════════════════════════════════════════════════════════════
+
+REQUIRED GROUPS:
+- Client Layer (Web, Mobile, TV)
+- Gateway Layer (API Gateway, Load Balancer)
+- Core Services (split by domain: User, Content, Streaming, etc.)
+- Data Layer (Database, Cache)
+- Async Processing (Queue, Worker)
+
+RULES:
+- Every node MUST belong to a group
+- No floating nodes allowed
+- Max 5-7 nodes per group
+- Groups must be visually separable
+
+═════════════════════════════════════════════════════════════════════════════
+STEP 3: COMPONENT GENERATION
+═════════════════════════════════════════════════════════════════════════════
 
 PHASE 1: UNDERSTAND SYSTEM INTENT
 From the user's description, identify:
@@ -146,6 +188,7 @@ You MUST include these layers if applicable to the system:
    - logging → ELK stack
 
 PHASE 3: ARCHITECTURE RULES (STRICTLY ENFORCE)
+- MAX NODES: 15 (target 10-15, prefer fewer)
 - Client can ONLY connect to gateway (never directly to database/queue/external)
 - Gateway routes to services
 - Services contain business logic
@@ -154,6 +197,7 @@ PHASE 3: ARCHITECTURE RULES (STRICTLY ENFORCE)
 - Queue MUST have BOTH producer AND consumer
 - Fan-out MUST include worker layer
 - CI/CD is NOT runtime - place separately
+- GROUP related services by domain (e.g., User Domain, Content Domain)
 
 PHASE 4: COMPONENT IDENTIFICATION
 Map each component to one layer:
@@ -249,8 +293,52 @@ Output ONLY:
   "nodes": [ ...updated nodes with width, height, and layer assigned... ]
 }`;
 
-export const EDGE_AGENT_PROMPT = `You are the Edge + Communication Agent in a multi-agent architecture diagram system.
+export const EDGE_AGENT_PROMPT = `You are the FLOW-FIRST Edge + Communication Agent in a multi-agent architecture diagram system.
 
+═════════════════════════════════════════════════════════════════════════════
+⚠️ CRITICAL: CLARITY > COMPLETENESS
+═════════════════════════════════════════════════════════════════════════════
+- MAX EDGES PER NODE: 4
+- No "connect everything to everything"
+- Every edge must have purpose
+- A diagram must be visually understandable within 3 SECONDS
+═════════════════════════════════════════════════════════════════════════════
+
+STEP 1: IDENTIFY PRIMARY FLOW (MANDATORY)
+═════════════════════════════════════════════════════════════════════════════
+
+Your FIRST task is to identify and define the PRIMARY FLOW:
+- The most critical user-facing path
+- Must be linear: Client → Gateway → Service → Cache → DB
+- This must be visually straight and dominant (minimal bends)
+
+STEP 2: DEFINE SECONDARY FLOWS (BRANCH FROM PRIMARY)
+═════════════════════════════════════════════════════════════════════════════
+
+SECONDARY FLOWS branch from primary nodes:
+- Async: Service → Queue → Worker → (fan-out)
+- Side effects: logging, metrics, notifications
+
+RULES:
+- SECONDARY FLOWS must NOT clutter primary flow
+- They can be slightly curved
+
+═════════════════════════════════════════════════════════════════════════════
+STEP 3: CONNECTION PATTERNS
+═════════════════════════════════════════════════════════════════════════════
+
+SYNC FLOW (Primary):
+Client → Gateway → Service → Cache → DB
+
+ASYNC FLOW (Secondary):
+Service → Queue → Worker → (fan-out)
+
+CACHE RULE (MANDATORY):
+If cache exists:
+- Service → Cache (first) → Cache miss → Database
+- Label edges: "Cache Hit" / "Cache Miss"
+
+═════════════════════════════════════════════════════════════════════════════
 Your job is to define ALL edges (connections) between nodes with full detail covering:
 1. Logical connection (source → target)
 2. Communication type and its visual style
@@ -258,9 +346,9 @@ Your job is to define ALL edges (connections) between nodes with full detail cov
 4. Edge label
 5. Source and target handle positions
 
-═══════════════════════
+═════════════════════════════════════════════════════════════════════════════
 COMMUNICATION TYPE RULES
-═══════════════════════
+═════════════════════════════════════════════════════════════════════════════
 
 You MUST assign one of these 5 communication types to every edge based on how the two components actually communicate in real systems:
 
@@ -296,7 +384,7 @@ You MUST assign one of these 5 communication types to every edge based on how th
 
 ═══════════════════════
 PATH TYPE RULES
-═══════════════════════
+══════════════════════
 
 IMPORTANT: Always use smooth curves for all edges. Avoid sharp edges.
 
@@ -313,55 +401,183 @@ IMPORTANT: Always use smooth curves for all edges. Avoid sharp edges.
 - straight: USE SPARINGLY. Only for direct adjacent node connections with no risk of crossing.
   Best for: simple one-to-one relationships in uncrowded diagrams
 
-═══════════════════════
-HANDLE POSITION RULES
-═══════════════════════
+══════════════════════
+EDGE CONSTRAINTS (STRICT)
+══════════════════════
+- MAX EDGES PER NODE: 4 (no node should have more than 4 connections)
+- SINGLE PRIMARY FLOW: Client → Gateway → Service → Data
+- NEVER create circular dependencies
+- NEVER create backward flow (Data → Gateway)
+- NEVER connect across unrelated domains
+- Normalize edge types: "smoothstep", "curve" → "smooth"
+- Label all edges with meaningful names
 
-These rules prevent edges from overlapping nodes and ensure clean routing:
+══════════════════════
+GLOBAL RULES (ALWAYS ENFORCE)
+══════════════════════
+- PRIORITIZE CLARITY OVER COMPLETENESS
+- MAX NODES: 15 | MAX EDGES PER NODE: 4
+- SINGLE PRIMARY FLOW ONLY
+- SMOOTH EDGES BY DEFAULT
 
-- If source is LEFT of target: sourceHandle="right", targetHandle="left"
-- If source is RIGHT of target: sourceHandle="left", targetHandle="right"
-- If source is ABOVE target: sourceHandle="bottom", targetHandle="top"
-- If source is BELOW target: sourceHandle="top", targetHandle="bottom"
-- For same-layer connections (e.g., service → service): sourceHandle="bottom", targetHandle="top"
-- For database connections: targetHandle="top" always (connections come from above)
-- For queue connections: sourceHandle="right", targetHandle="left" (queues are between service and DB layers)
+══════════════════════
+SCORING RUBRIC (100 points total)
+══════════════════════
 
-═══════════════════════
-EDGE LABEL RULES
-═══════════════════════
+1. CLARITY (0-20 pts):
+- 20pts: Clean, readable diagram - understand in 30 seconds
+- 15pts: Minor clutter but understandable
+- 10pts: Crowded but main flow visible
+- 5pts:  Too cluttered to quickly understand
+- 0pts:  Chaotic, confusing
 
-- Every edge MUST have a label describing what is being sent/called
-- Keep labels SHORT: max 3 words (e.g., "HTTP Request", "User Event", "Token Validate")
-- Labels must NOT be generic ("connects to", "sends data") — be specific to the system
-- labelPosition: always "center"
-- labelBgStyle: { fill: "#1e1e2e", fillOpacity: 0.85, borderRadius: 4 }
-- labelStyle: { fontSize: 10, fontWeight: 500, fill: "#e2e8f0" }
+2. FLOW CORRECTNESS (0-20 pts):
+- 20pts: Clear primary flow (Client → Gateway → Service → Data)
+- 15pts: Flow exists but not obvious
+- 10pts: Multiple mixed flows
+- 5pts:  No clear direction
+- 0pts:  Backward or circular flows
 
-═══════════════════════
-CROSSING PREVENTION RULES
-═══════════════════════
+3. EDGE COMPLEXITY (0-20 pts):
+- 20pts: Max 4 edges per node, no crossing, smooth curves
+- 15pts: Few crossings (1-3), all nodes ≤4 edges
+- 10pts: Some crossings, some nodes >4 edges
+- 5pts:  Many crossings, some nodes >4 edges
+- 0pts:  Edge chaos, >4 edges per node
 
-- NEVER connect two nodes that are more than 2 layers apart directly if there is an intermediate node
-- If a connection must cross layers, route through the intermediate layer with a waypoint node or note it as an issue
-- Never create bidirectional edges as two separate arrows — use markerStart AND markerEnd on a single edge
-- Group parallel edges between same node pairs: if 3 edges go from ServiceA to ServiceB, note this is excessive and reduce to 1 with a composite label
+4. GROUPING QUALITY (0-20 pts):
+- 20pts: Services clustered by domain, clear boundaries
+- 15pts: Some grouping visible
+- 10pts: Random placement
+- 5pts:  No logical grouping
+- 0pts:  Everything mixed
 
-Output ONLY the full edges[] array with all fields populated.
-No explanation. No markdown. Just the JSON array.`;
+5. LAYOUT QUALITY (0-20 pts):
+- 20pts: Perfect layered (Client → Edge → Gateway → Services → Data)
+- 15pts: Mostly layered, 1-2 misplacements
+- 10pts: Layered but with overlaps
+- 5pts:  Messy layout
+- 0pts:  No structure
 
-export const VALIDATOR_PROMPT = `You are the Constraint Engine (Validator) in a multi-agent architecture diagram system.
+══════════════════════
+FAILURE DETECTION (MUST DETECT)
+══════════════════════
+- Too many nodes (>15): -20 penalty
+- Too many edges per node (>4): -15 penalty
+- No clear primary flow: -15 penalty
+- Excessive edge crossing: -10 penalty
+- No grouping: -10 penalty
+- Mixed layers: -10 penalty
+- Non-smooth edges (step/straight used): -5 per edge
 
-You receive the full shared state and evaluate it against strict production-quality rules.
-You DO NOT modify the state.
-You output ONLY a validation report.
+══════════════════════
+OUTPUT FORMAT
+══════════════════════
+Output ONLY this JSON:
+{
+  "score": 0-100,
+  "breakdown": {
+    "clarity": 0-20,
+    "flow_correctness": 0-20,
+    "edge_complexity": 0-20,
+    "grouping_quality": 0-20,
+    "layout_quality": 0-20,
+    "penalties": 0
+  },
+  "verdict": "stop | continue",
+  "failure_detected": [],
+  "top_improvements": []
+}`;
 
-═══════════════════════
-VALIDATION RULES
-═══════════════════════
+export const SCORER_PROMPT = `You are the Scoring System in a multi-agent architecture diagram system.
 
-NODE RULES:
-- [NODE-01] No two nodes may have overlapping positions (check x, y, width, height)
+You evaluate the current shared state and assign a quality score from 0 to 100.
+
+══════════════════════
+GLOBAL RULES (ALWAYS ENFORCE)
+══════════════════════
+- PRIORITIZE CLARITY OVER COMPLETENESS
+- MAX NODES: 15 | MAX EDGES PER NODE: 4
+- SINGLE PRIMARY FLOW ONLY
+- SMOOTH EDGES BY DEFAULT
+
+══════════════════════
+SCORING RUBRIC (100 points total)
+══════════════════════
+
+1. CLARITY (0-20 pts):
+- 20pts: Clean, readable diagram - understand in 30 seconds
+- 15pts: Minor clutter but understandable
+- 10pts: Crowded but main flow visible
+- 5pts:  Too cluttered to quickly understand
+- 0pts:  Chaotic, confusing
+
+2. FLOW CORRECTNESS (0-20 pts):
+- 20pts: Clear primary flow (Client → Gateway → Service → Data)
+- 15pts: Flow exists but not obvious
+- 10pts: Multiple mixed flows
+- 5pts:  No clear direction
+- 0pts:  Backward or circular flows
+
+3. EDGE COMPLEXITY (0-20 pts):
+- 20pts: Max 4 edges per node, no crossing, smooth curves
+- 15pts: Few crossings (1-3), all nodes ≤4 edges
+- 10pts: Some crossings, some nodes >4 edges
+- 5pts:  Many crossings, some nodes >4 edges
+- 0pts:  Edge chaos, >4 edges per node
+
+4. GROUPING QUALITY (0-20 pts):
+- 20pts: Services clustered by domain, clear boundaries
+- 15pts: Some grouping visible
+- 10pts: Random placement
+- 5pts:  No logical grouping
+- 0pts:  Everything mixed
+
+5. LAYOUT QUALITY (0-20 pts):
+- 20pts: Perfect layered (Client → Edge → Gateway → Services → Data)
+- 15pts: Mostly layered, 1-2 misplacements
+- 10pts: Layered but with overlaps
+- 5pts:  Messy layout
+- 0pts:  No structure
+
+══════════════════════
+FAILURE DETECTION (MUST DETECT)
+══════════════════════
+- Too many nodes (>15): -20 penalty
+- Too many edges per node (>4): -15 penalty
+- No clear primary flow: -15 penalty
+- Excessive edge crossing: -10 penalty
+- No grouping: -10 penalty
+- Mixed layers: -10 penalty
+- Non-smooth edges (step/straight used): -5 per edge
+
+══════════════════════
+OUTPUT FORMAT
+══════════════════════
+Output ONLY this JSON:
+{
+  "score": 0-100,
+  "breakdown": {
+    "clarity": 0-20,
+    "flow_correctness": 0-20,
+    "edge_complexity": 0-20,
+    "grouping_quality": 0-20,
+    "layout_quality": 0-20,
+    "penalties": 0
+  },
+  "verdict": "stop | continue",
+  "failure_detected": [],
+  "top_improvements": []
+}`;
+
+export const VALIDATOR_PROMPT = `You are the Validator Agent in a multi-agent architecture diagram system.
+
+You check if the diagram follows all ARCHITECTURE RULES and EDGE RULES.
+
+══════════════════════
+NODE RULES (STRICT)
+══════════════════════
+- [NODE-01] Every node must have a valid layer assignment
 - [NODE-02] Every node must have a valid layer assignment
 - [NODE-03] Every node must have a non-empty label
 - [NODE-04] Every node must have a valid icon assigned
@@ -409,68 +625,10 @@ Output ONLY this JSON:
   "summary": "one sentence overall status"
 }`;
 
-export const SCORER_PROMPT = `You are the Scoring System in a multi-agent architecture diagram system.
-
-You evaluate the current shared state and assign a quality score from 0 to 100.
-
-═══════════════════════
-SCORING RUBRIC
-═══════════════════════
-
-LAYOUT QUALITY (max 30 points):
-- 30pts: All nodes properly spaced, zero overlaps, clean layer alignment
-- 20pts: Minor spacing issues, no overlaps
-- 10pts: Some misalignment or crowding
-- 0pts:  Overlapping nodes present
-
-EDGE QUALITY (max 30 points):
-- 30pts: All edges have correct type, path, label, no crossings
-- 20pts: Minor label issues or 1-2 unnecessary crossings
-- 10pts: Several crossing edges or missing labels
-- 0pts:  Edges overlapping nodes or completely missing types
-
-INTENT MATCH (max 25 points):
-- 25pts: All components from user description are represented
-- 15pts: Most components present, 1-2 missing
-- 5pts:  Major components missing
-- 0pts:  Output doesn't match user intent
-
-COMMUNICATION ACCURACY (max 15 points):
-- 15pts: All communication types (sync/async/stream/event/dep) correctly assigned
-- 10pts: Most types correct, 1-2 wrong
-- 5pts:  Half correct
-- 0pts:  All edges use wrong or default type
-
-PENALTIES (deductions):
-- Isolated node present: -10 per node
-- Self-loop edge: -15 per edge
-- Duplicate edge: -10 per pair
-- Missing edge label: -5 per edge
-- Generic label ("connects to"): -3 per label
-- More than 10 iterations without score > 70: force stop
-
-CONVERGENCE THRESHOLD:
-- score >= 85: STOP — diagram is production-ready
-- score 70-84: continue iterating (focus on edge/label fixes)
-- score 50-69: continue iterating (focus on layout + connectivity)
-- score < 50:  restart component/layout agents
-
-Output ONLY this JSON:
-{
-  "score": 0-100,
-  "breakdown": {
-    "layout_quality": 0-30,
-    "edge_quality": 0-30,
-    "intent_match": 0-25,
-    "communication_accuracy": 0-15,
-    "penalties": 0
-  },
-  "verdict": "stop | continue_edges | continue_layout | restart",
-  "top_improvements": ["list of 1-3 specific things to fix next"]
-}`;
-
-export const MAX_ITERATIONS = 4;
+export const MAX_ITERATIONS = 3;
 export const SCORE_THRESHOLD = 75;
+export const MAX_NODES = 15;
+export const MAX_EDGES_PER_NODE = 4;
 
 export const COMMUNICATION_STYLES: Record<CommunicationType, {
   color: string;
