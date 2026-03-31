@@ -5,7 +5,7 @@ import 'reactflow/dist/style.css';
 import { AuthProvider } from '@/components/AuthProvider';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react"
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
