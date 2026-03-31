@@ -4,12 +4,11 @@ import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { NodeIcon, resolveNodeColor } from '@/components/NodeIcon';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/lib/theme';
 
 function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
+  const { isDark } = useTheme();
   const accent = data.accentColor ?? data.color ?? '#6366f1';
   const resolvedAccent = data.technology ? resolveNodeColor(data.technology, accent) : accent;
   const hasError = data.hasError;

@@ -7,7 +7,7 @@ import {
 import { EdgeContextMenu } from './EdgeContextMenu';
 import { EdgeToolbar } from './EdgeToolbar';
 import { EdgeLabel } from './EdgeLabel';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/lib/theme';
 import type { EdgeData, EdgeType, PathType } from '@/data/edgeTypes';
 import { getEdgeConfig, getEffectivePathType } from '@/data/edgeTypes';
 
@@ -76,7 +76,7 @@ export function FlowEdge({
   const pathType = getEffectivePathType(edgeType, customPathType);
   const config = getEdgeConfig(edgeType);
   
-  const { resolvedTheme } = useTheme();
+  const { isDark } = useTheme();
 
   const { path: edgePath, labelX, labelY } = useMemo(() => {
     return getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition);

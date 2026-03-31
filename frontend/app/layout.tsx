@@ -66,8 +66,24 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('archdraw-theme');
+                  if (theme === 'dark' || (!theme && 'dark' === 'dark')) {
+                    document.documentElement.classList.add('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="archdraw-theme">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="archdraw-theme" themes={['dark', 'light']}>
           <AuthProvider>
             {children}
             <Toaster position="bottom-right" theme="dark" richColors />

@@ -2,11 +2,6 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { redis, redisKeys } from '@/lib/redis';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 interface SharedCanvas {
   id: string;
   canvas_name: string;
@@ -58,6 +53,10 @@ export async function GET(
 
   // Supabase fallback
   if (!data) {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
     const { data: row, error } = await supabase
       .from('shared_canvases')
       .select('*')

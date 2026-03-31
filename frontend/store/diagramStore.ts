@@ -530,7 +530,6 @@ export const useDiagramStore = create<DiagramState>()(
       toggleDarkMode: () => {
         const next = !get().darkMode;
         set({ darkMode: next });
-        document.documentElement.classList.toggle('dark', next);
       },
       toggleEdgeAnimations: () => {
         const next = !get().edgeAnimations;
@@ -806,9 +805,6 @@ export const useDiagramStore = create<DiagramState>()(
         showGrid: s.showGrid,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state?.darkMode) {
-          document.documentElement.classList.add('dark');
-        }
         if (state && state.canvases && state.activeCanvasId) {
           const active = state.canvases.find((c: CanvasTab) => c.id === state.activeCanvasId);
           if (active) {

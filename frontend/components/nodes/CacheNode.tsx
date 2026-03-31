@@ -3,7 +3,7 @@
 import { memo, useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/lib/theme';
 import { motion } from 'framer-motion';
 import { Layers, Zap, Activity, Circle } from 'lucide-react';
 
@@ -14,8 +14,7 @@ interface CacheNodeData extends NodeData {
 
 function CacheNodeComponent({ id, data, selected }: NodeProps<CacheNodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
+  const { isDark } = useTheme();
   const accent = data.accentColor ?? data.color ?? '#ef4444';
   const [isHovered, setIsHovered] = useState(false);
 

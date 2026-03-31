@@ -27,7 +27,7 @@ import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
 import { LayoutGrid, LayoutTemplate, MousePointer2 } from 'lucide-react';
 import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { FlowEdge } from '@/components/edges/FlowEdge';
-import { useTheme } from 'next-themes';
+import { useCanvasTheme } from '@/lib/theme';
 import { TemplateModal } from '@/components/TemplateModal';
 
 // Module-level ref so the store can call fitView without hooks
@@ -57,7 +57,8 @@ function CanvasInner() {
     showGrid,
     pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData, setCanvasMode
   } = useDiagramStore();
-  const { resolvedTheme } = useTheme();
+  const canvasTheme = useCanvasTheme();
+  const { isDark } = canvasTheme;
 
   const reactFlowInstance = useReactFlow();
   const { onNodeDrag, onNodeDragStop: onNodeDragStopSnap } = useSnapping();
@@ -247,7 +248,7 @@ function CanvasInner() {
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: resolvedTheme === 'dark'
+          background: isDark
             ? 'radial-gradient(ellipse at center, rgba(30, 41, 59, 0.3) 0%, rgba(15, 23, 42, 1) 70%)'
             : 'radial-gradient(ellipse at center, rgba(241, 245, 249, 0.5) 0%, rgba(248, 250, 252, 1) 70%)',
         }}
@@ -256,7 +257,7 @@ function CanvasInner() {
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: resolvedTheme === 'dark'
+          background: isDark
             ? 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.15) 100%)'
             : 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.02) 100%)',
         }}
@@ -313,7 +314,7 @@ function CanvasInner() {
         {showGrid && (
           <Background
             variant={BackgroundVariant.Dots}
-            color={resolvedTheme === 'dark' ? '#1e293b' : '#cbd5e1'}
+            color={isDark ? '#1e293b' : '#cbd5e1'}
             gap={20}
             size={1.5}
           />
@@ -366,16 +367,16 @@ function CanvasInner() {
                   autoFocus
                   style={{
                     width: 100,
-                    background: resolvedTheme === 'dark' ? '#1e293b' : '#ffffff',
-                    border: resolvedTheme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)',
+                    background: isDark ? '#1e293b' : '#ffffff',
+                    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)',
                     borderRadius: 9999,
                     padding: '2px 10px',
                     fontSize: 10,
                     fontFamily: 'system-ui, sans-serif',
-                    color: resolvedTheme === 'dark' ? '#f1f5f9' : '#1e293b',
+                    color: isDark ? '#f1f5f9' : '#1e293b',
                     outline: 'none',
                     textAlign: 'center',
-                    boxShadow: resolvedTheme === 'dark' ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)',
+                    boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)',
                   }}
                 />
               </div>

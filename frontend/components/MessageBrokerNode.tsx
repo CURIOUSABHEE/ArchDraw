@@ -4,7 +4,7 @@ import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { Layers, Activity, Radio } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/lib/theme';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface MessageBrokerNodeData extends NodeData {
@@ -14,8 +14,7 @@ interface MessageBrokerNodeData extends NodeData {
 
 function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBrokerNodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
+  const { isDark } = useTheme();
   const accent = data.accentColor ?? data.color ?? '#f59e0b';
   
   const brokerType = data.brokerType || 'pubsub';
