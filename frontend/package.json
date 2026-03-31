@@ -43,6 +43,7 @@
     "@supabase/supabase-js": "^2.99.2",
     "@types/dagre": "^0.7.54",
     "@upstash/redis": "^1.37.0",
+    "@vercel/analytics": "^2.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
