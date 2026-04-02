@@ -23,6 +23,10 @@ export const metadata: Metadata = {
     default: 'ArchDraw — Visual System Architecture Design Tool',
     template: '%s | ArchDraw',
   },
+  icons: {
+    icon: '/favicon.png',
+    apple: '/favicon.png',
+  },
   description: 'Design production-ready system architecture diagrams visually. Drag, connect, and think in systems. Used by engineers to design scalable backends.',
   keywords: [
     'system design tool', 'architecture diagram', 'system architecture',

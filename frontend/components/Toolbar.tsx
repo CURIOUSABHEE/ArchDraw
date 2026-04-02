@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { generatePureSVG } from '@/lib/svgExport';
 import {
   Download, Trash2, Upload, ChevronDown,
   Undo2, Redo2, Share2, Loader2, Check,
@@ -34,7 +35,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-type ExportFormat = 'png-dark' | 'png-light' | 'png-transparent' | 'json' | 'pdf' | 'html-embed';
+type ExportFormat = 'png-dark-1x' | 'png-dark-2x' | 'png-dark-4x' | 'png-light-1x' | 'png-light-2x' | 'png-light-4x' | 'png-transparent-1x' | 'png-transparent-2x' | 'png-transparent-4x' | 'svg-dark' | 'svg-light' | 'svg-transparent' | 'json' | 'pdf' | 'html-embed';
 
 function generateEmbedHTML(nodes: { id: string; width?: number | null; height?: number | null; position: { x: number; y: number }; data?: any }[], edges: { source: string; target: string; data?: any; style?: any }[]): string {
   const svgWidth = 1200;
@@ -278,21 +279,88 @@ export function Toolbar() {
       toast.success('Embed code (iframe) copied to clipboard');
       return;
     }
-    const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
-    if (!element) return;
-    setIsExporting(true);
+    
+    const isSvg = format.startsWith('svg-');
+    const isPng = format.startsWith('png-');
+    
+    const bgType = format.includes('dark') ? 'dark' : format.includes('light') ? 'light' : 'transparent';
+    const bgColor = bgType === 'dark' ? '#0f172a' : bgType === 'light' ? '#ffffff' : undefined;
+    
+    const isFullDiagram = true;
+    
     const { fitView } = useDiagramStore.getState();
-    fitView();
-    await new Promise((r) => setTimeout(r, 120));
+    
+    setIsExporting(true);
+    
     try {
+      if (isSvg) {
+        const { nodes, edges } = useDiagramStore.getState();
+        const isDark = bgType === 'dark';
+        const bg = bgType === 'dark' ? '#0f172a' : bgType === 'light' ? '#ffffff' : 'transparent';
+        
+        fitView({ padding: 0.1, duration: 300 });
+        await new Promise((r) => setTimeout(r, 350));
+        
+        const svgContent = generatePureSVG(nodes, edges, isDark, bg || '#0f172a');
+        
+        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+        
+        const MAX_SIZE = 3 * 1024 * 1024;
+        if (blob.size > MAX_SIZE) {
+          const { toPng } = await import('html-to-image');
+          const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
+          if (!element) return;
+          const pngDataUrl = await toPng(element, {
+            backgroundColor: bgColor,
+            pixelRatio: 2,
+            cacheBust: true,
+            filter: (node: HTMLElement) => {
+              const cls = node.classList;
+              if (!cls) return true;
+              return (
+                !cls.contains('react-flow__minimap') &&
+                !cls.contains('react-flow__controls') &&
+                !cls.contains('react-flow__panel') &&
+                !cls.contains('react-flow__background')
+              );
+            },
+          });
+          const pngBlob = await (await fetch(pngDataUrl)).blob();
+          downloadFile(pngBlob, 'archdraw-export.png');
+          toast.warning('SVG too large, exported as PNG instead');
+        } else {
+          downloadFile(blob, 'archdraw-export.svg');
+          toast.success('Exported as SVG');
+        }
+        setIsExporting(false);
+        return;
+      }
+      
       const { toPng } = await import('html-to-image');
-      const bgColor =
-        format === 'png-dark'    ? '#0f172a'
-        : format === 'png-light' ? '#ffffff'
-        : undefined;
+      
+      const pixelRatioMap: Record<string, number> = {
+        'png-dark-1x': 1,
+        'png-dark-2x': 2,
+        'png-dark-4x': 4,
+        'png-light-1x': 1,
+        'png-light-2x': 2,
+        'png-light-4x': 4,
+        'png-transparent-1x': 1,
+        'png-transparent-2x': 2,
+        'png-transparent-4x': 4,
+      };
+      
+      const pixelRatio = pixelRatioMap[format] || 2;
+      
+      const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
+      if (!element) return;
+      
+      fitView({ padding: 0.1, duration: 300 });
+      await new Promise((r) => setTimeout(r, 350));
+      
       const dataUrl = await toPng(element, {
         backgroundColor: bgColor,
-        pixelRatio: 3,
+        pixelRatio,
         cacheBust: true,
         filter: (node: HTMLElement) => {
           const cls = node.classList;
@@ -305,7 +373,8 @@ export function Toolbar() {
           );
         },
       });
-      if (format === 'pdf') {
+      
+      if (format.includes('pdf')) {
         const { jsPDF } = await import('jspdf');
         const img = new window.Image();
         img.src = dataUrl;
@@ -319,8 +388,9 @@ export function Toolbar() {
         pdf.save('archdraw-export.pdf');
         toast.success('Exported as PDF');
       } else {
-        downloadFile(await (await fetch(dataUrl)).blob(), 'archdraw-export.png');
-        toast.success('Exported as PNG');
+        const suffix = pixelRatio === 1 ? '' : pixelRatio === 2 ? '@2x' : '@4x';
+        downloadFile(await (await fetch(dataUrl)).blob(), `archdraw-export${suffix}.png`);
+        toast.success(`Exported as PNG ${pixelRatio}x`);
       }
     } catch (err) {
       toast.error('Export failed. Please try again.');
@@ -574,7 +644,7 @@ export function Toolbar() {
             )}
 
             <button
-              onClick={addCanvas}
+              onClick={() => addCanvas()}
               className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring"
               title="New canvas"
             >
@@ -700,15 +770,63 @@ export function Toolbar() {
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setExportOpen(false)} />
                 <div
-                  className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden z-30 bg-card/98 border border-border/80 shadow-lg backdrop-blur-md"
+                  className="absolute right-0 top-full mt-2 w-56 rounded-xl overflow-hidden z-30 bg-card/98 border border-border/80 shadow-lg backdrop-blur-md"
                 >
                   <div className="px-3 py-2 border-b border-border/50">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG - Dark</p>
                   </div>
                   {([
-                    { label: 'Dark background', format: 'png-dark' },
-                    { label: 'Light background', format: 'png-light' },
-                    { label: 'Transparent', format: 'png-transparent' },
+                    { label: 'Standard (1x)', format: 'png-dark-1x' },
+                    { label: 'High-Res (2x)', format: 'png-dark-2x' },
+                    { label: 'Ultra (4x)', format: 'png-dark-4x' },
+                  ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
+                    <button
+                      key={format}
+                      onClick={() => handleExport(format)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <div className="px-3 py-2 border-t border-b border-border/50">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG - Light</p>
+                  </div>
+                  {([
+                    { label: 'Standard (1x)', format: 'png-light-1x' },
+                    { label: 'High-Res (2x)', format: 'png-light-2x' },
+                    { label: 'Ultra (4x)', format: 'png-light-4x' },
+                  ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
+                    <button
+                      key={format}
+                      onClick={() => handleExport(format)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <div className="px-3 py-2 border-t border-b border-border/50">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG - Transparent</p>
+                  </div>
+                  {([
+                    { label: 'Standard (1x)', format: 'png-transparent-1x' },
+                    { label: 'High-Res (2x)', format: 'png-transparent-2x' },
+                    { label: 'Ultra (4x)', format: 'png-transparent-4x' },
+                  ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
+                    <button
+                      key={format}
+                      onClick={() => handleExport(format)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <div className="px-3 py-2 border-t border-b border-border/50">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">SVG (Vector)</p>
+                  </div>
+                  {([
+                    { label: 'Dark background', format: 'svg-dark' },
+                    { label: 'Light background', format: 'svg-light' },
+                    { label: 'Transparent', format: 'svg-transparent' },
                   ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
                     <button
                       key={format}

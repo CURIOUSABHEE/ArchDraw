@@ -85,7 +85,7 @@ interface DiagramState {
   nodes: Node[];
   edges: Edge[];
 
-  addCanvas: () => void;
+  addCanvas: (customName?: string) => string;
   removeCanvas: (id: string) => void;
   switchCanvas: (id: string) => void;
   renameCanvas: (id: string, name: string) => void;
@@ -229,15 +229,14 @@ export const useDiagramStore = create<DiagramState>()(
       nodes: [],
       edges: [],
 
-      addCanvas: () => {
+      addCanvas: (customName?: string) => {
         const { canvases, openCanvasIds } = get();
         
-        // Generate unique name to avoid duplicates
-        let baseName = 'Canvas';
-        let counter = 1;
+        let baseName = customName || 'Canvas';
         let newName = baseName;
         const existingNames = new Set(canvases.map(c => c.name));
         
+        let counter = 1;
         while (existingNames.has(newName)) {
           counter++;
           newName = `${baseName} ${counter}`;
@@ -255,6 +254,7 @@ export const useDiagramStore = create<DiagramState>()(
           past: [], 
           future: [] 
         });
+        return newCanvas.id;
       },
 
       removeCanvas: (id) => {
@@ -410,7 +410,7 @@ export const useDiagramStore = create<DiagramState>()(
 
       getVisibleCanvases: () => {
         const { canvases, activeCanvasId, openCanvasIds } = get();
-        const MAX_VISIBLE = 5;
+        const MAX_VISIBLE = 3;
         
         // Get open canvases in order of openCanvasIds
         const openCanvases = openCanvasIds
@@ -453,7 +453,7 @@ export const useDiagramStore = create<DiagramState>()(
 
       getOverflowCanvases: () => {
         const { canvases, activeCanvasId, openCanvasIds } = get();
-        const MAX_VISIBLE = 5;
+        const MAX_VISIBLE = 3;
         
         // Get open canvases in order of openCanvasIds
         const openCanvases = openCanvasIds

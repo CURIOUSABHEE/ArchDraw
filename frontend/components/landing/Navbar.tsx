@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 
 const NAV_LINKS = ['Features', 'Templates', 'Tutorials', 'Use Cases'];
@@ -50,9 +51,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-border/30">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <svg className="h-8 w-8 text-primary transition-transform group-hover:scale-105" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
-            </svg>
+            <Image src="/image.png" alt="ArchDraw Logo" width={32} height={32} className="transition-transform group-hover:scale-105" />
             <span className="text-xl font-bold text-foreground tracking-tight">Archflow</span>
           </Link>
 

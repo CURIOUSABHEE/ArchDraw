@@ -1,11 +1,57 @@
 'use client';
 
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Handle, Position, NodeProps, NodeResizer, useReactFlow } from 'reactflow';
+import type { TextSize } from './TextLabelNode';
 
 export interface AnnotationNodeData {
   title?: string;
+  titleSize?: TextSize;
+  titleBold?: boolean;
   body?: string;
+  bodySize?: TextSize;
+  bodyBold?: boolean;
+}
+
+const FONT_SIZE_MAP: Record<TextSize, number> = {
+  small: 20,
+  medium: 24,
+  large: 28,
+  heading: 32,
+};
+
+const FONT_WEIGHT_MAP: Record<TextSize, number> = {
+  small: 400,
+  medium: 500,
+  large: 600,
+  heading: 700,
+};
+
+interface SizeButtonProps {
+  size: TextSize;
+  currentSize: TextSize;
+  onClick: () => void;
+}
+
+function SizeButton({ size, currentSize, onClick }: SizeButtonProps) {
+  const labels = { small: 'S', medium: 'M', large: 'L', heading: 'H' };
+  const isActive = currentSize === size;
+  
+  return (
+    <button
+      onClick={onClick}
+      onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      className={`w-8 h-8 shrink-0 flex items-center justify-center rounded text-xs font-bold select-none ${
+        isActive 
+          ? 'bg-primary text-primary-foreground shadow-sm' 
+          : 'bg-transparent text-muted-foreground hover:bg-muted'
+      }`}
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+      title={size.charAt(0).toUpperCase() + size.slice(1)}
+    >
+      {labels[size]}
+    </button>
+  );
 }
 
 function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNodeData>) {
@@ -14,20 +60,172 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
   const [body, setBody] = useState(data.body ?? '');
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingBody, setEditingBody] = useState(false);
+  const [titleSize, setTitleSize] = useState<TextSize>(data.titleSize ?? 'heading');
+  const [titleBold, setTitleBold] = useState(data.titleBold ?? true);
+  const [bodySize, setBodySize] = useState<TextSize>(data.bodySize ?? 'medium');
+  const [bodyBold, setBodyBold] = useState(data.bodyBold ?? false);
+  const [activeField, setActiveField] = useState<'title' | 'body' | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const SIZE_ORDER: TextSize[] = ['small', 'medium', 'large', 'heading'];
+
+  const currentSize = activeField === 'title' ? titleSize : bodySize;
+  const currentBold = activeField === 'title' ? titleBold : bodyBold;
+  
+  const updateTitleSize = useCallback((size: TextSize) => {
+    setNodes((nds) => nds.map((n) => 
+      n.id === id ? { ...n, data: { ...n.data, titleSize: size } } : n
+    ));
+  }, [id, setNodes]);
+  
+  const updateTitleBold = useCallback((bold: boolean) => {
+    setNodes((nds) => nds.map((n) => 
+      n.id === id ? { ...n, data: { ...n.data, titleBold: bold } } : n
+    ));
+  }, [id, setNodes]);
+  
+  const updateBodySize = useCallback((size: TextSize) => {
+    setNodes((nds) => nds.map((n) => 
+      n.id === id ? { ...n, data: { ...n.data, bodySize: size } } : n
+    ));
+  }, [id, setNodes]);
+  
+  const updateBodyBold = useCallback((bold: boolean) => {
+    setNodes((nds) => nds.map((n) => 
+      n.id === id ? { ...n, data: { ...n.data, bodyBold: bold } } : n
+    ));
+  }, [id, setNodes]);
+  
+  const setCurrentSize = (size: TextSize) => {
+    if (activeField === 'title') {
+      setTitleSize(size);
+      updateTitleSize(size);
+    } else {
+      setBodySize(size);
+      updateBodySize(size);
+    }
+  };
+  
+  const setCurrentBold = (bold: boolean) => {
+    if (activeField === 'title') {
+      setTitleBold(bold);
+      updateTitleBold(bold);
+    } else {
+      setBodyBold(bold);
+      updateBodyBold(bold);
+    }
+  };
+
+  const increaseSize = useCallback(() => {
+    const idx = SIZE_ORDER.indexOf(currentSize);
+    if (idx < SIZE_ORDER.length - 1) setCurrentSize(SIZE_ORDER[idx + 1]);
+  }, [currentSize]);
+
+  const decreaseSize = useCallback(() => {
+    const idx = SIZE_ORDER.indexOf(currentSize);
+    if (idx > 0) setCurrentSize(SIZE_ORDER[idx - 1]);
+  }, [currentSize]);
 
   const commitTitle = useCallback(() => {
     setEditingTitle(false);
-    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, title } } : n));
-  }, [id, title, setNodes]);
+    setActiveField(null);
+    setNodes((nds) => nds.map((n) => 
+      n.id === id ? { ...n, data: { ...n.data, title, titleSize, titleBold } } : n
+    ));
+  }, [id, title, titleSize, titleBold, setNodes]);
 
   const commitBody = useCallback(() => {
     setEditingBody(false);
-    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, body } } : n));
-  }, [id, body, setNodes]);
+    setActiveField(null);
+    setNodes((nds) => nds.map((n) => 
+      n.id === id ? { ...n, data: { ...n.data, body, bodySize, bodyBold } } : n
+    ));
+  }, [id, body, bodySize, bodyBold, setNodes]);
+
+  useEffect(() => {
+    if (!editingTitle && !editingBody) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      
+      if (isMod && e.key === 'b') {
+        e.preventDefault();
+        setCurrentBold(!currentBold);
+        return;
+      }
+      
+      if (isMod && e.shiftKey && (e.key === '.' || e.key === '>')) {
+        e.preventDefault();
+        increaseSize();
+        return;
+      }
+      
+      if (isMod && e.shiftKey && (e.key === ',' || e.key === '<')) {
+        e.preventDefault();
+        decreaseSize();
+        return;
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [editingTitle, editingBody, currentBold, increaseSize, decreaseSize]);
+
+  useEffect(() => {
+    const isEditing = editingTitle || editingBody;
+    if (!isEditing) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (containerRef.current && !containerRef.current.contains(target)) {
+        if (editingTitle) commitTitle();
+        if (editingBody) commitBody();
+      }
+    };
+    
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 0);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [editingTitle, editingBody, commitTitle, commitBody]);
 
   const handleStyle = { opacity: 0, width: 6, height: 6, pointerEvents: 'none' as const };
+
+  const renderSizeToolbar = () => (
+    <div 
+      className="flex items-center gap-0.5 bg-card/95 backdrop-blur-sm border border-border rounded-md px-1.5 py-1 shadow-lg"
+      style={{ width: 'fit-content', flexShrink: 0 }}
+    >
+      <button
+        onClick={() => setCurrentBold(!currentBold)}
+        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        className={`w-8 h-8 shrink-0 flex items-center justify-center rounded text-xs font-bold select-none ${
+          currentBold 
+            ? 'bg-primary text-primary-foreground shadow-sm' 
+            : 'bg-transparent text-muted-foreground hover:bg-muted'
+        }`}
+        style={{ WebkitTapHighlightColor: 'transparent' }}
+        title="Bold (Cmd+B)"
+      >
+        B
+      </button>
+      <div className="w-px h-5 bg-border mx-0.5 shrink-0" />
+      {SIZE_ORDER.map((size) => (
+        <SizeButton
+          key={size}
+          size={size}
+          currentSize={currentSize}
+          onClick={() => setCurrentSize(size)}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -40,6 +238,7 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
       />
 
       <div
+        ref={containerRef}
         style={{
           width: '100%',
           height: '100%',
@@ -50,7 +249,7 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
           display: 'flex',
           flexDirection: 'column',
           padding: '10px 12px',
-          gap: 6,
+          gap: 4,
           boxShadow: selected ? '0 0 0 2px hsl(var(--ring)/0.3)' : undefined,
         }}
       >
@@ -59,7 +258,17 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
         <Handle type="target" position={Position.Top}    style={handleStyle} />
         <Handle type="source" position={Position.Bottom} style={handleStyle} />
 
-        {/* Title */}
+        {editingTitle && (
+          <div 
+            className="nodrag nopan"
+            style={{ marginBottom: 4, pointerEvents: 'all' }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {renderSizeToolbar()}
+          </div>
+        )}
+
         {editingTitle ? (
           <input
             ref={titleRef}
@@ -67,38 +276,56 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
             autoFocus
             onChange={(e) => setTitle(e.target.value)}
             onBlur={commitTitle}
-            onKeyDown={(e) => e.key === 'Enter' && commitTitle()}
+            onKeyDown={(e) => { if (e.key === 'Enter') commitTitle(); e.stopPropagation(); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onFocus={() => setActiveField('title')}
             placeholder="Title..."
+            className="nodrag nopan"
             style={{
-              fontSize: 12,
-              fontWeight: 700,
+              fontSize: FONT_SIZE_MAP[titleSize],
+              fontWeight: titleBold ? 700 : FONT_WEIGHT_MAP[titleSize],
               color: 'hsl(var(--foreground))',
               background: 'transparent',
               border: 'none',
               outline: 'none',
               width: '100%',
+              padding: 0,
             }}
           />
         ) : (
           <div
-            onDoubleClick={() => { setEditingTitle(true); setTimeout(() => titleRef.current?.focus(), 0); }}
+            onDoubleClick={() => { 
+              setEditingTitle(true); 
+              setActiveField('title');
+              setTimeout(() => titleRef.current?.focus(), 0); 
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
             style={{
-              fontSize: 12,
-              fontWeight: 700,
+              fontSize: FONT_SIZE_MAP[titleSize],
+              fontWeight: titleBold ? 700 : FONT_WEIGHT_MAP[titleSize],
               color: title ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
               cursor: 'text',
               userSelect: 'none',
-              minHeight: 18,
+              minHeight: 20,
             }}
           >
-            {title || 'Double-click to add title'}
+            {title || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>Double-click to add title</span>}
           </div>
         )}
 
-        {/* Divider */}
         <div style={{ height: 1, background: 'hsl(var(--border))', flexShrink: 0 }} />
 
-        {/* Body */}
+        {editingBody && (
+          <div 
+            className="nodrag nopan"
+            style={{ marginTop: 4, pointerEvents: 'all' }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {renderSizeToolbar()}
+          </div>
+        )}
+
         {editingBody ? (
           <textarea
             ref={bodyRef}
@@ -106,10 +333,14 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
             autoFocus
             onChange={(e) => setBody(e.target.value)}
             onBlur={commitBody}
-            onKeyDown={(e) => e.key === 'Escape' && commitBody()}
+            onKeyDown={(e) => { if (e.key === 'Escape') commitBody(); e.stopPropagation(); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onFocus={() => setActiveField('body')}
             placeholder="Add notes..."
+            className="nodrag nopan"
             style={{
-              fontSize: 11,
+              fontSize: FONT_SIZE_MAP[bodySize],
+              fontWeight: bodyBold ? 700 : FONT_WEIGHT_MAP[bodySize],
               color: 'hsl(var(--foreground))',
               background: 'transparent',
               border: 'none',
@@ -119,13 +350,20 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
               fontFamily: 'inherit',
               lineHeight: 1.5,
               width: '100%',
+              padding: 0,
             }}
           />
         ) : (
           <div
-            onDoubleClick={() => { setEditingBody(true); setTimeout(() => bodyRef.current?.focus(), 0); }}
+            onDoubleClick={() => { 
+              setEditingBody(true); 
+              setActiveField('body');
+              setTimeout(() => bodyRef.current?.focus(), 0); 
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
             style={{
-              fontSize: 11,
+              fontSize: FONT_SIZE_MAP[bodySize],
+              fontWeight: bodyBold ? 700 : FONT_WEIGHT_MAP[bodySize],
               color: body ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
               cursor: 'text',
               userSelect: 'none',
@@ -135,7 +373,7 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
               minHeight: 40,
             }}
           >
-            {body || 'Double-click to add notes...'}
+            {body || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>Double-click to add notes...</span>}
           </div>
         )}
       </div>

@@ -21,8 +21,18 @@ import { componentRegistry } from '@/lib/componentRegistry';
 import { toast } from 'sonner';
 import type { GenerationProgress } from '@/lib/ai/types';
 
+function generateCanvasName(prompt: string): string {
+  const words = prompt.trim().split(/\s+/);
+  const filtered = words.filter(w => 
+    !['a', 'an', 'the', 'for', 'with', 'and', 'or', 'to', 'of', 'in', 'on', 'at', 'by', 'is', 'are', 'was', 'were', 'be', 'build', 'design', 'create', 'make', 'generate', 'architecture', 'diagram', 'system'].includes(w.toLowerCase())
+  );
+  
+  const topic = filtered.slice(0, 3).join(' ');
+  return topic ? `${topic.charAt(0).toUpperCase() + topic.slice(1)} diagram` : 'AI Diagram';
+}
+
 export default function EditorPage() {
-  const { selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, importDiagram, fitView } = useDiagramStore();
+  const { selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, importDiagram, fitView, addCanvas, renameCanvas } = useDiagramStore();
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
@@ -185,6 +195,14 @@ export default function EditorPage() {
     setIsGenerating(true);
     setProgress(null);
 
+    const isCurrentCanvasEmpty = nodes.length === 0;
+    const canvasName = generateCanvasName(description);
+    let targetCanvasId: string | null = null;
+
+    if (!isCurrentCanvasEmpty) {
+      targetCanvasId = addCanvas(canvasName);
+    }
+
     try {
       const response = await fetch('/api/generate-diagram', {
         method: 'POST',
@@ -214,6 +232,10 @@ export default function EditorPage() {
         }));
 
         importDiagram(processedNodes, processedEdges);
+        
+        const { activeCanvasId } = useDiagramStore.getState();
+        renameCanvas(activeCanvasId, canvasName);
+        
         setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 100);
         toast.success(`Generated ${result.nodes.length} nodes and ${result.edges.length} edges`);
       }

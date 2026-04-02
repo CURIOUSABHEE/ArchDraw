@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
 import { 
   Copy, Clipboard, Scissors, Trash2, Group, Type, 
   MessageSquare, CheckSquare, Layers, ZoomIn, ZoomOut,
-  Maximize2
+  Maximize2, ChevronRight
 } from 'lucide-react';
 
 export interface ContextMenuState {
@@ -24,6 +24,7 @@ interface Props {
 
 export function ContextMenu({ menu, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
   const {
     nodes, removeNode, setSelectedNodeId,
@@ -55,6 +56,10 @@ export function ContextMenu({ menu, onClose }: Props) {
     }));
     onClose();
   }, [menu.x, menu.y, screenToFlowPosition, pushHistory, onClose]);
+
+  const addTextLabel = useCallback((fontSize: 'small' | 'medium' | 'large' | 'heading') => {
+    addAtPosition('textLabelNode', { text: 'Label', fontSize });
+  }, [addAtPosition]);
 
   const duplicateNode = useCallback(() => {
     if (!menu.nodeId) return;
@@ -136,7 +141,7 @@ export function ContextMenu({ menu, onClose }: Props) {
         zIndex: 1000,
         minWidth: 200,
       }}
-      className="bg-card border border-border rounded-lg shadow-xl overflow-hidden py-1 animate-in fade-in-0 zoom-in-95 duration-100"
+      className="bg-card/95 backdrop-blur-md border border-border rounded-lg shadow-xl overflow-hidden py-1 animate-in fade-in-0 zoom-in-95 duration-100"
     >
       {isNodeMenu ? (
         <>
@@ -153,18 +158,38 @@ export function ContextMenu({ menu, onClose }: Props) {
             Add to Group
           </MenuItem>
           <Separator />
-          <MenuItem icon={<Type size={14} />} onClick={() => addAtPosition('textLabelNode', { text: 'Label', fontSize: 'medium' })}>
-            Add Text Label
-          </MenuItem>
+          <MenuItemWithSubmenu 
+            icon={<Type size={14} />} 
+            label="Add Text Label"
+            submenuOpen={openSubmenu === 'textLabel'} 
+            onMouseEnter={() => setOpenSubmenu('textLabel')}
+            onMouseLeave={() => setOpenSubmenu(null)}
+            onClick={() => addTextLabel('medium')}
+          >
+            <SubmenuItem onClick={() => addTextLabel('small')}>Small</SubmenuItem>
+            <SubmenuItem onClick={() => addTextLabel('medium')}>Medium</SubmenuItem>
+            <SubmenuItem onClick={() => addTextLabel('large')}>Large</SubmenuItem>
+            <SubmenuItem onClick={() => addTextLabel('heading')}>Heading</SubmenuItem>
+          </MenuItemWithSubmenu>
           <MenuItem icon={<MessageSquare size={14} />} onClick={() => addAtPosition('annotationNode', { title: 'Note', body: '' })}>
             Add Note
           </MenuItem>
         </>
       ) : (
         <>
-          <MenuItem icon={<Type size={14} />} onClick={() => addAtPosition('textLabelNode', { text: 'Label', fontSize: 'medium' })}>
-            Add Text Label
-          </MenuItem>
+          <MenuItemWithSubmenu 
+            icon={<Type size={14} />} 
+            label="Add Text Label"
+            submenuOpen={openSubmenu === 'textLabel'} 
+            onMouseEnter={() => setOpenSubmenu('textLabel')}
+            onMouseLeave={() => setOpenSubmenu(null)}
+            onClick={() => addTextLabel('medium')}
+          >
+            <SubmenuItem onClick={() => addTextLabel('small')}>Small</SubmenuItem>
+            <SubmenuItem onClick={() => addTextLabel('medium')}>Medium</SubmenuItem>
+            <SubmenuItem onClick={() => addTextLabel('large')}>Large</SubmenuItem>
+            <SubmenuItem onClick={() => addTextLabel('heading')}>Heading</SubmenuItem>
+          </MenuItemWithSubmenu>
           <MenuItem icon={<MessageSquare size={14} />} onClick={() => addAtPosition('annotationNode', { title: 'Note', body: '' })}>
             Add Note
           </MenuItem>
@@ -226,4 +251,59 @@ function Shortcut({ children }: { children: React.ReactNode }) {
 
 function Separator() {
   return <div className="my-1 h-px bg-border mx-2" />;
+}
+
+function MenuItemWithSubmenu({ 
+  children, 
+  icon, 
+  label,
+  submenuOpen,
+  onMouseEnter,
+  onMouseLeave,
+  onClick
+}: { 
+  children: React.ReactNode; 
+  icon?: React.ReactNode;
+  label: string;
+  submenuOpen: boolean;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  onClick?: () => void;
+}) {
+  return (
+    <div className="relative" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+      <button
+        onClick={onClick}
+        className="w-full flex items-center gap-3 px-3 py-2 text-xs transition-colors hover:bg-muted group text-foreground"
+      >
+        {icon && <span className="w-4 h-4 opacity-60 group-hover:opacity-100">{icon}</span>}
+        <span className="flex-1 text-left">{label}</span>
+        <ChevronRight size={14} className="opacity-60" />
+      </button>
+      {submenuOpen && (
+        <div 
+          className="absolute left-full top-0 ml-1 bg-card/95 backdrop-blur-md border border-border rounded-lg shadow-xl py-1 min-w-[120px] animate-in fade-in-0 zoom-in-95 duration-100"
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubmenuItem({ 
+  children, 
+  onClick 
+}: { 
+  children: React.ReactNode; 
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center px-3 py-2 text-xs transition-colors hover:bg-muted text-foreground"
+    >
+      {children}
+    </button>
+  );
 }

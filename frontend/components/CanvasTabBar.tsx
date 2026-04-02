@@ -152,7 +152,7 @@ export function CanvasTabBar() {
 
           {/* New tab button */}
           <button
-            onClick={addCanvas}
+            onClick={() => addCanvas()}
             className="shrink-0 self-center p-1 mx-0.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="New canvas"
           >

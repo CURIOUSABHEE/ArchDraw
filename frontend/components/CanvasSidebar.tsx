@@ -71,7 +71,7 @@ export function CanvasSidebar({ onClose }: CanvasSidebarProps) {
         <h2 className="text-sm font-semibold">Canvases</h2>
         <div className="flex items-center gap-1">
           <button
-            onClick={addCanvas}
+            onClick={() => addCanvas()}
             className="p-1 rounded hover:bg-accent"
             title="New canvas"
           >
