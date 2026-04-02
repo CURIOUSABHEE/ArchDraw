@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Handle, Position, NodeProps, NodeResizer, useReactFlow } from 'reactflow';
 
 export interface GroupNodeData {
@@ -15,7 +15,12 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const startEdit = useCallback(() => {
+  useEffect(() => {
+    setLabel(data.label);
+  }, [data.label]);
+
+  const startEdit = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     setEditing(true);
     setTimeout(() => inputRef.current?.focus(), 0);
   }, []);
@@ -41,6 +46,7 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
         style={{
           width: '100%',
           height: '100%',
+          minWidth: 0,
           border: `2px dashed ${selected ? color : `${color}55`}`,
           borderRadius: 12,
           background: `${color}08`,
@@ -59,15 +65,21 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               onBlur={commitEdit}
-              onKeyDown={(e) => e.key === 'Enter' && commitEdit()}
+              onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') commitEdit(); }}
+              onMouseDown={(e) => e.stopPropagation()}
               style={{
                 fontSize: 11,
                 fontWeight: 700,
                 color,
-                background: 'transparent',
-                border: 'none',
+                background: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 2,
                 outline: 'none',
                 width: 120,
+                minWidth: 60,
+                maxWidth: 150,
+                padding: '2px 4px',
+                boxSizing: 'border-box',
               }}
             />
           ) : (

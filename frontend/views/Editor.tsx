@@ -282,7 +282,7 @@ export default function EditorPage() {
               onOpenCreateModal={() => setShowCreateModal(true)}
             />
           )}
-          <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex flex-col flex-1 overflow-hidden" style={{ minWidth: 0 }}>
             <Canvas />
           </div>
           {(selectedNodeId || selectedEdgeId) && <PropertiesPanel />}

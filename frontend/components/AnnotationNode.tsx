@@ -71,6 +71,15 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
 
   const SIZE_ORDER: TextSize[] = ['small', 'medium', 'large', 'heading'];
 
+  useEffect(() => {
+    setTitle(data.title ?? '');
+    setBody(data.body ?? '');
+    setTitleSize(data.titleSize ?? 'heading');
+    setTitleBold(data.titleBold ?? true);
+    setBodySize(data.bodySize ?? 'medium');
+    setBodyBold(data.bodyBold ?? false);
+  }, [data.title, data.titleSize, data.titleBold, data.body, data.bodySize, data.bodyBold]);
+
   const currentSize = activeField === 'title' ? titleSize : bodySize;
   const currentBold = activeField === 'title' ? titleBold : bodyBold;
   
@@ -242,6 +251,7 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
         style={{
           width: '100%',
           height: '100%',
+          minWidth: 0,
           border: `1px solid hsl(var(--border))`,
           borderRadius: 8,
           background: 'hsl(var(--card))',
@@ -289,12 +299,16 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
               border: 'none',
               outline: 'none',
               width: '100%',
+              minWidth: 50,
+              maxWidth: '100%',
               padding: 0,
+              boxSizing: 'border-box',
             }}
           />
         ) : (
           <div
-            onDoubleClick={() => { 
+            onDoubleClick={(e) => { 
+              e.stopPropagation();
               setEditingTitle(true); 
               setActiveField('title');
               setTimeout(() => titleRef.current?.focus(), 0); 
@@ -350,12 +364,17 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
               fontFamily: 'inherit',
               lineHeight: 1.5,
               width: '100%',
+              minHeight: 40,
+              maxHeight: '100%',
               padding: 0,
+              boxSizing: 'border-box',
+              overflow: 'hidden',
             }}
           />
         ) : (
           <div
-            onDoubleClick={() => { 
+            onDoubleClick={(e) => { 
+              e.stopPropagation();
               setEditingBody(true); 
               setActiveField('body');
               setTimeout(() => bodyRef.current?.focus(), 0); 
