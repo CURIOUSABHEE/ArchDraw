@@ -191,10 +191,10 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
       {isExpanded && (
         <div 
           className="floating-panel flex flex-col"
-          style={{ width: 320, maxHeight: '70vh' }}
+          style={{ width: 340, height: 'calc(100vh - 120px)', maxHeight: 'calc(100vh - 120px)' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#F2F2F2' }}>
             <div className="flex items-center gap-2">
               <Blocks className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm font-medium">Components</span>
@@ -208,12 +208,12 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
           </div>
 
           {/* Search */}
-          <div className="relative px-4 pb-3">
-            <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="relative px-5 py-4">
+            <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search components..."
-              className="pl-9 h-9 bg-secondary border-0 rounded-xl text-sm w-full"
+              className="pl-9 h-10 bg-secondary border-0 rounded-xl text-sm w-full"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -221,7 +221,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
 
           {/* Section Tabs */}
           {!q && (
-            <div className="flex gap-1 px-4 pb-2 overflow-x-auto">
+            <div className="flex gap-2 px-5 pb-3 overflow-x-auto">
               {TOP_SECTIONS.map((section) => {
                 const Icon = section.icon;
                 return (
@@ -335,12 +335,12 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
           </div>
 
           {/* Footer */}
-          <div className="pt-4 mt-3">
+          <div className="p-5 mt-auto border-t" style={{ borderColor: '#F2F2F2' }}>
             <Button
-              className="w-full justify-start gap-2 h-10 rounded-xl text-xs font-medium bg-gray-100 hover:bg-gray-200 transition-colors border-0"
+              className="w-full justify-start gap-2 h-12 rounded-xl text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-colors border-0"
               onClick={() => { setEditComponent(null); setShowCreateModal(true); setIsExpanded(false); }}
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               New component
             </Button>
           </div>

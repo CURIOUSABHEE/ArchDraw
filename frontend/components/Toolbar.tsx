@@ -600,14 +600,6 @@ export function Toolbar() {
           </DropdownMenu>
 
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('toggle-canvas-sidebar'))}
-            className="floating-icon-btn !w-9 !h-9"
-            title="Toggle canvases"
-          >
-            <FolderOpen className="w-4 h-4" />
-          </button>
-
-          <button
             onClick={() => addCanvas()}
             className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring"
             title="New canvas"
