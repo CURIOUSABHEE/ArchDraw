@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   Plus,
   Search,
@@ -421,12 +422,13 @@ export default function DashboardPage() {
               >
                 <Bell className="w-5 h-5" />
               </button>
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-medium"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-              >
-                {user?.email ? user.email[0].toUpperCase() : 'U'}
-              </div>
+              <Image
+                src="/cartoon.png"
+                alt="Profile"
+                width={36}
+                height={36}
+                className="rounded-full"
+              />
             </div>
           </header>
 
