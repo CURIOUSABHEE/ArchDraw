@@ -9,7 +9,7 @@ import { CommandPalette } from '@/components/CommandPalette';
 import { PropertiesPanel } from '@/components/PropertiesPanel';
 import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData } from '@/components/CreateComponentModal';
 import type { ComponentToEdit } from '@/components/CreateComponentModal';
-import { AIGenerateModal } from '@/components/AIGenerateModal';
+import { FloatingAIBar } from '@/components/FloatingAIBar';
 import { GenerationProgressDisplay } from '@/components/GenerationProgress';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
@@ -36,7 +36,6 @@ export default function EditorPage() {
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
-  const [showAIGenerateModal, setShowAIGenerateModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<GenerationProgress | null>(null);
   const [canvasSidebarOpen, setCanvasSidebarOpen] = useState(false);
@@ -157,15 +156,6 @@ export default function EditorPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [user, nodes.length]);
 
-  // AI Generate button event listener
-  useEffect(() => {
-    const handler = () => {
-      setShowAIGenerateModal(true);
-    };
-    window.addEventListener('open-ai-generate', handler);
-    return () => window.removeEventListener('open-ai-generate', handler);
-  }, []);
-
   // Canvas sidebar event listeners - also close component sidebar when canvas sidebar opens
   useEffect(() => {
     const openHandler = () => {
@@ -273,14 +263,16 @@ export default function EditorPage() {
     <ErrorBoundary>
       <div className="flex flex-col h-screen w-screen overflow-hidden">
         <Toolbar />
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
           {canvasSidebarOpen && (
             <CanvasSidebar onClose={() => setCanvasSidebarOpen(false)} />
           )}
           {sidebarOpen && (
-            <ComponentSidebar
-              onOpenCreateModal={() => setShowCreateModal(true)}
-            />
+            <div className="absolute left-4 top-20 z-40">
+              <ComponentSidebar
+                onOpenCreateModal={() => setShowCreateModal(true)}
+              />
+            </div>
           )}
           <div className="flex flex-col flex-1 overflow-hidden" style={{ minWidth: 0 }}>
             <Canvas />
@@ -289,11 +281,7 @@ export default function EditorPage() {
         </div>
         <CommandPalette />
         <OnboardingOverlay />
-        <AIGenerateModal
-          isOpen={showAIGenerateModal}
-          onClose={() => setShowAIGenerateModal(false)}
-          onGenerate={handleGenerate}
-        />
+        <FloatingAIBar onGenerate={handleGenerate} />
         <GenerationProgressDisplay 
           progress={progress} 
           onCancel={() => {
