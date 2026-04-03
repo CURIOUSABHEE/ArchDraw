@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
 
 const NAV_LINKS = ['Features', 'Templates', 'Tutorials', 'Use Cases'];
 
@@ -16,21 +15,21 @@ export function Navbar() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
     const nav = navRef.current;
     if (!nav) return;
 
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const isDark = document.documentElement.classList.contains('dark') || prefersDark || true;
-
     const updateNavbar = () => {
       const scrolled = window.scrollY > 10;
-      if (isDark) {
-        nav.style.backgroundColor = scrolled ? 'hsl(var(--background) / 0.85)' : 'transparent';
-        nav.style.backdropFilter = scrolled ? 'blur(16px)' : 'none';
-        nav.style.borderBottomColor = scrolled ? 'hsl(var(--border) / 0.5)' : 'transparent';
+      if (scrolled) {
+        nav.classList.add('floating-toolbar');
+        nav.classList.remove('mx-4', 'mt-4', 'rounded-2xl');
+        nav.style.background = 'transparent';
+        nav.style.boxShadow = 'none';
+      } else {
+        nav.classList.remove('floating-toolbar');
+        nav.classList.add('mx-4', 'mt-4', 'rounded-2xl');
+        nav.style.background = 'hsl(var(--card))';
+        nav.style.boxShadow = '0 4px 20px hsl(var(--foreground) / 0.08)';
       }
     };
 
@@ -45,14 +44,14 @@ export function Navbar() {
   return (
     <header
       ref={navRef}
-      className="navbar fixed top-0 z-50 w-full border-b transition-all duration-300"
-      style={{ backgroundColor: 'transparent', borderColor: 'transparent' }}
+      className="fixed top-0 z-50 w-[calc(100%-2rem)] mx-4 mt-4 rounded-2xl"
+      style={{ background: 'hsl(var(--card))', boxShadow: '0 4px 20px hsl(var(--foreground) / 0.08)' }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-border/30">
-        <div className="flex justify-between items-center h-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-14">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <Image src="/image.png" alt="ArchDraw Logo" width={32} height={32} className="transition-transform group-hover:scale-105" />
-            <span className="text-xl font-bold text-foreground tracking-tight">Archflow</span>
+            <Image src="/image.png" alt="ArchDraw Logo" width={28} height={28} className="transition-transform group-hover:scale-105" />
+            <span className="text-lg font-semibold text-foreground tracking-tight">ArchDraw</span>
           </Link>
 
           <nav className="hidden md:flex gap-8">
@@ -60,7 +59,7 @@ export function Navbar() {
               <Link
                 key={item}
                 href={item === 'Tutorials' ? '/tutorials' : item === 'Blog' ? '/blog' : `#${item.toLowerCase().replace(' ', '-')}`}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {item}
               </Link>
@@ -68,12 +67,18 @@ export function Navbar() {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => router.push('/editor')}>
+            <button
+              onClick={() => router.push('/editor')}
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-xl hover:bg-accent transition-all"
+            >
               Sign in
-            </Button>
-            <Button size="sm" onClick={() => router.push('/editor')}>
+            </button>
+            <button
+              onClick={() => router.push('/editor')}
+              className="px-4 py-2 text-sm font-medium bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-sm hover:shadow-md"
+            >
               Start designing
-            </Button>
+            </button>
           </div>
 
           <button
@@ -90,13 +95,13 @@ export function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-background">
+        <div className="md:hidden border-t border-foreground/5 bg-card rounded-b-2xl">
           <div className="px-4 pt-2 pb-6 space-y-1">
             {NAV_LINKS.map((item) => (
               <Link
                 key={item}
                 href={item === 'Tutorials' ? '/tutorials' : item === 'Blog' ? '/blog' : `#${item.toLowerCase().replace(' ', '-')}`}
-                className="block px-3 py-3 text-base font-medium text-muted-foreground hover:text-foreground rounded-lg"
+                className="block px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-xl"
                 onClick={() => setMobileOpen(false)}
               >
                 {item}
@@ -104,12 +109,18 @@ export function Navbar() {
             ))}
 
             <div className="pt-4 flex flex-col gap-3">
-              <Button variant="outline" className="w-full" onClick={() => router.push('/editor')}>
+              <button
+                onClick={() => router.push('/editor')}
+                className="w-full px-4 py-2.5 text-sm font-medium border border-foreground/10 rounded-xl hover:bg-accent transition-all"
+              >
                 Sign in
-              </Button>
-              <Button className="w-full" onClick={() => router.push('/editor')}>
+              </button>
+              <button
+                onClick={() => router.push('/editor')}
+                className="w-full px-4 py-2.5 text-sm font-medium bg-primary text-white rounded-xl hover:bg-primary/90 transition-all"
+              >
                 Start designing
-              </Button>
+              </button>
             </div>
           </div>
         </div>

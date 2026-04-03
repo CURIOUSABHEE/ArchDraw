@@ -3,10 +3,6 @@
 import { useEffect, useRef } from 'react';
 import { Boxes, Zap, LayoutTemplate, Link2, Download, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
 
 const features: { Icon: LucideIcon; color: string; title: string; desc: string }[] = [
   { Icon: Boxes,          color: '#6366f1', title: '150+ Components',    desc: 'Pre-built nodes for every layer — auth, databases, queues, AI services, cloud infra and more.' },
@@ -41,27 +37,26 @@ export function Features() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8 bg-background" id="features">
-      <div className="max-w-5xl mx-auto h-px mb-20 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-
+    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8" id="features">
       <div className="max-w-5xl mx-auto">
         <header className="reveal text-center mb-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4 text-primary">Features</p>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-4 text-primary">Features</p>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Everything you need to diagram faster
           </h2>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((f, i) => (
-            <Card
+            <div
               key={f.title}
-              className={`reveal reveal-delay-${Math.min(i + 1, 5)} p-6 border-border/50 hover:border-primary/20 transition-colors`}
+              className={`reveal reveal-delay-${Math.min(i + 1, 5)} p-6 rounded-2xl bg-card transition-all hover:shadow-lg`}
+              style={{ boxShadow: '0 4px 16px hsl(var(--foreground) / 0.06)' }}
             >
-              <CardContent className="p-0 space-y-4">
+              <div className="flex flex-col gap-4">
                 <div
                   className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: f.color + '15', border: `1px solid ${f.color}25` }}
+                  style={{ backgroundColor: f.color + '15' }}
                 >
                   <f.Icon style={{ width: 18, height: 18, color: f.color }} />
                 </div>
@@ -69,8 +64,8 @@ export function Features() {
                   <h3 className="font-semibold text-foreground">{f.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       </div>

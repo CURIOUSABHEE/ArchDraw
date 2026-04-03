@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   Accordion,
   AccordionContent,
@@ -40,12 +40,10 @@ export function FAQ() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8 bg-background" id="faq">
-      <div className="max-w-2xl mx-auto h-px mb-20 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-
+    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8" id="faq">
       <div className="max-w-2xl mx-auto">
         <header className="reveal text-center mb-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4 text-primary">FAQ</p>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-4 text-primary">FAQ</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Frequently asked questions</h2>
         </header>
 
@@ -54,12 +52,13 @@ export function FAQ() {
             <AccordionItem
               key={i}
               value={`item-${i}`}
-              className={`reveal reveal-delay-${Math.min(i + 1, 5)} rounded-xl border border-border/50 bg-card px-4 overflow-hidden`}
+              className={`reveal reveal-delay-${Math.min(i + 1, 5)} rounded-xl bg-card px-5 overflow-hidden`}
+              style={{ boxShadow: '0 2px 8px hsl(var(--foreground) / 0.04)' }}
             >
-              <AccordionTrigger className="hover:no-underline text-left">
+              <AccordionTrigger className="hover:no-underline text-left py-5">
                 <span className="font-medium text-foreground">{faq.q}</span>
               </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-4">
+              <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5">
                 {faq.a}
               </AccordionContent>
             </AccordionItem>

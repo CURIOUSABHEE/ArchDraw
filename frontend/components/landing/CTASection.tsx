@@ -4,8 +4,6 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import gsap from 'gsap';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
 export function CTASection() {
   const router = useRouter();
@@ -52,15 +50,11 @@ export function CTASection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-background">
-      <div className="max-w-3xl mx-auto h-px mb-20 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-primary/5 blur-3xl rounded-full" />
-      </div>
+    <section ref={sectionRef} className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="max-w-3xl mx-auto h-px mb-20 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
       <div className="max-w-3xl mx-auto text-center relative">
-        <h2 className="reveal text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6">
+        <h2 className="reveal text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
           <span className="text-foreground">
             Start building your
           </span>
@@ -72,27 +66,19 @@ export function CTASection() {
         <p className="reveal reveal-delay-1 text-lg text-muted-foreground mb-10">
           No account needed. No credit card. Just your ideas.
         </p>
-        <Button
+        <button
           ref={btnRef}
-          size="lg"
           onClick={() => router.push('/editor')}
-          className="reveal reveal-delay-2 will-change-transform text-lg px-10 py-6 shadow-lg shadow-primary/40 hover:shadow-xl hover:shadow-primary/50 hover:scale-105 transition-all pulse-glow-btn"
+          className="reveal reveal-delay-2 will-change-transform text-lg px-10 py-4 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg"
         >
           Open the canvas →
-        </Button>
+        </button>
         <p className="text-sm text-muted-foreground mt-4">
           New to system design?{' '}
-          <Link href="/tutorials" className="text-primary hover:text-primary/80 transition-colors underline underline-offset-2">
+          <Link href="/tutorials" className="text-primary hover:text-primary/80 transition-colors">
             Start with an interactive tutorial →
           </Link>
         </p>
-        <div className="mt-10 flex flex-wrap justify-center gap-3">
-          {['Next.js', 'Supabase', 'Vercel', 'React'].map((t) => (
-            <Badge key={t} variant="secondary" className="text-xs">
-              {t}
-            </Badge>
-          ))}
-        </div>
       </div>
     </section>
   );

@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 const HeroCanvas = dynamic(() => import('./HeroCanvas'), {
   ssr: false,
-  loading: () => <div className="w-full h-full bg-card rounded-xl" />,
+  loading: () => <div className="w-full h-full bg-secondary rounded-xl" />,
 });
 
 export function Hero() {
@@ -83,8 +82,8 @@ export function Hero() {
 
   if (!isClient) {
     return (
-      <section className="relative min-h-screen bg-background overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-12">
+      <section className="relative min-h-screen overflow-hidden pt-20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-12 pb-12">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-[calc(100vh-8rem)]">
             <div className="h-[400px]" />
             <div className="h-[400px] bg-card rounded-2xl" />
@@ -95,11 +94,8 @@ export function Hero() {
   }
 
   return (
-    <section className="relative min-h-screen bg-background overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_70%_40%,hsl(var(--primary)_/_0.08)_0%,transparent_60%)]" />
-      <div className="absolute inset-0 pointer-events-none opacity-30 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
-
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-12">
+    <section className="relative min-h-screen overflow-hidden pt-24">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-12 pb-12">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-[calc(100vh-8rem)]">
           <div className="flex flex-col justify-center">
             <h1 className="hero-headline font-bold mb-6 text-4xl sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.1]">
@@ -117,12 +113,18 @@ export function Hero() {
             </p>
 
             <div className="hero-cta-group flex items-center gap-4 flex-wrap">
-              <Button size="lg" onClick={() => router.push('/editor')} className="gap-2 shadow-lg shadow-primary/40 hover:shadow-xl hover:shadow-primary/50 hover:scale-105 transition-all bg-primary pulse-glow-btn">
-                Start designing — it&apos;s free <ArrowRight className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="lg" onClick={() => document.getElementById('templates')?.scrollIntoView({ behavior: 'smooth' })} className="gap-2">
-                View templates →
-              </Button>
+              <button
+                onClick={() => router.push('/editor')}
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium bg-primary text-white rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg"
+              >
+                Start designing <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => document.getElementById('templates')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-xl hover:bg-accent transition-all"
+              >
+                View templates
+              </button>
             </div>
 
             <div className="hero-trust-row flex items-center gap-6 mt-8">
@@ -140,21 +142,21 @@ export function Hero() {
           <div ref={canvasRef} className="hero-canvas-wrapper relative">
             <div
               ref={tiltRef}
-              className="relative rounded-2xl overflow-hidden border border-border/50"
-              style={{ transformStyle: 'preserve-3d', perspective: '1000px', boxShadow: '0 40px 80px hsl(var(--foreground) / 0.2), 0 0 40px hsl(var(--primary) / 0.08)' }}
+              className="relative rounded-2xl overflow-hidden"
+              style={{ transformStyle: 'preserve-3d', perspective: '1000px', boxShadow: '0 20px 60px hsl(var(--foreground) / 0.15)' }}
             >
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-secondary border-b border-border/50">
+              <div className="flex items-center gap-2 px-4 py-3 bg-secondary">
                 <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary/30" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary/20" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary/15" />
                 </div>
                 <div className="flex-1 mx-4">
-                  <div className="rounded-md px-3 py-1 text-[10px] text-center max-w-[180px] mx-auto bg-muted text-muted-foreground">
+                  <div className="rounded-lg px-3 py-1 text-[10px] text-center max-w-[180px] mx-auto bg-card text-muted-foreground">
                     archdraw.app/editor
                   </div>
                 </div>
-                <div className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                <div className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                   Interactive
                 </div>
               </div>

@@ -7,7 +7,6 @@ import {
   Search, Boxes, Share2, Download, LayoutGrid, Monitor,
   Database, Zap, Shield, Brain, Check, ArrowRight,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 if (typeof window !== 'undefined') gsap.registerPlugin(ScrollTrigger);
@@ -24,19 +23,19 @@ function SidebarMockup() {
 
   return (
     <div className="p-5 h-full relative" style={{ minHeight: 380 }}>
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-4 bg-muted border border-border/50">
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl mb-4 bg-secondary">
         <Search className="w-4 h-4 text-muted-foreground" />
         <span className="text-sm text-muted-foreground">Search components...</span>
       </div>
 
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {categories.map((cat, i) => {
           const isOpen = activeCategory === i;
           return (
             <div key={cat.name}>
               <button
                 onClick={() => setActiveCategory(isOpen ? -1 : i)}
-                className={`w-full flex items-center justify-between px-2 py-2 rounded-lg transition-colors ${isOpen ? 'bg-muted' : 'hover:bg-muted/50'}`}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors ${isOpen ? 'bg-accent' : 'hover:bg-accent/50'}`}
               >
                 <div className="flex items-center gap-2">
                   <cat.Icon className="w-4 h-4" style={{ color: cat.color }} />
@@ -45,11 +44,11 @@ function SidebarMockup() {
                 <span className="text-[10px] text-muted-foreground">{cat.items.length}</span>
               </button>
               {isOpen && (
-                <div className="ml-5 mt-0.5 space-y-0.5 mb-1">
+                <div className="ml-3 mt-1 space-y-0.5 mb-2">
                   {cat.items.map((item) => (
                     <div
                       key={item}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-muted-foreground hover:bg-muted transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-muted-foreground hover:bg-accent transition-colors"
                     >
                       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color }} />
                       <span className="text-xs">{item}</span>
@@ -97,15 +96,13 @@ function CanvasMockup() {
     <div className="relative" style={{ minHeight: 380 }}>
       <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] bg-[size:20px_20px]" />
       <div className="absolute top-4 right-4 z-10">
-        <Button
-          size="sm"
-          variant={laid ? 'default' : 'secondary'}
+        <button
           onClick={() => setLaid(v => !v)}
-          className="gap-1.5"
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${laid ? 'bg-primary text-white' : 'bg-secondary text-foreground hover:bg-accent'}`}
         >
-          <LayoutGrid className="w-4 h-4" />
+          <LayoutGrid className="w-3.5 h-3.5" />
           Auto Layout
-        </Button>
+        </button>
       </div>
       <div className="absolute inset-0">
         {nodes.map((node) => (
@@ -114,7 +111,7 @@ function CanvasMockup() {
             className="absolute"
             style={{ left: node.x + 16, top: node.y + 16, transition: `all 700ms cubic-bezier(0.34, 1.56, 0.64, 1)` }}
           >
-            <div className="w-20 rounded-xl flex flex-col items-center gap-1.5 p-2.5 bg-card border border-border/50">
+            <div className="w-20 rounded-xl flex flex-col items-center gap-1.5 p-2.5 bg-card">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: node.color + '20' }}>
                 <node.Icon className="w-4 h-4" style={{ color: node.color }} />
               </div>
@@ -146,21 +143,20 @@ function ShareMockup() {
           <span className="text-sm font-medium text-foreground">Share diagram</span>
         </div>
         <div className="flex gap-2">
-          <div className="flex-1 flex items-center px-3 py-2 rounded-lg bg-muted border border-border/50">
-                    <span className="text-xs truncate text-muted-foreground">archdraw.app/share/abc123xyz</span>
+          <div className="flex-1 flex items-center px-3 py-2 rounded-xl bg-secondary">
+            <span className="text-xs truncate text-muted-foreground">archdraw.app/share/abc123xyz</span>
           </div>
-          <Button
-            size="sm"
-            variant={copied ? 'secondary' : 'default'}
+          <button
             onClick={() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${copied ? 'bg-secondary text-foreground' : 'bg-primary text-white'}`}
           >
-            {copied ? <><Check className="w-4 h-4" /> Copied</> : 'Copy'}
-          </Button>
+            {copied ? 'Copied' : 'Copy'}
+          </button>
         </div>
         <p className="text-[10px] mt-2 text-muted-foreground">Anyone with this link can view and interact</p>
       </div>
 
-      <div className="h-px bg-border/50" />
+      <div className="h-px bg-foreground/10" />
 
       <div>
         <div className="flex items-center gap-2 mb-3">
@@ -169,27 +165,24 @@ function ShareMockup() {
         </div>
         <div className="grid grid-cols-3 gap-2 mb-3">
           {['Dark', 'Light', 'Transparent'].map((opt) => (
-            <Button
+            <button
               key={opt}
-              size="sm"
-              variant={selectedTheme === opt ? 'default' : 'outline'}
               onClick={() => setSelectedTheme(opt)}
-              className="text-xs"
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${selectedTheme === opt ? 'bg-primary text-white' : 'bg-secondary text-foreground hover:bg-accent'}`}
             >
               {opt}
-            </Button>
+            </button>
           ))}
         </div>
-        <Button
-          className="w-full gap-2"
-          variant={exported ? 'secondary' : 'default'}
+        <button
+          className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${exported ? 'bg-secondary text-foreground' : 'bg-primary text-white'}`}
           onClick={() => { setExported(true); setTimeout(() => setExported(false), 2000); }}
         >
           {exported ? <><Check className="w-4 h-4" /> Downloaded!</> : <><Download className="w-4 h-4" /> Export PNG — 3x resolution</>}
-        </Button>
+        </button>
       </div>
 
-      <div className="rounded-xl flex items-center justify-center gap-4 py-4 px-3 bg-muted border border-border/50">
+      <div className="rounded-xl flex items-center justify-center gap-4 py-4 px-3 bg-secondary">
         {[Monitor, Zap, Brain].map((Icon, i) => (
           <div key={i} className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
@@ -254,9 +247,7 @@ export function HowItWorks() {
   }, []);
 
   return (
-    <section className="bg-secondary/30" id="how-it-works">
-      <div className="max-w-6xl mx-auto h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-
+    <section className="bg-secondary/50" id="how-it-works">
       <div className="max-w-6xl mx-auto px-6 lg:px-8 pt-28 pb-16 text-center">
         <Badge variant="secondary" className="mb-6 gap-2">
           <ArrowRight className="w-3 h-3" />
@@ -279,18 +270,16 @@ export function HowItWorks() {
         >
           <div className="w-full max-w-6xl mx-auto px-6 lg:px-8">
             <div className="flex justify-center mb-10">
-              <div className="flex gap-1 p-1 rounded-xl bg-muted border border-border/50">
+              <div className="flex gap-1 p-1 rounded-xl bg-secondary">
                 {steps.map((step, i) => (
-                  <Button
+                  <button
                     key={step.id}
-                    variant={activeStep === i ? 'default' : 'ghost'}
-                    size="sm"
                     onClick={() => setActiveStep(i)}
-                    className="gap-2"
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${activeStep === i ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-accent'}`}
                   >
-                    <span className="text-xs opacity-60">{step.number}</span>
+                    <span className="opacity-60">{step.number}</span>
                     {step.tab}
-                  </Button>
+                  </button>
                 ))}
               </div>
             </div>
@@ -329,14 +318,15 @@ export function HowItWorks() {
 
               <div
                 ref={mockupRef}
-                className="rounded-2xl overflow-hidden border border-border/50 bg-card shadow-lg"
+                className="rounded-2xl overflow-hidden bg-card"
+                style={{ boxShadow: '0 20px 60px hsl(var(--foreground) / 0.15)' }}
               >
-                <div className="flex items-center gap-1.5 px-4 py-3 bg-secondary border-b border-border/50">
-                  <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
+                <div className="flex items-center gap-1.5 px-4 py-3 bg-secondary">
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary/30" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary/20" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary/15" />
                   <div className="flex-1 mx-3">
-                    <div className="rounded px-3 py-0.5 text-xs text-center max-w-[180px] mx-auto bg-muted text-muted-foreground">
+                    <div className="rounded px-3 py-0.5 text-xs text-center max-w-[180px] mx-auto bg-card text-muted-foreground">
                       archdraw.app/editor
                     </div>
                   </div>

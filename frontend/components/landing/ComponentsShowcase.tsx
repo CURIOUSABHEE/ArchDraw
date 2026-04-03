@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 const categories = [
   { label: 'Client & Entry', chips: ['Client', 'DNS', 'CDN', 'API Gateway', 'Load Balancer', 'Reverse Proxy'], color: '#6366f1' },
@@ -36,12 +35,10 @@ export function ComponentsShowcase() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-28 px-6 lg:px-8 bg-background" id="components">
-      <div className="max-w-5xl mx-auto h-px mb-20 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-
+    <section ref={sectionRef} className="py-28 px-6 lg:px-8" id="components">
       <div className="max-w-5xl mx-auto">
         <header className="reveal text-center mb-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4 text-primary">Components</p>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-4 text-primary">Components</p>
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
             150+ components. Every layer covered.
           </h2>
@@ -53,17 +50,16 @@ export function ComponentsShowcase() {
               key={cat.label}
               className={`reveal reveal-delay-${Math.min(i + 1, 5)} flex items-start gap-6`}
             >
-              <span className="text-xs font-semibold uppercase tracking-wider w-28 shrink-0 pt-2 text-muted-foreground">{cat.label}</span>
+              <span className="text-xs font-medium uppercase tracking-wider w-28 shrink-0 pt-2 text-muted-foreground">{cat.label}</span>
               <div className="flex flex-wrap gap-2">
                 {cat.chips.map((chip) => (
-                  <Badge
+                  <span
                     key={chip}
-                    variant="secondary"
-                    className="text-xs px-3 py-1.5"
+                    className="text-xs px-3 py-1.5 rounded-lg"
                     style={{ borderColor: cat.color + '30', color: cat.color, backgroundColor: cat.color + '10' }}
                   >
                     {chip}
-                  </Badge>
+                  </span>
                 ))}
               </div>
             </div>
@@ -71,11 +67,12 @@ export function ComponentsShowcase() {
         </div>
 
         <div className="mt-12 text-center">
-          <Button variant="ghost" asChild>
-            <a href="/editor" className="text-primary gap-2">
-              View all components →
-            </a>
-          </Button>
+          <a
+            href="/editor"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            View all components →
+          </a>
         </div>
       </div>
     </section>
