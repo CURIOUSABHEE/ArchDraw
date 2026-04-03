@@ -329,7 +329,7 @@ function ModalContent({ onClose, onCreate, onUpdate, existingNames, editComponen
           onClick={handleSubmit}
           disabled={!isValid || isCreating}
           className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all ${isValid && !isCreating
-            ? 'bg-primary text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0'
+            ? 'bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0'
             : 'bg-muted text-muted-foreground cursor-not-allowed'
             }`}
         >

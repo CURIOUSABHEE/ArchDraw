@@ -98,7 +98,7 @@ function CanvasMockup() {
       <div className="absolute top-4 right-4 z-10">
         <button
           onClick={() => setLaid(v => !v)}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${laid ? 'bg-primary text-white' : 'bg-secondary text-foreground hover:bg-accent'}`}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${laid ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground hover:bg-accent'}`}
         >
           <LayoutGrid className="w-3.5 h-3.5" />
           Auto Layout
@@ -148,7 +148,7 @@ function ShareMockup() {
           </div>
           <button
             onClick={() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${copied ? 'bg-secondary text-foreground' : 'bg-primary text-white'}`}
+            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${copied ? 'bg-secondary text-foreground' : 'bg-primary text-primary-foreground'}`}
           >
             {copied ? 'Copied' : 'Copy'}
           </button>
@@ -168,14 +168,14 @@ function ShareMockup() {
             <button
               key={opt}
               onClick={() => setSelectedTheme(opt)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${selectedTheme === opt ? 'bg-primary text-white' : 'bg-secondary text-foreground hover:bg-accent'}`}
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${selectedTheme === opt ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground hover:bg-accent'}`}
             >
               {opt}
             </button>
           ))}
         </div>
         <button
-          className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${exported ? 'bg-secondary text-foreground' : 'bg-primary text-white'}`}
+          className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${exported ? 'bg-secondary text-foreground' : 'bg-primary text-primary-foreground'}`}
           onClick={() => { setExported(true); setTimeout(() => setExported(false), 2000); }}
         >
           {exported ? <><Check className="w-4 h-4" /> Downloaded!</> : <><Download className="w-4 h-4" /> Export PNG — 3x resolution</>}
@@ -275,7 +275,7 @@ export function HowItWorks() {
                   <button
                     key={step.id}
                     onClick={() => setActiveStep(i)}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${activeStep === i ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-accent'}`}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${activeStep === i ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent'}`}
                   >
                     <span className="opacity-60">{step.number}</span>
                     {step.tab}

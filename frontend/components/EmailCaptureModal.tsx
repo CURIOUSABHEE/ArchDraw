@@ -158,7 +158,7 @@ export function EmailCaptureModal({ reason, onClose }: Props) {
                 <button
                   type="submit"
                   disabled={loading !== null || !email.trim()}
-                  className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium rounded-xl bg-primary text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium rounded-xl bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 >
                   {loading === 'email' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                   {loading === 'email' ? 'Sending…' : 'Continue with Email →'}

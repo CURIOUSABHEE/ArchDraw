@@ -37,36 +37,47 @@ export function Features() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-28 px-4 sm:px-6 lg:px-8" id="features">
+    <section ref={sectionRef} className="py-28 px-6" id="features">
       <div className="max-w-5xl mx-auto">
-        <header className="reveal text-center mb-16">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-4 text-primary">Features</p>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-            Everything you need to diagram faster
-          </h2>
-        </header>
+        {/* Floating card container */}
+        <div className="bg-white rounded-3xl p-8 md:p-12" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+          <header className="reveal text-center mb-16">
+            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#6366f1' }}>Features</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: '#1e293b' }}>
+              Everything you need to diagram faster
+            </h2>
+          </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((f, i) => (
-            <div
-              key={f.title}
-              className={`reveal reveal-delay-${Math.min(i + 1, 5)} p-6 rounded-2xl bg-card transition-all hover:shadow-lg`}
-              style={{ boxShadow: '0 4px 16px hsl(var(--foreground) / 0.06)' }}
-            >
-              <div className="flex flex-col gap-4">
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: f.color + '15' }}
-                >
-                  <f.Icon style={{ width: 18, height: 18, color: f.color }} />
-                </div>
-                <div className="space-y-1.5">
-                  <h3 className="font-semibold text-foreground">{f.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map((f, i) => (
+              <div
+                key={f.title}
+                className={`reveal reveal-delay-${Math.min(i + 1, 5)} p-6 rounded-2xl transition-all`}
+                style={{ background: '#f8fafc', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <div className="flex flex-col gap-4">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: f.color + '15' }}
+                  >
+                    <f.Icon style={{ width: 18, height: 18, color: f.color }} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h3 className="font-semibold" style={{ color: '#1e293b' }}>{f.title}</h3>
+                    <p className="text-sm leading-relaxed" style={{ color: '#64748b' }}>{f.desc}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>

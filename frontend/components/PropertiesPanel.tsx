@@ -171,7 +171,7 @@ export function PropertiesPanel() {
                   onClick={() => updateNodeData(node.id, { tech, icon: undefined })}
                   className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
                     data.tech === tech
-                      ? 'bg-primary text-white shadow-sm'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'bg-accent/50 text-muted-foreground hover:bg-accent'
                   }`}
                 >
