@@ -335,13 +335,12 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
           </div>
 
           {/* Footer */}
-          <div className="pt-3 mt-2 border-t border-border/20">
+          <div className="pt-4 mt-3">
             <Button
-              variant="outline"
-              className="w-full justify-start gap-2 h-9 rounded-lg text-xs"
+              className="w-full justify-start gap-2 h-10 rounded-xl text-xs font-medium bg-gray-100 hover:bg-gray-200 transition-colors border-0"
               onClick={() => { setEditComponent(null); setShowCreateModal(true); setIsExpanded(false); }}
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4" />
               New component
             </Button>
           </div>

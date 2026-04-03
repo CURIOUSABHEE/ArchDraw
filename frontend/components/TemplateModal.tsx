@@ -48,7 +48,7 @@ export function TemplateModal({ onClose }: Props) {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-50 bg-black/20" onClick={onClose} />
 
       {/* Panel */}
       <div
@@ -56,8 +56,8 @@ export function TemplateModal({ onClose }: Props) {
         onClick={onClose}
       >
         <div
-          className="pointer-events-auto w-full max-w-xl bg-card rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-          style={{ maxHeight: '75vh', boxShadow: '0 24px 48px hsl(var(--foreground) / 0.15)' }}
+          className="pointer-events-auto w-full max-w-xl bg-white rounded-2xl flex flex-col overflow-hidden"
+          style={{ maxHeight: '75vh', boxShadow: '0 25px 70px rgba(0,0,0,0.08)' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

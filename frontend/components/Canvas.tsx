@@ -312,14 +312,16 @@ function CanvasInner() {
         )}
         <Controls
           showInteractive={false}
-          className="!bg-card/95 !backdrop-blur-sm !rounded-xl !shadow-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-border/30 [&>button:hover]:!bg-accent"
+          className="!bg-white !rounded-xl !shadow-lg"
+          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}
         />
         <MiniMap
           nodeStrokeWidth={3}
           zoomable
           pannable
-          className="!bg-card/95 !backdrop-blur-sm !rounded-xl !shadow-lg cursor-move [&>button]:!rounded-none"
+          className="!bg-white !rounded-xl !shadow-lg cursor-move"
           maskColor={isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.04)'}
+          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}
         />
 
         {/* Floating label prompt after double-clicking an edge */}

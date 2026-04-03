@@ -755,9 +755,10 @@ export function Toolbar() {
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setExportOpen(false)} />
                 <div
-                  className="absolute right-0 top-full mt-2 w-56 rounded-xl overflow-hidden z-30 bg-card/98 border border-border/80 shadow-lg backdrop-blur-md"
+                  className="absolute right-0 top-full mt-3 w-56 rounded-2xl overflow-hidden z-30 bg-white"
+                  style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}
                 >
-                  <div className="px-3 py-2 border-b border-border/50">
+                  <div className="px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG - Dark</p>
                   </div>
                   {([
@@ -768,12 +769,12 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
                     >
                       {label}
                     </button>
                   ))}
-                  <div className="px-3 py-2 border-t border-b border-border/50">
+                  <div className="px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG - Light</p>
                   </div>
                   {([
@@ -784,12 +785,12 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
                     >
                       {label}
                     </button>
                   ))}
-                  <div className="px-3 py-2 border-t border-b border-border/50">
+                  <div className="px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG - Transparent</p>
                   </div>
                   {([
@@ -800,12 +801,12 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
                     >
                       {label}
                     </button>
                   ))}
-                  <div className="px-3 py-2 border-t border-b border-border/50">
+                  <div className="px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">SVG (Vector)</p>
                   </div>
                   {([
@@ -816,12 +817,12 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
                     >
                       {label}
                     </button>
                   ))}
-                  <div className="px-3 py-2 border-t border-b border-border/50">
+                  <div className="px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Other</p>
                   </div>
                   {([
@@ -832,7 +833,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
                     >
                       {label}
                     </button>
@@ -845,7 +846,7 @@ export function Toolbar() {
           <div className="relative">
             <button
               onClick={() => setMoreOpen(!moreOpen)}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
             >
               <MoreHorizontal className="w-4 h-4" />
             </button>
@@ -854,34 +855,35 @@ export function Toolbar() {
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setMoreOpen(false)} />
                 <div
-                  className="absolute right-0 top-full mt-2 w-48 rounded-xl overflow-hidden z-30 bg-card/98 border border-border/80 shadow-lg backdrop-blur-md"
+                  className="absolute right-0 top-full mt-3 w-52 rounded-2xl overflow-hidden z-30 bg-white"
+                  style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}
                 >
                   {/* Resources Section */}
-                  <div className="px-3 py-1.5">
+                  <div className="px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Resources</p>
                   </div>
                   <button
                     onClick={() => { router.push('/tutorials'); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
                   >
                     <GraduationCap className="w-3.5 h-3.5" />
                     Learn
                   </button>
                   <button
                     onClick={() => { openGuide(); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
                     Guide
                   </button>
                   
                   {/* Workspace Section */}
-                  <div className="px-3 pt-2 pb-1.5">
+                  <div className="px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Workspace</p>
                   </div>
                   <button
                     onClick={() => { setTemplatesOpen(true); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
                   >
                     <LayoutTemplate className="w-3.5 h-3.5" />
                     Templates
@@ -889,18 +891,20 @@ export function Toolbar() {
                   <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
                   <button
                     onClick={() => { fileInputRef.current?.click(); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     Import JSON
                   </button>
                   
                   {/* Danger Zone */}
-                  <div className="border-t border-border/50 my-1.5" />
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Danger</p>
+                  </div>
                   <button
                     onClick={() => { handleClear(); setMoreOpen(false); }}
                     disabled={nodes.length === 0}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Clear Canvas

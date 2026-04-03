@@ -119,26 +119,26 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setOpen(false)} />
+      <div className="absolute inset-0 bg-black/20" onClick={() => setOpen(false)} />
 
       {/* Palette */}
       <div 
-        className="relative w-full max-w-lg mx-4 bg-card rounded-xl border border-border overflow-hidden"
-        style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.08), 0 16px 48px -8px rgba(0,0,0,0.2)' }}
+        className="relative w-full max-w-lg mx-4 bg-white rounded-2xl overflow-hidden"
+        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 border-b border-border">
+        <div className="flex items-center gap-3 px-4 py-3">
           <Search className="w-4 h-4 text-muted-foreground shrink-0" />
           <input
             ref={inputRef}
             type="text"
             placeholder="Search components..."
-            className="flex-1 py-3.5 text-sm bg-transparent border-none outline-none placeholder:text-muted-foreground"
+            className="flex-1 py-1 text-sm bg-transparent border-none outline-none placeholder:text-muted-foreground"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted rounded border border-border">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground bg-gray-100 rounded">
             ESC
           </kbd>
         </div>
@@ -169,7 +169,7 @@ export function CommandPalette() {
         </div>
 
         {/* Footer hint */}
-        <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-muted/50 text-[10px] text-muted-foreground">
+        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 text-[10px] text-muted-foreground">
           <span>↑↓ navigate</span>
           <span>↵ select</span>
         </div>

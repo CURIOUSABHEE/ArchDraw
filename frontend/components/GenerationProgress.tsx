@@ -28,26 +28,27 @@ export function GenerationProgressDisplay({ progress, onCancel }: GenerationProg
   };
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card/95 backdrop-blur-md border border-border/60 shadow-lg">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
+      <div className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white"
+        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
         {getIcon()}
         
-        <div className="flex flex-col gap-1 min-w-[200px]">
+        <div className="flex flex-col gap-2 min-w-[220px]">
           <div className="flex items-center justify-between gap-4">
-            <span className="text-sm font-medium">{progress.message}</span>
-            <span className="text-xs text-muted-foreground shrink-0">
+            <span className="text-sm font-medium text-gray-700">{progress.message}</span>
+            <span className="text-xs text-gray-400 shrink-0">
               {progress.progress}%
             </span>
           </div>
           
-          <div className="h-1 rounded-full bg-muted overflow-hidden">
+          <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
             <div
-              className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-indigo-500 transition-all duration-500 ease-out"
               style={{ width: `${progress.progress}%` }}
             />
           </div>
           
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-4 text-xs text-gray-400">
             <span>Iteration: {progress.iteration}</span>
             {progress.score > 0 && (
               <span className="flex items-center gap-1">
@@ -63,10 +64,10 @@ export function GenerationProgressDisplay({ progress, onCancel }: GenerationProg
         {onCancel && progress.phase !== 'complete' && progress.phase !== 'error' && (
           <button
             onClick={onCancel}
-            className="p-1.5 rounded-md hover:bg-accent/50 transition-colors"
+            className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
             title="Cancel"
           >
-            <XCircle className="w-4 h-4 text-muted-foreground" />
+            <XCircle className="w-4 h-4 text-gray-400" />
           </button>
         )}
       </div>

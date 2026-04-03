@@ -91,7 +91,8 @@ export function CanvasTabBar() {
 
   return (
     <>
-      <div className="flex items-center border-b border-border/60 bg-card/60 shrink-0 h-8 px-1 gap-0">
+      <div className="flex items-center bg-white shrink-0 h-9 px-2 gap-1"
+        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)', borderRadius: '12px 12px 0 0', margin: '8px 8px 0 8px' }}>
         {/* Visible tabs */}
         <div
           className="flex items-end overflow-x-auto gap-0.5 px-1 scrollbar-none"
@@ -105,10 +106,10 @@ export function CanvasTabBar() {
               <div
                 key={canvas.id}
                 onClick={() => !isEditing && switchCanvas(canvas.id)}
-                className={`group relative flex items-center gap-1.5 px-2.5 h-7 rounded-t-md text-[11px] font-medium cursor-pointer shrink-0 transition-all select-none ${
+                className={`group relative flex items-center gap-1.5 px-3 h-7 rounded-lg text-[11px] font-medium cursor-pointer shrink-0 transition-all select-none ${
                   isActive
-                    ? 'bg-background border border-b-0 border-border/60 text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                    ? 'bg-gray-100 text-gray-700'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
                 style={{ minWidth: 80, maxWidth: 160 }}
               >
@@ -173,21 +174,22 @@ export function CanvasTabBar() {
 
             {/* Dropdown menu */}
             {overflowOpen && (
-              <div className="absolute top-full left-0 mt-1 min-w-[180px] max-h-[300px] overflow-y-auto bg-card border border-border rounded-lg shadow-xl z-50 py-1">
+              <div className="absolute top-full left-0 mt-2 min-w-[200px] max-h-[300px] overflow-y-auto bg-white rounded-xl z-50 py-1"
+                style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
                 {overflowTabs.map((canvas) => {
                   const isActive = canvas.id === activeCanvasId;
                   return (
                     <button
                       key={canvas.id}
                       onClick={() => handleOverflowClick(canvas.id)}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-left hover:bg-accent/50 transition-colors ${
-                        isActive ? 'bg-accent text-foreground' : 'text-muted-foreground'
+                      className={`w-full flex items-center gap-2 px-4 py-2.5 text-[11px] text-left hover:bg-gray-100 transition-colors ${
+                        isActive ? 'bg-gray-100 text-gray-700' : 'text-gray-500'
                       }`}
                     >
                       {isActive && <Check className="w-3 h-3 shrink-0" />}
                       <span className="truncate flex-1">{canvas.name}</span>
                       {canvas.isPinned && (
-                        <span className="text-[9px] text-muted-foreground shrink-0">Pinned</span>
+                        <span className="text-[9px] text-gray-400 shrink-0">Pinned</span>
                       )}
                     </button>
                   );
@@ -200,10 +202,11 @@ export function CanvasTabBar() {
 
       {/* Delete confirmation */}
       {confirmDeleteId && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-[2px]">
-          <div className="bg-card border border-border rounded-xl shadow-2xl p-5 w-64">
-            <p className="text-xs font-semibold text-foreground mb-1">Delete canvas?</p>
-            <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20">
+          <div className="bg-white rounded-2xl p-6 w-72"
+            style={{ boxShadow: '0 25px 70px rgba(0,0,0,0.08)' }}>
+            <p className="text-sm font-semibold text-gray-700 mb-2">Delete canvas?</p>
+            <p className="text-xs text-gray-500 mb-5 leading-relaxed">
               This canvas has nodes. Deleting it is permanent.
             </p>
             <div className="flex gap-2">
