@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ArrowRight } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 
 const HeroCanvas = dynamic(() => import('./HeroCanvas'), {
   ssr: false,
@@ -12,6 +13,7 @@ const HeroCanvas = dynamic(() => import('./HeroCanvas'), {
 
 export function Hero() {
   const router = useRouter();
+  const { user, initialized } = useAuthStore();
   const canvasRef = useRef<HTMLDivElement>(null);
   const tiltRef = useRef<HTMLDivElement>(null);
   const gsapCtxRef = useRef<{ revert: () => void } | null>(null);
@@ -109,12 +111,21 @@ export function Hero() {
             </p>
 
             <div className="hero-cta-group flex items-center gap-4 flex-wrap">
-              <button
-                onClick={() => router.push('/editor')}
-                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl hover:opacity-90 transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-purple-500 text-white"
-              >
-                Start designing <ArrowRight className="w-4 h-4" />
-              </button>
+              {initialized && user ? (
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl hover:opacity-90 transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-purple-500 text-white"
+                >
+                  Go to Dashboard <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => router.push('/editor')}
+                  className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl hover:opacity-90 transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-purple-500 text-white"
+                >
+                  Start designing <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={() => document.getElementById('templates')?.scrollIntoView({ behavior: 'smooth' })}
                 className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl hover:bg-accent transition-all text-muted-foreground"

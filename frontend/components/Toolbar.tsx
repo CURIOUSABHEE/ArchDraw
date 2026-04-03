@@ -7,6 +7,7 @@ import {
   Undo2, Redo2, Share2, Loader2, Check,
   GraduationCap, Sparkles, MoreHorizontal, HelpCircle,
   Plus, X, PanelLeftClose, LayoutTemplate, Pin, FolderOpen,
+  LayoutDashboard,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -530,6 +531,15 @@ export function Toolbar() {
             title="Toggle canvases"
           >
             <FolderOpen className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-accent"
+            title="Go to Dashboard"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            <span>Dashboard</span>
           </button>
 
           <div className="flex items-center gap-1">
