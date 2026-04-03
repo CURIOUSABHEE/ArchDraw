@@ -7,13 +7,14 @@ import {
   Undo2, Redo2, Share2, Loader2, Check,
   GraduationCap, Sparkles, MoreHorizontal, HelpCircle,
   Plus, X, PanelLeftClose, LayoutTemplate, Pin, FolderOpen,
-  LayoutDashboard,
+  LayoutDashboard, LayoutGrid,
 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
@@ -542,113 +543,77 @@ export function Toolbar() {
             <span>Dashboard</span>
           </button>
 
-          <div className="flex items-center gap-1">
-            {visibleCanvases.map((canvas) => {
-              const isActive = canvas.id === activeCanvasId;
-              const isEditing = editingId === canvas.id;
-
-              return (
-                <div
-                  key={canvas.id}
-                  role="tab"
-                  onClick={() => !isEditing && switchCanvas(canvas.id)}
-                  onDoubleClick={(e) => isEditing ? undefined : startRename(canvas.id, canvas.name, e)}
-                  aria-selected={isActive}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !isEditing) {
-                      switchCanvas(canvas.id);
-                    }
-                  }}
-                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                  }`}
-                >
-                  {isEditing ? (
-                    <input
-                      ref={editInputRef}
-                      value={editDraft}
-                      onChange={(e) => setEditDraft(e.target.value)}
-                      onBlur={commitRename}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
-                        if (e.key === 'Escape') setEditingId(null);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="bg-transparent outline-none text-xs font-medium w-20"
-                      autoFocus
-                    />
-                  ) : (
-                    <span
-                      title={canvas.updatedAt ? `Last edited ${formatRelative(canvas.updatedAt)}` : canvas.name}
-                    >
-                      {canvas.name}
-                    </span>
-                  )}
-
-                  {canvases.length > 1 && !isEditing && (
-                    <button
-                      onClick={(e) => handleCloseClick(canvas.id, e)}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/15 hover:text-destructive focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-
-            {overflowCount > 0 && (
-              <DropdownMenu 
-                open={overflowOpen} 
-                onOpenChange={(open) => {
-                  if (open && sidebarOpen) {
-                    setSidebarOpen(false);
-                  }
-                  setOverflowOpen(open);
-                }}
+          {/* Current Canvas Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex items-center gap-2 px-3 py-1.5 rounded-[14px] text-xs font-medium transition-all"
+                style={{ background: '#EDEDED', color: '#1A1A1A' }}
               >
-                <DropdownMenuTrigger asChild>
-                  <button 
-                    className="h-7 px-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-transparent border-0 rounded-md hover:bg-accent"
-                    onClick={() => {
-                      if (!overflowOpen) {
-                        window.dispatchEvent(new CustomEvent('open-canvas-sidebar'));
-                      }
+                <div className="w-5 h-5 rounded-[8px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                  <LayoutGrid className="w-3 h-3 text-white" />
+                </div>
+                <span>{activeCanvas?.name || 'Select Canvas'}</span>
+                <ChevronDown className="w-3 h-3" style={{ color: '#6B6B6B' }} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="p-2"
+              style={{ background: 'white', borderRadius: 16, boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: 'none' }}
+            >
+              {canvases
+                .sort((a, b) => (b.lastAccessedAt || 0) - (a.lastAccessedAt || 0))
+                .map((canvas) => (
+                  <DropdownMenuItem
+                    key={canvas.id}
+                    onClick={() => switchCanvas(canvas.id)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-[10px] cursor-pointer"
+                    style={{
+                      background: canvas.id === activeCanvasId ? '#F2F2F2' : 'transparent',
                     }}
                   >
-                    +{overflowCount} <ChevronDown className={`w-3 h-3 ml-1 transition-transform ${overflowOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="max-h-60 overflow-auto">
-                  {overflowCanvases.map((canvas) => (
-                    <DropdownMenuItem 
-                      key={canvas.id}
-                      onClick={() => {
-                        openCanvas(canvas.id);
-                        setOverflowOpen(false);
-                      }}
+                    <div
+                      className="w-6 h-6 rounded-[6px] flex items-center justify-center"
+                      style={{ background: '#F2F2F2' }}
                     >
-                      <div className="flex items-center gap-2">
-                        {canvas.isPinned && <span className="text-amber-500">📌</span>}
-                        <span>{canvas.name}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                      <LayoutGrid className="w-3 h-3" style={{ color: '#6B6B6B' }} />
+                    </div>
+                    <span className="text-sm" style={{ color: '#1A1A1A' }}>{canvas.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              <DropdownMenuSeparator className="my-2" style={{ background: '#F2F2F2' }} />
+              <DropdownMenuItem
+                onClick={() => addCanvas()}
+                className="flex items-center gap-3 px-3 py-2 rounded-[10px] cursor-pointer"
+                style={{ background: 'transparent' }}
+              >
+                <div
+                  className="w-6 h-6 rounded-[6px] flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                >
+                  <Plus className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#6366f1' }}>New Canvas</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            <button
-              onClick={() => addCanvas()}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring"
-              title="New canvas"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('toggle-canvas-sidebar'))}
+            className="floating-icon-btn !w-9 !h-9"
+            title="Toggle canvases"
+          >
+            <FolderOpen className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => addCanvas()}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring"
+            title="New canvas"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* CENTER: Context info */}

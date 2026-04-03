@@ -85,6 +85,7 @@ interface DiagramState {
   nodes: Node[];
   edges: Edge[];
 
+  getRandomAnimalName: () => string;
   addCanvas: (customName?: string) => string;
   removeCanvas: (id: string) => void;
   switchCanvas: (id: string) => void;
@@ -175,7 +176,7 @@ function makeCanvas(name: string): CanvasTab {
   return { id: `canvas-${Date.now()}-${Math.random().toString(36).slice(2)}`, name, nodes: [], edges: [], updatedAt: Date.now() };
 }
 
-const INITIAL_CANVAS = makeCanvas('Canvas 1');
+const INITIAL_CANVAS = makeCanvas('Elephant');
 
 function syncActiveCanvas(
   canvases: CanvasTab[],
@@ -229,10 +230,25 @@ export const useDiagramStore = create<DiagramState>()(
       nodes: [],
       edges: [],
 
+      getRandomAnimalName: () => {
+        const animals = ['Elephant', 'Lion', 'Panda', 'Tiger', 'Falcon', 'Shark', 'Wolf', 'Fox', 'Bear', 'Eagle', 'Owl', 'Hawk', 'Dolphin', 'Penguin', 'Zebra', 'Giraffe', 'Leopard', 'Jaguar', 'Panther', 'Cheetah'];
+        const usedNames = get().canvases.map(c => c.name);
+        const available = animals.filter(a => !usedNames.includes(a));
+        if (available.length > 0) {
+          return available[Math.floor(Math.random() * available.length)];
+        }
+        const baseAnimal = animals[Math.floor(Math.random() * animals.length)];
+        let counter = 1;
+        while (usedNames.includes(`${baseAnimal} ${counter}`)) {
+          counter++;
+        }
+        return `${baseAnimal} ${counter}`;
+      },
+
       addCanvas: (customName?: string) => {
-        const { canvases, openCanvasIds } = get();
+        const { canvases, openCanvasIds, getRandomAnimalName } = get();
         
-        let baseName = customName || 'Canvas';
+        let baseName = customName || getRandomAnimalName();
         let newName = baseName;
         const existingNames = new Set(canvases.map(c => c.name));
         
