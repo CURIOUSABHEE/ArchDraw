@@ -37,8 +37,8 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
         minWidth={160}
         minHeight={100}
         isVisible={!!selected}
-        lineStyle={{ borderColor: color, borderWidth: 1 }}
-        handleStyle={{ width: 8, height: 8, background: color, borderRadius: 2 }}
+        lineStyle={{ borderColor: color, borderWidth: 2, borderStyle: 'dashed', borderRadius: 16 }}
+        handleStyle={{ width: 12, height: 12, background: color, borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
       />
 
       {/* Container */}
@@ -47,16 +47,18 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
           width: '100%',
           height: '100%',
           minWidth: 0,
-          border: `2px dashed ${selected ? color : `${color}55`}`,
-          borderRadius: 12,
-          background: `${color}08`,
+          border: `2px dashed ${selected ? color : `${color}40`}`,
+          borderRadius: 16,
+          background: `${color}06`,
           position: 'relative',
           boxSizing: 'border-box',
+          boxShadow: selected ? `0 0 0 2px ${color}30, inset 0 0 30px ${color}08` : 'none',
+          transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
         }}
       >
         {/* Label at top-left */}
         <div
-          style={{ position: 'absolute', top: 8, left: 12 }}
+          style={{ position: 'absolute', top: 10, left: 14 }}
           onDoubleClick={startEdit}
         >
           {editing ? (
@@ -69,29 +71,34 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
               onMouseDown={(e) => e.stopPropagation()}
               style={{
                 fontSize: 11,
-                fontWeight: 700,
+                fontWeight: 600,
                 color,
                 background: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: 2,
+                border: 'none',
+                borderRadius: 6,
                 outline: 'none',
                 width: 120,
                 minWidth: 60,
                 maxWidth: 150,
-                padding: '2px 4px',
+                padding: '4px 8px',
                 boxSizing: 'border-box',
+                boxShadow: '0 2px 8px hsl(var(--foreground) / 0.1)',
               }}
             />
           ) : (
             <span
               style={{
                 fontSize: 11,
-                fontWeight: 700,
+                fontWeight: 600,
                 color,
                 textTransform: 'uppercase',
-                letterSpacing: '0.06em',
+                letterSpacing: '0.05em',
                 cursor: 'text',
                 userSelect: 'none',
+                padding: '4px 8px',
+                background: 'hsl(var(--card))',
+                borderRadius: 6,
+                boxShadow: '0 2px 6px hsl(var(--foreground) / 0.08)',
               }}
             >
               {label}

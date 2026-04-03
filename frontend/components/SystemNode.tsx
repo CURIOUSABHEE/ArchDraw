@@ -21,25 +21,19 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     maxHeight: 100,
     height: 'auto',
     boxSizing: 'border-box',
-    borderRadius: 8,
+    borderRadius: 14,
     background: isDark
-      ? '#1e2235'
-      : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
-    border: selected
-      ? `2px solid ${resolvedAccent}`
-      : hasError
-        ? '2px solid rgba(239,68,68,0.4)'
-        : isDark
-          ? `1px solid ${resolvedAccent}50`
-          : `1px solid ${resolvedAccent}25`,
+      ? 'linear-gradient(145deg, hsl(220 18% 15%) 0%, hsl(220 18% 11%) 100%)'
+      : 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
+    border: 'none',
     boxShadow: selected
-      ? `0 0 0 2px ${resolvedAccent}, 0 4px 20px ${resolvedAccent}50`
+      ? `0 0 0 2px ${resolvedAccent}, 0 8px 32px ${resolvedAccent}30, 0 4px 12px hsl(var(--foreground) / 0.1)`
       : hasError
-        ? '0 0 0 1px rgba(239,68,68,0.3), 0 2px 8px rgba(0,0,0,0.3)'
+        ? '0 0 0 2px rgba(239,68,68,0.5), 0 4px 16px rgba(239,68,68,0.2)'
         : isDark
-          ? '0 4px 12px rgba(0,0,0,0.4)'
-          : '0 2px 8px rgba(0,0,0,0.1)',
-    transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
+          ? `0 6px 20px hsl(var(--foreground) / 0.3), inset 0 1px 0 hsl(var(--foreground) / 0.1)`
+          : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)',
+    transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     cursor: 'pointer',
     position: 'relative',
     display: 'flex',
@@ -53,13 +47,10 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   const iconContainerStyle: React.CSSProperties = {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: 10,
     background: isAIGenerated 
-      ? 'rgba(139, 92, 246, 0.2)' 
-      : isDark ? `${resolvedAccent}15` : `${resolvedAccent}10`,
-    border: isAIGenerated
-      ? '1px solid rgba(139, 92, 246, 0.4)'
-      : isDark ? `1px solid ${resolvedAccent}30` : `1px solid ${resolvedAccent}20`,
+      ? 'rgba(139, 92, 246, 0.15)' 
+      : isDark ? `${resolvedAccent}20` : `${resolvedAccent}12`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -67,12 +58,13 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   };
 
   const handleStyle: React.CSSProperties = {
-    width: 8,
-    height: 8,
-    background: isDark ? '#161b22' : '#ffffff',
-    border: `1px solid rgba(255,255,255,0.08)`,
+    width: 12,
+    height: 12,
+    background: isDark ? 'hsl(var(--card))' : '#ffffff',
+    border: `2px solid ${resolvedAccent}60`,
     borderRadius: '50%',
-    transition: 'all 0.15s ease',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: '0 2px 8px hsl(var(--foreground) / 0.15)',
   };
 
   return (
@@ -82,50 +74,48 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
       onClick={() => setSelectedNodeId(id)}
       onMouseEnter={(e) => {
         if (!selected) {
-          e.currentTarget.style.borderColor = `${resolvedAccent}80`;
-          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.transform = 'translateY(-2px)';
           e.currentTarget.style.boxShadow = isDark
-            ? `0 4px 16px ${resolvedAccent}30`
-            : `0 4px 16px ${resolvedAccent}25`;
+            ? `0 8px 24px hsl(var(--foreground) / 0.35), 0 0 0 1px ${resolvedAccent}40`
+            : `0 8px 24px hsl(var(--foreground) / 0.12), 0 0 0 1px ${resolvedAccent}20`;
         }
       }}
       onMouseLeave={(e) => {
         if (!selected) {
-          e.currentTarget.style.borderColor = isDark ? `${resolvedAccent}30` : `${resolvedAccent}25`;
           e.currentTarget.style.transform = 'translateY(0)';
           e.currentTarget.style.boxShadow = isDark
-            ? '0 2px 8px rgba(0,0,0,0.3)'
-            : '0 2px 8px rgba(0,0,0,0.1)';
+            ? `0 6px 20px hsl(var(--foreground) / 0.3), inset 0 1px 0 hsl(var(--foreground) / 0.1)`
+            : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)';
         }
       }}
     >
-      {/* Diagonal corner shine */}
-      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/10 via-white/[0.03] to-transparent group-hover:from-white/[0.15] group-hover:via-white/[0.06] transition-all duration-300 dark:from-white/10 dark:via-white/[0.03] dark:to-transparent" />
+      {/* Subtle shine overlay */}
+      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/8 via-white/[0.02] to-transparent group-hover:from-white/[0.12] group-hover:via-white/[0.04] transition-all duration-300 dark:from-white/8 dark:via-white/[0.02] dark:to-transparent" />
       
       {/* LEFT handles (targets) - for incoming edges from left */}
       <Handle
         type="target"
         position={Position.Left}
         id="left"
-        style={{ ...handleStyle, left: -4 }}
+        style={{ ...handleStyle, left: -5 }}
       />
       <Handle
         type="target"
         position={Position.Left}
         id="left-top"
-        style={{ ...handleStyle, left: -4, top: '25%' }}
+        style={{ ...handleStyle, left: -5, top: '25%' }}
       />
       <Handle
         type="target"
         position={Position.Left}
         id="left-mid"
-        style={{ ...handleStyle, left: -4, top: '50%' }}
+        style={{ ...handleStyle, left: -5, top: '50%' }}
       />
       <Handle
         type="target"
         position={Position.Left}
         id="left-bot"
-        style={{ ...handleStyle, left: -4, top: '75%' }}
+        style={{ ...handleStyle, left: -5, top: '75%' }}
       />
       
       {/* RIGHT handles (sources) - for outgoing edges to right */}
@@ -133,25 +123,25 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         type="source"
         position={Position.Right}
         id="right"
-        style={{ ...handleStyle, right: -4 }}
+        style={{ ...handleStyle, right: -5 }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="right-top"
-        style={{ ...handleStyle, right: -4, top: '25%' }}
+        style={{ ...handleStyle, right: -5, top: '25%' }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="right-mid"
-        style={{ ...handleStyle, right: -4, top: '50%' }}
+        style={{ ...handleStyle, right: -5, top: '50%' }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="right-bot"
-        style={{ ...handleStyle, right: -4, top: '75%' }}
+        style={{ ...handleStyle, right: -5, top: '75%' }}
       />
       
       {/* TOP/BOTTOM handles (hidden) - for vertical connections */}
@@ -159,13 +149,13 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         type="target"
         position={Position.Top}
         id="top"
-        style={{ ...handleStyle, top: -4, opacity: 0 }}
+        style={{ ...handleStyle, top: -5, opacity: 0 }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
-        style={{ ...handleStyle, bottom: -4, opacity: 0 }}
+        style={{ ...handleStyle, bottom: -5, opacity: 0 }}
       />
 
       <div style={{
@@ -196,8 +186,8 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         {/* Label */}
         <span style={{
           fontSize: 13,
-          fontWeight: 700,
-          color: isDark ? '#ffffff' : '#1e293b',
+          fontWeight: 600,
+          color: isDark ? 'hsl(var(--foreground))' : 'hsl(var(--foreground))',
           textAlign: 'left',
           wordBreak: 'break-word',
           overflowWrap: 'break-word',

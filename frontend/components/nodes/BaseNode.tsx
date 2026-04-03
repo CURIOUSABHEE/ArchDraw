@@ -82,28 +82,28 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      transition: 'box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease',
+      transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     };
 
     switch (shape) {
       case 'pill':
         return { ...base, borderRadius: 999, minWidth: shapeConfig.minWidth, minHeight: shapeConfig.minHeight, maxHeight: shapeConfig.maxHeight };
       case 'cylinder':
-        return { ...base, borderRadius: 8 };
-      case 'stack':
         return { ...base, borderRadius: 12 };
+      case 'stack':
+        return { ...base, borderRadius: 14 };
       case 'queue':
         return { ...base, borderRadius: 16, minHeight: shapeConfig.minHeight, maxHeight: shapeConfig.maxHeight };
       case 'dashed-rect':
-        return { ...base, borderRadius: 10, borderStyle: 'dashed' };
-      case 'shield':
-        return { ...base, borderRadius: 12 };
-      case 'minimal':
-        return { ...base, borderRadius: 8, borderWidth: 1 };
-      case 'gradient-glow':
         return { ...base, borderRadius: 14 };
+      case 'shield':
+        return { ...base, borderRadius: 14 };
+      case 'minimal':
+        return { ...base, borderRadius: 12 };
+      case 'gradient-glow':
+        return { ...base, borderRadius: 16 };
       case 'worker':
-        return { ...base, borderRadius: 10 };
+        return { ...base, borderRadius: 14 };
       default:
         return { ...base, borderRadius: 14 };
     }
@@ -115,37 +115,30 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
   const nodeStyles: React.CSSProperties = {
     ...getBaseStyles(),
     background: isDark
-      ? 'linear-gradient(145deg, #1e2138 0%, #161928 100%)'
-      : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
-    border: selected
-      ? `${borderWidth}px solid ${resolvedAccent}`
-      : hasError
-        ? '1px solid rgba(239,68,68,0.4)'
-        : shape === 'minimal'
-          ? `1px solid ${resolvedAccent}15`
-          : shape === 'dashed-rect'
-            ? `2px dashed ${resolvedAccent}${borderOpacity}`
-            : `${borderWidth}px solid ${resolvedAccent}${borderOpacity}`,
+      ? 'linear-gradient(145deg, hsl(220 18% 15%) 0%, hsl(220 18% 11%) 100%)'
+      : 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
+    border: 'none',
     boxShadow: selected
-      ? `0 0 0 2px ${resolvedAccent}, 0 4px 20px ${resolvedAccent}50`
+      ? `0 0 0 2px ${resolvedAccent}, 0 8px 32px ${resolvedAccent}30, 0 4px 12px hsl(var(--foreground) / 0.1)`
       : hasError
-        ? '0 0 0 1px rgba(239,68,68,0.3), 0 2px 8px rgba(0,0,0,0.3)'
+        ? '0 0 0 2px rgba(239,68,68,0.5), 0 4px 16px rgba(239,68,68,0.2)'
         : visualWeight === 'high'
           ? isDark
-            ? `0 4px 12px rgba(0,0,0,0.4), inset 0 0 20px ${resolvedAccent}10`
-            : `0 4px 12px rgba(0,0,0,0.15), inset 0 0 20px ${resolvedAccent}08`
+            ? `0 8px 24px hsl(var(--foreground) / 0.3), inset 0 1px 0 hsl(var(--foreground) / 0.1)`
+            : `0 6px 20px hsl(var(--foreground) / 0.1), inset 0 1px 0 hsl(var(--foreground) / 0.05)`
           : isDark
-            ? '0 2px 8px rgba(0,0,0,0.3)'
-            : '0 2px 8px rgba(0,0,0,0.1)',
+            ? `0 4px 16px hsl(var(--foreground) / 0.25), inset 0 1px 0 hsl(var(--foreground) / 0.08)`
+            : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)',
   };
 
   const baseHandleStyle: React.CSSProperties = {
-    width: 10,
-    height: 10,
-    background: isDark ? '#161b22' : '#ffffff',
-    border: `1px solid rgba(255,255,255,0.12)`,
+    width: 12,
+    height: 12,
+    background: isDark ? 'hsl(var(--card))' : '#ffffff',
+    border: `2px solid ${resolvedAccent}60`,
     borderRadius: '50%',
-    transition: 'all 0.15s ease',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: '0 2px 8px hsl(var(--foreground) / 0.15)',
   };
 
   const getHandleOpacity = (hasConnections: boolean, isActive: boolean) => {
@@ -196,7 +189,7 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
               ...baseHandleStyle,
               background: isDark ? resolvedAccent : '#ffffff',
               border: `2px solid ${resolvedAccent}`,
-              boxShadow: isHovered ? `0 0 10px ${resolvedAccent}70` : 'none',
+              boxShadow: isHovered ? `0 0 12px ${resolvedAccent}60` : '0 2px 8px hsl(var(--foreground) / 0.1)',
             }}
           />
         </motion.div>
@@ -240,7 +233,7 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
               ...baseHandleStyle,
               background: isDark ? resolvedAccent : '#ffffff',
               border: `2px solid ${resolvedAccent}`,
-              boxShadow: isHovered ? `0 0 8px ${resolvedAccent}60` : 'none',
+              boxShadow: isHovered ? `0 0 12px ${resolvedAccent}60` : '0 2px 8px hsl(var(--foreground) / 0.1)',
             }}
           />
         </motion.div>
@@ -329,25 +322,23 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
       onMouseEnter={(e) => {
         setIsHovered(true);
         if (!selected) {
-          e.currentTarget.style.borderColor = `${resolvedAccent}80`;
-          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.transform = 'translateY(-2px)';
           e.currentTarget.style.boxShadow = isDark
-            ? `0 4px 16px ${resolvedAccent}30`
-            : `0 4px 16px ${resolvedAccent}25`;
+            ? `0 8px 24px hsl(var(--foreground) / 0.35), 0 0 0 1px ${resolvedAccent}40`
+            : `0 8px 24px hsl(var(--foreground) / 0.12), 0 0 0 1px ${resolvedAccent}20`;
         }
       }}
       onMouseLeave={(e) => {
         setIsHovered(false);
         if (!selected) {
-          e.currentTarget.style.borderColor = isDark ? `${resolvedAccent}30` : `${resolvedAccent}30`;
           e.currentTarget.style.transform = 'translateY(0)';
           e.currentTarget.style.boxShadow = isDark
-            ? '0 2px 8px rgba(0,0,0,0.3)'
-            : '0 2px 8px rgba(0,0,0,0.1)';
+            ? `0 4px 16px hsl(var(--foreground) / 0.25), inset 0 1px 0 hsl(var(--foreground) / 0.08)`
+            : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)';
         }
       }}
     >
-      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/10 via-white/[0.03] to-transparent group-hover:from-white/[0.15] group-hover:via-white/[0.06] transition-all duration-300 dark:from-white/10 dark:via-white/[0.03] dark:to-transparent" />
+      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/8 via-white/[0.02] to-transparent group-hover:from-white/[0.12] group-hover:via-white/[0.04] transition-all duration-300 dark:from-white/8 dark:via-white/[0.02] dark:to-transparent" />
       
       {renderHandles()}
       {renderShapeContent()}

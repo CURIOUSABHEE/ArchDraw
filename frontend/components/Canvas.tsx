@@ -244,22 +244,13 @@ function CanvasInner() {
 
   return (
     <div className="flex-1 relative overflow-hidden bg-background">
-      {/* Canvas background with radial gradient */}
+      {/* Soft canvas background - minimal gradient */}
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
           background: isDark
-            ? 'radial-gradient(ellipse at center, rgba(30, 41, 59, 0.3) 0%, rgba(15, 23, 42, 1) 70%)'
-            : 'radial-gradient(ellipse at center, rgba(241, 245, 249, 0.5) 0%, rgba(248, 250, 252, 1) 70%)',
-        }}
-      />
-      {/* Vignette overlay */}
-      <div 
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: isDark
-            ? 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.15) 100%)'
-            : 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.02) 100%)',
+            ? 'radial-gradient(ellipse at center, rgba(40, 50, 70, 0.2) 0%, transparent 60%)'
+            : 'radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.8) 0%, hsl(var(--canvas-bg)) 70%)',
         }}
       />
       <div className="absolute inset-0">
@@ -314,21 +305,21 @@ function CanvasInner() {
         {showGrid && (
           <Background
             variant={BackgroundVariant.Dots}
-            color={isDark ? '#1e293b' : '#cbd5e1'}
-            gap={20}
-            size={1.5}
+            color={isDark ? 'rgba(100, 120, 150, 0.15)' : 'rgba(180, 190, 200, 0.4)'}
+            gap={24}
+            size={1}
           />
         )}
         <Controls
           showInteractive={false}
-          className="!bg-card/90 !backdrop-blur-sm !border !border-border/60 !rounded-lg !shadow-md [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-border/40 [&>button:hover]:!bg-accent"
+          className="!bg-card/95 !backdrop-blur-sm !rounded-xl !shadow-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-border/30 [&>button:hover]:!bg-accent"
         />
         <MiniMap
           nodeStrokeWidth={3}
           zoomable
           pannable
-          className="!bg-card/90 !backdrop-blur-sm !border !border-border/60 !rounded-lg !shadow-md hover:shadow-lg transition-shadow cursor-move"
-          maskColor="rgba(0,0,0,0.04)"
+          className="!bg-card/95 !backdrop-blur-sm !rounded-xl !shadow-lg cursor-move [&>button]:!rounded-none"
+          maskColor={isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.04)'}
         />
 
         {/* Floating label prompt after double-clicking an edge */}
@@ -367,16 +358,16 @@ function CanvasInner() {
                   autoFocus
                   style={{
                     width: 100,
-                    background: isDark ? '#1e293b' : '#ffffff',
-                    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)',
+                    background: isDark ? 'hsl(var(--card))' : '#ffffff',
+                    border: 'none',
                     borderRadius: 9999,
-                    padding: '2px 10px',
-                    fontSize: 10,
-                    fontFamily: 'system-ui, sans-serif',
-                    color: isDark ? '#f1f5f9' : '#1e293b',
+                    padding: '4px 12px',
+                    fontSize: 11,
+                    fontFamily: 'Inter, system-ui, sans-serif',
+                    color: isDark ? 'hsl(var(--foreground))' : '#374151',
                     outline: 'none',
                     textAlign: 'center',
-                    boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.1)',
+                    boxShadow: '0 4px 16px hsl(var(--foreground) / 0.15)',
                   }}
                 />
               </div>
@@ -395,19 +386,21 @@ function CanvasInner() {
       {/* Non-blocking Onboarding Overlay */}
       {isOnboardingVisible && (
         <div 
-          className={`absolute inset-0 flex flex-col items-center justify-center select-none pointer-events-none z-[5] transition-opacity duration-200 ${isOnboardingFading ? 'opacity-0' : 'opacity-100'}`}
+          className={`absolute inset-0 flex flex-col items-center justify-center select-none pointer-events-none z-[5] transition-opacity duration-300 ${isOnboardingFading ? 'opacity-0' : 'opacity-100'}`}
         >
-          <div className="text-center mb-8 pointer-events-none">
-            <LayoutGrid className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-            <h2 className="text-lg font-semibold text-foreground/60 mb-2">Start building your architecture</h2>
-            <p className="text-xs text-muted-foreground/50">Drag components from the sidebar or click to begin</p>
+          <div className="text-center mb-10 pointer-events-none">
+            <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-accent/50 flex items-center justify-center">
+              <LayoutGrid className="w-10 h-10 text-muted-foreground/40" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground/50 mb-2">Start building your architecture</h2>
+            <p className="text-xs text-muted-foreground/60">Drag components from the sidebar or click to begin</p>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 pointer-events-auto">
             {/* Templates - Primary */}
             <button
               onClick={handleOpenTemplates}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-accent/60 hover:bg-accent text-foreground border border-border/50 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-card text-foreground shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-99 focus:outline-none focus:ring-2 focus:ring-ring/30"
             >
               <LayoutTemplate className="w-4 h-4" />
               Use Template
@@ -416,41 +409,33 @@ function CanvasInner() {
             {/* Start from Scratch */}
             <button
               onClick={handleStartFromScratch}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-all focus:outline-none focus:ring-2 focus:ring-ring/30"
             >
               <MousePointer2 className="w-4 h-4" />
               Start from Scratch
             </button>
           </div>
           
-          <div className="flex items-center gap-4 mt-6 text-[10px] text-muted-foreground/40 pointer-events-none">
+          <div className="flex items-center gap-4 mt-8 text-[11px] text-muted-foreground/50 pointer-events-none">
             <span>Press ? for shortcuts</span>
-            <span>•</span>
+            <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
             <span>⌘K for components</span>
           </div>
         </div>
       )}
 
-      {/* Status bar with selection info */}
+      {/* Status bar with selection info - soft floating pill */}
       {(selectedNodeIds.length > 0 || selectedEdgeId) && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[5] flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/90 border border-border/60 backdrop-blur-sm shadow-sm">
-          <span className="text-[10px] text-muted-foreground">
+        <div className="absolute top-4 right-4 z-[5] flex items-center gap-3 px-4 py-2 rounded-full floating-panel">
+          <span className="text-[11px] text-foreground/70">
             {selectedNodeIds.length > 0 && `${selectedNodeIds.length} node${selectedNodeIds.length > 1 ? 's' : ''} selected`}
-            {selectedNodeIds.length > 0 && selectedEdgeId && ' • '}
+            {selectedNodeIds.length > 0 && selectedEdgeId && ' · '}
             {selectedEdgeId && '1 edge selected'}
           </span>
-          <span className="text-[10px] text-muted-foreground/50">⌘C copy • Del delete</span>
+          <span className="w-px h-3 bg-border/50" />
+          <span className="text-[11px] text-muted-foreground">⌘C copy · Del delete</span>
         </div>
       )}
-
-      {/* Keyboard shortcuts button */}
-      <button
-        onClick={() => setShowShortcuts(true)}
-        className="absolute bottom-4 right-4 z-[6] w-7 h-7 rounded-full bg-card/80 border border-border/60 text-muted-foreground hover:text-foreground hover:bg-card transition-colors flex items-center justify-center text-xs font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        title="Keyboard shortcuts (?)"
-      >
-        ?
-      </button>
 
       {showShortcuts && <KeyboardShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />}
       {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}

@@ -20,11 +20,12 @@ export interface ShapeNodeData {
 }
 
 const HANDLE_STYLE = (color: string) => ({
-  width: 10,
-  height: 10,
-  background: color,
-  border: '1px solid rgba(255,255,255,0.08)',
+  width: 12,
+  height: 12,
+  background: '#ffffff',
+  border: `2px solid ${color}60`,
   borderRadius: '50%',
+  boxShadow: '0 2px 8px hsl(var(--foreground) / 0.15)',
 });
 
 /** Four-directional handles shared by all shapes */
@@ -57,20 +58,23 @@ function Label({ label, sublabel, color }: { label: string; sublabel?: string; c
 
 function Rectangle({ data, selected, rounded }: { data: ShapeNodeData; selected: boolean; rounded: boolean }) {
   const color = data.accentColor ?? data.color ?? '#6366f1';
-  const r = rounded ? 12 : 4;
+  const r = rounded ? 14 : 8;
   return (
     <div
       style={{
         width: 140,
         height: 72,
         borderRadius: r,
-        border: `2px solid ${selected ? color : `${color}66`}`,
-        background: `${color}12`,
-        boxShadow: selected ? `0 0 0 3px ${color}33` : undefined,
+        border: 'none',
+        background: 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
+        boxShadow: selected 
+          ? `0 0 0 2px ${color}, 0 8px 32px ${color}30, 0 4px 12px hsl(var(--foreground) / 0.1)`
+          : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
+        transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
       <Handles color={color} />
@@ -87,19 +91,11 @@ function Diamond({ data, selected }: { data: ShapeNodeData; selected: boolean })
       <svg width={W} height={H} style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
         <polygon
           points={`${W / 2},4 ${W - 4},${H / 2} ${W / 2},${H - 4} 4,${H / 2}`}
-          fill={`${color}12`}
-          stroke={selected ? color : `${color}66`}
-          strokeWidth={0.1}
+          fill={`${color}10`}
+          stroke={selected ? color : `${color}50`}
+          strokeWidth={selected ? 2 : 1.5}
+          filter={selected ? `drop-shadow(0 0 8px ${color}40)` : 'none'}
         />
-        {selected && (
-          <polygon
-            points={`${W / 2},4 ${W - 4},${H / 2} ${W / 2},${H - 4} 4,${H / 2}`}
-            fill="none"
-            stroke={color}
-            strokeWidth={0.1}
-            strokeOpacity={0.2}
-          />
-        )}
       </svg>
       <Handles color={color} />
       <div
@@ -117,16 +113,17 @@ function Diamond({ data, selected }: { data: ShapeNodeData; selected: boolean })
 function Cylinder({ data, selected }: { data: ShapeNodeData; selected: boolean }) {
   const color = data.accentColor ?? data.color ?? '#6366f1';
   const W = 120, H = 90, RY = 14;
-  const stroke = selected ? color : `${color}66`;
+  const stroke = selected ? color : `${color}60`;
+  const strokeW = selected ? 2 : 1.5;
   return (
     <div style={{ width: W, height: H, position: 'relative' }}>
-      <svg width={W} height={H} style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
+      <svg width={W} height={H} style={{ position: 'absolute', inset: 0, overflow: 'visible', filter: selected ? `drop-shadow(0 0 8px ${color}30)` : 'none' }}>
         {/* Body */}
-        <rect x={2} y={RY} width={W - 4} height={H - RY * 2} fill={`${color}12`} stroke={stroke} strokeWidth={2} />
+        <rect x={2} y={RY} width={W - 4} height={H - RY * 2} fill={`${color}10`} stroke={stroke} strokeWidth={strokeW} />
         {/* Bottom ellipse */}
-        <ellipse cx={W / 2} cy={H - RY} rx={(W - 4) / 2} ry={RY} fill={`${color}18`} stroke={stroke} strokeWidth={2} />
+        <ellipse cx={W / 2} cy={H - RY} rx={(W - 4) / 2} ry={RY} fill={`${color}15`} stroke={stroke} strokeWidth={strokeW} />
         {/* Top ellipse (drawn last so it overlaps body top edge) */}
-        <ellipse cx={W / 2} cy={RY} rx={(W - 4) / 2} ry={RY} fill={`${color}22`} stroke={stroke} strokeWidth={2} />
+        <ellipse cx={W / 2} cy={RY} rx={(W - 4) / 2} ry={RY} fill={`${color}18`} stroke={stroke} strokeWidth={strokeW} />
       </svg>
       <Handles color={color} />
       <div
@@ -146,12 +143,12 @@ function Circle({ data, selected }: { data: ShapeNodeData; selected: boolean }) 
   const W = 100, H = 100;
   return (
     <div style={{ width: W, height: H, position: 'relative' }}>
-      <svg width={W} height={H} style={{ position: 'absolute', inset: 0 }}>
+      <svg width={W} height={H} style={{ position: 'absolute', inset: 0, filter: selected ? `drop-shadow(0 0 8px ${color}30)` : 'none' }}>
         <ellipse
           cx={W / 2} cy={H / 2} rx={W / 2 - 2} ry={H / 2 - 2}
-          fill={`${color}12`}
-          stroke={selected ? color : `${color}66`}
-          strokeWidth={0.1}
+          fill={`${color}10`}
+          stroke={selected ? color : `${color}50`}
+          strokeWidth={selected ? 2 : 1.5}
         />
       </svg>
       <Handles color={color} />
@@ -173,12 +170,12 @@ function Parallelogram({ data, selected }: { data: ShapeNodeData; selected: bool
   const pts = `${SKEW},2 ${W - 2},2 ${W - SKEW - 2},${H - 2} 2,${H - 2}`;
   return (
     <div style={{ width: W, height: H, position: 'relative' }}>
-      <svg width={W} height={H} style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
+      <svg width={W} height={H} style={{ position: 'absolute', inset: 0, overflow: 'visible', filter: selected ? `drop-shadow(0 0 8px ${color}30)` : 'none' }}>
         <polygon
           points={pts}
-          fill={`${color}12`}
-          stroke={selected ? color : `${color}66`}
-          strokeWidth={0.1}
+          fill={`${color}10`}
+          stroke={selected ? color : `${color}50`}
+          strokeWidth={selected ? 2 : 1.5}
         />
       </svg>
       <Handles color={color} />
