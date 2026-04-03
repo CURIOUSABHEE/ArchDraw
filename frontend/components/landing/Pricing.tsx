@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const freeFeatures = [
@@ -22,35 +23,55 @@ const proFeatures = [
 
 function Check() {
   return (
-    <svg className="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.1" d="M5 13l4 4L19 7" />
+    <svg className="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
     </svg>
   );
 }
 
 export function Pricing() {
   const router = useRouter();
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const els = section.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white" id="pricing">
+    <section ref={sectionRef} className="py-28 px-6" id="pricing">
       <div className="max-w-4xl mx-auto">
-        <header className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-slate-900 tracking-tight">
+        <header className="reveal text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Free while in beta. Forever generous after.
           </h2>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Free */}
-          <div className="relative rounded-2xl border border-indigo-500/30 bg-indigo-50/30 p-8 flex flex-col">
-            <span className="absolute top-4 right-4 bg-indigo-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">Current plan</span>
+          <div className="reveal reveal-delay-1 relative rounded-2xl border border-primary/30 bg-card p-8 flex flex-col shadow-soft-3">
+            <span className="absolute top-4 right-4 bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">Current plan</span>
             <div className="mb-6">
-              <h3 className="text-2xl font-bold text-slate-900 mb-1">Free</h3>
-              <p className="text-4xl font-extrabold text-slate-900">$0<span className="text-base font-normal text-slate-500">/month</span></p>
+              <h3 className="text-2xl font-bold text-foreground mb-1">Free</h3>
+              <p className="text-4xl font-extrabold text-foreground">$0<span className="text-base font-normal text-muted-foreground">/month</span></p>
             </div>
             <ul className="space-y-3 mb-8 flex-1">
               {freeFeatures.map((f) => (
-                <li key={f} className="flex items-center gap-3 text-sm text-slate-700">
+                <li key={f} className="flex items-center gap-3 text-sm text-muted-foreground">
                   <Check />
                   {f}
                 </li>
@@ -58,36 +79,36 @@ export function Pricing() {
             </ul>
             <button
               onClick={() => router.push('/editor')}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors"
+              className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors"
             >
               Start for free →
             </button>
           </div>
 
           {/* Pro */}
-          <div className="relative rounded-2xl border border-border/20 bg-white p-8 flex flex-col">
-            <span className="absolute top-4 right-4 bg-slate-100 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">Coming soon</span>
+          <div className="reveal reveal-delay-2 relative rounded-2xl border border-border/20 bg-card p-8 flex flex-col shadow-soft-2">
+            <span className="absolute top-4 right-4 bg-muted text-muted-foreground text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">Coming soon</span>
             <div className="mb-6">
-              <h3 className="text-2xl font-bold text-slate-900 mb-1">Pro</h3>
-              <p className="text-4xl font-extrabold text-slate-400">TBD</p>
+              <h3 className="text-2xl font-bold text-foreground mb-1">Pro</h3>
+              <p className="text-4xl font-extrabold text-muted-foreground">TBD</p>
             </div>
             <ul className="space-y-3 mb-8 flex-1">
               {proFeatures.map((f) => (
-                <li key={f} className="flex items-center gap-3 text-sm text-slate-500">
-                  <svg className="w-4 h-4 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <li key={f} className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <svg className="w-4 h-4 text-muted-foreground/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 13l4 4L19 7" />
                   </svg>
                   {f}
                 </li>
               ))}
             </ul>
-            <button               className="w-full py-3 border border-border/20 text-slate-600 font-semibold rounded-lg hover:bg-slate-50 transition-colors">
+            <button className="w-full py-3 border border-border/20 text-muted-foreground font-semibold rounded-xl hover:bg-accent transition-colors">
               Join waitlist
             </button>
           </div>
         </div>
 
-        <p className="text-center text-sm text-slate-400 mt-8">No credit card ever required for free plan</p>
+        <p className="reveal reveal-delay-3 text-center text-sm text-muted-foreground mt-8">No credit card ever required for free plan</p>
       </div>
     </section>
   );

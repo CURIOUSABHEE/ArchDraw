@@ -50,35 +50,34 @@ export function CTASection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="max-w-3xl mx-auto h-px mb-20 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-
-      <div className="max-w-3xl mx-auto text-center relative">
-        <h2 className="reveal text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-          <span className="text-foreground">
-            Start building your
-          </span>
-          <br />
-          <span className="text-primary">
-            architecture today.
-          </span>
-        </h2>
-        <p className="reveal reveal-delay-1 text-lg text-muted-foreground mb-10">
-          No account needed. No credit card. Just your ideas.
-        </p>
-        <button
-          ref={btnRef}
-          onClick={() => router.push('/editor')}
-          className="reveal reveal-delay-2 will-change-transform text-lg px-10 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg"
-        >
-          Open the canvas →
-        </button>
-        <p className="text-sm text-muted-foreground mt-4">
-          New to system design?{' '}
-          <Link href="/tutorials" className="text-primary hover:text-primary/80 transition-colors">
-            Start with an interactive tutorial →
-          </Link>
-        </p>
+    <section ref={sectionRef} className="py-32 px-6 relative overflow-hidden">
+      {/* Floating card container */}
+      <div className="max-w-3xl mx-auto bg-card rounded-3xl p-12 shadow-soft-4">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="reveal text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-foreground">
+            <span>Start building your</span>
+            <br />
+            <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+              architecture today.
+            </span>
+          </h2>
+          <p className="reveal reveal-delay-1 text-lg mb-10 text-muted-foreground">
+            No account needed. No credit card. Just your ideas.
+          </p>
+          <button
+            ref={btnRef}
+            onClick={() => router.push('/editor')}
+            className="reveal reveal-delay-2 will-change-transform text-lg px-10 py-4 rounded-xl hover:opacity-90 transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-purple-500 text-white"
+          >
+            Open the canvas →
+          </button>
+          <p className="text-sm mt-4 text-muted-foreground">
+            New to system design?{' '}
+            <Link href="/tutorials" className="text-primary hover:opacity-80 transition-opacity">
+              Start with an interactive tutorial →
+            </Link>
+          </p>
+        </div>
       </div>
     </section>
   );

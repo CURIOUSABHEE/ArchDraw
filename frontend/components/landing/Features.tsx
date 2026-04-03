@@ -40,10 +40,10 @@ export function Features() {
     <section ref={sectionRef} className="py-28 px-6" id="features">
       <div className="max-w-5xl mx-auto">
         {/* Floating card container */}
-        <div className="bg-white rounded-3xl p-8 md:p-12" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+        <div className="bg-card rounded-3xl p-8 md:p-12 shadow-soft-3">
           <header className="reveal text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#6366f1' }}>Features</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: '#1e293b' }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-4 text-primary">Features</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
               Everything you need to diagram faster
             </h2>
           </header>
@@ -52,8 +52,7 @@ export function Features() {
             {features.map((f, i) => (
               <div
                 key={f.title}
-                className={`reveal reveal-delay-${Math.min(i + 1, 5)} p-6 rounded-2xl transition-all`}
-                style={{ background: '#f8fafc', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+                className={`reveal reveal-delay-${Math.min(i + 1, 5)} p-6 rounded-2xl transition-all bg-secondary soft-card`}
                 onMouseEnter={e => {
                   e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)';
                   e.currentTarget.style.transform = 'translateY(-2px)';
@@ -71,8 +70,8 @@ export function Features() {
                     <f.Icon style={{ width: 18, height: 18, color: f.color }} />
                   </div>
                   <div className="space-y-1.5">
-                    <h3 className="font-semibold" style={{ color: '#1e293b' }}>{f.title}</h3>
-                    <p className="text-sm leading-relaxed" style={{ color: '#64748b' }}>{f.desc}</p>
+                    <h3 className="font-semibold text-foreground">{f.title}</h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
                   </div>
                 </div>
               </div>

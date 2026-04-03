@@ -11,6 +11,7 @@ const HowItWorks        = dynamic(() => import('@/components/landing/HowItWorks'
 const Templates         = dynamic(() => import('@/components/landing/Templates').then(m => ({ default: m.Templates })), { loading: () => <div className="min-h-[400px]" /> });
 const ComponentsShowcase = dynamic(() => import('@/components/landing/ComponentsShowcase').then(m => ({ default: m.ComponentsShowcase })), { loading: () => <div className="min-h-[400px]" /> });
 const UseCases          = dynamic(() => import('@/components/landing/UseCases').then(m => ({ default: m.UseCases })), { loading: () => <div className="min-h-[400px]" /> });
+const Pricing           = dynamic(() => import('@/components/landing/Pricing').then(m => ({ default: m.Pricing })), { loading: () => <div className="min-h-[400px]" /> });
 const FAQ               = dynamic(() => import('@/components/landing/FAQ').then(m => ({ default: m.FAQ })), { loading: () => <div className="min-h-[400px]" />, ssr: false });
 const CTASection        = dynamic(() => import('@/components/landing/CTASection').then(m => ({ default: m.CTASection })), { loading: () => <div className="min-h-[200px]" /> });
 const Footer            = dynamic(() => import('@/components/landing/Footer').then(m => ({ default: m.Footer })), { loading: () => <div className="min-h-[100px]" /> });
@@ -32,7 +33,7 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="min-h-screen font-sans">
+      <div className="min-h-screen font-sans bg-background">
         <Navbar />
         <main>
           <Hero />
@@ -42,6 +43,7 @@ export default function Home() {
           <Templates />
           <ComponentsShowcase />
           <UseCases />
+          <Pricing />
           <FAQ />
           <CTASection />
         </main>

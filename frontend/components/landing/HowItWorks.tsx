@@ -318,15 +318,14 @@ export function HowItWorks() {
 
               <div
                 ref={mockupRef}
-                className="rounded-2xl overflow-hidden bg-card"
-                style={{ boxShadow: '0 20px 60px hsl(var(--foreground) / 0.15)' }}
+                className="rounded-2xl overflow-hidden shadow-soft-4 bg-card"
               >
-                <div className="flex items-center gap-1.5 px-4 py-3 bg-secondary">
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary/30" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary/20" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary/15" />
+                <div className="flex items-center gap-1.5 px-4 py-3 bg-card">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
                   <div className="flex-1 mx-3">
-                    <div className="rounded px-3 py-0.5 text-xs text-center max-w-[180px] mx-auto bg-card text-muted-foreground">
+                    <div className="rounded px-3 py-0.5 text-xs text-center max-w-[180px] mx-auto bg-secondary text-muted-foreground">
                       archdraw.app/editor
                     </div>
                   </div>

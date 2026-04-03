@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Badge } from '@/components/ui/badge';
 
 const categories = [
   { label: 'Client & Entry', chips: ['Client', 'DNS', 'CDN', 'API Gateway', 'Load Balancer', 'Reverse Proxy'], color: '#6366f1' },
@@ -35,44 +34,38 @@ export function ComponentsShowcase() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-28 px-6 lg:px-8" id="components">
+    <section ref={sectionRef} className="py-28 px-6" id="components">
       <div className="max-w-5xl mx-auto">
-        <header className="reveal text-center mb-16">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-4 text-primary">Components</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-            150+ components. Every layer covered.
-          </h2>
-        </header>
+        {/* Floating card container */}
+        <div className="bg-white rounded-3xl p-8 md:p-12" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+          <header className="reveal text-center mb-16">
+            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#6366f1' }}>Components</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: '#1e293b' }}>
+              150+ components. Every layer covered.
+            </h2>
+          </header>
 
-        <div className="space-y-5">
-          {categories.map((cat, i) => (
-            <div
-              key={cat.label}
-              className={`reveal reveal-delay-${Math.min(i + 1, 5)} flex items-start gap-6`}
-            >
-              <span className="text-xs font-medium uppercase tracking-wider w-28 shrink-0 pt-2 text-muted-foreground">{cat.label}</span>
-              <div className="flex flex-wrap gap-2">
-                {cat.chips.map((chip) => (
-                  <span
-                    key={chip}
-                    className="text-xs px-3 py-1.5 rounded-lg"
-                    style={{ borderColor: cat.color + '30', color: cat.color, backgroundColor: cat.color + '10' }}
-                  >
-                    {chip}
-                  </span>
-                ))}
+          <div className="space-y-5">
+            {categories.map((cat, i) => (
+              <div
+                key={cat.label}
+                className={`reveal reveal-delay-${Math.min(i + 1, 5)} flex items-start gap-6`}
+              >
+                <span className="text-xs font-medium uppercase tracking-wider w-28 shrink-0 pt-2" style={{ color: '#94a3b8' }}>{cat.label}</span>
+                <div className="flex flex-wrap gap-2">
+                  {cat.chips.map((chip) => (
+                    <span
+                      key={chip}
+                      className="text-xs px-3 py-1.5 rounded-lg"
+                      style={{ color: cat.color, backgroundColor: cat.color + '10' }}
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-12 text-center">
-          <a
-            href="/editor"
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-          >
-            View all components →
-          </a>
+            ))}
+          </div>
         </div>
       </div>
     </section>

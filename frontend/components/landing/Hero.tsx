@@ -86,7 +86,7 @@ export function Hero() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-12 pb-12">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-[calc(100vh-8rem)]">
             <div className="h-[400px]" />
-            <div className="h-[400px] bg-card rounded-2xl" />
+            <div className="h-[400px] bg-white rounded-2xl" style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.1)' }} />
           </div>
         </div>
       </section>
@@ -99,29 +99,25 @@ export function Hero() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-[calc(100vh-8rem)]">
           <div className="flex flex-col justify-center">
             <h1 className="hero-headline font-bold mb-6 text-4xl sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.1]">
-              <span className="text-foreground">
-                Your architecture,
-              </span>
+              <span className="text-foreground">Your architecture,</span>
               <br />
-              <span className="text-primary">
-                finally visual.
-              </span>
+              <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">finally visual.</span>
             </h1>
 
-            <p className="hero-subtext mb-8 text-lg text-muted-foreground leading-relaxed max-w-[480px]">
+            <p className="hero-subtext mb-8 text-lg leading-relaxed max-w-[480px] text-muted-foreground">
               Design production-ready system diagrams in minutes. Drag, connect, think in systems.
             </p>
 
             <div className="hero-cta-group flex items-center gap-4 flex-wrap">
               <button
                 onClick={() => router.push('/editor')}
-                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl hover:opacity-90 transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-purple-500 text-white"
               >
                 Start designing <ArrowRight className="w-4 h-4" />
               </button>
               <button
                 onClick={() => document.getElementById('templates')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-xl hover:bg-accent transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl hover:bg-accent transition-all text-muted-foreground"
               >
                 View templates
               </button>
@@ -143,13 +139,13 @@ export function Hero() {
             <div
               ref={tiltRef}
               className="relative rounded-2xl overflow-hidden"
-              style={{ transformStyle: 'preserve-3d', perspective: '1000px', boxShadow: '0 20px 60px hsl(var(--foreground) / 0.15)' }}
+              style={{ transformStyle: 'preserve-3d', perspective: '1000px', boxShadow: '0 25px 70px rgba(0,0,0,0.1)' }}
             >
-              <div className="flex items-center gap-2 px-4 py-3 bg-secondary">
+              <div className="flex items-center gap-2 px-4 py-3 bg-card">
                 <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary/30" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary/20" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary/15" />
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#ef4444' }} />
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#fbbf24' }} />
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#22c55e' }} />
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="rounded-lg px-3 py-1 text-[10px] text-center max-w-[180px] mx-auto bg-card text-muted-foreground">

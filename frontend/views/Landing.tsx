@@ -467,7 +467,7 @@ export default function LandingPage() {
             (e.target as HTMLButtonElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)';
           }}
         >
-          Open Editor — It's Free
+          Open Editor — It&apos;s Free
         </button>
       </div>
 
