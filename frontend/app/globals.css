@@ -1,102 +1,104 @@
 @import "tailwindcss";
 
-/* ── Dark mode variant for Tailwind v4 ── */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
-    /* Background and Foreground */
-    --background: 210 20% 98%;
-    --foreground: 222 47% 8%;
+    /* ── Solid Soft Background ── */
+    --background: 0 0% 96%;
+    --foreground: 220 10% 18%;
     
-    /* Cards and surfaces */
+    /* Card surfaces - solid white */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 8%;
+    --card-foreground: 220 10% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 8%;
+    --popover-foreground: 220 10% 18%;
     
-    /* Primary - Indigo for brand identity */
+    /* Primary - soft indigo */
     --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
     
-    /* Secondary */
-    --secondary: 210 16% 95%;
-    --secondary-foreground: 222 47% 12%;
+    /* Secondary - very light gray */
+    --secondary: 0 0% 97%;
+    --secondary-foreground: 220 10% 35%;
     
-    /* Muted */
-    --muted: 210 16% 93%;
-    --muted-foreground: 215 14% 45%;
+    /* Muted - subtle gray */
+    --muted: 0 0% 95%;
+    --muted-foreground: 220 8% 50%;
     
-    /* Accent */
-    --accent: 210 16% 93%;
-    --accent-foreground: 222 47% 12%;
+    /* Accent - light gray for hover */
+    --accent: 0 0% 93%;
+    --accent-foreground: 220 10% 25%;
     
     /* Destructive */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Borders and inputs */
-    --border: 214 14% 85%;
-    --input: 214 14% 85%;
-    --ring: 217 91% 60%;
+    /* NO borders - shadows only */
+    --border: 0 0% 100%;
+    --input: 0 0% 98%;
+    --ring: 239 84% 67%;
     
-    /* Radius */
-    --radius: 0.625rem;
+    /* Radius - larger for softer feel */
+    --radius: 14px;
     
     /* Sidebar */
-    --sidebar: 0 0% 98%;
-    --sidebar-foreground: 222 47% 12%;
-    --sidebar-primary: 217 91% 45%;
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 220 10% 25%;
+    --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 16% 93%;
-    --sidebar-accent-foreground: 222 47% 12%;
-    --sidebar-border: 214 14% 85%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 220 10% 25%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: 239 84% 67%;
     
-    /* Canvas specific */
-    --canvas-bg: 210 20% 98%;
-    --grid-color: 214 14% 88%;
+    /* Canvas - solid soft gray */
+    --canvas-bg: 0 0% 96%;
+    --grid-color: 0 0% 90%;
   }
 
   .dark, :where(.dark, .dark *) {
-    --background: 222 47% 5%;
-    --foreground: 210 40% 98%;
+    /* ── Solid Dark Background ── */
+    --background: 220 18% 10%;
+    --foreground: 0 0% 96%;
     
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --card: 220 18% 14%;
+    --card-foreground: 0 0% 96%;
+    --popover: 220 18% 14%;
+    --popover-foreground: 0 0% 96%;
     
     --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 217 33% 14%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 18% 18%;
+    --secondary-foreground: 0 0% 90%;
     
-    --muted: 217 33% 14%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 220 18% 18%;
+    --muted-foreground: 220 10% 60%;
     
-    --accent: 217 91% 20%;
-    --accent-foreground: 217 91% 90%;
+    --accent: 220 18% 20%;
+    --accent-foreground: 0 0% 90%;
     
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 0 0% 100%;
     
-    --border: 217 33% 18%;
-    --input: 217 33% 18%;
-    --ring: 217 91% 60%;
+    --border: 220 18% 14%;
+    --input: 220 18% 16%;
+    --ring: 239 84% 67%;
     
-    --sidebar: 222 47% 6%;
-    --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 217 91% 65%;
-    --sidebar-primary-foreground: 222 47% 8%;
-    --sidebar-accent: 217 33% 14%;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 217 33% 18%;
-    --sidebar-ring: 217 91% 60%;
+    --radius: 14px;
     
-    --canvas-bg: 222 47% 5%;
-    --grid-color: 217 33% 15%;
+    --sidebar: 220 18% 12%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 18% 18%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 220 18% 14%;
+    --sidebar-ring: 239 84% 67%;
+    
+    --canvas-bg: 220 18% 12%;
+    --grid-color: 220 18% 22%;
   }
 }
 
@@ -108,23 +110,29 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Canvas background */
+/* ═══════════════════════════════════════════════════════════════
+   FLOATING DESIGN SYSTEM - No borders, soft shadows only
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Soft Canvas Background ── */
 .dark .react-flow__background,
 .react-flow__background {
   background-color: hsl(var(--canvas-bg));
 }
 
-/* Premium node transitions */
+/* ── Soft Node Transitions ── */
 .react-flow__node {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              filter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Subtle edge animations */
+/* ── Subtle Edge Animations ── */
 .react-flow__edge-path {
-  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease, opacity 0.15s ease;
 }
 
-/* Custom scrollbar */
+/* ── Soft Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -135,21 +143,451 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
+  background: hsl(var(--muted));
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
+  background: hsl(var(--muted-foreground) / 0.3);
 }
 
-/* Focus styles */
+/* ── Focus styles - soft ring ── */
 *:focus-visible {
-  outline: 1px solid hsl(var(--ring));
+  outline: 2px solid hsl(var(--ring) / 0.25);
   outline-offset: 2px;
 }
 
-/* ── Scroll reveal — CSS-only fallback ── */
+/* ── Canvas interaction styles - soft selection ── */
+.react-flow__selection {
+  background: hsl(var(--primary) / 0.06) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2), 0 4px 20px hsl(var(--primary) / 0.1) !important;
+}
+
+.pan-active {
+  cursor: grab !important;
+}
+
+.pan-active:active {
+  cursor: grabbing !important;
+}
+
+/* ── Soft Connection Line ── */
+.react-flow__connection-line {
+  stroke: hsl(var(--ring)) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 6 4 !important;
+  opacity: 0.6;
+}
+
+/* ── Soft Handles ── */
+.react-flow__handle {
+  width: 12px !important;
+  height: 12px !important;
+  background: hsl(var(--card)) !important;
+  border: none !important;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.12);
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle {
+  opacity: 1;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.3);
+  background: hsl(var(--primary)) !important;
+  box-shadow: 0 0 12px hsl(var(--primary) / 0.4);
+}
+
+/* ── Selected Edge ── */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: hsl(var(--primary)) !important;
+  stroke-width: 2.5px !important;
+  filter: drop-shadow(0 0 4px hsl(var(--primary) / 0.4));
+}
+
+/* ── Soft Viewport ── */
+.react-flow__viewport {
+  transition: transform 0.1s ease-out;
+}
+
+/* ── Soft MiniMap ── */
+.react-flow__minimap {
+  background: hsl(var(--card)) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px hsl(var(--foreground) / 0.08) !important;
+}
+
+/* ── Soft Controls ── */
+.react-flow__controls {
+  background: hsl(var(--card)) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px hsl(var(--foreground) / 0.08) !important;
+  border: none !important;
+  overflow: hidden;
+}
+
+.react-flow__controls button {
+  background: transparent !important;
+  border: none !important;
+  color: hsl(var(--foreground)) !important;
+  transition: background 0.15s ease, color 0.15s ease !important;
+}
+
+.react-flow__controls button:hover {
+  background: hsl(var(--accent)) !important;
+}
+
+.react-flow__controls button svg {
+  fill: hsl(var(--foreground)) !important;
+  max-width: 14px;
+  max-height: 14px;
+}
+
+.dragging {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SOFT SHADOW SYSTEM - Zero borders, shadows only
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Level 1 - Subtle lift */
+.shadow-soft-1 {
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.06);
+}
+
+/* Level 2 - Standard floating */
+.shadow-soft-2 {
+  box-shadow: 0 4px 16px hsl(var(--foreground) / 0.08);
+}
+
+/* Level 3 - Elevated panel */
+.shadow-soft-3 {
+  box-shadow: 0 8px 32px hsl(var(--foreground) / 0.1);
+}
+
+/* Level 4 - Modal / overlay */
+.shadow-soft-4 {
+  box-shadow: 0 16px 48px hsl(var(--foreground) / 0.15);
+}
+
+/* Level 5 - Maximum elevation */
+.shadow-soft-5 {
+  box-shadow: 0 24px 64px hsl(var(--foreground) / 0.2);
+}
+
+/* ── Solid Floating Panel ── */
+.floating-panel {
+  background: hsl(var(--card));
+  border-radius: 20px;
+  box-shadow: 0 10px 40px hsl(var(--foreground) / 0.08);
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+.floating-panel:hover {
+  box-shadow: 0 16px 48px hsl(var(--foreground) / 0.12);
+}
+
+.floating-panel:active {
+  transform: scale(0.995);
+}
+
+/* ── Floating Toolbar (centered pill) ── */
+.floating-toolbar {
+  background: hsl(var(--card));
+  border-radius: 9999px;
+  box-shadow: 0 4px 20px hsl(var(--foreground) / 0.08);
+  padding: 6px 20px;
+  gap: 8px;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Floating Icon Toolbar (left vertical) ── */
+.floating-icon-toolbar {
+  background: hsl(var(--card));
+  border-radius: 16px;
+  box-shadow: 0 8px 32px hsl(var(--foreground) / 0.08);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.floating-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.floating-icon-btn:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+
+.floating-icon-btn:active {
+  transform: scale(0.95);
+}
+
+.floating-icon-btn.active {
+  background: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+}
+
+/* ── Floating Right Panel (properties) ── */
+.floating-right-panel {
+  background: hsl(var(--card));
+  border-radius: 20px;
+  box-shadow: 0 10px 40px hsl(var(--foreground) / 0.08);
+  padding: 16px;
+  min-width: 280px;
+}
+
+/* ── Floating Bottom Bar (timeline/prompt) ── */
+.floating-bottom-bar {
+  background: hsl(var(--card));
+  border-radius: 20px;
+  box-shadow: 0 8px 32px hsl(var(--foreground) / 0.08);
+  padding: 12px 20px;
+}
+
+/* ── Floating Pill Button ── */
+.floating-pill-btn {
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: hsl(var(--card));
+  box-shadow: 0 4px 16px hsl(var(--foreground) / 0.08);
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.floating-pill-btn:hover {
+  box-shadow: 0 8px 24px hsl(var(--foreground) / 0.12);
+  transform: translateY(-1px);
+}
+
+.floating-pill-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── Solid Panel (Floating AI Bar) ── */
+.solid-panel {
+  background: hsl(var(--card));
+  border-radius: 20px;
+  box-shadow: 0 8px 32px hsl(var(--foreground) / 0.08);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.solid-panel:hover {
+  box-shadow: 0 12px 40px hsl(var(--foreground) / 0.1);
+}
+
+/* ── Solid Icon Button ── */
+.solid-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  transition: all 0.15s ease;
+}
+
+.solid-icon-btn:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+
+.solid-icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* ── Solid Dropdown Trigger ── */
+.solid-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: hsl(var(--secondary));
+  color: hsl(var(--foreground));
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.solid-dropdown-trigger:hover {
+  background: hsl(var(--accent));
+}
+
+.solid-dropdown-trigger:active {
+  transform: scale(0.98);
+}
+
+/* ── Solid Submit Button ── */
+.solid-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: hsl(var(--primary));
+  color: white;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.solid-submit-btn:hover:not(:disabled) {
+  background: hsl(var(--primary) / 0.9);
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.3);
+}
+
+.solid-submit-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.solid-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Solid Input ── */
+.solid-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: hsl(var(--foreground));
+  font-size: 14px;
+}
+
+.solid-input::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+/* ── Solid Dropdown Content ── */
+.solid-dropdown-content {
+  background: hsl(var(--card));
+  border-radius: 16px;
+  box-shadow: 0 16px 48px hsl(var(--foreground) / 0.15);
+  padding: 8px;
+  min-width: 200px;
+}
+
+.solid-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.solid-dropdown-item:hover {
+  background: hsl(var(--accent));
+}
+
+.solid-dropdown-item.selected {
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+}
+
+/* ── Solid Select Content (Radix) ── */
+[data-radix-popper-content-wrapper] .radix-select-content,
+[data-side^="bottom"] .radix-select-content {
+  background: hsl(var(--card)) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 48px hsl(var(--foreground) / 0.15) !important;
+  border: none !important;
+  padding: 8px !important;
+}
+
+/* ── Solid Dialog Content ── */
+.radix-dialog-content,
+[data-radix-dialog-content] {
+  background: hsl(var(--card)) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 24px 64px hsl(var(--foreground) / 0.2) !important;
+  border: none !important;
+}
+
+/* ── Focus Mode Overlay ── */
+.focus-mode-active .focus-mode-dim {
+  position: fixed;
+  inset: 0;
+  background: hsl(var(--foreground) / 0.3);
+  z-index: 40;
+  pointer-events: all;
+}
+
+.focus-mode-active .floating-panel.highlighted-panel,
+.focus-mode-active .floating-toolbar.highlighted-panel,
+.focus-mode-active .floating-right-panel.highlighted-panel,
+.focus-mode-active .floating-icon-toolbar.highlighted-panel {
+  box-shadow: 0 16px 48px hsl(var(--primary) / 0.2);
+  transform: scale(1.02);
+}
+
+/* ── Soft Slider ── */
+.floating-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: hsl(var(--muted));
+  outline: none;
+  transition: background 0.2s ease;
+}
+
+.floating-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: hsl(var(--card));
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.15);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.floating-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px hsl(var(--foreground) / 0.2);
+}
+
+.floating-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: hsl(var(--card));
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.15);
+  cursor: pointer;
+  border: none;
+}
+
+/* ── Scroll reveal animations ── */
 .reveal {
   opacity: 1;
   transform: translateY(0);
@@ -169,84 +607,6 @@ body {
   .reveal-delay-3 { transition-delay: 0.3s; }
   .reveal-delay-4 { transition-delay: 0.4s; }
   .reveal-delay-5 { transition-delay: 0.5s; }
-}
-
-/* ── Canvas interaction styles ── */
-.react-flow__selection {
-  background: hsl(var(--primary) / 0.08) !important;
-  border: 1px solid hsl(var(--primary) / 0.4) !important;
-  border-radius: 6px !important;
-}
-
-.pan-active {
-  cursor: grab !important;
-}
-
-.pan-active:active {
-  cursor: grabbing !important;
-}
-
-.react-flow__connection-line {
-  stroke: hsl(var(--ring)) !important;
-  stroke-width: 1.5px !important;
-  stroke-dasharray: 5 5 !important;
-  animation: connectionDash 0.5s linear infinite;
-}
-
-@keyframes connectionDash {
-  to {
-    stroke-dashoffset: -10;
-  }
-}
-
-.react-flow__handle {
-  width: 10px !important;
-  height: 10px !important;
-  background: hsl(var(--card)) !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-  opacity: 0;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.react-flow__node:hover .react-flow__handle,
-.react-flow__node.selected .react-flow__handle {
-  opacity: 1;
-}
-
-.react-flow__handle:hover {
-  transform: scale(1.3);
-  background: hsl(var(--ring)) !important;
-}
-
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke: hsl(var(--ring)) !important;
-  stroke-width: 1.5px !important;
-}
-
-.react-flow__viewport {
-  transition: transform 0.1s ease-out;
-}
-
-.react-flow__minimap {
-  background: hsl(var(--card)) !important;
-  border-radius: 8px;
-}
-
-.react-flow__controls {
-  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.1);
-}
-
-.dragging {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.react-flow__loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
 }
 
 /* ── Flowing edge animations ── */
@@ -276,29 +636,15 @@ body {
 }
 
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 20px 2px hsl(var(--primary) / 0.4); }
-  50% { box-shadow: 0 0 30px 6px hsl(var(--primary) / 0.6); }
+  0%, 100% { box-shadow: 0 0 20px 2px hsl(var(--primary) / 0.3); }
+  50% { box-shadow: 0 0 30px 6px hsl(var(--primary) / 0.4); }
 }
 
-.flow-sync {
-  animation: flowSync 1.2s linear infinite;
-}
-
-.flow-async {
-  animation: flowAsync 0.8s linear infinite;
-}
-
-.flow-stream {
-  animation: flowStream 1s linear infinite;
-}
-
-.flow-event {
-  animation: flowEvent 0.6s linear infinite;
-}
-
-.flow-dep {
-  animation: flowDep 0.9s linear infinite;
-}
+.flow-sync { animation: flowSync 1.2s linear infinite; }
+.flow-async { animation: flowAsync 0.8s linear infinite; }
+.flow-stream { animation: flowStream 1s linear infinite; }
+.flow-event { animation: flowEvent 0.6s linear infinite; }
+.flow-dep { animation: flowDep 0.9s linear infinite; }
 
 .flow-sync:hover,
 .flow-async:hover,
@@ -306,7 +652,7 @@ body {
 .flow-event:hover,
 .flow-dep:hover {
   opacity: 1;
-  filter: brightness(1.1);
+  filter: brightness(1.05);
 }
 
 .pulse-glow-btn {
@@ -314,65 +660,72 @@ body {
 }
 
 @keyframes dash {
-  to {
-    stroke-dashoffset: 0;
-  }
+  to { stroke-dashoffset: 0; }
 }
 
-/* Accordion animations */
+/* ── Accordion animations ── */
 @keyframes accordion-down {
-  from {
-    height: 0;
-    opacity: 0;
-  }
-  to {
-    height: var(--radix-accordion-content-height);
-    opacity: 1;
-  }
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-accordion-content-height); opacity: 1; }
 }
 
 @keyframes accordion-up {
-  from {
-    height: var(--radix-accordion-content-height);
-    opacity: 1;
-  }
-  to {
-    height: 0;
-    opacity: 0;
-  }
+  from { height: var(--radix-accordion-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
 }
 
-.animate-accordion-down {
-  animation: accordion-down 0.2s ease-out;
-}
+.animate-accordion-down { animation: accordion-down 0.2s ease-out; }
+.animate-accordion-up { animation: accordion-up 0.2s ease-out; }
 
-.animate-accordion-up {
-  animation: accordion-up 0.2s ease-out;
-}
+/* ── Soft Transitions ── */
+.transition-smooth { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+.transition-smooth-medium { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
 
-/* Smooth transitions for interactive elements */
-.transition-smooth {
-  transition: all 0.15s ease-out;
-}
-
-.transition-smooth-medium {
-  transition: all 0.2s ease-out;
-}
-
-/* Hover scale effect */
+/* ── Hover Scale Effect ── */
 .hover-scale:hover {
-  transform: scale(1.02);
+  transform: scale(1.01);
 }
 
 .hover-scale:active {
-  transform: scale(0.98);
+  transform: scale(0.99);
 }
 
-/* Drag and drop cursor states */
-.cursor-grab {
-  cursor: grab;
+/* ── Soft Button ── */
+.soft-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.cursor-grabbing {
-  cursor: grabbing;
+.soft-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px hsl(var(--foreground) / 0.1);
+}
+
+.soft-btn:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* ── Soft Card ── */
+.soft-card {
+  background: hsl(var(--card));
+  border-radius: 16px;
+  box-shadow: 0 4px 16px hsl(var(--foreground) / 0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.soft-card:hover {
+  box-shadow: 0 8px 28px hsl(var(--foreground) / 0.1);
+  transform: translateY(-2px);
+}
+
+/* ── Drag and Drop cursor states ── */
+.cursor-grab { cursor: grab; }
+.cursor-grabbing { cursor: grabbing; }
+
+/* ── Loading ── */
+.react-flow__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
