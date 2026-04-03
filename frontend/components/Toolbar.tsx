@@ -504,20 +504,8 @@ export function Toolbar() {
 
   return (
     <>
-      {/* Gradient accent line at top */}
-      <div 
-        className="h-[2px] w-full"
-        style={{
-          background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
-        }}
-      />
-      <header 
-        className="h-12 flex items-center justify-between px-4 z-30 shrink-0 border-b"
-        style={{
-          backgroundColor: 'var(--card)',
-          borderColor: 'var(--border)',
-          backdropFilter: 'blur(12px)',
-        }}
+      <header
+        className="floating-toolbar mx-auto my-3 flex items-center justify-between px-4 z-30 shrink-0"
       >
         {/* LEFT: Sidebar toggle + Canvas tabs */}
         <div className="flex items-center gap-2">
@@ -529,19 +517,19 @@ export function Toolbar() {
                 window.dispatchEvent(new CustomEvent('close-canvas-sidebar'));
               }
             }}
-            className="p-1.5 rounded-md transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="floating-icon-btn !w-9 !h-9"
             title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           >
-            <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
+            <PanelLeftClose className="w-4 h-4" />
           </button>
 
           {/* This button now toggles the canvas sidebar directly */}
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('toggle-canvas-sidebar'))}
-            className="p-1.5 rounded-md transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="floating-icon-btn !w-9 !h-9"
             title="Toggle canvases"
           >
-            <FolderOpen className="w-4 h-4 text-muted-foreground" />
+            <FolderOpen className="w-4 h-4" />
           </button>
 
           <div className="flex items-center gap-1">
@@ -562,10 +550,10 @@ export function Toolbar() {
                       switchCanvas(canvas.id);
                     }
                   }}
-                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring ${
+                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
                   {isEditing ? (
@@ -579,7 +567,7 @@ export function Toolbar() {
                         if (e.key === 'Escape') setEditingId(null);
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      className="bg-transparent outline-none border-none text-xs font-medium w-20"
+                      className="bg-transparent outline-none text-xs font-medium w-20"
                       autoFocus
                     />
                   ) : (
@@ -739,31 +727,28 @@ export function Toolbar() {
 
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-ai-generate'))}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/30 hover:to-purple-500/30 text-foreground border border-indigo-500/30 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 hover:bg-primary/15 text-primary transition-all"
             title="AI Generate Architecture"
           >
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span>AI Generate</span>
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>AI</span>
           </button>
 
           <button
             onClick={handleShare}
             disabled={isSharing || nodes.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/60 hover:bg-accent text-foreground transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="floating-icon-btn disabled:opacity-40"
           >
-            {isSharing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
-            <span>Share</span>
+            {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
           </button>
 
           <div className="relative">
             <button
               onClick={() => setExportOpen(!exportOpen)}
               disabled={isExporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/60 hover:bg-accent text-foreground transition-all disabled:opacity-40"
+              className="floating-icon-btn"
             >
-              {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              <span>Export</span>
-              <ChevronDown className="w-3 h-3 ml-0.5" />
+              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             </button>
 
             {exportOpen && (
