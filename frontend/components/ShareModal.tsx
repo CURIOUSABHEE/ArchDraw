@@ -61,11 +61,11 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden p-0">
-        <DialogHeader className="px-6 py-4 border-b shrink-0">
+      <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogHeader className="px-5 py-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 shrink-0">
-              <Link2 className="w-5 h-5 text-primary" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/60 shrink-0">
+              <Link2 className="w-5 h-5 text-foreground/70" />
             </div>
             <div className="min-w-0">
               <DialogTitle className="text-base">Share Diagram</DialogTitle>
@@ -77,7 +77,7 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
         </DialogHeader>
 
         <Tabs defaultValue="link" className="w-full flex-1 min-h-0 flex flex-col">
-          <TabsList className="grid w-full grid-cols-3 shrink-0 mx-6 mt-4">
+          <TabsList className="grid w-full grid-cols-3 shrink-0 mx-5 mt-1">
             <TabsTrigger value="link" className="flex items-center gap-2 text-xs">
               <Link2 className="w-3.5 h-3.5" />
               Link
@@ -93,7 +93,7 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
           </TabsList>
 
           {/* Link Tab */}
-          <TabsContent value="link" className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 mt-4 space-y-4">
+          <TabsContent value="link" className="flex-1 min-h-0 overflow-y-auto px-5 pb-5 mt-4 space-y-4">
             <div className="space-y-4">
               <div className="flex gap-2">
                 <div className="relative flex-1 min-w-0">
@@ -101,12 +101,12 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                     ref={inputRef}
                     readOnly
                     value={shareUrl}
-                    className="pr-20 font-mono text-sm h-11 bg-muted/50 truncate"
+                    className="pr-20 font-mono text-sm h-11 bg-accent/50 truncate"
                     onClick={(e) => (e.target as HTMLInputElement).select()}
                   />
                   <Badge 
                     variant="secondary" 
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] h-5 px-1.5 shrink-0"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] h-5 px-1.5 shrink-0 bg-primary/10 text-primary"
                   >
                     <Clock className="w-2.5 h-2.5 mr-1" />
                     30 days
@@ -138,12 +138,12 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
             </div>
           </TabsContent>
 
-          {/* Notion Tab - Simple URL for Notion embedding */}
-          <TabsContent value="notion" className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 mt-4 space-y-4">
+          {/* Notion Tab */}
+          <TabsContent value="notion" className="flex-1 min-h-0 overflow-y-auto px-5 pb-5 mt-4 space-y-4">
             <div className="space-y-4">
-              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="p-3 bg-accent/50 rounded-xl">
                 <div className="flex items-start gap-2">
-                  <Globe className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <Globe className="w-4 h-4 text-foreground/60 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-foreground">Paste this link in Notion</p>
                     <p className="text-[11px] text-muted-foreground mt-1">
@@ -158,7 +158,7 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                 <Input
                   readOnly
                   value={embedLinkUrl()}
-                  className="pr-16 font-mono text-sm h-11 bg-muted/50"
+                  className="pr-16 font-mono text-sm h-11 bg-accent/50"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
               </div>
@@ -181,16 +181,16 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                 )}
               </Button>
 
-              {/* Quick options */}
+              {/* Theme options */}
               <div className="space-y-2 pt-2">
                 <label className="text-xs font-medium text-muted-foreground">Theme</label>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setTheme('dark')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl transition-all ${
                       theme === 'dark' 
-                        ? 'border-primary bg-primary/10 text-primary' 
-                        : 'border-border bg-card hover:bg-accent text-muted-foreground'
+                        ? 'bg-primary/10 text-primary shadow-sm' 
+                        : 'bg-accent/50 hover:bg-accent text-muted-foreground'
                     }`}
                   >
                     <Moon className="w-4 h-4 shrink-0" />
@@ -198,10 +198,10 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                   </button>
                   <button
                     onClick={() => setTheme('light')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl transition-all ${
                       theme === 'light' 
-                        ? 'border-primary bg-primary/10 text-primary' 
-                        : 'border-border bg-card hover:bg-accent text-muted-foreground'
+                        ? 'bg-primary/10 text-primary shadow-sm' 
+                        : 'bg-accent/50 hover:bg-accent text-muted-foreground'
                     }`}
                   >
                     <Sun className="w-4 h-4 shrink-0" />
@@ -217,7 +217,7 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
           </TabsContent>
 
           {/* HTML Embed Tab */}
-          <TabsContent value="embed" className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 mt-4 space-y-4">
+          <TabsContent value="embed" className="flex-1 min-h-0 overflow-y-auto px-5 pb-5 mt-4 space-y-4">
             <div className="space-y-4">
               {/* Options row */}
               <div className="grid grid-cols-2 gap-3">
@@ -227,7 +227,7 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                     type="number"
                     value={height}
                     onChange={(e) => setHeight(e.target.value)}
-                    className="h-9 text-sm"
+                    className="h-9 text-sm bg-accent/50"
                     min="200"
                     max="1200"
                   />
@@ -238,7 +238,7 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                     type="number"
                     value={zoom}
                     onChange={(e) => setZoom(e.target.value)}
-                    className="h-9 text-sm"
+                    className="h-9 text-sm bg-accent/50"
                     step="0.1"
                     min="0.1"
                     max="2"
@@ -253,20 +253,20 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                   <div className="flex gap-1">
                     <button
                       onClick={() => setTheme('dark')}
-                      className={`flex-1 flex items-center justify-center p-1.5 rounded border transition-colors ${
+                      className={`flex-1 flex items-center justify-center p-2 rounded-xl transition-all ${
                         theme === 'dark' 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-border bg-card hover:bg-accent'
+                          ? 'bg-primary/10' 
+                          : 'bg-accent/50 hover:bg-accent'
                       }`}
                     >
                       <Moon className={`w-4 h-4 ${theme === 'dark' ? 'text-primary' : 'text-muted-foreground'}`} />
                     </button>
                     <button
                       onClick={() => setTheme('light')}
-                      className={`flex-1 flex items-center justify-center p-1.5 rounded border transition-colors ${
+                      className={`flex-1 flex items-center justify-center p-2 rounded-xl transition-all ${
                         theme === 'light' 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-border bg-card hover:bg-accent'
+                          ? 'bg-primary/10' 
+                          : 'bg-accent/50 hover:bg-accent'
                       }`}
                     >
                       <Sun className={`w-4 h-4 ${theme === 'light' ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -280,10 +280,10 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                       <button
                         key={type}
                         onClick={() => setPathType(type as typeof pathType)}
-                        className={`flex-1 p-1.5 rounded border transition-colors ${
+                        className={`flex-1 p-2 rounded-xl transition-all ${
                           pathType === type 
-                            ? 'border-primary bg-primary/10' 
-                            : 'border-border bg-card hover:bg-accent'
+                             ? 'bg-primary/10' 
+                             : 'bg-accent/50 hover:bg-accent'
                         }`}
                       >
                         <svg width="24" height="12" viewBox="0 0 24 12" className="mx-auto">
@@ -296,7 +296,7 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                             }
                             fill="none"
                             stroke={pathType === type ? '#6366f1' : '#64748b'}
-                            strokeWidth="0.1"
+                            strokeWidth="1.5"
                             strokeLinecap="round"
                           />
                         </svg>
@@ -310,7 +310,7 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Preview</label>
                 <div 
-                  className="w-full rounded-lg overflow-hidden border border-border bg-muted/30"
+                  className="w-full rounded-xl overflow-hidden bg-accent/30"
                   style={{ height: Math.min(Math.max(parseInt(height) || 300, 150), 200) }}
                 >
                   <iframe
@@ -328,7 +328,7 @@ export function ShareModal({ shareUrl, embedUrl, canvasName, onClose }: Props) {
                   <textarea
                     readOnly
                     value={generateIframeCode()}
-                    className="w-full h-20 px-3 py-2 rounded-lg border border-border bg-muted/50 font-mono text-[11px] resize-none"
+                    className="w-full h-20 px-3 py-2 rounded-xl bg-accent/50 font-mono text-[11px] resize-none outline-none focus:ring-2 focus:ring-ring/30"
                     onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                   />
                 </div>

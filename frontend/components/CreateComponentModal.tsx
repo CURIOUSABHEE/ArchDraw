@@ -78,22 +78,24 @@ export function CreateComponentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Lightweight backdrop */}
+      {/* Soft backdrop */}
       <div
-        className="absolute inset-0 bg-black/30"
+        className="absolute inset-0 bg-black/20 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-in fade-in-0 zoom-in-95 duration-200 scrollbar-thin">
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-card rounded-2xl shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200 scrollbar-thin"
+        style={{ boxShadow: '0 24px 48px hsl(var(--foreground) / 0.15)' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        <div className="flex items-center justify-between px-5 py-4">
+          <h2 className="text-base font-semibold text-foreground">
             {isEditing ? 'Edit Component' : 'New Component'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-all"
           >
             <X className="w-4 h-4" />
           </button>
@@ -209,16 +211,16 @@ function ModalContent({ onClose, onCreate, onUpdate, existingNames, editComponen
       {/* Name Input - Primary Focus */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Name
           </label>
           {selectedTypeData && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent">
               <selectedTypeData.icon
                 className="w-3 h-3"
                 style={{ color: selectedTypeData.color }}
               />
-              <span className="text-[10px] font-medium text-zinc-600 dark:text-zinc-300">
+              <span className="text-[10px] font-medium text-foreground">
                 {selectedTypeData.label}
               </span>
             </div>
@@ -233,19 +235,19 @@ function ModalContent({ onClose, onCreate, onUpdate, existingNames, editComponen
             if (nameError) setNameError(validateName(e.target.value));
           }}
           placeholder="Auth Service, API Gateway, Payment…"
-          className={`w-full px-4 py-3 text-sm bg-zinc-50 dark:bg-zinc-800 rounded-xl border-2 outline-none transition-all ${nameError
-            ? 'border-red-400 focus:border-red-500'
-            : 'border-transparent focus:border-indigo-500'
+          className={`w-full px-4 py-3 text-sm bg-background rounded-xl outline-none transition-all ${nameError
+            ? 'ring-2 ring-destructive/50'
+            : 'focus:ring-2 focus:ring-ring/30'
             }`}
         />
         {nameError && (
-          <p className="text-xs text-red-500 mt-1">{nameError}</p>
+          <p className="text-xs text-destructive mt-1">{nameError}</p>
         )}
       </div>
 
-      {/* Type Selection - Flat Compact Grid */}
+      {/* Type Selection - Soft Grid */}
       <div className="space-y-2 shrink-0">
-        <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Type
         </label>
 
@@ -258,34 +260,32 @@ function ModalContent({ onClose, onCreate, onUpdate, existingNames, editComponen
                 key={type.id}
                 type="button"
                 onClick={() => setSelectedType(type.id)}
-                className={`group relative flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border-2 transition-all ${isSelected
-                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/50'
-                  : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-800'
+                className={`group relative flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl transition-all ${isSelected
+                  ? 'bg-primary/10'
+                  : 'hover:bg-accent/50'
                   }`}
               >
                 <div
-                  className="flex items-center justify-center w-8 h-8 rounded-lg transition-transform group-hover:scale-110"
+                  className="flex items-center justify-center w-9 h-9 rounded-xl transition-transform group-hover:scale-105"
                   style={{
-                    backgroundColor: isSelected ? `${type.color}25` : `${type.color}15`,
-                    border: `1px solid ${type.color}40`,
+                    backgroundColor: `${type.color}15`,
                   }}
                 >
                   <Icon
                     className="w-4 h-4"
                     style={{ color: type.color }}
-                    strokeWidth={0.1}
                   />
                 </div>
                 <span className={`text-[11px] font-medium text-center ${isSelected
-                  ? 'text-indigo-700 dark:text-indigo-300'
-                  : 'text-zinc-600 dark:text-zinc-400'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground'
                   }`}>
                   {type.label}
                 </span>
                 {isSelected && (
                   <div
-                    className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900"
-                    style={{ backgroundColor: type.color }}
+                    className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: type.color, boxShadow: `0 0 8px ${type.color}60` }}
                   />
                 )}
               </button>
@@ -297,10 +297,10 @@ function ModalContent({ onClose, onCreate, onUpdate, existingNames, editComponen
       {/* Description - Optional */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Description
           </label>
-          <span className="text-[10px] text-zinc-400">
+          <span className="text-[10px] text-muted-foreground/60">
             Optional
           </span>
         </div>
@@ -310,27 +310,27 @@ function ModalContent({ onClose, onCreate, onUpdate, existingNames, editComponen
           onChange={(e) => setDescription(e.target.value.slice(0, 80))}
           placeholder="What does this component do?"
           maxLength={80}
-          className="w-full px-4 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-800 rounded-xl border-2 border-transparent outline-none focus:border-zinc-300 dark:focus:border-zinc-600 transition-colors"
+          className="w-full px-4 py-2.5 text-sm bg-background rounded-xl outline-none focus:ring-2 focus:ring-ring/30 transition-all"
         />
         <div className="flex justify-end">
-          <span className="text-[10px] text-zinc-400">{description.length}/80</span>
+          <span className="text-[10px] text-muted-foreground/60">{description.length}/80</span>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex items-center justify-end gap-3 pt-2">
         <button
           onClick={onClose}
-          className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+          className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-xl transition-all"
         >
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={!isValid || isCreating}
-          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl transition-all ${isValid && !isCreating
-            ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98]'
-            : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-400 dark:text-zinc-500 cursor-not-allowed'
+          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all ${isValid && !isCreating
+            ? 'bg-primary text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0'
+            : 'bg-muted text-muted-foreground cursor-not-allowed'
             }`}
         >
           {isCreating ? (

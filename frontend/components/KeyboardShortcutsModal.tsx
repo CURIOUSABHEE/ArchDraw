@@ -62,17 +62,19 @@ export function KeyboardShortcutsModal({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex flex-row items-center gap-2 shrink-0">
-          <Keyboard className="w-4 h-4 text-primary" />
+      <DialogContent className="max-w-md max-h-[75vh] overflow-hidden flex flex-col gap-0">
+        <DialogHeader className="flex flex-row items-center gap-2 shrink-0 px-6 pt-4 pb-2">
+          <div className="w-8 h-8 rounded-xl bg-accent/60 flex items-center justify-center">
+            <Keyboard className="w-4 h-4 text-foreground/70" />
+          </div>
           <DialogTitle className="text-sm font-semibold">Keyboard Shortcuts</DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 overflow-y-auto -mx-6 px-6">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-5">
             {SHORTCUTS.map((section) => (
               <div key={section.category}>
-                <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-2">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-3">
                   {section.category}
                 </p>
                 <div className="space-y-0.5">
@@ -81,8 +83,8 @@ export function KeyboardShortcutsModal({ open, onOpenChange }: Props) {
                       key={key} 
                       className="flex items-center justify-between py-1.5"
                     >
-                      <span className="text-xs text-muted-foreground">{action}</span>
-                      <kbd className="text-[10px] font-mono font-medium text-foreground bg-muted border border-border rounded px-1.5 py-0.5 ml-2 shrink-0">
+                      <span className="text-xs text-foreground/80">{action}</span>
+                      <kbd className="text-[10px] font-mono font-medium text-foreground/70 bg-accent/60 rounded-lg px-2 py-1 ml-2 shrink-0">
                         {key}
                       </kbd>
                     </div>
@@ -93,8 +95,8 @@ export function KeyboardShortcutsModal({ open, onOpenChange }: Props) {
           </div>
         </div>
         
-        <div className="pt-4 border-t border-border shrink-0">
-          <p className="text-[10px] text-muted-foreground text-center">Press ? to toggle this panel</p>
+        <div className="px-6 py-3 shrink-0 border-t border-border/40">
+          <p className="text-[11px] text-muted-foreground/60 text-center">Press ? to toggle this panel</p>
         </div>
       </DialogContent>
     </Dialog>

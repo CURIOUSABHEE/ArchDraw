@@ -53,7 +53,6 @@ export function EmailCaptureModal({ reason, onClose }: Props) {
         : { redirectTo: getRedirectTo() };
       const { error } = await supabase.auth.signInWithOAuth({ provider, options: opts });
       if (error) { toast.error(error.message); setLoading(null); }
-      // On success the page redirects — no need to reset loading
     } catch { toast.error('Something went wrong'); setLoading(null); }
   };
 
@@ -77,36 +76,36 @@ export function EmailCaptureModal({ reason, onClose }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[6px]" onClick={handleDismiss} />
+      <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm" onClick={handleDismiss} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none">
         <div
-          className="pointer-events-auto w-full max-w-sm rounded-xl overflow-hidden shadow-2xl"
-          style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)' }}
+          className="pointer-events-auto w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl bg-card"
+          style={{ boxShadow: '0 24px 48px hsl(var(--foreground) / 0.15)' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-4">
             <div>
-              <p className="text-sm font-semibold text-white">{copy.title}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{copy.body}</p>
+              <p className="text-sm font-semibold text-foreground">{copy.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{copy.body}</p>
             </div>
-            <button onClick={handleDismiss} className="p-1.5 rounded-md hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
-              <X className="w-3.5 h-3.5" />
+            <button onClick={handleDismiss} className="p-2 rounded-xl hover:bg-accent/60 text-muted-foreground hover:text-foreground transition-all">
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           {sent ? (
             <div className="px-5 pb-6 text-center space-y-3">
-              <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center mx-auto">
-                <Mail className="w-5 h-5 text-indigo-400" />
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                <Mail className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Check your email</p>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  We sent a link to <span className="text-white font-medium">{email}</span>. Click it to continue.
+                <p className="text-sm font-semibold text-foreground">Check your email</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  We sent a link to <span className="text-foreground font-medium">{email}</span>. Click it to continue.
                 </p>
               </div>
-              <button onClick={() => setSent(false)} className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2">
+              <button onClick={() => setSent(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                 ← Use different email
               </button>
             </div>
@@ -116,7 +115,7 @@ export function EmailCaptureModal({ reason, onClose }: Props) {
               <button
                 onClick={() => handleOAuth('google')}
                 disabled={loading !== null}
-                className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors text-sm text-white disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-accent/50 hover:bg-accent rounded-xl transition-all text-sm font-medium text-foreground disabled:opacity-50"
               >
                 {loading === 'google' ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                   <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0">
@@ -133,7 +132,7 @@ export function EmailCaptureModal({ reason, onClose }: Props) {
               <button
                 onClick={() => handleOAuth('github')}
                 disabled={loading !== null}
-                className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors text-sm text-white disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-accent/50 hover:bg-accent rounded-xl transition-all text-sm font-medium text-foreground disabled:opacity-50"
               >
                 {loading === 'github' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}
                 Continue with GitHub
@@ -141,9 +140,9 @@ export function EmailCaptureModal({ reason, onClose }: Props) {
 
               {/* Divider */}
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-white/10" />
-                <span className="text-xs text-slate-500">or</span>
-                <div className="flex-1 h-px bg-white/10" />
+                <div className="flex-1 h-px bg-border/50" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <div className="flex-1 h-px bg-border/50" />
               </div>
 
               {/* Email */}
@@ -154,15 +153,12 @@ export function EmailCaptureModal({ reason, onClose }: Props) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   required
-                  className="w-full px-3 py-2.5 text-sm rounded-lg text-white placeholder:text-slate-500 outline-none transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'}
-                  onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                  className="w-full px-3 py-2.5 text-sm rounded-xl text-foreground placeholder:text-muted-foreground outline-none transition-all bg-accent/50 focus:ring-2 focus:ring-ring/30"
                 />
                 <button
                   type="submit"
                   disabled={loading !== null || !email.trim()}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium rounded-xl bg-primary text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 >
                   {loading === 'email' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                   {loading === 'email' ? 'Sending…' : 'Continue with Email →'}
@@ -170,7 +166,7 @@ export function EmailCaptureModal({ reason, onClose }: Props) {
               </form>
 
               <p className="text-center">
-                <button type="button" onClick={handleDismiss} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors">
+                <button type="button" onClick={handleDismiss} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                   Maybe later
                 </button>
               </p>
