@@ -201,7 +201,7 @@ function QuickStartCard({ title, description, icon, onClick }: QuickStartCardPro
   return (
     <button
       onClick={onClick}
-      className="flex-1 min-w-[200px] p-4 rounded-[16px] bg-white text-left transition-all duration-200"
+      className="p-4 rounded-[16px] bg-white text-left transition-all duration-200"
       style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-2px)';
@@ -210,9 +210,9 @@ function QuickStartCard({ title, description, icon, onClick }: QuickStartCardPro
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      <div className="text-2xl mb-3">{icon}</div>
-      <h3 className="font-semibold text-[#1A1A1A] mb-1">{title}</h3>
-      <p className="text-xs mb-3" style={{ color: '#6B6B6B' }}>{description}</p>
+      <div className="text-2xl mb-2">{icon}</div>
+      <h3 className="font-semibold text-[#1A1A1A] text-sm mb-1">{title}</h3>
+      <p className="text-xs mb-2" style={{ color: '#6B6B6B' }}>{description}</p>
       <div className="flex items-center gap-1 text-xs font-medium" style={{ color: '#6366f1' }}>
         <Play className="w-3 h-3" />
         Generate
@@ -494,7 +494,7 @@ export default function DashboardPage() {
               <h2 className="text-base font-semibold text-[#1A1A1A]">Quick Start</h2>
             </div>
             <p className="text-sm mb-4" style={{ color: '#6B6B6B' }}>Generate a diagram from a template</p>
-            <div className="flex gap-4 overflow-x-auto">
+            <div className="grid grid-cols-4 gap-4">
               {quickStartTemplates.map((template) => (
                 <QuickStartCard
                   key={template.id}
