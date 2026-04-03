@@ -261,18 +261,16 @@ export default function EditorPage() {
 
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-screen w-screen overflow-hidden">
+      <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ padding: 16, background: '#F4F4F4' }}>
         <Toolbar />
         <div className="flex flex-1 overflow-hidden relative">
           {canvasSidebarOpen && (
             <CanvasSidebar onClose={() => setCanvasSidebarOpen(false)} />
           )}
           {sidebarOpen && (
-            <div className="absolute left-4 top-20 z-40">
-              <ComponentSidebar
-                onOpenCreateModal={() => setShowCreateModal(true)}
-              />
-            </div>
+            <ComponentSidebar
+              onOpenCreateModal={() => setShowCreateModal(true)}
+            />
           )}
           <div className="flex flex-col flex-1 overflow-hidden" style={{ minWidth: 0 }}>
             <Canvas />

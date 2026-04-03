@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import {
   Plus,
   Search,
@@ -12,19 +11,22 @@ import {
   LayoutTemplate,
   GraduationCap,
   Settings,
-  FolderOpen,
-  Sparkles,
   Clock,
   Trash2,
-  Share2,
-  Edit3,
-  ChevronDown,
+  MoreHorizontal,
   ChevronRight,
-  Play,
+  Calendar,
+  Copy,
+  Pencil,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
-import { TEMPLATES } from '@/data/templates';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 function formatRelativeTime(timestamp: number): string {
   const now = Date.now();
@@ -85,11 +87,6 @@ function CollapsibleGroup({
       >
         <Icon className="w-5 h-5" />
         <span className="text-sm font-medium flex-1 text-left">{label}</span>
-        {isOpen ? (
-          <ChevronDown className="w-4 h-4" style={{ color: '#6B6B6B' }} />
-        ) : (
-          <ChevronRight className="w-4 h-4" style={{ color: '#6B6B6B' }} />
-        )}
       </button>
       {isOpen && <div className="mt-1 pl-7 space-y-1">{children}</div>}
     </div>
@@ -112,163 +109,171 @@ function SubmenuItem({ label, active, onClick }: { label: string; active?: boole
   );
 }
 
-interface StatCardProps {
-  title: string;
-  value: string;
-  subtitle?: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-function StatCard({ title, value, subtitle, icon: Icon }: StatCardProps) {
-  return (
-    <div
-      className="bg-white rounded-[20px] p-5 transition-all duration-200"
-      style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm" style={{ color: '#6B6B6B' }}>{title}</p>
-          <div
-            className="w-10 h-10 rounded-[12px] flex items-center justify-center"
-            style={{ background: '#F2F2F2' }}
-          >
-            <Icon className="w-5 h-5" />
-          </div>
-      </div>
-      <p className="text-3xl font-bold text-[#1A1A1A]">{value}</p>
-      {subtitle && (
-        <p className="text-xs mt-1" style={{ color: '#6B6B6B' }}>{subtitle}</p>
-      )}
-    </div>
-  );
-}
-
-interface CanvasItemProps {
-  name: string;
-  updatedAt?: number;
-  onClick: () => void;
-  onDelete: () => void;
-}
-
-function CanvasItem({ name, updatedAt, onClick, onDelete }: CanvasItemProps) {
-  const [showDelete, setShowDelete] = useState(false);
-
-  return (
-    <div
-      className="group relative bg-white rounded-[16px] p-4 cursor-pointer transition-all duration-200"
-      style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
-      onClick={onClick}
-      onMouseEnter={() => setShowDelete(true)}
-      onMouseLeave={() => setShowDelete(false)}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div
-          className="w-10 h-10 rounded-[12px] flex items-center justify-center"
-          style={{ background: '#F2F2F2' }}
-        >
-          <FileText className="w-5 h-5" style={{ color: '#6B6B6B' }} />
-        </div>
-        {showDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="p-1.5 rounded-[10px] text-muted-foreground hover:text-red-500 transition-colors"
-            style={{ background: '#F2F2F2' }}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-      <h3 className="font-semibold text-[#1A1A1A] text-sm mb-1 truncate">{name}</h3>
-      {updatedAt && (
-        <div className="flex items-center gap-1.5 text-xs" style={{ color: '#6B6B6B' }}>
-          <Clock className="w-3 h-3" />
-          {formatRelativeTime(updatedAt)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface QuickStartCardProps {
+interface TemplateCardProps {
   title: string;
   description: string;
   icon: string;
   onClick: () => void;
 }
 
-function QuickStartCard({ title, description, icon, onClick }: QuickStartCardProps) {
+function TemplateCard({ title, description, icon, onClick }: TemplateCardProps) {
   return (
     <button
       onClick={onClick}
-      className="p-4 rounded-[16px] bg-white text-left transition-all duration-200"
-      style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-      }}
+      className="flex-shrink-0 w-56 p-4 rounded-[16px] text-left transition-all duration-200 hover:scale-[1.02]"
+      style={{ background: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
     >
-      <div className="text-2xl mb-2">{icon}</div>
-      <h3 className="font-semibold text-[#1A1A1A] text-sm mb-1">{title}</h3>
-      <p className="text-xs mb-2" style={{ color: '#6B6B6B' }}>{description}</p>
-      <div className="flex items-center gap-1 text-xs font-medium" style={{ color: '#6366f1' }}>
-        <Play className="w-3 h-3" />
-        Generate
+      <div
+        className="w-10 h-10 rounded-[12px] flex items-center justify-center text-xl mb-3"
+        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+      >
+        {icon}
       </div>
+      <h3 className="font-semibold text-[#1A1A1A] text-sm mb-1">{title}</h3>
+      <p className="text-xs line-clamp-2" style={{ color: '#6B6B6B' }}>{description}</p>
     </button>
   );
 }
 
-interface ActivityItemProps {
-  action: string;
-  time: string;
-  icon: React.ComponentType<{ className?: string }>;
+interface CanvasCardProps {
+  name: string;
+  nodes: any[];
+  edges: any[];
+  updatedAt?: number;
+  onClick: () => void;
+  onDelete: () => void;
+  onRename: () => void;
+  onDuplicate: () => void;
 }
 
-function ActivityItem({ action, time, icon: Icon }: ActivityItemProps) {
+function CanvasCard({ name, nodes, edges, updatedAt, onClick, onDelete, onRename, onDuplicate }: CanvasCardProps) {
+  const [showActions, setShowActions] = useState(false);
+
+  const nodeCount = nodes?.length || 0;
+  const edgeCount = edges?.length || 0;
+
+  const formatDate = (timestamp?: number) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   return (
-    <div className="flex items-center gap-3 py-3">
+    <div
+      className="group relative bg-white rounded-[20px] overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1"
+      style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
+      onClick={onClick}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
+      {/* Canvas Preview */}
       <div
-        className="w-8 h-8 rounded-[10px] flex items-center justify-center"
-        style={{ background: '#F2F2F2' }}
+        className="h-40 relative overflow-hidden"
+        style={{ background: '#FAFAFA' }}
       >
-        <Icon className="w-4 h-4" />
+        {nodeCount > 0 ? (
+          <div className="absolute inset-0 p-4">
+            {nodes.slice(0, 8).map((node: any, index: number) => (
+              <div
+                key={node.id || index}
+                className="absolute rounded-md flex items-center justify-center text-[7px] font-medium shadow-sm"
+                style={{
+                  width: Math.max((node.width || 40) * 0.6, 30),
+                  height: Math.max((node.height || 28) * 0.6, 20),
+                  left: Math.min(((node.position?.x || 0) + 50) / 8, 200),
+                  top: Math.min(((node.position?.y || 0) + 40) / 8, 110),
+                  background: node.data?.color || '#6366f1',
+                  color: 'white',
+                }}
+              >
+                {(node.data?.label || '').slice(0, 2) || '?'}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-[12px] flex items-center justify-center mx-auto mb-2" style={{ background: '#F2F2F2' }}>
+                <FileText className="w-6 h-6" style={{ color: '#B0B0B0' }} />
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* 3-dot Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="absolute top-3 right-3 p-1.5 rounded-[10px] transition-all opacity-0 group-hover:opacity-100"
+              style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="w-4 h-4" style={{ color: '#6B6B6B' }} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-40 p-1"
+            style={{ background: 'white', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: 'none' }}
+          >
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); onRename(); }}
+              className="flex items-center gap-2 px-3 py-2 rounded-[8px] text-sm cursor-pointer"
+              style={{ color: '#1A1A1A' }}
+            >
+              <Pencil className="w-4 h-4" />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+              className="flex items-center gap-2 px-3 py-2 rounded-[8px] text-sm cursor-pointer"
+              style={{ color: '#1A1A1A' }}
+            >
+              <Copy className="w-4 h-4" />
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="flex items-center gap-2 px-3 py-2 rounded-[8px] text-sm cursor-pointer"
+              style={{ color: '#E5484D' }}
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Node count badge */}
+        {nodeCount > 0 && (
+          <div
+            className="absolute bottom-3 right-3 px-2.5 py-1 rounded-[8px] text-[10px] font-medium"
+            style={{ background: 'rgba(255,255,255,0.9)', color: '#6B6B6B' }}
+          >
+            {nodeCount} · {edgeCount}
+          </div>
+        )}
       </div>
-      <div className="flex-1">
-        <p className="text-sm text-[#1A1A1A]">{action}</p>
-        <p className="text-xs" style={{ color: '#6B6B6B' }}>{time}</p>
+
+      {/* Card Info */}
+      <div className="p-4">
+        <h3 className="font-semibold text-[#1A1A1A] text-base mb-2 truncate">{name}</h3>
+        {updatedAt && (
+          <div className="flex items-center gap-2 text-xs" style={{ color: '#6B6B6B' }}>
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Opened {formatDate(updatedAt)}</span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-interface TemplateItemProps {
-  name: string;
-  icon: string;
-  onClick: () => void;
-}
-
-function TemplateItem({ name, icon, onClick }: TemplateItemProps) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 rounded-[12px] transition-all duration-200 hover:bg-[#F2F2F2]"
-    >
-      <div className="text-xl">{icon}</div>
-      <span className="text-sm text-[#1A1A1A] flex-1 text-left">{name}</span>
-      <span className="text-xs font-medium" style={{ color: '#6366f1' }}>Use</span>
-    </button>
-  );
-}
-
 const quickStartTemplates = [
-  { id: 'saas', title: 'SaaS Architecture', description: 'Multi-tenant SaaS with auth, billing', icon: '☁️' },
-  { id: 'ecommerce', title: 'E-commerce System', description: 'Cart, payments, inventory', icon: '🛒' },
-  { id: 'chatapp', title: 'Chat App', description: 'Real-time messaging with WebSocket', icon: '💬' },
-  { id: 'datapipeline', title: 'Data Pipeline', description: 'ETL with Kafka and Spark', icon: '🔄' },
+  { id: 'blank', title: 'Blank Canvas', description: 'Start from scratch', icon: '+' },
+  { id: 'saas', title: 'SaaS Architecture', description: 'Multi-tenant system', icon: '☁️' },
+  { id: 'microservices', title: 'Microservices', description: 'Distributed system', icon: '🔄' },
+  { id: 'chatapp', title: 'Chat App', description: 'Real-time messaging', icon: '💬' },
+  { id: 'datapipeline', title: 'Data Pipeline', description: 'ETL with Kafka', icon: '📊' },
 ];
 
 export default function DashboardPage() {
@@ -312,22 +317,17 @@ export default function DashboardPage() {
     }
   };
 
-  const handleOpenTemplate = (templateId: string) => {
-    router.push(`/editor?template=${templateId}`);
+  const handleUseTemplate = (templateId: string) => {
+    if (templateId === 'blank') {
+      handleNewCanvas();
+    } else {
+      router.push(`/editor?template=${templateId}`);
+    }
   };
-
-  const recentCanvases = [...canvases]
-    .filter((c) => c.nodes.length > 0)
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-    .slice(0, 6);
-
-  const lastEdited = recentCanvases[0]?.updatedAt
-    ? formatRelativeTime(recentCanvases[0].updatedAt)
-    : 'Never';
 
   return (
     <div className="min-h-screen p-6" style={{ background: '#F4F4F4' }}>
-      <div className="max-w-[1400px] mx-auto" style={{ display: 'grid', gridTemplateColumns: '240px 1fr 320px', gap: 24 }}>
+      <div className="max-w-[1400px] mx-auto" style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 24 }}>
         
         {/* LEFT SIDEBAR */}
         <aside
@@ -350,19 +350,19 @@ export default function DashboardPage() {
               icon={LayoutDashboard}
               label="Dashboard"
               active={activeMenu === 'Dashboard'}
-              onClick={() => setActiveMenu('Dashboard')}
+              onClick={() => {}}
             />
 
             <CollapsibleGroup icon={FileText} label="Canvases" defaultOpen>
               <SubmenuItem
                 label="All Canvases"
                 active={activeMenu === 'Canvases-All'}
-                onClick={() => setActiveMenu('Canvases-All')}
+                onClick={() => router.push('/editor')}
               />
               <SubmenuItem
                 label="Shared with me"
                 active={activeMenu === 'Canvases-Shared'}
-                onClick={() => setActiveMenu('Canvases-Shared')}
+                onClick={() => {}}
               />
             </CollapsibleGroup>
 
@@ -370,25 +370,25 @@ export default function DashboardPage() {
               icon={LayoutTemplate}
               label="Templates"
               active={activeMenu === 'Templates'}
-              onClick={() => setActiveMenu('Templates')}
+              onClick={() => router.push('/templates')}
             />
             <SidebarItem
               icon={GraduationCap}
               label="Learn"
               active={activeMenu === 'Learn'}
-              onClick={() => router.push('/tutorials')}
+              onClick={() => router.push('/learn')}
             />
             <SidebarItem
               icon={Settings}
               label="Settings"
               active={activeMenu === 'Settings'}
-              onClick={() => setActiveMenu('Settings')}
+              onClick={() => {}}
             />
           </nav>
         </aside>
 
         {/* MAIN CONTENT */}
-        <main className="space-y-6">
+        <main className="space-y-8">
           {/* Header */}
           <header
             className="flex items-center justify-between px-5 py-3 rounded-[20px]"
@@ -422,147 +422,72 @@ export default function DashboardPage() {
               >
                 <Bell className="w-5 h-5" />
               </button>
-              <Image
-                src="/cartoon.png"
-                alt="Profile"
-                width={36}
-                height={36}
-                className="rounded-full"
-              />
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-medium"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+              >
+                {user?.email ? user.email[0].toUpperCase() : 'U'}
+              </div>
             </div>
           </header>
 
-          {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
-            <StatCard title="Your Canvases" value={String(canvases.length)} subtitle="Total diagrams" icon={FileText} />
-            <StatCard title="AI Generations" value="24" subtitle="Diagrams generated" icon={Sparkles} />
-            <StatCard title="Last Active" value={lastEdited} icon={Clock} />
-          </div>
-
-          {/* Recent Canvases */}
-          <div
-            className="rounded-[20px] p-5"
-            style={{ background: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-[#1A1A1A]">Recent Canvases</h2>
-              {recentCanvases.length > 0 && (
-                <button
-                  onClick={() => router.push('/editor')}
-                  className="text-sm font-medium transition-opacity flex items-center gap-1"
-                  style={{ color: '#6366f1' }}
-                >
-                  View all →
-                </button>
-              )}
-            </div>
-            {recentCanvases.length > 0 ? (
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                {recentCanvases.slice(0, 6).map((canvas) => (
-                  <CanvasItem
-                    key={canvas.id}
-                    name={canvas.name}
-                    updatedAt={canvas.updatedAt}
-                    onClick={() => handleOpenCanvas(canvas.id)}
-                    onDelete={() => handleDeleteCanvas(canvas.id)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8">
-                <div className="w-16 h-16 rounded-[16px] flex items-center justify-center mb-4" style={{ background: '#F2F2F2' }}>
-                  <Plus className="w-8 h-8" style={{ color: '#6B6B6B' }} />
-                </div>
-                <h3 className="font-semibold text-[#1A1A1A] mb-2">No canvases yet</h3>
-                <p className="text-sm mb-4" style={{ color: '#6B6B6B' }}>Create your first architecture diagram</p>
-                <button
-                  onClick={handleNewCanvas}
-                  className="px-5 py-2.5 rounded-[12px] text-sm font-medium text-white transition-all"
-                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-                >
-                  Create New Canvas
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Quick Start */}
-          <div
-            className="rounded-[20px] p-5"
-            style={{ background: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5" style={{ color: '#6366f1' }} />
-              <h2 className="text-base font-semibold text-[#1A1A1A]">Quick Start</h2>
-            </div>
-            <p className="text-sm mb-4" style={{ color: '#6B6B6B' }}>Generate a diagram from a template</p>
-            <div className="grid grid-cols-4 gap-4">
+          {/* Quick Start Section */}
+          <div>
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Start from template</h2>
+            <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
               {quickStartTemplates.map((template) => (
-                <QuickStartCard
+                <TemplateCard
                   key={template.id}
                   title={template.title}
                   description={template.description}
                   icon={template.icon}
-                  onClick={() => router.push(`/editor?template=${template.id}`)}
+                  onClick={() => handleUseTemplate(template.id)}
                 />
               ))}
             </div>
+          </div>
+
+          {/* Your Canvases Section */}
+          <div>
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Your Canvases</h2>
+            {canvases.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {canvases.map((canvas) => (
+                  <CanvasCard
+                    key={canvas.id}
+                    name={canvas.name}
+                    nodes={canvas.nodes}
+                    edges={canvas.edges}
+                    updatedAt={canvas.updatedAt}
+                    onClick={() => handleOpenCanvas(canvas.id)}
+                    onDelete={() => handleDeleteCanvas(canvas.id)}
+                    onRename={() => {}}
+                    onDuplicate={() => {}}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div
+                className="flex flex-col items-center justify-center py-16 rounded-[20px]"
+                style={{ background: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
+              >
+                <div className="w-20 h-20 rounded-[20px] flex items-center justify-center mb-4" style={{ background: '#F2F2F2' }}>
+                  <FileText className="w-10 h-10" style={{ color: '#6B6B6B' }} />
+                </div>
+                <h3 className="font-semibold text-[#1A1A1A] text-xl mb-2">No canvases yet</h3>
+                <p className="text-base mb-6" style={{ color: '#6B6B6B' }}>Create your first architecture diagram</p>
+                <button
+                  onClick={handleNewCanvas}
+                  className="flex items-center gap-2 px-6 py-3 rounded-[14px] text-sm font-medium text-white transition-all"
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Create your first canvas
+                </button>
+              </div>
+            )}
           </div>
         </main>
-
-        {/* RIGHT PANEL */}
-        <aside className="space-y-6">
-          {/* Templates */}
-          <div
-            className="rounded-[20px] p-5"
-            style={{ background: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <LayoutTemplate className="w-5 h-5" style={{ color: '#6366f1' }} />
-              <h2 className="text-base font-semibold text-[#1A1A1A]">Templates</h2>
-            </div>
-            <div className="space-y-1">
-              {TEMPLATES.slice(0, 5).map((template) => (
-                <TemplateItem
-                  key={template.id}
-                  name={template.name}
-                  icon={template.icon}
-                  onClick={() => handleOpenTemplate(template.id)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Activity Feed */}
-          <div
-            className="rounded-[20px] p-5"
-            style={{ background: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
-          >
-            <h2 className="text-base font-semibold text-[#1A1A1A] mb-2">Recent Activity</h2>
-            <div className="space-y-1">
-              <ActivityItem
-                action="Generated diagram"
-                time="2 minutes ago"
-                icon={Sparkles}
-              />
-              <ActivityItem
-                action="Edited canvas"
-                time="1 hour ago"
-                icon={Edit3}
-              />
-              <ActivityItem
-                action="Created new canvas"
-                time="3 hours ago"
-                icon={Plus}
-              />
-              <ActivityItem
-                action="Deleted node"
-                time="Yesterday"
-                icon={Trash2}
-              />
-            </div>
-          </div>
-        </aside>
       </div>
     </div>
   );
