@@ -141,7 +141,7 @@ export function ContextMenu({ menu, onClose }: Props) {
         zIndex: 1000,
         minWidth: 200,
       }}
-      className="bg-card/95 backdrop-blur-md border border-border rounded-lg shadow-xl overflow-hidden py-1 animate-in fade-in-0 zoom-in-95 duration-100"
+      className="bg-card rounded-2xl shadow-soft-4 overflow-hidden py-2 animate-in fade-in-0 zoom-in-95 duration-150"
     >
       {isNodeMenu ? (
         <>
@@ -231,11 +231,11 @@ function MenuItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2 text-xs transition-colors hover:bg-muted group ${
+      className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all rounded-xl mx-1 hover:bg-accent group ${
         danger ? 'text-destructive hover:bg-destructive/10' : 'text-foreground'
       }`}
     >
-      {icon && <span className="w-4 h-4 opacity-60 group-hover:opacity-100">{icon}</span>}
+      {icon && <span className="w-4 h-4 opacity-50 group-hover:opacity-80">{icon}</span>}
       <span className="flex-1 text-left">{children}</span>
     </button>
   );
@@ -243,14 +243,14 @@ function MenuItem({
 
 function Shortcut({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[10px] text-muted-foreground/60 font-mono ml-2">
+    <span className="text-[10px] text-muted-foreground/50 font-mono ml-2">
       {children}
     </span>
   );
 }
 
 function Separator() {
-  return <div className="my-1 h-px bg-border mx-2" />;
+  return <div className="my-1.5 h-px bg-foreground/10 mx-2" />;
 }
 
 function MenuItemWithSubmenu({ 
@@ -274,15 +274,15 @@ function MenuItemWithSubmenu({
     <div className="relative" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <button
         onClick={onClick}
-        className="w-full flex items-center gap-3 px-3 py-2 text-xs transition-colors hover:bg-muted group text-foreground"
+        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all rounded-xl mx-1 hover:bg-accent group text-foreground"
       >
-        {icon && <span className="w-4 h-4 opacity-60 group-hover:opacity-100">{icon}</span>}
+        {icon && <span className="w-4 h-4 opacity-50 group-hover:opacity-80">{icon}</span>}
         <span className="flex-1 text-left">{label}</span>
-        <ChevronRight size={14} className="opacity-60" />
+        <ChevronRight size={14} className="opacity-50" />
       </button>
       {submenuOpen && (
         <div 
-          className="absolute left-full top-0 ml-1 bg-card/95 backdrop-blur-md border border-border rounded-lg shadow-xl py-1 min-w-[120px] animate-in fade-in-0 zoom-in-95 duration-100"
+          className="absolute left-full top-0 ml-1 bg-card rounded-xl shadow-soft-4 py-2 min-w-[120px] animate-in fade-in-0 zoom-in-95 duration-150"
         >
           {children}
         </div>
@@ -301,7 +301,7 @@ function SubmenuItem({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center px-3 py-2 text-xs transition-colors hover:bg-muted text-foreground"
+      className="w-full flex items-center px-3 py-2.5 text-sm transition-all rounded-xl mx-1 hover:bg-accent text-foreground"
     >
       {children}
     </button>
