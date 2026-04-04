@@ -97,7 +97,7 @@ export function Hero() {
   }
 
   return (
-    <section className="relative min-h-screen overflow-hidden pt-24">
+    <section className="relative min-h-screen overflow-hidden pt-28">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-12 pb-12">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-[calc(100vh-8rem)]">
           <div className="flex flex-col justify-center">

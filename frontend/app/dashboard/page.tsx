@@ -18,6 +18,7 @@ import {
   Calendar,
   Copy,
   Pencil,
+  Layers,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
@@ -120,12 +121,12 @@ function TemplateCard({ title, description, icon, onClick }: TemplateCardProps) 
   return (
     <button
       onClick={onClick}
-      className="flex-shrink-0 w-56 p-4 rounded-[16px] text-left transition-all duration-200 hover:scale-[1.02]"
+      className="flex-shrink-0 w-44 md:w-56 p-3 md:p-4 rounded-[16px] text-left transition-all duration-200 hover:scale-[1.02]"
       style={{ background: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
     >
       <div
         className="w-10 h-10 rounded-[12px] flex items-center justify-center text-xl mb-3"
-        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+        style={{ background: '#F2F2F2' }}
       >
         {icon}
       </div>
@@ -144,6 +145,122 @@ interface CanvasCardProps {
   onDelete: () => void;
   onRename: () => void;
   onDuplicate: () => void;
+}
+
+function CanvasPreview({ nodes, edges }: { nodes: any[]; edges: any[] }) {
+  const nodeCount = nodes?.length || 0;
+  
+  if (nodeCount === 0) {
+    return (
+      <div className="absolute inset-0" style={{ 
+        background: '#FAFAFA',
+        backgroundImage: 'radial-gradient(circle, #E0E0E0 1px, transparent 1px)',
+        backgroundSize: '16px 16px'
+      }}>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <Layers className="w-5 h-5" style={{ color: '#B0B0B0' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const SCALE = 0.25;
+  const PADDING = 20;
+  
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach((node) => {
+    const x = node.position?.x || 0;
+    const y = node.position?.y || 0;
+    const w = node.width || 160;
+    const h = node.height || 80;
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + w);
+    maxY = Math.max(maxY, y + h);
+  });
+
+  const contentWidth = maxX - minX || 400;
+  const contentHeight = maxY - minY || 300;
+
+  return (
+    <div className="absolute inset-0 overflow-hidden" style={{ background: '#FAFAFA' }}>
+      <svg
+        className="absolute inset-0"
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${contentWidth + PADDING * 2} ${contentHeight + PADDING * 2}`}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {edges?.map((edge: any, idx: number) => {
+          const source = nodes.find((n) => n.id === edge.source);
+          const target = nodes.find((n) => n.id === edge.target);
+          if (!source || !target) return null;
+          
+          const sx = (source.position?.x || 0) - minX + (source.width || 160) / 2 + PADDING;
+          const sy = (source.position?.y || 0) - minY + (source.height || 80) / 2 + PADDING;
+          const tx = (target.position?.x || 0) - minX + (target.width || 160) / 2 + PADDING;
+          const ty = (target.position?.y || 0) - minY + (target.height || 80) / 2 + PADDING;
+          
+          const midX = (sx + tx) / 2;
+          const midY = (sy + ty) / 2;
+          const path = `M ${sx} ${sy} Q ${midX} ${sy} ${midX} ${midY} T ${tx} ${ty}`;
+          
+          return (
+            <path
+              key={edge.id || idx}
+              d={path}
+              fill="none"
+              stroke="#CCCCCC"
+              strokeWidth="1.5"
+            />
+          );
+        })}
+        
+        {nodes.map((node: any, idx: number) => {
+          const x = (node.position?.x || 0) - minX + PADDING;
+          const y = (node.position?.y || 0) - minY + PADDING;
+          const w = (node.width || 160) * SCALE;
+          const h = (node.height || 80) * SCALE;
+          
+          const nodeColor = node.data?.color || '#E0E0E0';
+          const isLightColor = ['#ffffff', '#f8f8f8', '#fafafa', '#f0f0f0'].some(c => 
+            nodeColor.toLowerCase() === c.toLowerCase()
+          );
+          
+          return (
+            <g key={node.id || idx}>
+              <rect
+                x={x}
+                y={y}
+                width={w}
+                height={h}
+                rx={Math.max(4, w * 0.15)}
+                fill={isLightColor ? '#E8E8E8' : nodeColor}
+                stroke={isLightColor ? '#CCCCCC' : 'none'}
+                strokeWidth="1"
+                opacity="0.85"
+              />
+              {node.data?.label && (
+                <text
+                  x={x + w / 2}
+                  y={y + h / 2}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize={Math.max(8, w * 0.25)}
+                  fontWeight="500"
+                  fill={isLightColor ? '#666666' : 'white'}
+                >
+                  {node.data.label.slice(0, 8)}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
 }
 
 function CanvasCard({ name, nodes, edges, updatedAt, onClick, onDelete, onRename, onDuplicate }: CanvasCardProps) {
@@ -168,37 +285,10 @@ function CanvasCard({ name, nodes, edges, updatedAt, onClick, onDelete, onRename
     >
       {/* Canvas Preview */}
       <div
-        className="h-40 relative overflow-hidden"
+        className="h-40 relative overflow-hidden rounded-t-[20px]"
         style={{ background: '#FAFAFA' }}
       >
-        {nodeCount > 0 ? (
-          <div className="absolute inset-0 p-4">
-            {nodes.slice(0, 8).map((node: any, index: number) => (
-              <div
-                key={node.id || index}
-                className="absolute rounded-md flex items-center justify-center text-[7px] font-medium shadow-sm"
-                style={{
-                  width: Math.max((node.width || 40) * 0.6, 30),
-                  height: Math.max((node.height || 28) * 0.6, 20),
-                  left: Math.min(((node.position?.x || 0) + 50) / 8, 200),
-                  top: Math.min(((node.position?.y || 0) + 40) / 8, 110),
-                  background: node.data?.color || '#6366f1',
-                  color: 'white',
-                }}
-              >
-                {(node.data?.label || '').slice(0, 2) || '?'}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-[12px] flex items-center justify-center mx-auto mb-2" style={{ background: '#F2F2F2' }}>
-                <FileText className="w-6 h-6" style={{ color: '#B0B0B0' }} />
-              </div>
-            </div>
-          </div>
-        )}
+        <CanvasPreview nodes={nodes} edges={edges} />
         
         {/* 3-dot Menu */}
         <DropdownMenu>
@@ -326,18 +416,18 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen p-6" style={{ background: '#F4F4F4' }}>
-      <div className="max-w-[1400px] mx-auto" style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 24 }}>
+    <div className="min-h-screen p-4 md:p-6" style={{ background: '#F4F4F4' }}>
+      <div className="max-w-[1400px] mx-auto grid md:grid-cols-[240px_1fr] gap-4 md:gap-6">
         
-        {/* LEFT SIDEBAR */}
+        {/* LEFT SIDEBAR - hidden on mobile, shown on md+ */}
         <aside
-          className="rounded-[20px] p-4 self-start"
+          className="hidden md:block rounded-[20px] p-4 self-start"
           style={{ background: '#FAFAFA', boxShadow: '0 10px 40px rgba(0,0,0,0.06)', height: 'fit-content' }}
         >
           <div className="flex items-center gap-3 px-2 mb-6">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+              style={{ background: '#1A1A1A' }}
             >
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
@@ -388,33 +478,33 @@ export default function DashboardPage() {
         </aside>
 
         {/* MAIN CONTENT */}
-        <main className="space-y-8">
+        <main className="space-y-6 md:space-y-8 overflow-hidden">
           {/* Header */}
           <header
-            className="flex items-center justify-between px-5 py-3 rounded-[20px]"
+            className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 px-4 md:px-5 py-3 rounded-[20px]"
             style={{ background: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
           >
             <h1 className="text-xl font-bold text-[#1A1A1A]">Dashboard</h1>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto overflow-x-auto">
               <div
-                className="flex items-center gap-2 px-3 py-2 rounded-[12px]"
+                className="flex items-center gap-2 px-3 py-2 rounded-[12px] shrink-0"
                 style={{ background: '#F2F2F2' }}
               >
                 <Search className="w-4 h-4" style={{ color: '#6B6B6B' }} />
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="bg-transparent outline-none text-sm w-32"
+                  className="bg-transparent outline-none text-sm w-20 md:w-32"
                   style={{ color: '#1A1A1A' }}
                 />
               </div>
               <button
                 onClick={handleNewCanvas}
-                className="flex items-center gap-2 px-4 py-2 rounded-[12px] text-sm font-medium text-white transition-all"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                className="flex items-center gap-2 px-4 py-2 rounded-[12px] text-sm font-medium text-white transition-all shrink-0"
+                style={{ background: '#1A1A1A' }}
               >
                 <Plus className="w-4 h-4" />
-                New Canvas
+                <span className="hidden sm:inline">New Canvas</span>
               </button>
               <button
                 className="p-2 rounded-[12px] transition-colors"
@@ -424,7 +514,7 @@ export default function DashboardPage() {
               </button>
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-medium"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                style={{ background: '#1A1A1A' }}
               >
                 {user?.email ? user.email[0].toUpperCase() : 'U'}
               </div>
@@ -433,8 +523,8 @@ export default function DashboardPage() {
 
           {/* Quick Start Section */}
           <div>
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Start from template</h2>
-            <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-3 md:mb-4">Start from template</h2>
+            <div className="flex gap-3 md:gap-4 overflow-x-auto pb-2 px-1 -mx-1" style={{ scrollbarWidth: 'none' }}>
               {quickStartTemplates.map((template) => (
                 <TemplateCard
                   key={template.id}
@@ -449,9 +539,9 @@ export default function DashboardPage() {
 
           {/* Your Canvases Section */}
           <div>
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Your Canvases</h2>
+            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-3 md:mb-4">Your Canvases</h2>
             {canvases.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                 {canvases.map((canvas) => (
                   <CanvasCard
                     key={canvas.id}
@@ -479,7 +569,7 @@ export default function DashboardPage() {
                 <button
                   onClick={handleNewCanvas}
                   className="flex items-center gap-2 px-6 py-3 rounded-[14px] text-sm font-medium text-white transition-all"
-                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                  style={{ background: '#1A1A1A' }}
                 >
                   <Plus className="w-4 h-4" />
                   Create your first canvas

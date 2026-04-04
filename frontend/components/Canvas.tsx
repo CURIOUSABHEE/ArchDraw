@@ -385,44 +385,28 @@ function CanvasInner() {
         <ContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />
       )}
 
-      {/* Non-blocking Onboarding Overlay */}
-      {isOnboardingVisible && (
-        <div 
-          className={`absolute inset-0 flex flex-col items-center justify-center select-none pointer-events-none z-[5] transition-opacity duration-300 ${isOnboardingFading ? 'opacity-0' : 'opacity-100'}`}
-        >
-          <div className="text-center mb-10 pointer-events-none">
-            <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-accent/50 flex items-center justify-center">
-              <LayoutGrid className="w-10 h-10 text-muted-foreground/40" />
-            </div>
-            <h2 className="text-lg font-semibold text-foreground/50 mb-2">Start building your architecture</h2>
-            <p className="text-xs text-muted-foreground/60">Drag components from the sidebar or click to begin</p>
+      {/* Minimal empty state hint - only shows when canvas is completely empty */}
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-[5]">
+          <div className="text-center">
+            <p className="text-sm" style={{ color: '#B0B0B0' }}>
+              Press <kbd className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: '#F2F2F2', color: '#6B6B6B' }}>/</kbd> to add components
+            </p>
+            <p className="text-xs mt-2" style={{ color: '#B0B0B0' }}>
+              or use <kbd className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: '#F2F2F2', color: '#6B6B6B' }}>Cmd + K</kbd>
+            </p>
           </div>
-          
-          <div className="flex items-center gap-3 pointer-events-auto">
-            {/* Templates - Primary */}
+          <div className="flex items-center gap-3 mt-6 text-[11px] pointer-events-auto">
             <button
               onClick={handleOpenTemplates}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-card text-foreground shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-99 focus:outline-none focus:ring-2 focus:ring-ring/30"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-gray-100"
+              style={{ background: 'white', color: '#6B6B6B', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
             >
-              <LayoutTemplate className="w-4 h-4" />
-              Use Template
+              Browse templates
             </button>
-            
-            {/* Start from Scratch */}
-            <button
-              onClick={handleStartFromScratch}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-all focus:outline-none focus:ring-2 focus:ring-ring/30"
-            >
-              <MousePointer2 className="w-4 h-4" />
-              Start from Scratch
-            </button>
+            <span className="text-[10px]" style={{ color: '#B0B0B0' }}>or start from scratch</span>
           </div>
-          
-          <div className="flex items-center gap-4 mt-8 text-[11px] text-muted-foreground/50 pointer-events-none">
-            <span>Press ? for shortcuts</span>
-            <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-            <span>⌘K for components</span>
-          </div>
+          <p className="text-[10px] mt-4" style={{ color: '#B0B0B0' }}>Press <kbd className="px-1 py-0.5 rounded" style={{ background: '#F2F2F2' }}>?</kbd> for shortcuts</p>
         </div>
       )}
 

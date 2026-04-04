@@ -63,6 +63,7 @@ export interface CanvasTab {
   isOpen?: boolean;
   isPinned?: boolean;
   lastAccessedAt?: number;
+  thumbnail?: string;
 }
 
 export interface UserProfile {
@@ -495,6 +496,7 @@ export const useDiagramStore = create<DiagramState>()(
 
       loadCanvasesFromDB: async () => {
         if (!isSupabaseConfigured) return;
+        const { activeCanvasId } = get();
         try {
           const supabase = getSupabaseClient();
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -513,7 +515,8 @@ export const useDiagramStore = create<DiagramState>()(
               lastAccessedAt: new Date(d.updated_at).getTime(),
             }));
             const openIds = canvases.map((c) => c.id);
-            set({ canvases, openCanvasIds: openIds, activeCanvasId: canvases[0].id, nodes: canvases[0].nodes, edges: canvases[0].edges });
+            const targetCanvas = canvases.find((c) => c.id === activeCanvasId) || canvases[0];
+            set({ canvases, openCanvasIds: openIds, activeCanvasId: targetCanvas.id, nodes: targetCanvas.nodes, edges: targetCanvas.edges });
           }
         } catch {
           // silently fail — guest fallback
