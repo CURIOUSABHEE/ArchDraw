@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { 
-  EdgeProps, EdgeLabelRenderer, 
+  EdgeProps, EdgeLabelRenderer, Position,
   getBezierPath, getSmoothStepPath, getStraightPath,
 } from 'reactflow';
 import { EdgeContextMenu } from './EdgeContextMenu';
@@ -34,8 +34,8 @@ function getPath(
   sourceY: number,
   targetX: number,
   targetY: number,
-  sourcePosition: any,
-  targetPosition: any,
+  sourcePosition: Position,
+  targetPosition: Position,
 ): PathResult {
   switch (pathType) {
     case 'bezier': {
