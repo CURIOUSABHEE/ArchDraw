@@ -1,24 +1,39 @@
 import type { Node, Edge } from 'reactflow';
-import type { TutorialStep as LegacyTutorialStep } from '@/data/tutorials';
-import type { TutorialStep as CanonicalTutorialStep, EdgeRequirement } from '@/lib/tutorial/types';
+import type { TutorialStep, EdgeRequirement } from '@/lib/tutorial/types';
 import { EDGE_LABEL } from '@/lib/tutorial/factories';
 
-type AnyTutorialStep = LegacyTutorialStep | CanonicalTutorialStep;
+type AnyTutorialStep = TutorialStep;
+
+interface ValidationFields {
+  requiredNodes?: string[];
+  requiredEdges?: EdgeRequirement[];
+  errorMessage?: string;
+  successMessage?: string;
+}
+
+function getValidationFields(step: AnyTutorialStep): ValidationFields {
+  return {
+    requiredNodes: step.requiredNodes,
+    requiredEdges: step.requiredEdges,
+    errorMessage: step.errorMessage,
+    successMessage: step.successMessage,
+  };
+}
 
 function getRequiredNodes(step: AnyTutorialStep): string[] {
-  return (step as any).validation?.requiredNodes ?? (step as any).requiredNodes ?? [];
+  return getValidationFields(step).requiredNodes ?? [];
 }
 
 function getRequiredEdges(step: AnyTutorialStep): EdgeRequirement[] {
-  return (step as any).validation?.requiredEdges ?? (step as any).requiredEdges ?? [];
+  return getValidationFields(step).requiredEdges ?? [];
 }
 
 function getErrorMessage(step: AnyTutorialStep): string {
-  return (step as any).validation?.errorMessage ?? (step as any).errorMessage ?? 'Step incomplete.';
+  return getValidationFields(step).errorMessage ?? 'Step incomplete.';
 }
 
 function getSuccessMessage(step: AnyTutorialStep): string {
-  return (step as any).validation?.successMessage ?? (step as any).successMessage ?? 'Great job!';
+  return getValidationFields(step).successMessage ?? 'Great job!';
 }
 
 function nodeMatchesComponent(node: Node, componentId: string): boolean {
