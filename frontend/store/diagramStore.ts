@@ -249,7 +249,7 @@ export const useDiagramStore = create<DiagramState>()(
       addCanvas: (customName?: string) => {
         const { canvases, openCanvasIds, getRandomAnimalName } = get();
         
-        let baseName = customName || getRandomAnimalName();
+        const baseName = customName || getRandomAnimalName();
         let newName = baseName;
         const existingNames = new Set(canvases.map(c => c.name));
         
