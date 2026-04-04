@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { createClient } from '@supabase/supabase-js';
+import type { Node } from 'reactflow';
 
 export const runtime = 'edge';
 
@@ -45,7 +46,7 @@ export async function GET(
     );
   }
 
-  const nodes = (diagram.nodes as any[]) || [];
+  const nodes = (diagram.nodes as Node[]) || [];
   const nodeCount = nodes.length;
 
   return new ImageResponse(
@@ -119,7 +120,7 @@ export async function GET(
             borderRadius: 16,
           }}
         >
-          {nodes.slice(0, 12).map((node: any, i: number) => (
+          {nodes.slice(0, 12).map((node, i) => (
             <div
               key={i}
               style={{
