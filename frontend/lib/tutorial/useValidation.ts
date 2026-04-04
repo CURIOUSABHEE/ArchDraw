@@ -107,8 +107,8 @@ export function useTutorialValidation() {
     }
     
     // Fall back to legacy requiredNodes/requiredEdges
-    const requiredNodes: string[] = (step as any).requiredNodes || [];
-    const requiredEdges: Array<{ from: string; to: string }> = (step as any).requiredEdges || [];
+    const requiredNodes: string[] = step.requiredNodes || [];
+    const requiredEdges: Array<{ from: string; to: string }> = step.requiredEdges || [];
     
     const missingNodes: string[] = [];
     
@@ -165,7 +165,7 @@ export function useTutorialValidation() {
     step: TutorialStep,
     newNodes: Node[]
   ): { matched: boolean; node?: Node } => {
-    const requiredNodes: string[] = (step as any).requiredNodes || [];
+    const requiredNodes: string[] = step.requiredNodes || [];
     
     if (requiredNodes.length === 0) {
       // For new system, check if the node matches the step's nodeMatcher
@@ -196,7 +196,7 @@ export function useTutorialValidation() {
     allNodes: Node[],
     currentEdgeIndex: number
   ): { matched: boolean; edge?: Edge } => {
-    const requiredEdges: Array<{ from: string; to: string }> = (step as any).requiredEdges || [];
+    const requiredEdges: Array<{ from: string; to: string }> = step.requiredEdges || [];
     
     if (currentEdgeIndex >= requiredEdges.length) {
       return { matched: false };

@@ -6,6 +6,7 @@ import { Plus, Search, Clock, Trash2, Layers, Pencil, Copy } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import type { Node, Edge } from 'reactflow';
 
 function formatRelativeTime(timestamp: number): string {
   const now = Date.now();
@@ -21,7 +22,7 @@ function formatRelativeTime(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString();
 }
 
-function CanvasPreview({ nodes, edges }: { nodes: any[]; edges: any[] }) {
+function CanvasPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
   const nodeCount = nodes?.length || 0;
   
   if (nodeCount === 0) {
@@ -67,7 +68,7 @@ function CanvasPreview({ nodes, edges }: { nodes: any[]; edges: any[] }) {
         viewBox={`0 0 ${contentWidth + PADDING * 2} ${contentHeight + PADDING * 2}`}
         preserveAspectRatio="xMidYMid meet"
       >
-        {edges?.map((edge: any, idx: number) => {
+        {edges?.map((edge, idx) => {
           const source = nodes.find((n) => n.id === edge.source);
           const target = nodes.find((n) => n.id === edge.target);
           if (!source || !target) return null;
@@ -92,7 +93,7 @@ function CanvasPreview({ nodes, edges }: { nodes: any[]; edges: any[] }) {
           );
         })}
         
-        {nodes.map((node: any, idx: number) => {
+        {nodes.map((node, idx) => {
           const x = (node.position?.x || 0) - minX + PADDING;
           const y = (node.position?.y || 0) - minY + PADDING;
           const w = (node.width || 160) * SCALE;
@@ -139,8 +140,8 @@ function CanvasPreview({ nodes, edges }: { nodes: any[]; edges: any[] }) {
 
 interface CanvasCardProps {
   name: string;
-  nodes: any[];
-  edges: any[];
+  nodes: Node[];
+  edges: Edge[];
   updatedAt?: number;
   onClick: () => void;
   onDelete: () => void;

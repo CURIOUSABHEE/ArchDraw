@@ -39,7 +39,23 @@ import {
 
 type ExportFormat = 'png-dark-1x' | 'png-dark-2x' | 'png-dark-4x' | 'png-light-1x' | 'png-light-2x' | 'png-light-4x' | 'png-transparent-1x' | 'png-transparent-2x' | 'png-transparent-4x' | 'svg-dark' | 'svg-light' | 'svg-transparent' | 'json' | 'pdf' | 'html-embed';
 
-function generateEmbedHTML(nodes: { id: string; width?: number | null; height?: number | null; position: { x: number; y: number }; data?: any }[], edges: { source: string; target: string; data?: any; style?: any }[]): string {
+interface EmbedNode {
+  id: string;
+  width?: number | null;
+  height?: number | null;
+  position: { x: number; y: number };
+  data?: Record<string, unknown>;
+}
+
+interface EmbedEdge {
+  source: string;
+  target: string;
+  data?: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  style?: any;
+}
+
+function generateEmbedHTML(nodes: EmbedNode[], edges: EmbedEdge[]): string {
   const svgWidth = 1200;
   const svgHeight = 800;
   
