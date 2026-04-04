@@ -1,6 +1,7 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type { ReactFlowNode, ReactFlowEdge, ArchitectureNode, ArchitectureEdge } from '../types';
 import type { EdgePath, Point } from './edgeLayout';
+import logger from '@/lib/logger';
 
 const elk = new ELK();
 
@@ -132,7 +133,7 @@ export async function computeELKLayout(
     const orphanNodes = nodes.filter(node => !connectedNodes.has(node.id));
     
     if (orphanNodes.length > 0) {
-      console.log(`[ELK Layout] Found ${orphanNodes.length} orphan nodes: ${orphanNodes.map(n => n.id).join(', ')}`);
+      logger.log(`[ELK Layout] Found ${orphanNodes.length} orphan nodes: ${orphanNodes.map(n => n.id).join(', ')}`);
     }
 
     const fixedEdges = [...edges];
@@ -200,7 +201,7 @@ export async function computeELKLayout(
           label: `${orphan.label} → ${targetNode.label}`,
           ...defaultEdgeProps,
         });
-        console.log(`[ELK Layout] Connected orphan ${orphan.id} → ${targetNode.id}`);
+        logger.log(`[ELK Layout] Connected orphan ${orphan.id} → ${targetNode.id}`);
       } else if (sourceNode) {
         fixedEdges.push({
           id: `auto-edge-${sourceNode.id}-to-${orphan.id}`,
@@ -209,7 +210,7 @@ export async function computeELKLayout(
           label: `${sourceNode.label} → ${orphan.label}`,
           ...defaultEdgeProps,
         });
-        console.log(`[ELK Layout] Connected orphan ${sourceNode.id} → ${orphan.id}`);
+        logger.log(`[ELK Layout] Connected orphan ${sourceNode.id} → ${orphan.id}`);
       } else {
         const firstConnectedNode = nodes.find(n => n.id !== orphan.id && connectedNodes.has(n.id));
         if (firstConnectedNode) {
@@ -220,7 +221,7 @@ export async function computeELKLayout(
             label: `${orphan.label} → ${firstConnectedNode.label}`,
             ...defaultEdgeProps,
           });
-          console.log(`[ELK Layout] Connected orphan ${orphan.id} → ${firstConnectedNode.id}`);
+          logger.log(`[ELK Layout] Connected orphan ${orphan.id} → ${firstConnectedNode.id}`);
         }
       }
     }
@@ -230,7 +231,7 @@ export async function computeELKLayout(
 
   const validatedEdges = validateAndFixOrphanNodes(nodes, edges);
 
-  console.log(`[ELK Layout] Validated edges: ${edges.length} → ${validatedEdges.length}`);
+  logger.log(`[ELK Layout] Validated edges: ${edges.length} → ${validatedEdges.length}`);
 
   function createDistributedPorts(nodeId: string, side: 'EAST' | 'WEST', count: number): ELKPort[] {
     const ports: ELKPort[] = [];
@@ -445,15 +446,15 @@ export async function computeELKLayout(
       };
     }
 
-    console.log(`[ELK Layout] Edge ${edgeIdx}: ${edge.source} → ${edge.target}, sourcePort=${sourcePortId}, targetPort=${targetPortId}, distance=${layerDistance}, routing=${edgeRouting}`);
+    logger.log(`[ELK Layout] Edge ${edgeIdx}: ${edge.source} → ${edge.target}, sourcePort=${sourcePortId}, targetPort=${targetPortId}, distance=${layerDistance}, routing=${edgeRouting}`);
 
     return edgeDef;
   });
 
   try {
     const layoutStartTime = Date.now();
-    console.log('[ELK Layout] Starting layout computation...');
-    console.log(`[ELK Layout] Input nodes: ${nodes.length}, edges: ${edges.length}`);
+    logger.log('[ELK Layout] Starting layout computation...');
+    logger.log(`[ELK Layout] Input nodes: ${nodes.length}, edges: ${edges.length}`);
 
     const elkGraph = await elk.layout({
       id: 'root',
@@ -484,9 +485,9 @@ export async function computeELKLayout(
     }) as ELKGraph;
 
     const layoutTime = Date.now() - layoutStartTime;
-    console.log(`[ELK Layout] Completed in ${layoutTime}ms`);
-    console.log(`[ELK Layout] Graph bounds: ${elkGraph.width ?? 0}x${elkGraph.height ?? 0}`);
-    console.log(`[ELK Layout] ELK children count: ${elkGraph.children?.length ?? 0}`);
+    logger.log(`[ELK Layout] Completed in ${layoutTime}ms`);
+    logger.log(`[ELK Layout] Graph bounds: ${elkGraph.width ?? 0}x${elkGraph.height ?? 0}`);
+    logger.log(`[ELK Layout] ELK children count: ${elkGraph.children?.length ?? 0}`);
 
     const nodeMap = new Map<string, ArchitectureNode>();
     for (const node of nodes) {
@@ -495,12 +496,12 @@ export async function computeELKLayout(
 
     const reactFlowNodes: ReactFlowNode[] = [];
     const allELKNodes = extractAllNodes(elkGraph);
-    console.log(`[ELK Layout] Extracted nodes: ${allELKNodes.length}`);
+    logger.log(`[ELK Layout] Extracted nodes: ${allELKNodes.length}`);
 
     for (const elkNode of allELKNodes) {
       const originalNode = nodeMap.get(elkNode.id);
       if (!originalNode) {
-        console.log(`[ELK Layout] No original node for: ${elkNode.id}`);
+        logger.log(`[ELK Layout] No original node for: ${elkNode.id}`);
         continue;
       }
 
@@ -521,13 +522,13 @@ export async function computeELKLayout(
       });
     }
 
-    console.log(`[ELK Layout] Final reactFlowNodes: ${reactFlowNodes.length}`);
+    logger.log(`[ELK Layout] Final reactFlowNodes: ${reactFlowNodes.length}`);
 
     let edgePaths = extractEdgePathsFromELK(elkGraph, nodes);
 
     const collisionCheck = detectEdgeCollisionsInPaths(edgePaths, reactFlowNodes);
     if (collisionCheck.collisionCount > 0) {
-      console.log(`[ELK Layout] Detected ${collisionCheck.collisionCount} edge collisions - rerunning with ORTHOGONAL routing for colliding edges`);
+      logger.log(`[ELK Layout] Detected ${collisionCheck.collisionCount} edge collisions - rerunning with ORTHOGONAL routing for colliding edges`);
 
       const collidingEdgeIds = collisionCheck.collidingEdgeIds;
       const reroutedEdges = edges.map(edge => {
@@ -572,7 +573,7 @@ export async function computeELKLayout(
             'elk.edgeRouting': 'ORTHOGONAL',
             'elk.layered.separatingEdges.strategy': 'CENTERING',
           };
-          console.log(`[ELK Layout] Edge ${edge.id} -> ORTHOGONAL (collision detected)`);
+          logger.log(`[ELK Layout] Edge ${edge.id} -> ORTHOGONAL (collision detected)`);
         }
 
         return edgeDef;
@@ -602,7 +603,7 @@ export async function computeELKLayout(
       }) as ELKGraph;
 
       edgePaths = extractEdgePathsFromELK(elkGraphRerouted, nodes);
-      console.log(`[ELK Layout] Rerouted layout completed`);
+      logger.log(`[ELK Layout] Rerouted layout completed`);
     }
 
     return {
@@ -611,7 +612,7 @@ export async function computeELKLayout(
       elkGraph: allELKNodes,
     };
   } catch (error) {
-    console.error('[ELK Layout] Error:', error);
+    logger.error('[ELK Layout] Error:', error);
     return computeFallbackLayout(nodes, edges, nodeWidth, nodeHeight);
   }
 }
@@ -723,7 +724,7 @@ function computeFallbackLayout(
   nodeWidth: number,
   nodeHeight: number
 ): LayoutResult {
-  console.warn('[ELK Layout] Using fallback layout');
+  logger.warn('[ELK Layout] Using fallback layout');
 
   const LAYER_X_POSITIONS: Record<string, number> = {
     client: 50,

@@ -1,9 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateDiagram } from '@/lib/ai/services/orchestrator';
 import type { UserIntent, GenerationProgress } from '@/lib/ai/types';
+import { getSupabaseClient } from '@/lib/supabase';
+import logger from '@/lib/logger';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
+
+// Zod validation schema
+const generateDiagramSchema = z.object({
+  description: z.string().min(1, 'Description is required').max(2000, 'Description must be under 2000 characters'),
+  systemType: z.string().optional(),
+  complexity: z.enum(['low', 'medium', 'high']).optional(),
+});
+
+type GenerateDiagramInput = z.infer<typeof generateDiagramSchema>;
+
+// Rate limiting
+const generateRateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const GENERATE_RATE_WINDOW_MS = 60 * 1000;
+const MAX_GENERATE_REQUESTS = 5;
+
+function getGenerateRateKey(request: NextRequest): string {
+  const ip = request.headers.get('x-forwarded-for') || 
+             request.headers.get('x-real-ip') || 
+             'unknown';
+  return `generate:${ip}`;
+}
+
+function checkGenerateRateLimit(key: string): boolean {
+  const now = Date.now();
+  const record = generateRateLimitMap.get(key);
+  
+  if (!record || now > record.resetTime) {
+    generateRateLimitMap.set(key, { count: 1, resetTime: now + GENERATE_RATE_WINDOW_MS });
+    return true;
+  }
+  
+  if (record.count >= MAX_GENERATE_REQUESTS) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
 
 interface GenerateRequestBody {
   description: string;
@@ -12,36 +53,53 @@ interface GenerateRequestBody {
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json() as GenerateRequestBody;
+  // Rate limiting
+  const rateKey = getGenerateRateKey(req);
+  if (!checkGenerateRateLimit(rateKey)) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait before generating another diagram.', code: 'RATE_LIMITED', status: 429 },
+      { status: 429 }
+    );
+  }
 
-    if (!body.description || typeof body.description !== 'string') {
+  // Auth check
+  const supabase = getSupabaseClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session?.user) {
+    return NextResponse.json(
+      { error: 'Authentication required', code: 'UNAUTHORIZED', status: 401 },
+      { status: 401 }
+    );
+  }
+
+  try {
+    // Parse and validate request body with Zod
+    const body = await req.json();
+    const validatedInput = generateDiagramSchema.safeParse(body);
+    
+    if (!validatedInput.success) {
+      const errorMessage = validatedInput.error.issues
+        .map((e) => `${e.path.join('.')}: ${e.message}`)
+        .join(', ');
       return NextResponse.json(
-        { error: 'Missing or invalid "description" field' },
+        { error: errorMessage || 'Invalid request body', code: 'VALIDATION_ERROR', status: 400 },
         { status: 400 }
       );
     }
 
-    const userIntent: UserIntent = {
-      description: body.description.trim(),
-      systemType: body.systemType ?? inferSystemType(body.description),
-      complexity: body.complexity ?? inferComplexity(body.description),
-    };
+    const { description, systemType, complexity } = validatedInput.data as GenerateDiagramInput;
 
-    console.log('[API] Starting diagram generation:', userIntent);
+    const userIntent: UserIntent = {
+      description: description.trim(),
+      systemType: systemType ?? inferSystemType(description),
+      complexity: complexity ?? inferComplexity(description),
+    };
 
     const progressEvents: GenerationProgress[] = [];
 
     const result = await generateDiagram(userIntent, (progress) => {
       progressEvents.push(progress);
-      console.log(`[API] Progress: ${progress.phase} - ${progress.message} (${progress.progress}%)`);
-    });
-
-    console.log('[API] Generation complete:', {
-      nodes: result.nodes.length,
-      edges: result.edges.length,
-      score: result.metadata.score,
-      iterations: result.metadata.iterations,
     });
 
     return NextResponse.json({
@@ -51,7 +109,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[API] Generation failed:', error);
+    logger.error('[API] Generation failed:', error);
 
     const message = error instanceof Error ? error.message : 'Unknown error occurred';
 

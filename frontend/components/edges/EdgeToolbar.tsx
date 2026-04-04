@@ -3,6 +3,7 @@ import { EdgeLabelRenderer } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
 import { Trash2, Edit3, Check, X, ChevronDown, GitBranch, Spline } from 'lucide-react';
 import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface Props {
   edgeId: string;
@@ -24,6 +25,7 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
   const [editValue, setEditValue] = useState(currentLabel || '');
   const [showTypeMenu, setShowTypeMenu] = useState(false);
   const [showPathMenu, setShowPathMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const typeMenuRef = useRef<HTMLDivElement>(null);
   const pathMenuRef = useRef<HTMLDivElement>(null);
@@ -63,7 +65,12 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
   };
   
   const handleDelete = () => {
+    setConfirmDelete(true);
+  };
+
+  const handleDeleteConfirm = () => {
     deleteEdge(edgeId);
+    setConfirmDelete(false);
   };
 
   const handleEdgeTypeChange = (type: EdgeType) => {
@@ -216,6 +223,16 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDelete}
+        title="Delete edge?"
+        description="This action cannot be undone."
+        confirmText="Delete"
+        destructive
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </EdgeLabelRenderer>
   );
 }

@@ -1,6 +1,7 @@
 import { apiKeyManager } from '../utils/apiKeyManager';
 import type { SharedState, ScoreResult } from '../types';
 import { SCORER_PROMPT } from '../constants';
+import logger from '@/lib/logger';
 
 export async function runScorerAgent(state: SharedState): Promise<ScoreResult> {
   const stateJson = JSON.stringify(state, null, 2);
@@ -49,7 +50,7 @@ Output your score report as JSON only.`;
       top_improvements: parsed.top_improvements ?? [],
     };
   } catch (error) {
-    console.error('Scorer Agent error:', error);
+    logger.error('Scorer Agent error:', error);
     return runLocalScoring(state);
   }
 }

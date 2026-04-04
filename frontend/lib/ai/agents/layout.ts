@@ -1,6 +1,7 @@
 import { apiKeyManager } from '../utils/apiKeyManager';
 import type { SharedState, LayoutConfig, ArchitectureNode } from '../types';
 import { LAYOUT_AGENT_PROMPT, DEFAULT_ELK_OPTIONS } from '../constants';
+import logger from '@/lib/logger';
 
 export async function runLayoutAgent(state: SharedState): Promise<{ layout: LayoutConfig; nodes: ArchitectureNode[] }> {
   const componentsJson = JSON.stringify(state.components, null, 2);
@@ -58,7 +59,7 @@ Output the layout configuration and updated nodes as JSON only.`;
 
     return { layout, nodes };
   } catch (error) {
-    console.error('Layout Agent error:', error);
+    logger.error('Layout Agent error:', error);
     return generateDefaultLayout(state.components);
   }
 }

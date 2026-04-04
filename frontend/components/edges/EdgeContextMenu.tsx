@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useDiagramStore } from '@/store/diagramStore';
 import { Trash2, GitBranch, Spline, ChevronRight } from 'lucide-react';
 import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface Props {
   edgeId: string;
@@ -20,6 +21,7 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
   const menuRef = useRef<HTMLDivElement>(null);
   
   const [showSubmenu, setShowSubmenu] = useState<'type' | 'path' | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -40,8 +42,13 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
   const top  = Math.min(position.y, window.innerHeight - MENU_H - 8);
 
   const handleDelete = () => {
+    setConfirmDelete(true);
+  };
+
+  const handleDeleteConfirm = () => {
     deleteEdge(edgeId);
     onClose();
+    setConfirmDelete(false);
   };
 
   const handleEdgeTypeChange = (type: EdgeType) => {
@@ -174,6 +181,16 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
         <Trash2 size={14} />
         <span>Delete Edge</span>
       </button>
+
+      <ConfirmDialog
+        isOpen={confirmDelete}
+        title="Delete edge?"
+        description="This action cannot be undone."
+        confirmText="Delete"
+        destructive
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }

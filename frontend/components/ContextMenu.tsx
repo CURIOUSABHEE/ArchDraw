@@ -8,6 +8,7 @@ import {
   MessageSquare, CheckSquare, Layers, ZoomIn, ZoomOut,
   Maximize2, ChevronRight
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export interface ContextMenuState {
   x: number;
@@ -25,6 +26,7 @@ interface Props {
 export function ContextMenu({ menu, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { screenToFlowPosition, fitView } = useReactFlow();
   const {
     nodes, removeNode, setSelectedNodeId,
@@ -77,8 +79,17 @@ export function ContextMenu({ menu, onClose }: Props) {
   }, [menu.nodeId, nodes, pushHistory, onClose]);
 
   const deleteNode = useCallback(() => {
+    if (menu.nodeId) { setConfirmDelete(true); }
+  }, [menu.nodeId]);
+
+  const handleDeleteConfirm = useCallback(() => {
     if (menu.nodeId) { removeNode(menu.nodeId); onClose(); }
+    setConfirmDelete(false);
   }, [menu.nodeId, removeNode, onClose]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setConfirmDelete(false);
+  }, []);
 
   const addToGroup = useCallback(() => {
     if (!menu.nodeId) return;
@@ -213,6 +224,16 @@ export function ContextMenu({ menu, onClose }: Props) {
           </MenuItem>
         </>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDelete}
+        title="Delete node?"
+        description="This action cannot be undone."
+        confirmText="Delete"
+        destructive
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </div>
   );
 }

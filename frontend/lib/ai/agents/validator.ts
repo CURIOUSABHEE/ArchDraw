@@ -1,6 +1,7 @@
 import { apiKeyManager } from '../utils/apiKeyManager';
 import type { SharedState, ValidationResult, ValidationIssue } from '../types';
 import { VALIDATOR_PROMPT, LAYER_ORDER } from '../constants';
+import logger from '@/lib/logger';
 
 export async function runValidatorAgent(state: SharedState): Promise<ValidationResult> {
   const stateJson = JSON.stringify(state, null, 2);
@@ -49,7 +50,7 @@ Output your validation report as JSON only.`;
       summary: parsed.summary ?? 'Validation complete',
     };
   } catch (error) {
-    console.error('Validator Agent error:', error);
+    logger.error('Validator Agent error:', error);
     return runLocalValidation(state);
   }
 }

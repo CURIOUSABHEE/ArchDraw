@@ -2,6 +2,34 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { redis, redisKeys } from '@/lib/redis';
 
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 20;
+
+function getRateLimitKey(request: NextRequest): string {
+  const ip = request.headers.get('x-forwarded-for') || 
+             request.headers.get('x-real-ip') || 
+             'unknown';
+  return `embed:${ip}`;
+}
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+  
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  
+  if (record.count >= MAX_REQUESTS_PER_WINDOW) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
 interface SharedCanvas {
   id: string;
   canvas_name: string;
@@ -26,6 +54,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateKey = getRateLimitKey(request);
+  if (!checkRateLimit(rateKey)) {
+    return NextResponse.json(
+      { error: 'Too many requests', code: 'RATE_LIMITED', status: 429 },
+      { status: 429 }
+    );
+  }
+
   const { id } = await params;
   const origin = request.headers.get('origin') || '';
   

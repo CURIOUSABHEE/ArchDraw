@@ -2,6 +2,7 @@ import { apiKeyManager } from '../utils/apiKeyManager';
 import type { SharedState, ArchitectureEdge, ArchitectureNode, CommunicationType, PathType, HandlePosition, MarkerType } from '../types';
 import { EDGE_AGENT_PROMPT, COMMUNICATION_STYLES, LAYER_ORDER } from '../constants';
 import { COMPONENT_PORTS, getStrictPortConfig } from '@/lib/componentPorts';
+import logger from '@/lib/logger';
 
 interface PortAssignment {
   sourceHandle: string;
@@ -612,17 +613,17 @@ function fixArchitectureIssues(
     let shouldSkip = false;
 
     if (sourceLayer === 'client' && (targetLayer === 'database' || targetLayer === 'queue' || targetLayer === 'external')) {
-      console.warn(`[EdgeAgent] Removing invalid edge: client -> ${targetLayer}`);
+      logger.warn(`[EdgeAgent] Removing invalid edge: client -> ${targetLayer}`);
       shouldSkip = true;
     }
 
     if (['database', 'cache', 'devops'].includes(sourceLayer)) {
-      console.warn(`[EdgeAgent] Removing invalid edge: ${sourceLayer} initiates connection`);
+      logger.warn(`[EdgeAgent] Removing invalid edge: ${sourceLayer} initiates connection`);
       shouldSkip = true;
     }
 
     if (sourceLayer === edge.target) {
-      console.warn(`[EdgeAgent] Removing self-loop`);
+      logger.warn(`[EdgeAgent] Removing self-loop`);
       shouldSkip = true;
     }
 
@@ -645,7 +646,7 @@ export async function runEdgeAgent(state: SharedState): Promise<ArchitectureEdge
   const nodesToUse = state.components.length > 0 ? state.components : state.nodes;
   
   if (nodesToUse.length === 0) {
-    console.warn('[EdgeAgent] No nodes available, returning empty edges');
+    logger.warn('[EdgeAgent] No nodes available, returning empty edges');
     return [];
   }
 
@@ -706,19 +707,19 @@ Output JSON with an "edges" array. Each edge must have:
         parsed = jsonObj.connections;
       }
     } catch (parseError) {
-      console.warn('[EdgeAgent] JSON parse failed, trying regex extraction');
+      logger.warn('[EdgeAgent] JSON parse failed, trying regex extraction');
       const arrayMatch = cleanedResult.match(/\[[\s\S]*\]/);
       if (arrayMatch) {
         try {
           parsed = JSON.parse(arrayMatch[0]);
         } catch {
-          console.warn('[EdgeAgent] Regex extraction failed');
+          logger.warn('[EdgeAgent] Regex extraction failed');
         }
       }
     }
 
     if (parsed.length === 0) {
-      console.warn('[EdgeAgent] No edges parsed from LLM, using default generation');
+      logger.warn('[EdgeAgent] No edges parsed from LLM, using default generation');
       return generateDefaultEdges(nodesToUse, state.userIntent);
     }
 
@@ -728,13 +729,13 @@ Output JSON with an "edges" array. Each edge must have:
 
     const validationIssues = validateArchitectureRules(edges, nodesToUse);
     if (validationIssues.length > 0) {
-      console.warn(`[EdgeAgent] Found ${validationIssues.length} architecture issues:`, validationIssues);
+      logger.warn(`[EdgeAgent] Found ${validationIssues.length} architecture issues:`, validationIssues);
       
       const fixedEdges = fixArchitectureIssues(edges, nodesToUse);
       
       const remainingIssues = validateArchitectureRules(fixedEdges, nodesToUse);
       if (remainingIssues.length > 0) {
-        console.warn(`[EdgeAgent] After fix, ${remainingIssues.length} issues remain:`, remainingIssues);
+        logger.warn(`[EdgeAgent] After fix, ${remainingIssues.length} issues remain:`, remainingIssues);
       }
       
       return fixedEdges;
@@ -742,15 +743,15 @@ Output JSON with an "edges" array. Each edge must have:
 
     const flowIssues = validateFlowCompleteness(edges, nodesToUse);
     if (flowIssues.length > 0) {
-      console.warn(`[EdgeAgent] Found ${flowIssues.length} flow issues:`, flowIssues);
+      logger.warn(`[EdgeAgent] Found ${flowIssues.length} flow issues:`, flowIssues);
     }
 
     const flowGraphValidation = validateFlowGraph(nodesToUse, edges);
     if (flowGraphValidation.issues.length > 0) {
-      console.warn(`[EdgeAgent] Flow graph issues:`, flowGraphValidation.issues);
+      logger.warn(`[EdgeAgent] Flow graph issues:`, flowGraphValidation.issues);
     }
     
-    console.log(`[EdgeAgent] Flow Graph Summary:`, {
+    logger.log(`[EdgeAgent] Flow Graph Summary:`, {
       hasRequestFlow: flowGraphValidation.hasRequestFlow,
       hasProcessingFlow: flowGraphValidation.hasProcessingFlow,
       hasAsyncFlow: flowGraphValidation.hasAsyncFlow,
@@ -759,7 +760,7 @@ Output JSON with an "edges" array. Each edge must have:
 
     return edges;
   } catch (error) {
-    console.error('[EdgeAgent] Error:', error);
+    logger.error('[EdgeAgent] Error:', error);
     return generateDefaultEdges(nodesToUse, state.userIntent);
   }
 }
@@ -807,7 +808,7 @@ function generateDefaultEdges(nodes: ArchitectureNode[], userIntent: SharedState
   const edges: ArchitectureEdge[] = [];
   
   if (nodes.length < 2) {
-    console.warn('[EdgeAgent] Less than 2 nodes, cannot create edges');
+    logger.warn('[EdgeAgent] Less than 2 nodes, cannot create edges');
     return edges;
   }
 

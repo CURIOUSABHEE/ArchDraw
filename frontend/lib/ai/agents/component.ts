@@ -1,6 +1,7 @@
 import { apiKeyManager } from '../utils/apiKeyManager';
 import type { SharedState, ArchitectureNode } from '../types';
 import { COMPONENT_AGENT_PROMPT } from '../constants';
+import logger from '@/lib/logger';
 
 export async function runComponentAgent(state: SharedState): Promise<ArchitectureNode[]> {
   const userIntent = state.userIntent;
@@ -50,7 +51,7 @@ Output the complete components/nodes array as JSON only.`;
       metadata: node.metadata ?? {},
     }));
   } catch (error) {
-    console.error('Component Agent error:', error);
+    logger.error('Component Agent error:', error);
     return generateDefaultComponents(userIntent);
   }
 }

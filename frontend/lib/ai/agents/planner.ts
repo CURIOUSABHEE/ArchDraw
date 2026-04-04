@@ -1,6 +1,7 @@
 import { apiKeyManager } from '../utils/apiKeyManager';
 import type { PlannerDecision, SharedState, AgentAction } from '../types';
 import { PLANNER_PROMPT, MAX_ITERATIONS, SCORE_THRESHOLD } from '../constants';
+import logger from '@/lib/logger';
 
 export async function runPlannerAgent(state: SharedState): Promise<PlannerDecision> {
   const stateJson = JSON.stringify(state, null, 2);
@@ -37,7 +38,7 @@ Output your decision as JSON only.`;
     const decision = JSON.parse(cleanedResult) as PlannerDecision;
     return decision;
   } catch (error) {
-    console.error('Planner Agent error:', error);
+    logger.error('Planner Agent error:', error);
     return {
       next_action: determineFallbackAction(state),
       reasoning: 'Fallback due to planner error',

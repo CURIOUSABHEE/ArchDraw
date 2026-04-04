@@ -53,6 +53,7 @@ import {
 import {
   computeOptimalLabelPositions,
 } from './edgeLabelPositioner';
+import logger from '@/lib/logger';
 
 export type ProgressCallback = (progress: GenerationProgress) => void;
 
@@ -120,13 +121,13 @@ export async function generateDiagram(
     // PHASE 2: Generate edges (1 API call)
     emit('edges', 'Creating connections between components...', 40);
     state.edges = await runEdgeAgent(state);
-    console.log(`[Orchestrator] Generated ${state.edges.length} edges`);
+    logger.log(`[Orchestrator] Generated ${state.edges.length} edges`);
     emit('edges', `Created ${state.edges.length} connections`, 50);
 
     // PHASE 3: Compute layout with ELK (0 API calls, uses elkjs)
     emit('layout', 'Computing layout with ELK.js...', 60);
     elkLayoutResult = await computeELKLayout(state.components, state.edges);
-    console.log(`[Orchestrator] ELK layout computed ${elkLayoutResult.nodes.length} nodes`);
+    logger.log(`[Orchestrator] ELK layout computed ${elkLayoutResult.nodes.length} nodes`);
 
     // PHASE 4: Score the diagram (1 API call)
     emit('scoring', 'Calculating quality score...', 80);
@@ -141,13 +142,13 @@ export async function generateDiagram(
     let iteration = 0;
     while (scoreResult.score < SCORE_THRESHOLD && iteration < MAX_ITERATIONS) {
       iteration++;
-      console.log(`[Orchestrator] Iteration ${iteration}: Score ${scoreResult.score} < ${SCORE_THRESHOLD}, reducing complexity...`);
+      logger.log(`[Orchestrator] Iteration ${iteration}: Score ${scoreResult.score} < ${SCORE_THRESHOLD}, reducing complexity...`);
       
       // Iteration 1: Reduce node count
       if (state.components.length > MAX_NODES) {
         emit('components', `Reducing nodes (${state.components.length} → ${MAX_NODES})...`, 60);
         state.components = state.components.slice(0, MAX_NODES);
-        console.log(`[Orchestrator] Reduced to ${state.components.length} nodes`);
+        logger.log(`[Orchestrator] Reduced to ${state.components.length} nodes`);
       }
       
       // Regenerate edges with reduced components
@@ -169,32 +170,32 @@ export async function generateDiagram(
     emit('complete', 'Generation complete!', 100);
 
   } catch (error) {
-    console.error('Generation error:', error);
+    logger.error('Generation error:', error);
     emit('error', `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 100);
     throw error;
   }
 
   // Use ELK layout if available, otherwise fallback to computeLayeredLayout
-  console.log(`[Orchestrator] state.components.length: ${state.components.length}`);
-  console.log(`[Orchestrator] state.edges.length: ${state.edges.length}`);
-  console.log(`[Orchestrator] elkLayoutResult?.nodes.length: ${elkLayoutResult?.nodes.length ?? 'null'}`);
+  logger.log(`[Orchestrator] state.components.length: ${state.components.length}`);
+  logger.log(`[Orchestrator] state.edges.length: ${state.edges.length}`);
+  logger.log(`[Orchestrator] elkLayoutResult?.nodes.length: ${elkLayoutResult?.nodes.length ?? 'null'}`);
   
   let reactFlowNodes: ReturnType<typeof computeLayeredLayout>;
   if (elkLayoutResult && elkLayoutResult.nodes.length > 0) {
     reactFlowNodes = elkLayoutResult.nodes;
-    console.log('[Orchestrator] Using ELK layout');
+    logger.log('[Orchestrator] Using ELK layout');
   } else {
     reactFlowNodes = computeLayeredLayout(state.components, state.edges);
-    console.log('[Orchestrator] Using fallback layout');
+    logger.log('[Orchestrator] Using fallback layout');
   }
   
-  console.log(`[Orchestrator] reactFlowNodes.length: ${reactFlowNodes.length}`);
+  logger.log(`[Orchestrator] reactFlowNodes.length: ${reactFlowNodes.length}`);
   
   const nodeIdSet = new Set(reactFlowNodes.map(n => n.id));
-  console.log(`[Orchestrator] nodeIdSet.size: ${nodeIdSet.size}`);
+  logger.log(`[Orchestrator] nodeIdSet.size: ${nodeIdSet.size}`);
   
   const reactFlowEdges = convertToReactFlowEdges(state.edges, nodeIdSet);
-  console.log(`[Orchestrator] reactFlowEdges.length: ${reactFlowEdges.length}`);
+  logger.log(`[Orchestrator] reactFlowEdges.length: ${reactFlowEdges.length}`);
 
   // Edge Layout Pipeline - Collision avoidance loops until ALL collisions are resolved
   let edgePaths = computeEdgeLayout(reactFlowNodes, reactFlowEdges);
@@ -205,17 +206,17 @@ export async function generateDiagram(
 
   while (true) {
     collisionLoopCount++;
-    console.log(`[EdgeLayout] Collision avoidance loop #${collisionLoopCount}`);
+    logger.log(`[EdgeLayout] Collision avoidance loop #${collisionLoopCount}`);
 
     // 1. Detect collisions
     const collisionReport = detectEdgeCollisions(reactFlowNodes, reactFlowEdges, edgePaths);
     
     if (!collisionReport.hasCollisions) {
-      console.log(`[EdgeLayout] All collisions resolved! (loops: ${collisionLoopCount})`);
+      logger.log(`[EdgeLayout] All collisions resolved! (loops: ${collisionLoopCount})`);
       break;
     }
 
-    console.log(`[EdgeLayout] Found ${collisionReport.totalCollisions} collisions - resolving...`);
+    logger.log(`[EdgeLayout] Found ${collisionReport.totalCollisions} collisions - resolving...`);
 
     // 2. Resolve all collisions in one pass
     const { resolvedPaths } = resolveCollisions(
@@ -235,7 +236,7 @@ export async function generateDiagram(
 
     // Safety check - prevent infinite loops (max 20 collision avoidance loops)
     if (collisionLoopCount >= 20) {
-      console.warn(`[EdgeLayout] Max collision loops reached (20) - stopping`);
+      logger.warn(`[EdgeLayout] Max collision loops reached (20) - stopping`);
       break;
     }
   }
@@ -274,7 +275,7 @@ export async function generateDiagram(
   const finalCollisionCheck = detectEdgeCollisions(reactFlowNodes, finalEdges, edgePaths);
   const remainingCollisions = finalCollisionCheck.totalCollisions;
 
-  console.log(`[EdgeLayout] Complete - Resolved: ${totalCollisionsResolved}, Remaining: ${remainingCollisions}`);
+  logger.log(`[EdgeLayout] Complete - Resolved: ${totalCollisionsResolved}, Remaining: ${remainingCollisions}`);
 
   const layoutHints = generateLayoutHints(state.components, state.edges);
 
@@ -314,9 +315,9 @@ function computeLayeredLayout(
   const nodeWidth = NODE_WIDTH_STANDARD;
   const nodeHeight = NODE_HEIGHT_STANDARD;
 
-  console.log(`[computeLayeredLayout] Input nodes count: ${nodes.length}`);
+  logger.log(`[computeLayeredLayout] Input nodes count: ${nodes.length}`);
   if (nodes.length > 0) {
-    console.log(`[computeLayeredLayout] First node sample:`, JSON.stringify(nodes[0]));
+    logger.log(`[computeLayeredLayout] First node sample:`, JSON.stringify(nodes[0]));
   }
 
   // 1. Group nodes by layer
@@ -329,7 +330,7 @@ function computeLayeredLayout(
     nodesByLayer[layer].push(node);
   }
 
-  console.log(`[computeLayeredLayout] nodesByLayer keys:`, Object.keys(nodesByLayer));
+  logger.log(`[computeLayeredLayout] nodesByLayer keys:`, Object.keys(nodesByLayer));
 
   // 2. Calculate vertical centering offset
   // Find the row with most nodes and calculate centerY based on that
@@ -338,7 +339,7 @@ function computeLayeredLayout(
     const layerNodes = nodesByLayer[layer] || [];
     maxNodesInRow = Math.max(maxNodesInRow, layerNodes.length);
   }
-  console.log(`[computeLayeredLayout] maxNodesInRow: ${maxNodesInRow}`);
+  logger.log(`[computeLayeredLayout] maxNodesInRow: ${maxNodesInRow}`);
   const totalNodesHeight = maxNodesInRow * nodeHeight + (maxNodesInRow - 1) * NODE_SPACING_VERTICAL;
   const centerY = Math.max(50, (CANVAS_HEIGHT - totalNodesHeight) / 2);
 
@@ -348,7 +349,7 @@ function computeLayeredLayout(
     if (layerNodes.length === 0) continue;
 
     const layerX = LAYER_X_POSITIONS[layer] ?? 50;
-    console.log(`[computeLayeredLayout] Layer ${layer}: ${layerNodes.length} nodes at x=${layerX}`);
+    logger.log(`[computeLayeredLayout] Layer ${layer}: ${layerNodes.length} nodes at x=${layerX}`);
 
     // Calculate vertical centering for this layer
     const layerTotalHeight = layerNodes.length * nodeHeight +
@@ -374,14 +375,14 @@ function computeLayeredLayout(
     });
   }
 
-  console.log(`[computeLayeredLayout] Output nodes count: ${reactFlowNodes.length}`);
+  logger.log(`[computeLayeredLayout] Output nodes count: ${reactFlowNodes.length}`);
 
   // 4. Add any remaining nodes not in standard layers
   const addedIds = new Set(reactFlowNodes.map(n => n.id));
   const remainingNodes = nodes.filter(n => !addedIds.has(n.id));
 
   if (remainingNodes.length > 0) {
-    console.log(`[computeLayeredLayout] Remaining nodes: ${remainingNodes.length}`);
+    logger.log(`[computeLayeredLayout] Remaining nodes: ${remainingNodes.length}`);
     const defaultX = LAYER_X_POSITIONS.service ?? 490;
     const layerTotalHeight = remainingNodes.length * nodeHeight +
                              (remainingNodes.length - 1) * NODE_SPACING_VERTICAL;
@@ -405,7 +406,7 @@ function computeLayeredLayout(
     });
   }
 
-  console.log(`[computeLayeredLayout] Final output nodes count: ${reactFlowNodes.length}`);
+  logger.log(`[computeLayeredLayout] Final output nodes count: ${reactFlowNodes.length}`);
 
   return reactFlowNodes;
 }

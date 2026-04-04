@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import logger from '@/lib/logger';
 
 interface ApiKeyState {
   key: string;
@@ -61,7 +62,7 @@ class ApiKeyManager {
     }
 
     this.isInitialized = true;
-    console.log(`[ApiKeyManager] Loaded ${this.keys.length} API keys`);
+    logger.log(`[ApiKeyManager] Loaded ${this.keys.length} API keys`);
   }
 
   clearAllRateLimits(): void {
@@ -69,11 +70,11 @@ class ApiKeyManager {
       keyState.isRateLimited = false;
       keyState.consecutiveErrors = 0;
     }
-    console.log(`[ApiKeyManager] Cleared all rate limit states`);
+    logger.log(`[ApiKeyManager] Cleared all rate limit states`);
   }
 
   refreshKeys(): void {
-    console.log(`[ApiKeyManager] Refreshing API keys...`);
+    logger.log(`[ApiKeyManager] Refreshing API keys...`);
     this.clearAllRateLimits();
     this.initializeKeys();
   }
@@ -99,7 +100,7 @@ class ApiKeyManager {
         if (timeSinceLastUse > 30000) { // 30 second cooldown
           keyState.isRateLimited = false;
           keyState.consecutiveErrors = 0;
-          console.log(`[ApiKeyManager] Key ${index + 1} cooldown complete, available`);
+          logger.log(`[ApiKeyManager] Key ${index + 1} cooldown complete, available`);
         } else {
           continue;
         }
@@ -125,7 +126,7 @@ class ApiKeyManager {
       this.keys[index].consecutiveErrors++;
       if (this.keys[index].consecutiveErrors >= this.maxConsecutiveErrors) {
         this.keys[index].isRateLimited = true;
-        console.log(`[ApiKeyManager] Key ${index + 1} marked as rate-limited after ${this.maxConsecutiveErrors} errors`);
+        logger.log(`[ApiKeyManager] Key ${index + 1} marked as rate-limited after ${this.maxConsecutiveErrors} errors`);
       }
     }
   }
@@ -154,7 +155,7 @@ class ApiKeyManager {
       const keyInfo = this.getAvailableKey();
 
       if (!keyInfo) {
-        console.log(`[ApiKeyManager] All keys busy/rate-limited, waiting 3s...`);
+        logger.log(`[ApiKeyManager] All keys busy/rate-limited, waiting 3s...`);
         await this.delay(3000);
         continue;
       }
@@ -172,7 +173,7 @@ class ApiKeyManager {
         const status = err.status;
         const errorMessage = err.message || '';
         
-        console.log(`[ApiKeyManager] Key ${keyInfo.index + 1} error: ${errorMessage}`);
+        logger.log(`[ApiKeyManager] Key ${keyInfo.index + 1} error: ${errorMessage}`);
 
         // Check for different rate limit types
         const isRateLimit = status === 429 || 
@@ -185,14 +186,14 @@ class ApiKeyManager {
         if (isRateLimit) {
           this.markKeyError(keyInfo.index);
           const delay = this.baseDelay * Math.pow(2, Math.min(attempt, 5));
-          console.log(`[ApiKeyManager] Rate limit on key ${keyInfo.index + 1}, waiting ${delay/1000}s...`);
+          logger.log(`[ApiKeyManager] Rate limit on key ${keyInfo.index + 1}, waiting ${delay/1000}s...`);
           await this.delay(delay);
         } else if (status && status >= 500) {
           const delay = this.baseDelay * Math.pow(2, attempt);
-          console.log(`[ApiKeyManager] Server error ${status}, waiting ${delay/1000}s...`);
+          logger.log(`[ApiKeyManager] Server error ${status}, waiting ${delay/1000}s...`);
           await this.delay(delay);
         } else if (status === 401 || status === 403) {
-          console.log(`[ApiKeyManager] Auth error - invalid API key`);
+          logger.log(`[ApiKeyManager] Auth error - invalid API key`);
           throw error;
         } else {
           this.markKeyError(keyInfo.index);

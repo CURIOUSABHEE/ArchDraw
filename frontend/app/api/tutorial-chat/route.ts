@@ -11,6 +11,53 @@ import {
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { redis, redisKeys } from '@/lib/redis';
 import staticCacheData from '@/data/tutorialCache.json';
+import { z } from 'zod';
+import logger from '@/lib/logger';
+
+// Zod validation schema
+const chatMessageSchema = z.object({
+  tutorialId: z.string().min(1, 'Tutorial ID is required'),
+  stepNumber: z.number().int().positive('Step number must be a positive integer'),
+  stepTitle: z.string().min(1, 'Step title is required'),
+  stepExplanation: z.string().min(1, 'Step explanation is required'),
+  question: z.string().min(1, 'Question is required').max(2000, 'Question must be under 2000 characters'),
+  history: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+  })).optional(),
+  explainCount: z.number().int().optional(),
+});
+
+type ChatMessageInput = z.infer<typeof chatMessageSchema>;
+
+// Rate limiting
+const chatRateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const CHAT_RATE_WINDOW_MS = 60 * 1000;
+const MAX_CHAT_REQUESTS = 15;
+
+function getChatRateKey(request: NextRequest): string {
+  const ip = request.headers.get('x-forwarded-for') || 
+             request.headers.get('x-real-ip') || 
+             'unknown';
+  return `chat:${ip}`;
+}
+
+function checkChatRateLimit(key: string): boolean {
+  const now = Date.now();
+  const record = chatRateLimitMap.get(key);
+  
+  if (!record || now > record.resetTime) {
+    chatRateLimitMap.set(key, { count: 1, resetTime: now + CHAT_RATE_WINDOW_MS });
+    return true;
+  }
+  
+  if (record.count >= MAX_CHAT_REQUESTS) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
 
 // ── Groq client ───────────────────────────────────────────────────────────────
 let _groq: Groq | null = null;
@@ -109,7 +156,7 @@ function persistToSupabase(questionHash: string, response: string): void {
       .from('tutorial_response_cache')
       .upsert({ question_hash: questionHash, response })
       .then(({ error }: { error: { message: string } | null }) => {
-        if (error) console.error('[API] Supabase persist error:', error.message);
+        if (error) logger.error('[API] Supabase persist error:', error.message);
       });
   } catch {
     // Non-critical — ignore
@@ -137,27 +184,31 @@ async function lookupSupabase(questionHash: string): Promise<string | null> {
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const {
-      tutorialId,
-      stepNumber,
-      stepTitle,
-      stepExplanation,
-      question,
-      history = [],
-    }: {
-      tutorialId: string;
-      stepNumber: number;
-      stepTitle: string;
-      stepExplanation: string;
-      question: string;
-      history: CompressedMessage[];
-    } = body;
+  // Rate limiting
+  const rateKey = getChatRateKey(req);
+  if (!checkChatRateLimit(rateKey)) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait before sending another message.', code: 'RATE_LIMITED', status: 429 },
+      { status: 429 }
+    );
+  }
 
-    if (!tutorialId || !stepNumber || !question) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  try {
+    // Parse and validate request body with Zod
+    const body = await req.json();
+    const validatedInput = chatMessageSchema.safeParse(body);
+    
+    if (!validatedInput.success) {
+      const errorMessage = validatedInput.error.issues
+        .map((e) => `${e.path.join('.')}: ${e.message}`)
+        .join(', ');
+      return NextResponse.json(
+        { error: errorMessage || 'Invalid request body', code: 'VALIDATION_ERROR', status: 400 },
+        { status: 400 }
+      );
     }
+
+    const { tutorialId, stepNumber, stepTitle, stepExplanation, question, history = [], explainCount = 0 } = validatedInput.data as ChatMessageInput;
 
     // Netflix moved to static — no live tutorials currently
     const LIVE_TUTORIALS: string[] = [];
@@ -170,14 +221,13 @@ export async function POST(req: NextRequest) {
 
     // Guard: require GROQ_API_KEY before attempting any Groq call
     if (!process.env.GROQ_API_KEY) {
-      console.error('[API] GROQ_API_KEY is not set — cannot serve AI responses');
+      logger.error('[API] GROQ_API_KEY is not set — cannot serve AI responses');
       return NextResponse.json(
         { error: 'AI service unavailable — server misconfiguration' },
         { status: 503 },
       );
     }
 
-    const explainCount: number = body.explainCount ?? 0;
     const phaseMatch = question.match(/PHASE:(\w+)/i);
     const rawPhase = phaseMatch ? phaseMatch[1].toLowerCase() : null;
     const isReteach = /RETEACH:true/i.test(question);
@@ -190,7 +240,7 @@ export async function POST(req: NextRequest) {
         const contextKey = `${tutorialId}:context`;
         const contextHit = (staticCacheData as Record<string, string>)[contextKey];
         if (contextHit) {
-          console.log(`[API] STATIC-HIT ${contextKey}`);
+          logger.log(`[API] STATIC-HIT ${contextKey}`);
           return streamString(contextHit, 'STATIC-HIT');
         }
       }
@@ -198,10 +248,10 @@ export async function POST(req: NextRequest) {
       const staticKey = `${tutorialId}:${stepNumber}:${rawPhase}:${staticExplainCount}`;
       const staticHit = (staticCacheData as Record<string, string>)[staticKey];
       if (staticHit) {
-        console.log(`[API] STATIC-HIT ${staticKey}`);
+        logger.log(`[API] STATIC-HIT ${staticKey}`);
         return streamString(staticHit, 'STATIC-HIT');
       }
-      console.log(`[API] STATIC-MISS ${staticKey}`);
+      logger.log(`[API] STATIC-MISS ${staticKey}`);
     }
 
     // ── 2. Runtime in-memory cache (phase messages that missed static) ────────
@@ -209,7 +259,7 @@ export async function POST(req: NextRequest) {
     const runtimeKey = getCacheKey(tutorialId, stepNumber, 'question', qHash);
     const runtimeHit = getCached(runtimeKey);
     if (runtimeHit) {
-      console.log(`[API] RUNTIME-HIT ${runtimeKey}`);
+      logger.log(`[API] RUNTIME-HIT ${runtimeKey}`);
       return NextResponse.json(
         { content: runtimeHit.content },
         { headers: { 'X-Cache': 'HIT' } },
@@ -230,33 +280,33 @@ export async function POST(req: NextRequest) {
     try {
       const redisHit = await redis.get<string>(redisKey);
       if (redisHit) {
-        console.log(`[API] REDIS-HIT ${redisKey}`);
+        logger.log(`[API] REDIS-HIT ${redisKey}`);
         return streamString(redisHit, 'REDIS-HIT');
       }
-      console.log(`[API] REDIS-MISS ${redisKey}`);
+      logger.log(`[API] REDIS-MISS ${redisKey}`);
     } catch (err) {
       // Redis unavailable — continue to Groq, don't fail the request
-      console.warn('[API] Redis lookup failed, falling through:', err);
+      logger.warn('[API] Redis lookup failed, falling through:', err);
     }
 
     // ── 4. Free-text keyword match → serve cached teaching response ───────────
     if (isFreeText) {
       const keywordHit = tryKeywordMatch(question, tutorialId, stepNumber, stepTitle);
       if (keywordHit) {
-        console.log(`[API] KEYWORD-HIT step=${stepNumber} q="${question.slice(0, 40)}"`);
+        logger.log(`[API] KEYWORD-HIT step=${stepNumber} q="${question.slice(0, 40)}"`);
         return streamString(keywordHit, 'KEYWORD-HIT');
       }
 
       // ── 5. Supabase persistent cache for free-text ──────────────────────────
       const supabaseHit = await lookupSupabase(qHash);
       if (supabaseHit) {
-        console.log(`[API] SUPABASE-HIT hash=${qHash}`);
+        logger.log(`[API] SUPABASE-HIT hash=${qHash}`);
         return streamString(supabaseHit, 'SUPABASE-HIT');
       }
     }
 
     // ── 6. Groq call ──────────────────────────────────────────────────────────
-    console.log(`[API] GROQ phase=${rawPhase ?? 'free-text'} step=${stepNumber}`);
+    logger.log(`[API] GROQ phase=${rawPhase ?? 'free-text'} step=${stepNumber}`);
 
     const contextMessage = `Current tutorial step ${stepNumber}: "${stepTitle}"\nContext: ${stepExplanation}`;
     const compressedHistory = compressHistory(history);
@@ -295,7 +345,7 @@ export async function POST(req: NextRequest) {
             // Save to Upstash Redis (fire-and-forget)
             const ttl = isFreeText ? 604800 : undefined; // 7 days for free-text, no expiry for phase
             redis.set(redisKey, finalText, ttl ? { ex: ttl } : {}).catch(err =>
-              console.warn('[API] Redis write failed:', err)
+              logger.warn('[API] Redis write failed:', err)
             );
             // Save free-text responses to Supabase (fire-and-forget)
             if (isFreeText) persistToSupabase(qHash, finalText);
@@ -303,7 +353,7 @@ export async function POST(req: NextRequest) {
 
           controller.close();
         } catch (err) {
-          console.error('[API] Groq stream error:', err);
+          logger.error('[API] Groq stream error:', err);
           const fallback = stepExplanation || 'Let\'s continue building the architecture.';
           controller.enqueue(encoder.encode(fallback));
           controller.close();
@@ -319,7 +369,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error('Tutorial chat error:', err);
+    logger.error('Tutorial chat error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
