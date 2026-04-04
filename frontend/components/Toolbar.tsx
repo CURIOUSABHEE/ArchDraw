@@ -885,8 +885,7 @@ export function Toolbar() {
 
       {shareModalOpen && (
         <ShareModal
-          shareUrl={shareUrl}
-          embedUrl={embedUrl}
+          canvasId={activeCanvas?.id ?? ''}
           canvasName={activeCanvas?.name ?? 'Untitled'}
           onClose={() => setShareModalOpen(false)}
         />

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Plus,
   Search,
@@ -10,23 +10,13 @@ import {
   FileText,
   LayoutTemplate,
   GraduationCap,
-  Settings,
   FolderOpen,
-  Sparkles,
-  Clock,
-  Trash2,
-  Share2,
-  Edit3,
   ChevronDown,
   ChevronRight,
-  Play,
-  BookOpen,
-  ArrowRight,
-  Palette,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
-import { TEMPLATES } from '@/data/templates';
+import { UserAvatar, SettingsPanel } from '@/components/UserAvatar';
 
 interface SidebarItemProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -100,59 +90,18 @@ function SubmenuItem({ label, active, onClick }: { label: string; active?: boole
   );
 }
 
-function TemplateCard({
-  name,
-  description,
-  icon,
-  tags,
-  onClick,
-}: {
-  name: string;
-  description: string;
-  icon: string;
-  tags: string[];
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="p-5 rounded-[20px] text-left transition-all duration-200 hover:scale-[1.02]"
-      style={{ background: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div
-          className="w-12 h-12 rounded-[14px] flex items-center justify-center text-2xl"
-          style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-        >
-          {icon}
-        </div>
-      </div>
-      <h3 className="font-semibold text-[#1A1A1A] text-lg mb-2">{name}</h3>
-      <p className="text-sm mb-3 line-clamp-2" style={{ color: '#6B6B6B' }}>{description}</p>
-      <div className="flex flex-wrap gap-2 mb-3">
-        {tags.slice(0, 3).map((tag) => (
-          <span
-            key={tag}
-            className="px-2 py-0.5 rounded-[6px] text-xs"
-            style={{ background: '#F2F2F2', color: '#6B6B6B' }}
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-      <div className="flex items-center gap-1 text-sm font-medium" style={{ color: '#6366f1' }}>
-        Use Template <ArrowRight className="w-4 h-4" />
-      </div>
-    </button>
-  );
+interface DashboardShellProps {
+  children: React.ReactNode;
+  activePage: string;
 }
 
-export default function TemplatesPage() {
+export function DashboardShell({ children, activePage }: DashboardShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, initialized } = useAuthStore();
-  const { addCanvas } = useDiagramStore();
+  const { addCanvas, canvases } = useDiagramStore();
   const [mounted, setMounted] = useState(false);
-  const [activeMenu, setActiveMenu] = useState('Templates');
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -164,6 +113,11 @@ export default function TemplatesPage() {
     }
   }, [mounted, initialized, user, router]);
 
+  const handleNewCanvas = () => {
+    addCanvas();
+    router.push('/editor');
+  };
+
   if (!mounted || !initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#F4F4F4' }}>
@@ -172,28 +126,18 @@ export default function TemplatesPage() {
     );
   }
 
-  const handleNewCanvas = () => {
-    addCanvas();
-    router.push('/editor');
-  };
-
-  const handleUseTemplate = (templateId: string) => {
-    router.push(`/editor?template=${templateId}`);
-  };
-
   return (
-    <div className="min-h-screen p-6" style={{ background: '#F4F4F4' }}>
-      <div className="max-w-[1400px] mx-auto" style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 24 }}>
-        
-        {/* LEFT SIDEBAR */}
+    <div className="min-h-screen p-4 md:p-6" style={{ background: '#F4F4F4' }}>
+      <div className="max-w-[1400px] mx-auto grid md:grid-cols-[240px_1fr] gap-4 md:gap-6">
+        {/* LEFT SIDEBAR - Persistent */}
         <aside
-          className="rounded-[20px] p-4 self-start"
+          className="hidden md:block rounded-[20px] p-4 self-start sticky top-6"
           style={{ background: '#FAFAFA', boxShadow: '0 10px 40px rgba(0,0,0,0.06)', height: 'fit-content' }}
         >
           <div className="flex items-center gap-3 px-2 mb-6">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+              style={{ background: '#1A1A1A' }}
             >
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
@@ -205,19 +149,19 @@ export default function TemplatesPage() {
             <SidebarItem
               icon={LayoutDashboard}
               label="Dashboard"
-              active={activeMenu === 'Dashboard'}
+              active={activePage === 'Dashboard'}
               onClick={() => router.push('/dashboard')}
             />
 
             <CollapsibleGroup icon={FileText} label="Canvases" defaultOpen>
               <SubmenuItem
                 label="All Canvases"
-                active={activeMenu === 'Canvases-All'}
+                active={activePage === 'Canvases-All'}
                 onClick={() => router.push('/editor')}
               />
               <SubmenuItem
                 label="Shared with me"
-                active={activeMenu === 'Canvases-Shared'}
+                active={activePage === 'Canvases-Shared'}
                 onClick={() => {}}
               />
             </CollapsibleGroup>
@@ -225,89 +169,68 @@ export default function TemplatesPage() {
             <SidebarItem
               icon={LayoutTemplate}
               label="Templates"
-              active={activeMenu === 'Templates'}
-              onClick={() => router.push('/dashboard')}
+              active={activePage === 'Templates'}
+              onClick={() => router.push('/dashboard/templates')}
             />
             <SidebarItem
               icon={GraduationCap}
               label="Learn"
-              active={activeMenu === 'Learn'}
-              onClick={() => router.push('/learn')}
-            />
-            <SidebarItem
-              icon={Settings}
-              label="Settings"
-              active={activeMenu === 'Settings'}
-              onClick={() => {}}
+              active={activePage === 'Learn'}
+              onClick={() => router.push('/dashboard/learn')}
             />
           </nav>
         </aside>
 
         {/* MAIN CONTENT */}
-        <main className="space-y-6">
-          {/* Header */}
+        <main className="space-y-6 md:space-y-8 overflow-hidden">
+          {/* Header - Persistent */}
           <header
-            className="flex items-center justify-between px-5 py-3 rounded-[20px]"
+            className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 px-4 md:px-5 py-3 rounded-[20px]"
             style={{ background: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
           >
-            <h1 className="text-xl font-bold text-[#1A1A1A]">Templates</h1>
-            <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-[#1A1A1A]">
+              {activePage === 'Dashboard' && 'Dashboard'}
+              {activePage === 'Templates' && 'Architecture Templates'}
+              {activePage === 'Learn' && 'Learn System Design'}
+              {activePage === 'Canvases-All' && 'All Canvases'}
+            </h1>
+            <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto overflow-x-auto">
               <div
-                className="flex items-center gap-2 px-3 py-2 rounded-[12px]"
+                className="flex items-center gap-2 px-3 py-2 rounded-[12px] shrink-0"
                 style={{ background: '#F2F2F2' }}
               >
                 <Search className="w-4 h-4" style={{ color: '#6B6B6B' }} />
                 <input
                   type="text"
-                  placeholder="Search templates..."
-                  className="bg-transparent outline-none text-sm w-40"
+                  placeholder="Search..."
+                  className="bg-transparent outline-none text-sm w-20 md:w-32"
                   style={{ color: '#1A1A1A' }}
                 />
               </div>
               <button
                 onClick={handleNewCanvas}
-                className="flex items-center gap-2 px-4 py-2 rounded-[12px] text-sm font-medium text-white transition-all"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                className="flex items-center gap-2 px-4 py-2 rounded-[12px] text-sm font-medium text-white transition-all shrink-0"
+                style={{ background: '#1A1A1A' }}
               >
                 <Plus className="w-4 h-4" />
-                New Canvas
+                <span className="hidden sm:inline">New Canvas</span>
               </button>
               <button
-                className="p-2 rounded-[12px] transition-colors"
+                className="p-2 rounded-[12px] transition-colors shrink-0"
                 style={{ background: '#F2F2F2', color: '#6B6B6B' }}
               >
                 <Bell className="w-5 h-5" />
               </button>
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-medium"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-              >
-                {user?.email ? user.email[0].toUpperCase() : 'U'}
-              </div>
+              <UserAvatar />
             </div>
           </header>
 
-          {/* Page Title */}
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold text-[#1A1A1A] mb-2">Architecture Templates</h2>
-            <p className="text-lg" style={{ color: '#6B6B6B' }}>Start with pre-built system architectures for common use cases</p>
-          </div>
-
-          {/* Template Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
-            {TEMPLATES.map((template) => (
-              <TemplateCard
-                key={template.id}
-                name={template.name}
-                description={template.description}
-                icon={template.icon}
-                tags={template.tags}
-                onClick={() => handleUseTemplate(template.id)}
-              />
-            ))}
-          </div>
+          {/* Page Content */}
+          {children}
         </main>
       </div>
+
+      <SettingsPanel open={showSettings} onOpenChange={setShowSettings} />
     </div>
   );
 }
