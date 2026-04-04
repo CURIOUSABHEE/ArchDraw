@@ -1,8 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { z } from 'zod';
+import logger from '@/lib/logger';
 
-// Only allow AI work checking for Netflix architecture
 const ALLOWED_TUTORIAL_ID = 'netflix-architecture';
+
+const checkRateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const CHECK_RATE_WINDOW_MS = 60 * 1000;
+const MAX_CHECK_REQUESTS = 10;
+
+function getCheckRateKey(request: NextRequest): string {
+  const ip = request.headers.get('x-forwarded-for') || 
+             request.headers.get('x-real-ip') || 
+             'unknown';
+  return `check:${ip}`;
+}
+
+function checkCheckRateLimit(key: string): boolean {
+  const now = Date.now();
+  const record = checkRateLimitMap.get(key);
+  
+  if (!record || now > record.resetTime) {
+    checkRateLimitMap.set(key, { count: 1, resetTime: now + CHECK_RATE_WINDOW_MS });
+    return true;
+  }
+  
+  if (record.count >= MAX_CHECK_REQUESTS) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
+const tutorialCheckSchema = z.object({
+  tutorialId: z.string().min(1, 'Tutorial ID is required'),
+  stepNumber: z.number().int().positive('Step number must be a positive integer'),
+  stepTitle: z.string().min(1, 'Step title is required'),
+  stepExplanation: z.string().min(1, 'Step explanation is required'),
+  requiredNodes: z.array(z.string()).optional(),
+  requiredEdges: z.array(z.object({
+    from: z.string(),
+    to: z.string(),
+  })).optional(),
+  canvasNodes: z.array(z.object({
+    label: z.string(),
+  })),
+  canvasEdges: z.array(z.object({
+    source: z.string(),
+    target: z.string(),
+  })).optional(),
+});
 
 let _groq: Groq | null = null;
 function getGroq(): Groq {
@@ -17,34 +65,42 @@ Be encouraging but honest. Point out what's correct, what's missing or wrong, an
 Keep your response under 120 words. Do not use bullet points — write in 2-3 short sentences.`;
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rateKey = getCheckRateKey(req);
+  if (!checkCheckRateLimit(rateKey)) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait before checking again.', code: 'RATE_LIMITED', status: 429 },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await req.json();
+    const validatedInput = tutorialCheckSchema.safeParse(body);
+    
+    if (!validatedInput.success) {
+      const errorMessage = validatedInput.error.issues
+        .map((e) => `${e.path.join('.')}: ${e.message}`)
+        .join(', ');
+      return NextResponse.json(
+        { error: errorMessage || 'Invalid request body', code: 'VALIDATION_ERROR', status: 400 },
+        { status: 400 }
+      );
+    }
+
     const {
       tutorialId,
       stepNumber,
       stepTitle,
       stepExplanation,
-      requiredNodes,
-      requiredEdges,
+      requiredNodes = [],
+      requiredEdges = [],
       canvasNodes,
-      canvasEdges,
-    }: {
-      tutorialId: string;
-      stepNumber: number;
-      stepTitle: string;
-      stepExplanation: string;
-      requiredNodes: string[];
-      requiredEdges: { from: string; to: string }[];
-      canvasNodes: { label: string }[];
-      canvasEdges: { source: string; target: string }[];
-    } = body;
+      canvasEdges = [],
+    } = validatedInput.data;
 
     if (tutorialId !== ALLOWED_TUTORIAL_ID) {
       return NextResponse.json({ error: 'AI work review is only available for the Netflix tutorial.' }, { status: 403 });
-    }
-
-    if (!stepNumber || !canvasNodes) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const nodeList = canvasNodes.map((n) => n.label).join(', ') || 'none';
@@ -100,7 +156,7 @@ Review the student's work for this step. Is it correct? What's good? What's miss
       },
     });
   } catch (err) {
-    console.error('Tutorial check error:', err);
+    logger.error('Tutorial check error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
