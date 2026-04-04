@@ -92,9 +92,17 @@ export interface ReactFlowNode {
     label: string;
     icon: string;
     layer: LayerType;
+    // Group fields
+    groupLabel?: string;
+    groupColor?: string;
+    // Service type
+    serviceType?: ServiceType;
   };
   width?: number;
   height?: number;
+  zIndex?: number;
+  extent?: 'parent';
+  style?: Record<string, unknown>;
 }
 
 export interface ReactFlowEdge {

@@ -17,7 +17,8 @@ export const DEFAULT_NODE_HEIGHT = 80;
 const DEFAULT_ELK_OPTIONS = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
-  'elk.edgeRouting': 'SPLINES',
+  'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+  'elk.edgeRouting': 'ORTHOGONAL',
   'elk.portConstraints': 'FIXED_SIDE',
   'elk.layered.spacing.nodeNodeBetweenLayers': '250',
   'elk.spacing.nodeNode': '80',
@@ -35,7 +36,53 @@ const DEFAULT_ELK_OPTIONS = {
   'elk.layered.spacing.edgeEdgeBetweenLayers': '50',
   'elk.edgeLabels.inline': 'true',
   'elk.edgeLabels.placement': 'CENTER',
+  'elk.padding': '[top=48, left=20, bottom=20, right=20]',
 };
+
+// STEP 5A: Calculate group node dimensions based on children
+function calculateGroupDimensions(nodes: ArchitectureNode[]): ArchitectureNode[] {
+  const CHILD_WIDTH = 160;
+  const CHILD_HEIGHT = 60;
+  const CHILD_MARGIN = 20;
+  const GROUP_PADDING_H = 32;
+  const GROUP_PADDING_TOP = 48;
+  const GROUP_PADDING_BOTTOM = 24;
+  const ROW_GAP = 20;
+
+  const groupNodes = nodes.filter(n => n.isGroup === true);
+  const childNodes = nodes.filter(n => n.parentId !== undefined);
+
+  return nodes.map(node => {
+    if (node.isGroup !== true) return node;
+
+    const children = childNodes.filter(c => c.parentId === node.id);
+    if (children.length === 0) return node;
+
+    const childCount = children.length;
+    let columnsCount: number;
+    if (childCount <= 2) columnsCount = childCount;
+    else if (childCount <= 4) columnsCount = 2;
+    else if (childCount <= 6) columnsCount = 3;
+    else columnsCount = 3;
+
+    const rows = Math.ceil(childCount / columnsCount);
+
+    let groupWidth: number;
+    if (childCount <= 2) {
+      groupWidth = (childCount * CHILD_WIDTH) + ((childCount - 1) * CHILD_MARGIN) + GROUP_PADDING_H;
+    } else {
+      groupWidth = (columnsCount * CHILD_WIDTH) + ((columnsCount - 1) * CHILD_MARGIN) + GROUP_PADDING_H;
+    }
+
+    const groupHeight = (rows * CHILD_HEIGHT) + ((rows - 1) * ROW_GAP) + GROUP_PADDING_TOP + GROUP_PADDING_BOTTOM;
+
+    return {
+      ...node,
+      width: Math.max(groupWidth, 240),
+      height: Math.max(groupHeight, 160),
+    };
+  });
+}
 
 interface ELKNode {
   id: string;
@@ -46,6 +93,7 @@ interface ELKNode {
   children?: ELKNode[];
   edges?: ELKEdge[];
   ports?: ELKPort[];
+  layoutOptions?: Record<string, string>;
 }
 
 interface ELKEdge {
@@ -106,8 +154,11 @@ export async function computeELKLayout(
   const nodeHeight = config.nodeHeight ?? DEFAULT_NODE_HEIGHT;
   const elkOptions = { ...DEFAULT_ELK_OPTIONS, ...config.elkOptions };
 
+  // STEP 5A: Calculate group dimensions
+  const nodesWithGroupDims = calculateGroupDimensions(nodes);
+
   const nodeLayerMap = new Map<string, number>();
-  nodes.forEach((node, index) => {
+  nodesWithGroupDims.forEach((node, index) => {
     const layerIndex = LAYER_ORDER.indexOf(node.layer || 'service');
     nodeLayerMap.set(node.id, layerIndex >= 0 ? layerIndex : 4);
   });
@@ -264,7 +315,12 @@ export async function computeELKLayout(
     return positions;
   }
 
-  const elkNodes = nodes.map(node => {
+  // STEP 5C: Build ELK graph with group hierarchy
+  const groupNodes = nodesWithGroupDims.filter(n => n.isGroup === true);
+  const childNodes = nodesWithGroupDims.filter(n => n.parentId !== undefined);
+  const rootNodes = nodesWithGroupDims.filter(n => !n.isGroup && !n.parentId);
+
+  function toElkNode(node: ArchitectureNode): ELKNode {
     const width = node.width ?? nodeWidth;
     const height = node.height ?? nodeHeight;
     const inCount = validatedEdges.filter(e => e.target === node.id).length || incomingEdgeCount.get(node.id) || 0;
@@ -311,7 +367,30 @@ export async function computeELKLayout(
         'elk.portConstraints': 'FIXED_SIDE',
       },
     };
-  });
+  }
+
+  function toElkGroupNode(group: ArchitectureNode): ELKNode {
+    const children = childNodes
+      .filter(c => c.parentId === group.id)
+      .map(c => toElkNode(c));
+    
+    return {
+      id: group.id,
+      width: group.width ?? 400,
+      height: group.height ?? 280,
+      children,
+      layoutOptions: {
+        'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+        'elk.nodeSize.minimum': `${group.width ?? 400}, ${group.height ?? 280}`,
+        'elk.portConstraints': 'FIXED_SIDE',
+      },
+    };
+  }
+
+  const elkNodes = [
+    ...rootNodes.map(toElkNode),
+    ...groupNodes.map(toElkGroupNode),
+  ];
 
   function calculateLayerDistance(sourceId: string, targetId: string): number {
     const sourceLayer = nodeLayerMap.get(sourceId) ?? 0;
@@ -505,9 +584,15 @@ export async function computeELKLayout(
         continue;
       }
 
+      // STEP 5D: Set React Flow-specific fields for group nodes
+      const isGroup = originalNode.isGroup === true;
+      const isChild = originalNode.parentId !== undefined;
+
+      const nodeType = isGroup ? 'group' : 'systemNode';
+
       reactFlowNodes.push({
         id: elkNode.id,
-        type: 'systemNode',
+        type: nodeType,
         position: {
           x: elkNode.x ?? 0,
           y: elkNode.y ?? 0,
@@ -516,9 +601,19 @@ export async function computeELKLayout(
           label: originalNode.label,
           icon: originalNode.icon ?? 'box',
           layer: originalNode.layer,
+          // Group-specific data
+          groupLabel: originalNode.groupLabel,
+          groupColor: originalNode.groupColor,
+          serviceType: originalNode.serviceType,
         },
         width: originalNode.width ?? nodeWidth,
         height: originalNode.height ?? nodeHeight,
+        zIndex: isGroup ? 0 : 1,
+        extent: isChild ? 'parent' : undefined,
+        style: isGroup ? {
+          width: originalNode.width ?? nodeWidth,
+          height: originalNode.height ?? nodeHeight,
+        } : undefined,
       });
     }
 
