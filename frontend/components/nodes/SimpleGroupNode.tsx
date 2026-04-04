@@ -7,24 +7,19 @@ export interface SimpleGroupNodeData {
   groupLabel?: string;
   groupColor?: string;
   label?: string;
-  width?: number;
-  height?: number;
 }
 
-function SimpleGroupNodeComponent({ data, width, height }: NodeProps<SimpleGroupNodeData>) {
+function SimpleGroupNodeComponent({ data }: NodeProps<SimpleGroupNodeData>) {
   const groupLabel = data.groupLabel || data.label || '';
   const groupColor = data.groupColor || '#6B7280';
   
-  const nodeWidth = width || data.width || 320;
-  const nodeHeight = height || data.height || 240;
-
   const bgColorWithAlpha = groupColor + '0A';
   
   return (
     <div
       style={{
-        width: nodeWidth,
-        height: nodeHeight,
+        width: '100%',
+        height: '100%',
         border: `1.5px solid ${groupColor}`,
         borderRadius: 8,
         background: bgColorWithAlpha,

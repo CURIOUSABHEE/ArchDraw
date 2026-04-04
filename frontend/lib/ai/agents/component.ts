@@ -40,16 +40,27 @@ Output the complete components/nodes array as JSON only.`;
     const parsed = JSON.parse(cleanedResult);
     const nodes: ArchitectureNode[] = parsed.nodes ?? [];
 
-    return nodes.map((node: Partial<ArchitectureNode>) => ({
-      id: node.id ?? `component-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      type: 'architectureNode',
-      label: node.label ?? 'Unknown',
-      layer: node.layer ?? 'service',
-      width: node.width ?? 160,
-      height: node.height ?? 80,
-      icon: node.icon ?? 'box',
-      metadata: node.metadata ?? {},
-    }));
+    return nodes.map((node: Partial<ArchitectureNode>) => {
+      const isGroupNode = node.isGroup === true;
+      
+      return {
+        id: node.id ?? `component-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        type: isGroupNode ? 'group' : 'architectureNode',
+        label: node.label ?? 'Unknown',
+        layer: node.layer ?? 'service',
+        width: node.width ?? 160,
+        height: node.height ?? 80,
+        icon: node.icon ?? 'box',
+        metadata: node.metadata ?? {},
+        // Group fields
+        isGroup: node.isGroup,
+        parentId: node.parentId,
+        groupLabel: node.groupLabel,
+        groupColor: node.groupColor,
+        // Service type
+        serviceType: node.serviceType,
+      };
+    });
   } catch (error) {
     logger.error('Component Agent error:', error);
     return generateDefaultComponents(userIntent);

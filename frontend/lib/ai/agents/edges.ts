@@ -727,11 +727,21 @@ Output JSON with an "edges" array. Each edge must have:
     
     const edges = parsed.map((edge) => createFullEdge(edge, nodesToUse, portAssignments));
 
-    const validationIssues = validateArchitectureRules(edges, nodesToUse);
+    // Override edgeVariant for monitoring targets: always dashed
+    const edgesWithMonitoring = edges.map(edge => {
+      const targetNode = nodesToUse.find(n => n.id === edge.target);
+      if (targetNode?.serviceType === 'monitor' && edge.edgeVariant === 'solid') {
+        logger.log(`[EdgeAgent] Overriding edgeVariant to dashed for monitoring target: ${edge.target}`);
+        return { ...edge, edgeVariant: 'dashed' as const };
+      }
+      return edge;
+    });
+
+    const validationIssues = validateArchitectureRules(edgesWithMonitoring, nodesToUse);
     if (validationIssues.length > 0) {
       logger.warn(`[EdgeAgent] Found ${validationIssues.length} architecture issues:`, validationIssues);
       
-      const fixedEdges = fixArchitectureIssues(edges, nodesToUse);
+      const fixedEdges = fixArchitectureIssues(edgesWithMonitoring, nodesToUse);
       
       const remainingIssues = validateArchitectureRules(fixedEdges, nodesToUse);
       if (remainingIssues.length > 0) {
@@ -741,12 +751,12 @@ Output JSON with an "edges" array. Each edge must have:
       return fixedEdges;
     }
 
-    const flowIssues = validateFlowCompleteness(edges, nodesToUse);
+    const flowIssues = validateFlowCompleteness(edgesWithMonitoring, nodesToUse);
     if (flowIssues.length > 0) {
       logger.warn(`[EdgeAgent] Found ${flowIssues.length} flow issues:`, flowIssues);
     }
 
-    const flowGraphValidation = validateFlowGraph(nodesToUse, edges);
+    const flowGraphValidation = validateFlowGraph(nodesToUse, edgesWithMonitoring);
     if (flowGraphValidation.issues.length > 0) {
       logger.warn(`[EdgeAgent] Flow graph issues:`, flowGraphValidation.issues);
     }
@@ -758,7 +768,7 @@ Output JSON with an "edges" array. Each edge must have:
       hasResponseFlow: flowGraphValidation.hasResponseFlow,
     });
 
-    return edges;
+    return edgesWithMonitoring;
   } catch (error) {
     logger.error('[EdgeAgent] Error:', error);
     return generateDefaultEdges(nodesToUse, state.userIntent);
@@ -801,6 +811,7 @@ function createFullEdge(
     },
     markerEnd: style.markerEnd as MarkerType,
     markerStart: 'none',
+    edgeVariant: edge.edgeVariant ?? 'solid',
   };
 }
 

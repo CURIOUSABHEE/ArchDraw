@@ -203,6 +203,69 @@ PHASE 3: ARCHITECTURE RULES (STRICTLY ENFORCE)
 - CI/CD is NOT runtime - place separately
 - GROUP related services by domain (e.g., User Domain, Content Domain)
 
+GROUPING INSTRUCTIONS:
+======================
+After identifying the individual components, also identify logical groupings.
+A grouping is a set of 2 or more components that share the same environment,
+deployment context, or functional domain.
+
+Common grouping patterns:
+- Environment groups: PRODUCTION, STAGING, DEVELOPMENT (same components, different envs)
+- Deployment groups: DEPLOYMENT (wraps CI/CD pipeline stages)
+- Functional groups: DATA LAYER (wraps databases + cache), INSIGHT (wraps monitoring tools)
+- Zone groups: PUBLIC ZONE (CDN, load balancer), PRIVATE ZONE (internal services)
+
+For each grouping, add a GROUP NODE to the output with these properties:
+  id: unique string (e.g. "group-deployment", "group-production")  
+  isGroup: true
+  groupLabel: SHORT uppercase name (1-2 words max, e.g. "DEPLOYMENT", "PRODUCTION")
+  groupColor: a hex color that visually distinguishes this group from others
+    Use these color assignments by group type:
+      PRODUCTION / LIVE environments → "#8B5CF6" (purple)
+      STAGING / TEST environments    → "#8B5CF6" (purple, slightly different shade is fine)
+      DEPLOYMENT / CI-CD             → "#F59E0B" (amber)
+      DATA / STORAGE layer           → "#3B82F6" (blue)
+      MONITORING / INSIGHT           → "#F59E0B" (amber)
+      NETWORKING / GATEWAY layer     → "#10B981" (teal)
+      DEFAULT (if unsure)            → "#6B7280" (gray)
+  layer: "group" (use this literal string as the layer value)
+  label: same as groupLabel
+
+For each REGULAR node that belongs to a group, add:
+  parentId: the id of its group node (e.g. "group-production")
+
+IMPORTANT RULES FOR GROUPING:
+1. A group must contain AT LEAST 2 child nodes. Never create a 1-node group.
+2. Not every node needs to be in a group. External actors (users, developers, clients)
+   and cross-cutting nodes (API gateway serving multiple groups) stay ungrouped.
+3. Group nodes must appear in the output array BEFORE their children. The orchestrator
+   processes nodes in order — a child referencing a parentId that hasn't been defined
+   yet will cause a validation failure.
+4. Never nest groups inside groups. Maximum depth is: group → child node. Two levels only.
+5. Each node can only belong to ONE group (one parentId maximum).
+
+SERVICE TYPE INSTRUCTIONS:
+==========================
+For every non-group node, also classify it with a serviceType field.
+Use exactly one of these values based on what the component does:
+  database, cache, queue, api, loadbalancer, storage, cdn, auth,
+  compute, monitor, gateway, client, generic
+
+Classification guide:
+  PostgreSQL / MySQL / DynamoDB / MongoDB → database
+  Redis / Memcached / ElastiCache         → cache
+  Kafka / RabbitMQ / SQS / Pub/Sub        → queue
+  REST API / GraphQL / gRPC / microservice → api
+  NGINX / ALB / HAProxy / load balancer   → loadbalancer
+  S3 / Blob / GCS / file storage          → storage
+  CloudFront / Cloudflare / CDN           → cdn
+  Auth0 / Cognito / OAuth / JWT service   → auth
+  EC2 / Lambda / Cloud Run / container    → compute
+  Datadog / Grafana / CloudWatch / Prometheus → monitor
+  API Gateway / Kong / Apigee             → gateway
+  Browser / Mobile app / user client      → client
+  Anything else                            → generic
+
 PHASE 4: COMPONENT IDENTIFICATION
 Map each component to one layer:
 - client       → User-facing applications
@@ -218,12 +281,57 @@ PHASE 5: OUTPUT FORMAT
 Assign each component:
 - id: unique snake_case (e.g., "api_gateway", "user_service")
 - label: descriptive name (e.g., "API Gateway")
-- layer: one of client|gateway|service|queue|database|cache|external|devops
+- layer: one of client|gateway|service|queue|database|cache|external|devops|group
 - icon: from this list:
   monitor, globe, shield, server, database, cloud, zap, box, layers,
   git-branch, activity, bell, lock, cpu, hard-drive, radio, send,
   package, terminal, users, key, link, refresh-cw, filter, eye,
   credit-card, mail, message-circle, settings
+
+For GROUP nodes, also include:
+- isGroup: true
+- groupLabel: SHORT uppercase name (1-2 words, e.g. "DEPLOYMENT")
+- groupColor: hex color (e.g. "#F59E0B")
+- width: 320-480 (larger to hold child nodes)
+- height: 200-400
+
+For child nodes inside groups, include:
+- parentId: id of the group node
+
+For all non-group nodes, include:
+- serviceType: one of database|cache|queue|api|loadbalancer|storage|cdn|auth|compute|monitor|gateway|client|generic
+
+Example output structure:
+[
+  {
+    "id": "group-deployment",
+    "type": "group",
+    "isGroup": true,
+    "groupLabel": "DEPLOYMENT",
+    "groupColor": "#F59E0B",
+    "layer": "group",
+    "label": "DEPLOYMENT",
+    "width": 400,
+    "height": 280
+  },
+  {
+    "id": "ci-pipeline",
+    "label": "CI Pipeline",
+    "layer": "service",
+    "serviceType": "compute",
+    "parentId": "group-deployment",
+    "width": 160,
+    "height": 60
+  },
+  {
+    "id": "api-gateway",
+    "label": "API Gateway",
+    "layer": "gateway",
+    "serviceType": "gateway",
+    "width": 160,
+    "height": 60
+  }
+]
 
 RULES:
 - DO NOT assign x/y positions
@@ -232,9 +340,8 @@ RULES:
 - Each system needs: client, gateway, service, database (minimum)
 - For scalable systems, add: queue, worker, cache
 - For real-time systems, add: websocket server
-- Produce flat nodes[] array sorted by layer
-
-Output: nodes[] array only.`;
+- Group nodes must appear BEFORE their children in the array
+- Output nodes[] array only.`;
 
 // Valid icon names for LLM reference
 export const VALID_ICON_NAMES = [
@@ -386,7 +493,34 @@ You MUST assign one of these 5 communication types to every edge based on how th
    - strokeDasharray: "6,3"
    - Example: User Service --dep--> Redis Cache
 
-═══════════════════════
+EDGE VARIANT INSTRUCTIONS:
+==========================
+Every edge you generate must include an edgeVariant field.
+Use exactly one of: "solid", "dashed", "dotted"
+
+Rules for choosing edgeVariant:
+  solid  → PRIMARY data flow. The main request/response path. Service A calls Service B
+           synchronously. A client sends a request to a gateway. A database query.
+           Default for all standard connections.
+           
+  dashed → SECONDARY / OUT-OF-BAND paths. Use for:
+           - Monitoring connections (service → monitoring system)
+           - Developer/operator feedback loops (e.g. a developer reading logs)
+           - Event-driven async paths where the connection is indirect
+           - Cross-environment feedback (staging results informing production config)
+           - "reads from" or "observes" relationships vs "calls" relationships
+           
+  dotted → OPTIONAL / CONDITIONAL paths. Use for:
+           - Fallback connections (primary fails → use this)
+           - Feature-flagged paths
+           - Rarely-used administrative connections
+
+Most diagrams will be 70% solid, 20% dashed, 10% dotted.
+Never make ALL edges the same variant — a real architecture has a mix.
+
+Note: Edges targeting monitoring/insight nodes should always be dashed.
+
+═════════════════════════════════════════════════════════════════════════════
 PATH TYPE RULES
 ══════════════════════
 
