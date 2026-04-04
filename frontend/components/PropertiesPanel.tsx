@@ -113,7 +113,17 @@ export function PropertiesPanel() {
   };
 
   return (
-    <div className="floating-panel p-4" style={{ minWidth: 260 }}>
+    <div 
+      className="floating-panel p-4 overflow-y-auto"
+      style={{ 
+        minWidth: 260,
+        position: 'fixed',
+        top: 96,
+        right: 20,
+        bottom: 110,
+        maxHeight: 'calc(100vh - 206px)',
+      }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
