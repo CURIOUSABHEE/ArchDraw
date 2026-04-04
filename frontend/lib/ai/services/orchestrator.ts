@@ -72,7 +72,8 @@ export async function generateDiagram(
       database: { x: 800, y: 200 },
       cache: { x: 800, y: 100 },
       external: { x: 1000, y: 200 },
-      devops: { x: 600, y: 400 }
+      devops: { x: 600, y: 400 },
+      group: { x: 100, y: 100 },
     }
   };
 

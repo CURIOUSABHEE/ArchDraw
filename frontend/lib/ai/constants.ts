@@ -9,6 +9,7 @@ export const LAYER_ORDER: LayerType[] = [
   'cache',
   'external',
   'devops',
+  'group',
 ];
 
 export const LAYER_DESCRIPTIONS: Record<LayerType, string> = {
@@ -20,6 +21,7 @@ export const LAYER_DESCRIPTIONS: Record<LayerType, string> = {
   cache: 'Redis, Memcached, in-memory stores',
   external: 'Third-party APIs, Payment gateways, OAuth providers',
   devops: 'CI/CD, Monitoring, Logging, Alerting systems',
+  group: 'Group container for organizing related components',
 };
 
 export const LAYER_Y_POSITIONS: Record<LayerType, number> = {
@@ -31,6 +33,7 @@ export const LAYER_Y_POSITIONS: Record<LayerType, number> = {
   cache: 740,
   external: 880,
   devops: 1020,
+  group: 100,
 };
 
 export const LAYER_X_POSITIONS: Record<LayerType, number> = {
@@ -42,6 +45,7 @@ export const LAYER_X_POSITIONS: Record<LayerType, number> = {
   cache: 1150,
   external: 1370,
   devops: 1590,
+  group: 100,
 };
 
 export const NODE_WIDTH_STANDARD = 200;

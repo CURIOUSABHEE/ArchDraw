@@ -26,6 +26,7 @@ const NODE_TYPES = {
   cacheNode:         CacheNode,
   shapeNode:         ShapeNode,
   groupNode:         GroupNode,
+  group:             GroupNode,
   textLabelNode:     TextLabelNode,
   annotationNode:    AnnotationNode,
   messageBrokerNode: MessageBrokerNode,

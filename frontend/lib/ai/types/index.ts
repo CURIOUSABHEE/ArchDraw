@@ -14,6 +14,15 @@ export interface ArchitectureNode {
   height: number;
   icon: string;
   metadata: Record<string, unknown>;
+  
+  // GROUP / CONTAINER FIELDS
+  isGroup?: boolean;
+  parentId?: string;
+  groupLabel?: string;
+  groupColor?: string;
+  
+  // SERVICE TYPE FIELD
+  serviceType?: ServiceType;
 }
 
 export interface ArchitectureEdge {
@@ -34,6 +43,7 @@ export interface ArchitectureEdge {
   };
   markerEnd: MarkerType;
   markerStart: MarkerType;
+  edgeVariant?: EdgeVariant;
 }
 
 export interface LayoutConfig {
@@ -147,7 +157,23 @@ export type LayerType =
   | 'database' 
   | 'cache' 
   | 'external' 
-  | 'devops';
+  | 'devops'
+  | 'group';
+
+export type ServiceType = 
+  | 'database'
+  | 'cache'
+  | 'queue'
+  | 'api'
+  | 'loadbalancer'
+  | 'storage'
+  | 'cdn'
+  | 'auth'
+  | 'compute'
+  | 'monitor'
+  | 'gateway'
+  | 'client'
+  | 'generic';
 
 export type CommunicationType = 'sync' | 'async' | 'stream' | 'event' | 'dep';
 
@@ -156,6 +182,8 @@ export type PathType = 'smooth' | 'bezier' | 'step' | 'straight';
 export type HandlePosition = 'right' | 'left' | 'top' | 'bottom' | 'right-top' | 'right-mid' | 'right-bot' | 'left-top' | 'left-mid' | 'left-bot' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 export type MarkerType = 'arrowclosed' | 'arrow' | 'none';
+
+export type EdgeVariant = 'solid' | 'dashed' | 'dotted';
 
 export type AgentAction = 'component' | 'layout' | 'edges' | 'edge_fix' | 'validate' | 'stop';
 
