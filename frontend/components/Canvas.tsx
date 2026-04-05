@@ -29,6 +29,7 @@ import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import { useCanvasTheme } from '@/lib/theme';
 import { TemplateModal } from '@/components/TemplateModal';
+import { AutoLayoutButton } from '@/components/canvas/toolbar/AutoLayoutButton';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -256,47 +257,48 @@ function CanvasInner() {
       />
       <div className="absolute inset-0">
         <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        nodeTypes={NODE_TYPES}
-        edgeTypes={EDGE_TYPES}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
-        onEdgeDoubleClick={onEdgeDoubleClick}
-        onPaneClick={onPaneClick}
-        onPaneContextMenu={onPaneContextMenu}
-        onNodeContextMenu={onNodeContextMenu}
-        onSelectionChange={onSelectionChange}
-        selectionMode={SelectionMode.Partial}
-        multiSelectionKeyCode="Shift"
-        snapToGrid
-        snapGrid={[20, 20]}
-        minZoom={0.1}
-        maxZoom={2}
-        fitView
-        elevateNodesOnSelect
-        elevateEdgesOnSelect={true}
-        selectNodesOnDrag={false}
-        panOnScroll
-        panOnDrag={[1, 2]}
-        zoomOnScroll
-        zoomOnPinch
-        zoomOnDoubleClick={false}
-        proOptions={{ hideAttribution: true }}
-        connectionLineType={ConnectionLineType.SmoothStep}
-        defaultEdgeOptions={{
-          type: 'custom',
-          data: { connectionType: 'smooth' },
-        }}
-      >
-        <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={NODE_TYPES}
+          edgeTypes={EDGE_TYPES}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          onNodeDrag={onNodeDrag}
+          onNodeDragStop={onNodeDragStop}
+          onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
+          onEdgeDoubleClick={onEdgeDoubleClick}
+          onPaneClick={onPaneClick}
+          onPaneContextMenu={onPaneContextMenu}
+          onNodeContextMenu={onNodeContextMenu}
+          onSelectionChange={onSelectionChange}
+          selectionMode={SelectionMode.Partial}
+          multiSelectionKeyCode="Shift"
+          snapToGrid
+          snapGrid={[20, 20]}
+          minZoom={0.1}
+          maxZoom={2}
+          fitView
+          elevateNodesOnSelect
+          elevateEdgesOnSelect={true}
+          selectNodesOnDrag={false}
+          panOnScroll
+          panOnDrag={[1, 2]}
+          zoomOnScroll
+          zoomOnPinch
+          zoomOnDoubleClick={false}
+          proOptions={{ hideAttribution: true }}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          defaultEdgeOptions={{
+            type: 'custom',
+            data: { connectionType: 'smooth' },
+          }}
+        >
+          <AutoLayoutButton />
+          <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
           <defs>
             <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
               <path d="M0,0 L0,6 L6,3 z" fill="#6366f1" />

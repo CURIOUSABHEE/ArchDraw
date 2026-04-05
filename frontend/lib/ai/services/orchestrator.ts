@@ -18,6 +18,9 @@ import {
   runEdgeAgent,
   runScorerAgent,
 } from '../agents';
+import { detectDiagramType } from './router';
+import { runSequenceAgent } from './sequence';
+import { enrichPrompt } from '../utils/promptEnricher';
 import { generateLayoutHints } from './layoutHints';
 import {
   MAX_ITERATIONS,
@@ -61,6 +64,44 @@ export async function generateDiagram(
   userIntent: UserIntent,
   onProgress?: ProgressCallback
 ): Promise<GenerationResult> {
+  const enrichedPrompt = enrichPrompt(userIntent.description, { systemType: userIntent.systemType });
+
+  const emit = (phase: GenerationProgress['phase'], message: string, progress = 50) => {
+    onProgress?.({
+      phase,
+      iteration: 0,
+      currentAgent: phase,
+      score: 0,
+      message,
+      progress,
+    });
+  };
+
+  emit('planning', 'Analyzing request...', 10);
+
+  const diagramType = await detectDiagramType(enrichedPrompt);
+
+  if (diagramType === 'sequence') {
+    emit('components', 'Generating sequence diagram...', 30);
+    const sequenceResult = await runSequenceAgent(enrichedPrompt);
+    emit('complete', 'Sequence diagram generated!', 100);
+
+    return {
+      type: 'sequence',
+      nodes: [],
+      edges: [],
+      metadata: {
+        totalNodes: sequenceResult.actors.length,
+        totalEdges: 0,
+        systemType: userIntent.systemType,
+        generatedAt: new Date().toISOString(),
+        title: sequenceResult.title,
+        actors: sequenceResult.actors,
+        mermaidSyntax: sequenceResult.mermaidSyntax,
+      },
+    };
+  }
+
   const initialLayoutHints: LayoutHints = {
     primaryFlow: [],
     groups: [],
@@ -78,7 +119,10 @@ export async function generateDiagram(
   };
 
   const state: SharedState = {
-    userIntent,
+    userIntent: {
+      ...userIntent,
+      description: enrichedPrompt,
+    },
     components: [],
     nodes: [],
     edges: [],
@@ -95,17 +139,6 @@ export async function generateDiagram(
     score: 0,
     iteration: 0,
     history: [],
-  };
-
-  const emit = (phase: GenerationProgress['phase'], message: string, progress = 50) => {
-    onProgress?.({
-      phase,
-      iteration: state.iteration,
-      currentAgent: phase,
-      score: state.score,
-      message,
-      progress,
-    });
   };
 
   emit('planning', 'Starting diagram generation...', 10);
@@ -281,6 +314,7 @@ export async function generateDiagram(
   const layoutHints = generateLayoutHints(state.components, state.edges);
 
   return {
+    type: 'architecture',
     nodes: reactFlowNodes,
     edges: finalEdges,
     metadata: {
@@ -361,17 +395,23 @@ function computeLayeredLayout(
     layerNodes.forEach((node, index) => {
       const y = layerStartY + index * (nodeHeight + NODE_SPACING_VERTICAL);
 
+      const nodeType = node.isGroup === true ? 'group' : 'systemNode';
       reactFlowNodes.push({
         id: node.id,
-        type: 'systemNode',
+        type: nodeType,
         position: { x: layerX, y: y },
         data: {
           label: node.label || 'Unknown',
           icon: node.icon || 'server',
           layer: node.layer || 'service',
+          isGroup: node.isGroup,
+          parentId: node.parentId,
+          groupLabel: node.groupLabel,
+          groupColor: node.groupColor,
+          serviceType: node.serviceType,
         },
-        width: nodeWidth,
-        height: nodeHeight,
+        width: node.isGroup ? node.width : nodeWidth,
+        height: node.isGroup ? node.height : nodeHeight,
       });
     });
   }
@@ -392,17 +432,23 @@ function computeLayeredLayout(
     remainingNodes.forEach((node, index) => {
       const y = layerStartY + index * (nodeHeight + NODE_SPACING_VERTICAL);
 
+      const nodeType = node.isGroup === true ? 'group' : 'systemNode';
       reactFlowNodes.push({
         id: node.id,
-        type: 'systemNode',
+        type: nodeType,
         position: { x: defaultX, y: y },
         data: {
           label: node.label || 'Unknown',
           icon: node.icon || 'server',
           layer: node.layer || 'service',
+          isGroup: node.isGroup,
+          parentId: node.parentId,
+          groupLabel: node.groupLabel,
+          groupColor: node.groupColor,
+          serviceType: node.serviceType,
         },
-        width: nodeWidth,
-        height: nodeHeight,
+        width: node.isGroup ? node.width : nodeWidth,
+        height: node.isGroup ? node.height : nodeHeight,
       });
     });
   }
@@ -483,6 +529,7 @@ function convertToReactFlowEdges(
         communicationType: commType,
         pathType: style.pathType,
         label: edge.label,
+        edgeVariant: edge.edgeVariant,
       },
     });
   }

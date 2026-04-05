@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateDiagram } from '@/lib/ai/services/orchestrator';
 import type { UserIntent, GenerationProgress } from '@/lib/ai/types';
-import { getSupabaseClient } from '@/lib/supabase';
 import logger from '@/lib/logger';
 import { z } from 'zod';
 
@@ -62,16 +61,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Auth check
-  const supabase = getSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Authentication required', code: 'UNAUTHORIZED', status: 401 },
-      { status: 401 }
-    );
-  }
+  // Auth check removed - allow unauthenticated diagram generation
+  // Auth is only required for sharing/exporting
 
   try {
     // Parse and validate request body with Zod

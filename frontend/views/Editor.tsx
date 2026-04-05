@@ -20,6 +20,7 @@ import { useOnboarding } from '@/components/onboarding/useOnboarding';
 import { componentRegistry } from '@/lib/componentRegistry';
 import { toast } from 'sonner';
 import type { GenerationProgress } from '@/lib/ai/types';
+import { SequenceDiagramViewer } from '@/components/SequenceDiagramViewer';
 
 function generateCanvasName(prompt: string): string {
   const words = prompt.trim().split(/\s+/);
@@ -32,7 +33,7 @@ function generateCanvasName(prompt: string): string {
 }
 
 export default function EditorPage() {
-  const { selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, importDiagram, fitView, addCanvas, renameCanvas } = useDiagramStore();
+  const { selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, importDiagram, importSequenceDiagram, fitView, addCanvas, renameCanvas, activeCanvasId, sequenceDiagrams } = useDiagramStore();
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
@@ -204,11 +205,44 @@ export default function EditorPage() {
 
       const data = await response.json();
 
+      // Process progress events for live updates
+      if (data.progress && data.progress.length > 0) {
+        const lastProgress = data.progress[data.progress.length - 1];
+        setProgress(lastProgress);
+      }
+
       if (!response.ok) {
         throw new Error(data.details || data.error || 'Generation failed');
       }
 
       const { data: result } = data;
+
+      if (result.type === 'sequence') {
+        const mermaidSyntax = result.metadata.mermaidSyntax;
+        const title = result.metadata.title || canvasName;
+        
+        importSequenceDiagram(mermaidSyntax, title);
+        
+        const { activeCanvasId } = useDiagramStore.getState();
+        renameCanvas(activeCanvasId, title);
+        
+        setProgress({
+          phase: 'complete',
+          iteration: 0,
+          currentAgent: 'complete',
+          score: 0,
+          message: `Created sequence diagram with ${result.metadata.actors?.length || 0} actors`,
+          progress: 100,
+        });
+
+        setTimeout(() => {
+          setIsGenerating(false);
+          setProgress(null);
+        }, 2000);
+        
+        toast.success(`Generated sequence diagram: ${title}`);
+        return;
+      }
 
       if (result.nodes && result.edges) {
         const processedNodes = result.nodes.map((node: Record<string, unknown>) => ({
@@ -273,7 +307,11 @@ export default function EditorPage() {
             />
           )}
           <div className="flex flex-col flex-1 overflow-hidden" style={{ minWidth: 0 }}>
-            <Canvas />
+            {sequenceDiagrams[activeCanvasId] ? (
+              <SequenceDiagramViewer />
+            ) : (
+              <Canvas />
+            )}
           </div>
           {(selectedNodeId || selectedEdgeId) && <PropertiesPanel />}
         </div>

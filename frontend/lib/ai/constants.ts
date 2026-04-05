@@ -765,8 +765,8 @@ Output ONLY this JSON:
 
 export const MAX_ITERATIONS = 3;
 export const SCORE_THRESHOLD = 75;
-export const MAX_NODES = 15;
-export const MAX_EDGES_PER_NODE = 4;
+export const MAX_NODES = 20;
+export const MAX_EDGES_PER_NODE = 5;
 
 export const COMMUNICATION_STYLES: Record<CommunicationType, {
   color: string;

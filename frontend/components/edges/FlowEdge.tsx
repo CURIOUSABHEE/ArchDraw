@@ -73,6 +73,7 @@ export function FlowEdge({
 }: EdgeProps<EdgeData>) {
   const edgeType: EdgeType | undefined = data?.edgeType;
   const customPathType: PathType | undefined = data?.pathType;
+  const edgeVariant: 'solid' | 'dashed' | 'dotted' | undefined = data?.edgeVariant;
   const pathType = getEffectivePathType(edgeType, customPathType);
   const config = getEdgeConfig(edgeType);
   
@@ -87,14 +88,22 @@ export function FlowEdge({
     return `flow-${config.id}`;
   }, [config.animated, config.id]);
 
-  const strokeStyle: React.CSSProperties = {
-    stroke: config.color,
-    strokeWidth: selected ? 2 : 1.5,
-    strokeDasharray: config.dash,
-    transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s',
-    opacity: selected ? 1 : 0.85,
-    filter: selected ? `drop-shadow(0 0 4px ${config.color}40)` : 'none',
-  };
+  const strokeStyle: React.CSSProperties = useMemo(() => {
+    let dashArray = config.dash;
+    if (edgeVariant === 'dashed') {
+      dashArray = '8,4';
+    } else if (edgeVariant === 'dotted') {
+      dashArray = '2,2';
+    }
+    return {
+      stroke: config.color,
+      strokeWidth: selected ? 2 : 1.5,
+      strokeDasharray: dashArray,
+      transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s',
+      opacity: selected ? 1 : 0.85,
+      filter: selected ? `drop-shadow(0 0 4px ${config.color}40)` : 'none',
+    };
+  }, [config.color, config.dash, edgeVariant, selected]);
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 

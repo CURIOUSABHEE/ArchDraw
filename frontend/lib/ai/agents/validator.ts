@@ -96,6 +96,8 @@ function runLocalValidation(state: SharedState): ValidationResult {
   }
 
   const edgePairs = new Set<string>();
+  const groupNodeIds = new Set(state.nodes.filter(n => n.isGroup === true).map(n => n.id));
+  
   for (const edge of state.edges) {
     if (edge.source === edge.target) {
       issues.push({
@@ -141,6 +143,36 @@ function runLocalValidation(state: SharedState): ValidationResult {
         edgeId: edge.id,
         description: `Edge uses non-smooth path type: "${pathType}". Use smooth curves for consistency.`,
         fixHint: 'Change pathType to "smooth"',
+      });
+    }
+  }
+
+  // STEP 7: Group-specific validation
+  const childNodes = state.nodes.filter(n => n.parentId !== undefined);
+  for (const child of childNodes) {
+    if (child.parentId && !groupNodeIds.has(child.parentId)) {
+      issues.push({
+        id: 'GROUP-ORPHAN',
+        severity: 'critical',
+        nodeId: child.id,
+        edgeId: null,
+        description: `Orphan child node "${child.id}" has parentId "${child.parentId}" but no group node exists with that ID`,
+        fixHint: 'Remove parentId from this node or create the missing group node',
+      });
+    }
+  }
+
+  const groupNodes = state.nodes.filter(n => n.isGroup === true);
+  for (const group of groupNodes) {
+    const childrenInGroup = childNodes.filter(c => c.parentId === group.id);
+    if (childrenInGroup.length === 0) {
+      issues.push({
+        id: 'GROUP-EMPTY',
+        severity: 'warning',
+        nodeId: group.id,
+        edgeId: null,
+        description: `Group node "${group.label || group.id}" has no child nodes`,
+        fixHint: 'Add child nodes to this group or remove the group',
       });
     }
   }

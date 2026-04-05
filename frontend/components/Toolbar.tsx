@@ -669,6 +669,7 @@ export function Toolbar() {
               </SelectItem>
             </SelectContent>
           </Select>
+
           {userProfile && savingState !== 'idle' && (
             <>
               <span className="w-px h-3 bg-border/50" />

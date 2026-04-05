@@ -15,6 +15,9 @@ export interface ArchitectureNode {
   icon: string;
   metadata: Record<string, unknown>;
   
+  // LAYER INDEX (1-5 for ELK positioning)
+  layerIndex?: number;
+  
   // GROUP / CONTAINER FIELDS
   isGroup?: boolean;
   parentId?: string;
@@ -92,10 +95,11 @@ export interface ReactFlowNode {
     label: string;
     icon: string;
     layer: LayerType;
-    // Group fields
+    layerIndex?: number;
+    isGroup?: boolean;
+    parentId?: string;
     groupLabel?: string;
     groupColor?: string;
-    // Service type
     serviceType?: ServiceType;
   };
   width?: number;
@@ -129,6 +133,7 @@ export interface ReactFlowEdge {
     communicationType: CommunicationType;
     pathType: PathType;
     label: string;
+    edgeVariant?: 'solid' | 'dashed' | 'dotted';
     labelX?: number;
     labelY?: number;
     labelAngle?: number;
@@ -137,11 +142,12 @@ export interface ReactFlowEdge {
 }
 
 export interface GenerationResult {
+  type: 'architecture' | 'sequence';
   nodes: ReactFlowNode[];
   edges: ReactFlowEdge[];
   metadata: {
-    score: number;
-    iterations: number;
+    score?: number;
+    iterations?: number;
     totalNodes: number;
     totalEdges: number;
     systemType: string;
@@ -154,6 +160,9 @@ export interface GenerationResult {
       remainingLabelCollisions?: number;
     };
     layoutHints?: LayoutHints;
+    title?: string;
+    actors?: string[];
+    mermaidSyntax?: string;
   };
 }
 

@@ -3,6 +3,8 @@ import type { SharedState, ScoreResult } from '../types';
 import { SCORER_PROMPT } from '../constants';
 import logger from '@/lib/logger';
 
+const SCORING_GENERIC_LABELS = ['GROUP', 'CONTAINER', 'BOX', 'SECTION', 'AREA'];
+
 export async function runScorerAgent(state: SharedState): Promise<ScoreResult> {
   const stateJson = JSON.stringify(state, null, 2);
 
@@ -83,22 +85,54 @@ function runLocalScoring(state: SharedState): ScoreResult {
     layoutQuality = 5;
   }
 
-  if (edges.length > 0) {
-    const edgesWithLabels = edges.filter(e => e.label && e.label.length > 0).length;
-    const labelRatio = edgesWithLabels / edges.length;
+  // Containment Quality scoring (25 pts max) - rewards proper nesting
+  let containmentScore = 0;
+  const groupNodes = nodes.filter(n => n.isGroup === true);
+  const level1Containers = groupNodes.filter(n => !n.parentId);
+  const level2Containers = groupNodes.filter(n => n.parentId);
+  const childNodes = nodes.filter(n => n.parentId !== undefined);
+  
+  if (level1Containers.length >= 1) containmentScore += 10;
+  if (level2Containers.length >= 1) containmentScore += 10;
+  
+  const goodContainers = groupNodes.filter(g => {
+    const children = childNodes.filter(c => c.parentId === g.id);
+    return children.length >= 2 && children.length <= 5;
+  });
+  if (goodContainers.length > 0) containmentScore += 5;
+  
+  const singleChildGroups = groupNodes.filter(g => 
+    childNodes.filter(c => c.parentId === g.id).length === 1
+  );
+  if (singleChildGroups.length > 0) containmentScore -= 10;
+  containmentScore = Math.max(0, Math.min(25, containmentScore));
 
-    if (labelRatio === 1) {
-      edgeQuality = 25;
-    } else if (labelRatio >= 0.7) {
-      edgeQuality = 20;
-    } else if (labelRatio >= 0.5) {
-      edgeQuality = 15;
-    } else {
-      edgeQuality = 5;
-    }
-  } else {
-    edgeQuality = 0;
+  // New Edge Quality scoring (20 pts max) - rewards sparse, label-free edges
+  const leafNodes = nodes.filter(n => !n.isGroup);
+  const edgeCountIsValid = edges.length < leafNodes.length;
+  const labeledEdgeCount = edges.filter(e => e.label && e.label.length > 0).length;
+  
+  if (edgeCountIsValid) {
+    edgeQuality += 10;
   }
+  
+  if (labeledEdgeCount === 0) {
+    edgeQuality += 10;
+  } else if (labeledEdgeCount <= 2) {
+    edgeQuality += 5;
+  }
+  
+  const containerEdgePenalty = edges.filter(e => {
+    const sourceNode = nodes.find(n => n.id === e.source);
+    const targetNode = nodes.find(n => n.id === e.target);
+    return (sourceNode?.isGroup || targetNode?.isGroup);
+  }).length;
+  edgeQuality -= containerEdgePenalty * 5;
+  
+  const dashedOrDottedEdges = edges.filter(e => e.edgeVariant && e.edgeVariant !== 'solid').length;
+  edgeQuality -= dashedOrDottedEdges * 5;
+  
+  edgeQuality = Math.max(0, Math.min(20, edgeQuality));
 
   const intentWords = userIntent.description.toLowerCase().split(/\s+/);
   const intentKeywords = intentWords.filter(w => w.length > 4);
@@ -178,14 +212,20 @@ function runLocalScoring(state: SharedState): ScoreResult {
   ).length;
   penalties += genericLabels * 3;
 
+  // Simplicity scoring (10 pts max)
+  let simplicityScore = 0;
+  if (leafNodes.length <= 12) simplicityScore += 10;
+  if (leafNodes.length <= 8) simplicityScore += 5;
+  if (leafNodes.length > 12) penalties += 5;
+
   const totalScore = Math.max(0, Math.min(100,
-    layoutQuality + edgeQuality + intentMatch + communicationAccuracy - penalties
+    layoutQuality + edgeQuality + intentMatch + containmentScore + simplicityScore - penalties
   ));
 
   let verdict: ScoreResult['verdict'] = 'continue_layout';
-  if (totalScore >= 85) {
+  if (totalScore >= 75) {
     verdict = 'stop';
-  } else if (totalScore >= 70) {
+  } else if (totalScore >= 60) {
     verdict = 'continue_edges';
   } else {
     verdict = 'continue_layout';
@@ -195,8 +235,11 @@ function runLocalScoring(state: SharedState): ScoreResult {
   if (layoutQuality < 20) {
     topImprovements.push('Improve node positioning and spacing');
   }
-  if (edgeQuality < 20) {
-    topImprovements.push('Add descriptive labels to all edges');
+  if (edgeQuality < 15) {
+    topImprovements.push('Reduce edges - use containment instead of edge labels');
+  }
+  if (containmentScore < 15) {
+    topImprovements.push('Add proper container hierarchy');
   }
   if (intentMatch < 15) {
     topImprovements.push('Add more components matching user intent');

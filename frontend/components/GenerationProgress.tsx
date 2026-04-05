@@ -27,29 +27,48 @@ export function GenerationProgressDisplay({ progress, onCancel }: GenerationProg
     return progress.phase.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  const getAgentLabel = (phase: string): string => {
+    const phaseMap: Record<string, string> = {
+      'planning': 'Analyzing requirements',
+      'components': 'Generating components',
+      'edges': 'Creating connections',
+      'layout': 'Computing layout',
+      'scoring': 'Evaluating quality',
+      'complete': 'Complete',
+      'error': 'Error'
+    };
+    return phaseMap[phase] || phase;
+  };
+
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
-      <div className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white"
-        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
+    <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+      <div className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white pointer-events-auto animate-in slide-in-from-bottom-4 fade-in duration-300"
+        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
         {getIcon()}
         
-        <div className="flex flex-col gap-2 min-w-[220px]">
+        <div className="flex flex-col gap-2 min-w-[280px]">
           <div className="flex items-center justify-between gap-4">
-            <span className="text-sm font-medium text-gray-700">{progress.message}</span>
-            <span className="text-xs text-gray-400 shrink-0">
+            <span className="text-sm font-medium text-gray-700">
+              {getAgentLabel(progress.phase)}
+            </span>
+            <span className="text-sm font-bold text-indigo-600 shrink-0">
               {progress.progress}%
             </span>
           </div>
           
-          <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
             <div
               className="h-full rounded-full bg-indigo-500 transition-all duration-500 ease-out"
               style={{ width: `${progress.progress}%` }}
             />
           </div>
           
-          <div className="flex items-center gap-4 text-xs text-gray-400">
-            <span>Iteration: {progress.iteration}</span>
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <span className="flex items-center gap-1">
+              {progress.currentAgent && (
+                <span className="font-medium text-gray-500 capitalize">{progress.currentAgent}</span>
+              )}
+            </span>
             {progress.score > 0 && (
               <span className="flex items-center gap-1">
                 Score: <span className={progress.score >= 85 ? 'text-emerald-500' : 'text-amber-500'}>

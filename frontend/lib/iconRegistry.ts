@@ -125,4 +125,73 @@ export const iconRegistry: Record<string, IconEntry> = {
     'render': { kind: 'lucide', icon: 'Cloud', color: '#46E3B7', description: 'Unified cloud for apps and databases' },
     'flyio': { kind: 'lucide', icon: 'Plane', color: '#7B3FE4', description: 'Run full-stack apps close to users' },
     'github-actions': { kind: 'lucide', icon: 'GitPullRequest', color: '#2088FF', description: 'CI/CD automation built into GitHub' },
+
+    // ── Azure Compute ─────────────────────────────────────────────────────────────
+    'azure-vm': { kind: 'lucide', icon: 'Server', color: '#0078D4', description: 'Azure Virtual Machines' },
+    'azure-functions': { kind: 'lucide', icon: 'Zap', color: '#0078D4', description: 'Azure Functions serverless compute' },
+    'azure-appservice': { kind: 'lucide', icon: 'Globe', color: '#0078D4', description: 'Azure App Service web hosting' },
+    'azure-aks': { kind: 'lucide', icon: 'CircleDot', color: '#0078D4', description: 'Azure Kubernetes Service' },
+    'azure-container-instance': { kind: 'lucide', icon: 'Box', color: '#0078D4', description: 'Azure Container Instances' },
+
+    // ── Azure Storage & Databases ────────────────────────────────────────────────
+    'azure-storage': { kind: 'lucide', icon: 'HardDrive', color: '#0078D4', description: 'Azure Blob Storage' },
+    'azure-sql': { kind: 'lucide', icon: 'Database', color: '#0078D4', description: 'Azure SQL Database' },
+    'azure-cosmosdb': { kind: 'lucide', icon: 'Layers', color: '#0078D4', description: 'Azure Cosmos DB NoSQL database' },
+    'azure-redis': { kind: 'lucide', icon: 'Gauge', color: '#0078D4', description: 'Azure Cache for Redis' },
+
+    // ── Azure Networking ──────────────────────────────────────────────────────────
+    'azure-api-management': { kind: 'lucide', icon: 'Webhook', color: '#0078D4', description: 'Azure API Management' },
+    'azure-cdn': { kind: 'lucide', icon: 'RadioTower', color: '#0078D4', description: 'Azure Content Delivery Network' },
+    'azure-vnet': { kind: 'lucide', icon: 'Network', color: '#0078D4', description: 'Azure Virtual Network' },
+    'azure-lb': { kind: 'lucide', icon: 'Scale', color: '#0078D4', description: 'Azure Load Balancer' },
+    'azure-app-gateway': { kind: 'lucide', icon: 'Shuffle', color: '#0078D4', description: 'Azure Application Gateway' },
+
+    // ── Azure Messaging ────────────────────────────────────────────────────────────
+    'azure-servicebus': { kind: 'lucide', icon: 'MessageSquare', color: '#0078D4', description: 'Azure Service Bus messaging' },
+    'azure-eventhub': { kind: 'lucide', icon: 'Activity', color: '#0078D4', description: 'Azure Event Hubs' },
+    'azure-event-grid': { kind: 'lucide', icon: 'Radio', color: '#0078D4', description: 'Azure Event Grid' },
+
+    // ── Azure Security ─────────────────────────────────────────────────────────────
+    'azure-ad': { kind: 'lucide', icon: 'Users', color: '#0078D4', description: 'Azure Active Directory' },
+    'azure-keyvault': { kind: 'lucide', icon: 'Lock', color: '#0078D4', description: 'Azure Key Vault secrets management' },
+
+    // ── Azure Observability ───────────────────────────────────────────────────────
+    'azure-monitor': { kind: 'lucide', icon: 'LayoutDashboard', color: '#0078D4', description: 'Azure Monitor' },
+    'azure-application-insights': { kind: 'lucide', icon: 'GitBranch', color: '#0078D4', description: 'Azure Application Insights' },
+
+    // ── GCP Compute ────────────────────────────────────────────────────────────────
+    'gcp-compute-engine': { kind: 'lucide', icon: 'Server', color: '#4285F4', description: 'GCP Compute Engine VMs' },
+    'gcp-cloud-functions': { kind: 'lucide', icon: 'Zap', color: '#4285F4', description: 'GCP Cloud Functions' },
+    'gcp-run': { kind: 'lucide', icon: 'Plane', color: '#4285F4', description: 'GCP Cloud Run serverless containers' },
+    'gcp-gke': { kind: 'lucide', icon: 'CircleDot', color: '#4285F4', description: 'GCP Kubernetes Engine' },
+
+    // ── GCP Storage & Databases ───────────────────────────────────────────────────
+    'gcp-storage': { kind: 'lucide', icon: 'HardDrive', color: '#4285F4', description: 'GCP Cloud Storage' },
+    'gcp-sql': { kind: 'lucide', icon: 'Database', color: '#4285F4', description: 'GCP Cloud SQL' },
+    'gcp-firestore': { kind: 'lucide', icon: 'Layers', color: '#4285F4', description: 'GCP Firestore NoSQL database' },
+    'gcp-bigtable': { kind: 'lucide', icon: 'Gauge', color: '#4285F4', description: 'GCP Bigtable wide-column database' },
+    'gcp-spanner': { kind: 'lucide', icon: 'Database', color: '#4285F4', description: 'GCP Cloud Spanner global SQL database' },
+
+    // ── GCP Networking ─────────────────────────────────────────────────────────────
+    'gcp-api-gateway': { kind: 'lucide', icon: 'Webhook', color: '#4285F4', description: 'GCP API Gateway' },
+    'gcp-cloud-cdn': { kind: 'lucide', icon: 'RadioTower', color: '#4285F4', description: 'GCP Cloud CDN' },
+    'gcp-vpc': { kind: 'lucide', icon: 'Network', color: '#4285F4', description: 'GCP Virtual Private Cloud' },
+    'gcp-lb': { kind: 'lucide', icon: 'Scale', color: '#4285F4', description: 'GCP Cloud Load Balancing' },
+
+    // ── Generic Service Types ──────────────────────────────────────────────────────
+    'generic-api': { kind: 'lucide', icon: 'Webhook', color: '#6B7280', description: 'Generic API service' },
+    'generic-database': { kind: 'lucide', icon: 'Database', color: '#6B7280', description: 'Generic database service' },
+    'generic-storage': { kind: 'lucide', icon: 'HardDrive', color: '#6B7280', description: 'Generic storage service' },
+    'generic-queue': { kind: 'lucide', icon: 'MessageSquare', color: '#6B7280', description: 'Generic message queue' },
+    'generic-cache': { kind: 'lucide', icon: 'Gauge', color: '#6B7280', description: 'Generic cache service' },
+    'generic-auth': { kind: 'lucide', icon: 'ShieldCheck', color: '#6B7280', description: 'Generic authentication service' },
+    'generic-search': { kind: 'lucide', icon: 'Search', color: '#6B7280', description: 'Generic search service' },
+    'generic-compute': { kind: 'lucide', icon: 'Cpu', color: '#6B7280', description: 'Generic compute service' },
+    'generic-container': { kind: 'lucide', icon: 'Box', color: '#6B7280', description: 'Generic container service' },
+    'generic-server': { kind: 'lucide', icon: 'Server', color: '#6B7280', description: 'Generic server/service' },
+    'generic-client': { kind: 'lucide', icon: 'Monitor', color: '#6B7280', description: 'Generic client/application' },
+    'generic-cdn': { kind: 'lucide', icon: 'RadioTower', color: '#6B7280', description: 'Generic CDN service' },
+    'generic-dns': { kind: 'lucide', icon: 'Globe', color: '#6B7280', description: 'Generic DNS service' },
+    'generic-monitoring': { kind: 'lucide', icon: 'LayoutDashboard', color: '#6B7280', description: 'Generic monitoring service' },
+    'generic-logging': { kind: 'lucide', icon: 'ScrollText', color: '#6B7280', description: 'Generic logging service' },
 };

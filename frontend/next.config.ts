@@ -51,7 +51,7 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-tooltip',
     ],
   },
-  turbopack: {},
+  turbopack: { root: __dirname },
   async headers() {
     return [
       {

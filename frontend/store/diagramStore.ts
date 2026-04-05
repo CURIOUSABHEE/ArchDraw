@@ -86,6 +86,12 @@ interface DiagramState {
   nodes: Node[];
   edges: Edge[];
 
+  // ── Sequence Diagrams ───────────────────────────────────────────────────
+  sequenceDiagrams: Record<string, { mermaidSyntax: string; title: string }>;
+  setSequenceDiagram: (canvasId: string, mermaidSyntax: string, title: string) => void;
+  clearSequenceDiagram: (canvasId: string) => void;
+  importSequenceDiagram: (mermaidSyntax: string, title: string) => void;
+
   getRandomAnimalName: () => string;
   addCanvas: (customName?: string) => string;
   removeCanvas: (id: string) => void;
@@ -121,12 +127,14 @@ interface DiagramState {
   darkMode: boolean;
   sidebarOpen: boolean;
   canvasMode: 'empty' | 'editing' | 'template';
+  activeLayoutPresetId: string;
   setGuideLines: (lines: GuideLine[]) => void;
   toggleEdgeAnimations: () => void;
   toggleGrid: () => void;
   toggleDarkMode: () => void;
   setSidebarOpen: (open: boolean) => void;
   setCanvasMode: (mode: 'empty' | 'editing' | 'template') => void;
+  setActiveLayoutPresetId: (id: string) => void;
 
   // ── History ───────────────────────────────────────────────────────────────
   past: HistoryEntry[];
@@ -230,6 +238,7 @@ export const useDiagramStore = create<DiagramState>()(
       openCanvasIds: [INITIAL_CANVAS.id],
       nodes: [],
       edges: [],
+      sequenceDiagrams: {},
 
       getRandomAnimalName: () => {
         const animals = ['Elephant', 'Lion', 'Panda', 'Tiger', 'Falcon', 'Shark', 'Wolf', 'Fox', 'Bear', 'Eagle', 'Owl', 'Hawk', 'Dolphin', 'Penguin', 'Zebra', 'Giraffe', 'Leopard', 'Jaguar', 'Panther', 'Cheetah'];
@@ -542,9 +551,11 @@ export const useDiagramStore = create<DiagramState>()(
       darkMode: true,
       sidebarOpen: true,
       canvasMode: 'empty',
+      activeLayoutPresetId: 'layered-lr',
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setGuideLines: (lines) => set({ guideLines: lines }),
       setCanvasMode: (mode) => set({ canvasMode: mode }),
+      setActiveLayoutPresetId: (id) => set({ activeLayoutPresetId: id }),
       toggleGrid: () => set({ showGrid: !get().showGrid }),
       toggleDarkMode: () => {
         const next = !get().darkMode;
@@ -809,6 +820,33 @@ export const useDiagramStore = create<DiagramState>()(
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
+      },
+
+      setSequenceDiagram: (canvasId: string, mermaidSyntax: string, title: string) => {
+        set((state) => ({
+          sequenceDiagrams: {
+            ...state.sequenceDiagrams,
+            [canvasId]: { mermaidSyntax, title },
+          },
+        }));
+      },
+      clearSequenceDiagram: (canvasId: string) => {
+        set((state) => {
+          const { [canvasId]: _, ...rest } = state.sequenceDiagrams;
+          return { sequenceDiagrams: rest };
+        });
+      },
+      importSequenceDiagram: (mermaidSyntax: string, title: string) => {
+        const canvasId = get().activeCanvasId;
+        set((state) => ({
+          sequenceDiagrams: {
+            ...state.sequenceDiagrams,
+            [canvasId]: { mermaidSyntax, title },
+          },
+          nodes: [],
+          edges: [],
+        }));
+        get().saveCanvasToDB(canvasId);
       },
     }),
     {

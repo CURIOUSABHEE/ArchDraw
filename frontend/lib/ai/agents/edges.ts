@@ -2,7 +2,10 @@ import { apiKeyManager } from '../utils/apiKeyManager';
 import type { SharedState, ArchitectureEdge, ArchitectureNode, CommunicationType, PathType, HandlePosition, MarkerType } from '../types';
 import { EDGE_AGENT_PROMPT, COMMUNICATION_STYLES, LAYER_ORDER } from '../constants';
 import { COMPONENT_PORTS, getStrictPortConfig } from '@/lib/componentPorts';
+import { validateEdgeOutput } from '../utils/outputValidator';
 import logger from '@/lib/logger';
+
+const MAX_EDGE_RETRIES = 2;
 
 interface PortAssignment {
   sourceHandle: string;
@@ -642,7 +645,6 @@ function fixArchitectureIssues(
 }
 
 export async function runEdgeAgent(state: SharedState): Promise<ArchitectureEdge[]> {
-  // Use components if nodes are empty
   const nodesToUse = state.components.length > 0 ? state.components : state.nodes;
   
   if (nodesToUse.length === 0) {
@@ -656,12 +658,50 @@ export async function runEdgeAgent(state: SharedState): Promise<ArchitectureEdge
     layer: n.layer
   })), null, 2);
 
-  const prompt = `${EDGE_AGENT_PROMPT}
+  const systemType = state.userIntent.systemType ?? 'Microservices Architecture';
+  const { getSystemRequirements } = await import('../utils/systemRequirements');
+  const requirements = getSystemRequirements(systemType);
+
+  const systemEdgeSection = `
+CRITICAL: Create edges specific to ${systemType}.
+
+For STREAMING systems, include these critical paths:
+- Client → CDN → API Gateway (content delivery)
+- Video Upload → Transcoding → Object Storage (upload pipeline)
+- Object Storage → CDN (content distribution)
+- Playback → Cache → Database (read optimization)
+
+For E-COMMERCE systems, include:
+- Client → CDN → Gateway (delivery)
+- Product Catalog → Cache → Database (read path)
+- Cart → Checkout → Payment → Order (transaction flow)
+
+For RIDE-SHARING systems, include:
+- Rider → Gateway → Auth (authentication)
+- Rider Request → Matching Engine → Driver (matching flow)
+- Trip → Pricing → Payment (billing flow)
+
+ALWAYS include:
+- At least one async/queue edge for background processing
+- Cache layer edges (cache hit/miss patterns)
+- Database write edges
+
+REQUIRED EDGE PATTERNS:
+${requirements.requiredEdges.map(([from, to]) => `- ${from} → ${to}`).join('\n') || 'None specified'}
+`;
+
+  let lastError = '';
+
+  for (let attempt = 1; attempt <= MAX_EDGE_RETRIES; attempt++) {
+    try {
+      const prompt = `${EDGE_AGENT_PROMPT}
+
+${systemEdgeSection}
 
 User's System Description:
 ${state.userIntent.description}
 
-System Type: ${state.userIntent.systemType}
+System Type: ${systemType}
 
 Current Nodes (${nodesToUse.length}):
 ${nodesJson}
@@ -675,104 +715,120 @@ Output JSON with an "edges" array. Each edge must have:
 - communicationType: "sync" | "async" | "stream" | "event" | "dep"
 - label: descriptive label for the connection`;
 
-  try {
-    const result = await apiKeyManager.executeWithRetry(async (groq) => {
-      const completion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: 'You are a JSON-only output system. Always respond with valid JSON object with an "edges" array. Do NOT wrap in markdown code blocks.' },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.1,
-        max_tokens: 4096,
+      const result = await apiKeyManager.executeWithRetry(async (groq) => {
+        const completion = await groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: 'You are a JSON-only output system. Always respond with valid JSON object with an "edges" array. Do NOT wrap in markdown code blocks.' },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.1,
+          max_tokens: 4096,
+        });
+
+        const content = completion.choices[0]?.message?.content ?? '';
+        return content;
       });
 
-      const content = completion.choices[0]?.message?.content ?? '';
-      return content;
-    });
+      const cleanedResult = result
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/gi, '')
+        .trim();
 
-    const cleanedResult = result
-      .replace(/```json\s*/gi, '')
-      .replace(/```\s*/gi, '')
-      .trim();
-
-    let parsed: Partial<ArchitectureEdge>[] = [];
-    try {
-      const jsonObj = JSON.parse(cleanedResult);
-      if (Array.isArray(jsonObj)) {
-        parsed = jsonObj;
-      } else if (jsonObj.edges && Array.isArray(jsonObj.edges)) {
-        parsed = jsonObj.edges;
-      } else if (jsonObj.connections && Array.isArray(jsonObj.connections)) {
-        parsed = jsonObj.connections;
-      }
-    } catch (parseError) {
-      logger.warn('[EdgeAgent] JSON parse failed, trying regex extraction');
-      const arrayMatch = cleanedResult.match(/\[[\s\S]*\]/);
-      if (arrayMatch) {
-        try {
-          parsed = JSON.parse(arrayMatch[0]);
-        } catch {
-          logger.warn('[EdgeAgent] Regex extraction failed');
+      let parsed: Partial<ArchitectureEdge>[] = [];
+      try {
+        const jsonObj = JSON.parse(cleanedResult);
+        if (Array.isArray(jsonObj)) {
+          parsed = jsonObj;
+        } else if (jsonObj.edges && Array.isArray(jsonObj.edges)) {
+          parsed = jsonObj.edges;
+        } else if (jsonObj.connections && Array.isArray(jsonObj.connections)) {
+          parsed = jsonObj.connections;
+        }
+      } catch (parseError) {
+        logger.warn('[EdgeAgent] JSON parse failed, trying regex extraction');
+        const arrayMatch = cleanedResult.match(/\[[\s\S]*\]/);
+        if (arrayMatch) {
+          try {
+            parsed = JSON.parse(arrayMatch[0]);
+          } catch {
+            logger.warn('[EdgeAgent] Regex extraction failed');
+          }
         }
       }
-    }
 
-    if (parsed.length === 0) {
-      logger.warn('[EdgeAgent] No edges parsed from LLM, using default generation');
-      return generateDefaultEdges(nodesToUse, state.userIntent);
-    }
-
-    const portAssignments = assignPortsToEdges(parsed, nodesToUse);
-    
-    const edges = parsed.map((edge) => createFullEdge(edge, nodesToUse, portAssignments));
-
-    // Override edgeVariant for monitoring targets: always dashed
-    const edgesWithMonitoring = edges.map(edge => {
-      const targetNode = nodesToUse.find(n => n.id === edge.target);
-      if (targetNode?.serviceType === 'monitor' && edge.edgeVariant === 'solid') {
-        logger.log(`[EdgeAgent] Overriding edgeVariant to dashed for monitoring target: ${edge.target}`);
-        return { ...edge, edgeVariant: 'dashed' as const };
+      if (parsed.length === 0) {
+        logger.warn('[EdgeAgent] No edges parsed from LLM, using default generation');
+        return generateDefaultEdges(nodesToUse, state.userIntent);
       }
-      return edge;
-    });
 
-    const validationIssues = validateArchitectureRules(edgesWithMonitoring, nodesToUse);
-    if (validationIssues.length > 0) {
-      logger.warn(`[EdgeAgent] Found ${validationIssues.length} architecture issues:`, validationIssues);
+      const portAssignments = assignPortsToEdges(parsed, nodesToUse);
       
-      const fixedEdges = fixArchitectureIssues(edgesWithMonitoring, nodesToUse);
-      
-      const remainingIssues = validateArchitectureRules(fixedEdges, nodesToUse);
-      if (remainingIssues.length > 0) {
-        logger.warn(`[EdgeAgent] After fix, ${remainingIssues.length} issues remain:`, remainingIssues);
+      const edges = parsed.map((edge) => createFullEdge(edge, nodesToUse, portAssignments));
+
+      const edgesWithMonitoring = edges.map(edge => {
+        const targetNode = nodesToUse.find(n => n.id === edge.target);
+        if (targetNode?.serviceType === 'monitor' && edge.edgeVariant === 'solid') {
+          logger.log(`[EdgeAgent] Overriding edgeVariant to dashed for monitoring target: ${edge.target}`);
+          return { ...edge, edgeVariant: 'dashed' as const };
+        }
+        return edge;
+      });
+
+      const validationIssues = validateArchitectureRules(edgesWithMonitoring, nodesToUse);
+      if (validationIssues.length > 0) {
+        logger.warn(`[EdgeAgent] Found ${validationIssues.length} architecture issues:`, validationIssues);
+        
+        const fixedEdges = fixArchitectureIssues(edgesWithMonitoring, nodesToUse);
+        
+        const remainingIssues = validateArchitectureRules(fixedEdges, nodesToUse);
+        if (remainingIssues.length > 0) {
+          logger.warn(`[EdgeAgent] After fix, ${remainingIssues.length} issues remain:`, remainingIssues);
+        }
+        
+        return fixedEdges;
+      }
+
+      const edgeValidation = validateEdgeOutput(edgesWithMonitoring, nodesToUse);
+      if (!edgeValidation.valid) {
+        lastError = edgeValidation.failures.join('\n');
+        logger.warn(`[EdgeAgent] Validation failed (attempt ${attempt}/${MAX_EDGE_RETRIES}):`, lastError);
+        
+        if (attempt < MAX_EDGE_RETRIES) {
+          continue;
+        }
+      }
+
+      const flowIssues = validateFlowCompleteness(edgesWithMonitoring, nodesToUse);
+      if (flowIssues.length > 0) {
+        logger.warn(`[EdgeAgent] Found ${flowIssues.length} flow issues:`, flowIssues);
+      }
+
+      const flowGraphValidation = validateFlowGraph(nodesToUse, edgesWithMonitoring);
+      if (flowGraphValidation.issues.length > 0) {
+        logger.warn(`[EdgeAgent] Flow graph issues:`, flowGraphValidation.issues);
       }
       
-      return fixedEdges;
-    }
+      logger.log(`[EdgeAgent] Flow Graph Summary:`, {
+        hasRequestFlow: flowGraphValidation.hasRequestFlow,
+        hasProcessingFlow: flowGraphValidation.hasProcessingFlow,
+        hasAsyncFlow: flowGraphValidation.hasAsyncFlow,
+        hasResponseFlow: flowGraphValidation.hasResponseFlow,
+      });
 
-    const flowIssues = validateFlowCompleteness(edgesWithMonitoring, nodesToUse);
-    if (flowIssues.length > 0) {
-      logger.warn(`[EdgeAgent] Found ${flowIssues.length} flow issues:`, flowIssues);
+      return edgeValidation.autoFixed;
+    } catch (error) {
+      lastError = String(error);
+      logger.error(`[EdgeAgent] Error (attempt ${attempt}/${MAX_EDGE_RETRIES}):`, error);
+      
+      if (attempt === MAX_EDGE_RETRIES) {
+        break;
+      }
     }
-
-    const flowGraphValidation = validateFlowGraph(nodesToUse, edgesWithMonitoring);
-    if (flowGraphValidation.issues.length > 0) {
-      logger.warn(`[EdgeAgent] Flow graph issues:`, flowGraphValidation.issues);
-    }
-    
-    logger.log(`[EdgeAgent] Flow Graph Summary:`, {
-      hasRequestFlow: flowGraphValidation.hasRequestFlow,
-      hasProcessingFlow: flowGraphValidation.hasProcessingFlow,
-      hasAsyncFlow: flowGraphValidation.hasAsyncFlow,
-      hasResponseFlow: flowGraphValidation.hasResponseFlow,
-    });
-
-    return edgesWithMonitoring;
-  } catch (error) {
-    logger.error('[EdgeAgent] Error:', error);
-    return generateDefaultEdges(nodesToUse, state.userIntent);
   }
+
+  logger.error('[EdgeAgent] All retries failed, using defaults after validation failure:', lastError);
+  return generateDefaultEdges(nodesToUse, state.userIntent);
 }
 
 function createFullEdge(

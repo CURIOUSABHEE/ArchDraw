@@ -11,33 +11,72 @@ export interface ELKLayoutConfig {
   nodeHeight?: number;
 }
 
-export const DEFAULT_NODE_WIDTH = 250;
+export const DEFAULT_NODE_WIDTH = 80;
 export const DEFAULT_NODE_HEIGHT = 80;
 
 const DEFAULT_ELK_OPTIONS = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
   'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-  'elk.edgeRouting': 'ORTHOGONAL',
+  'elk.edgeRouting': 'SPLINES',
   'elk.portConstraints': 'FIXED_SIDE',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '250',
-  'elk.spacing.nodeNode': '80',
-  'elk.spacing.edgeEdge': '30',
-  'elk.spacing.edgeNode': '40',
-  'elk.spacing.labelNode': '40',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '60',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '120',
+  'elk.spacing.nodeNode': '60',
+  'elk.spacing.edgeEdge': '40',
+  'elk.spacing.edgeNode': '60',
+  'elk.spacing.labelNode': '30',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '80',
   'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-  'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+  'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
   'elk.layered.crossingMinimization.forceNodeModelOrder': 'false',
   'elk.layered.separatingEdges.strategy': 'CENTERING',
   'elk.layered.unnecessaryBendpoints': 'false',
   'elk.layered.mergeEdges': 'false',
   'elk.layered.spacing.edgeEdgeBetweenLayers': '50',
-  'elk.edgeLabels.inline': 'true',
+  'elk.edgeLabels.inline': 'false',
   'elk.edgeLabels.placement': 'CENTER',
-  'elk.padding': '[top=48, left=20, bottom=20, right=20]',
+  'elk.padding': '[top=50, left=24, bottom=24, right=24]',
 };
+
+const LAYER_X_POSITIONS: Record<number, number> = {
+  1: 60,
+  2: 320,
+  3: 580,
+  4: 900,
+  5: 1160,
+};
+const LAYER_SPACING_Y = 100;
+const NODE_HEIGHT_DEFAULT = 60;
+const NODE_WIDTH_DEFAULT = 160;
+const CANVAS_HEIGHT = 600;
+
+function computeLayerAwarePositions(nodes: ArchitectureNode[]): Map<string, { x: number; y: number }> {
+  const positions = new Map<string, { x: number; y: number }>();
+  const nodesByLayer = new Map<number, ArchitectureNode[]>();
+  
+  for (const node of nodes) {
+    if (node.isGroup) continue;
+    const layer = node.layerIndex ?? 3;
+    if (!nodesByLayer.has(layer)) nodesByLayer.set(layer, []);
+    nodesByLayer.get(layer)!.push(node);
+  }
+  
+  for (const [layer, layerNodes] of nodesByLayer) {
+    if (layerNodes.length === 0) continue;
+    
+    const totalHeight = (layerNodes.length * NODE_HEIGHT_DEFAULT) + ((layerNodes.length - 1) * LAYER_SPACING_Y);
+    const startY = Math.max(40, (CANVAS_HEIGHT / 2) - (totalHeight / 2));
+    
+    layerNodes.forEach((node, index) => {
+      const x = LAYER_X_POSITIONS[layer] ?? LAYER_X_POSITIONS[3];
+      const y = startY + (index * (NODE_HEIGHT_DEFAULT + LAYER_SPACING_Y));
+      positions.set(node.id, { x, y });
+    });
+  }
+  
+  return positions;
+}
 
 // STEP 5A: Calculate group node dimensions based on children
 function calculateGroupDimensions(nodes: ArchitectureNode[]): ArchitectureNode[] {
@@ -156,6 +195,13 @@ export async function computeELKLayout(
 
   // STEP 5A: Calculate group dimensions
   const nodesWithGroupDims = calculateGroupDimensions(nodes);
+
+  // STEP 5B: Compute layer-aware X positions for each node
+  const layerAwarePositions = computeLayerAwarePositions(nodesWithGroupDims);
+  logger.log(`[ELK Layout] Layer-aware positions computed for ${layerAwarePositions.size} nodes`);
+  for (const [nodeId, pos] of layerAwarePositions) {
+    logger.log(`[ELK Layout]   ${nodeId}: x=${pos.x}, y=${pos.y}`);
+  }
 
   const nodeLayerMap = new Map<string, number>();
   nodesWithGroupDims.forEach((node, index) => {
@@ -360,6 +406,8 @@ export async function computeELKLayout(
       id: node.id,
       width,
       height,
+      x: layerAwarePositions.get(node.id)?.x,
+      y: layerAwarePositions.get(node.id)?.y,
       ports,
       layoutOptions: {
         'elk.nodeSize.constraints': 'MINIMUM_SIZE',
@@ -590,17 +638,21 @@ export async function computeELKLayout(
 
       const nodeType = isGroup ? 'group' : 'systemNode';
 
+      // Enforce X position from layer, allow ELK to optimize Y
+      const enforcedX = LAYER_X_POSITIONS[originalNode.layerIndex ?? 3] ?? LAYER_X_POSITIONS[3];
+      
       reactFlowNodes.push({
         id: elkNode.id,
         type: nodeType,
         position: {
-          x: elkNode.x ?? 0,
+          x: enforcedX,
           y: elkNode.y ?? 0,
         },
         data: {
           label: originalNode.label,
           icon: originalNode.icon ?? 'box',
           layer: originalNode.layer,
+          layerIndex: originalNode.layerIndex,
           // Group-specific data
           groupLabel: originalNode.groupLabel,
           groupColor: originalNode.groupColor,
@@ -679,14 +731,14 @@ export async function computeELKLayout(
         layoutOptions: {
           'elk.algorithm': 'layered',
           'elk.direction': 'RIGHT',
-          'elk.edgeRouting': 'SPLINES',
+          'elk.edgeRouting': 'ORTHOGONAL',
           'elk.portConstraints': 'FIXED_SIDE',
-          'elk.layered.spacing.nodeNodeBetweenLayers': '300',
-          'elk.spacing.nodeNode': '150',
-          'elk.spacing.edgeEdge': '30',
-          'elk.spacing.edgeNode': '60',
-          'elk.spacing.labelNode': '40',
-          'elk.layered.spacing.edgeNodeBetweenLayers': '60',
+          'elk.layered.spacing.nodeNodeBetweenLayers': '350',
+          'elk.spacing.nodeNode': '160',
+          'elk.spacing.edgeEdge': '50',
+          'elk.spacing.edgeNode': '90',
+          'elk.spacing.labelNode': '60',
+          'elk.layered.spacing.edgeNodeBetweenLayers': '100',
           'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
           'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
           'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
@@ -858,14 +910,21 @@ function computeFallbackLayout(
     layerNodes.forEach((node, index) => {
       const y = startY + index * verticalSpacing;
 
+      const nodeType = node.isGroup === true ? 'group' : 'systemNode';
       reactFlowNodes.push({
         id: node.id,
-        type: 'systemNode',
+        type: nodeType,
         position: { x: layerX, y },
         data: {
           label: node.label,
           icon: node.icon ?? 'box',
           layer: node.layer,
+          layerIndex: node.layerIndex,
+          isGroup: node.isGroup,
+          parentId: node.parentId,
+          groupLabel: node.groupLabel,
+          groupColor: node.groupColor,
+          serviceType: node.serviceType,
         },
         width: node.width ?? nodeWidth,
         height: node.height ?? nodeHeight,
@@ -875,14 +934,21 @@ function computeFallbackLayout(
 
   for (const node of nodes) {
     if (!reactFlowNodes.find(n => n.id === node.id)) {
+      const nodeType = node.isGroup === true ? 'group' : 'systemNode';
       reactFlowNodes.push({
         id: node.id,
-        type: 'systemNode',
+        type: nodeType,
         position: { x: 400, y: 50 + reactFlowNodes.length * verticalSpacing },
         data: {
           label: node.label,
           icon: node.icon ?? 'box',
           layer: node.layer,
+          layerIndex: node.layerIndex,
+          isGroup: node.isGroup,
+          parentId: node.parentId,
+          groupLabel: node.groupLabel,
+          groupColor: node.groupColor,
+          serviceType: node.serviceType,
         },
         width: node.width ?? nodeWidth,
         height: node.height ?? nodeHeight,
