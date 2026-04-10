@@ -10,7 +10,7 @@ export function getComponents(): ComponentDefinition[] {
   }
 
   try {
-    const componentsPath = join(__dirname, '..', '..', '..', 'data', 'components.json');
+    const componentsPath = join(__dirname, '..', '..', '..', 'frontend', 'data', 'components.json');
     const content = readFileSync(componentsPath, 'utf-8');
     cachedComponents = JSON.parse(content) as ComponentDefinition[];
     return cachedComponents;
