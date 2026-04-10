@@ -15,6 +15,8 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
     layoutAlgorithm: string;
     direction: string;
   };
+  diagramUrl?: string;
+  message?: string;
   errors?: string[];
 }> {
   const errors: string[] = [];
@@ -90,6 +92,30 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
 
     const layoutResult = await runELKLayout(architectureNodes, architectureEdges, { direction });
 
+    let diagramUrl: string | undefined;
+    let message: string | undefined;
+
+    try {
+      const label = input.label || input.nodes[0]?.label || 'AI Diagram';
+      const saveResponse = await fetch('http://localhost:3000/api/diagram/load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nodes: layoutResult.nodes,
+          edges: layoutResult.edges,
+          label,
+        }),
+      });
+
+      if (saveResponse.ok) {
+        const saveData = await saveResponse.json() as { sessionId: string; url: string };
+        diagramUrl = `http://localhost:3000${saveData.url}`;
+        message = `Diagram generated. Open this link to view it: ${diagramUrl}`;
+      }
+    } catch {
+      // Silently fail - still return nodes/edges normally
+    }
+
     return {
       success: true,
       nodes: layoutResult.nodes,
@@ -101,6 +127,8 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         layoutAlgorithm: 'ELK layered',
         direction,
       },
+      diagramUrl,
+      message,
       errors: errors.length > 0 ? errors : undefined,
     };
 

@@ -30,6 +30,9 @@ import { FlowEdge } from '@/components/edges/FlowEdge';
 import { useCanvasTheme } from '@/lib/theme';
 import { TemplateModal } from '@/components/TemplateModal';
 import { AutoLayoutButton } from '@/components/canvas/toolbar/AutoLayoutButton';
+import { useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
+import type { Node, Edge } from 'reactflow';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -83,6 +86,34 @@ function CanvasInner() {
       reactFlowRef.instance = null;
     };
   }, [reactFlowInstance]);
+
+  // Load diagram from session URL on mount
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const sessionId = searchParams.get('session');
+    if (!sessionId) return;
+
+    const loadSession = async () => {
+      try {
+        const response = await fetch(`/api/diagram/session/${sessionId}`);
+        if (!response.ok) {
+          const error = await response.json();
+          toast.error(error.error || 'Failed to load diagram');
+          return;
+        }
+
+        const data = await response.json();
+        reactFlowInstance.setNodes(data.nodes as Node[]);
+        reactFlowInstance.setEdges(data.edges as Edge[]);
+        toast.success(`Diagram loaded: ${data.label || 'Untitled'}`);
+        setTimeout(() => reactFlowInstance.fitView({ padding: 0.2, duration: 400 }), 100);
+      } catch {
+        toast.error('Failed to load diagram');
+      }
+    };
+
+    loadSession();
+  }, [searchParams]);
 
   // Cmd+D / Ctrl+D — duplicate selected nodes
   useEffect(() => {

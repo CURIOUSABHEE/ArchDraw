@@ -28,6 +28,7 @@ export const GenerateDiagramInputSchema = z.object({
   nodes: z.array(NodeInputSchema).min(1).describe('Array of nodes to position. Each node must have a label. The AI model should have generated these nodes based on the user description.'),
   edges: z.array(EdgeInputSchema).optional().describe('Array of edges connecting nodes. If not provided, no edges will be created.'),
   direction: z.enum(['RIGHT', 'DOWN', 'LEFT', 'UP']).default('RIGHT').describe('Layout direction: RIGHT (left-to-right/LR), DOWN (top-to-bottom/TB), LEFT, or UP'),
+  label: z.string().optional().describe('Optional diagram title/label'),
 });
 
 export const FixLayoutInputSchema = z.object({
