@@ -95,9 +95,11 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
     let diagramUrl: string | undefined;
     let message: string | undefined;
 
+    const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000';
+
     try {
       const label = input.label || input.nodes[0]?.label || 'AI Diagram';
-      const saveResponse = await fetch('http://localhost:3000/api/diagram/load', {
+      const saveResponse = await fetch(`${API_BASE}/api/diagram/load`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -109,7 +111,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
 
       if (saveResponse.ok) {
         const saveData = await saveResponse.json() as { sessionId: string; url: string };
-        diagramUrl = `http://localhost:3000${saveData.url}`;
+        diagramUrl = `${API_BASE}${saveData.url}`;
         message = `Diagram generated. Open this link to view it: ${diagramUrl}`;
       }
     } catch {
