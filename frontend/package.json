@@ -8,8 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "mcp:dev": "cd ../mcp-server && npx tsx src/index.ts",
-    "mcp:build": "cd ../mcp-server && npx tsc"
+    "mcp:dev": "cd mcp-server && npx tsx src/index.ts",
+    "mcp:build": "cd mcp-server && npx tsc"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
