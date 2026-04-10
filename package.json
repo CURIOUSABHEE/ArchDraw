@@ -1,0 +1,15 @@
+{
+  "name": "archdraw",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:mcp\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:mcp": "cd frontend/mcp-server && npm run dev",
+    "build": "cd frontend && npm run build",
+    "build:mcp": "cd frontend/mcp-server && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
