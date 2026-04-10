@@ -1,10 +1,10 @@
 /**
- * Icon registry — maps every component/technology id to a lucide icon + brand color.
- * All AWS entries use lucide semantic icons (official SVGs were removed from public/).
+ * Icon registry — maps every component/technology id to an icon + brand color.
+ * AWS entries use custom AWS icons, others use lucide icons.
  */
 
 export type IconEntry = {
-    kind: 'lucide';
+    kind: 'aws' | 'lucide';
     icon: string;
     color: string;
     description: string;
@@ -12,58 +12,58 @@ export type IconEntry = {
 
 export const iconRegistry: Record<string, IconEntry> = {
     // ── AWS Compute ────────────────────────────────────────────────────────────
-    'aws-ec2': { kind: 'lucide', icon: 'Server', color: '#FF9900', description: 'Virtual servers in the cloud' },
-    'aws-lambda': { kind: 'lucide', icon: 'Zap', color: '#FF9900', description: 'Run code without provisioning servers' },
-    'aws-ecs': { kind: 'lucide', icon: 'Boxes', color: '#FF9900', description: 'Run containerized applications' },
-    'aws-eks': { kind: 'lucide', icon: 'CircleDot', color: '#FF9900', description: 'Managed Kubernetes service' },
-    'aws-fargate': { kind: 'lucide', icon: 'Box', color: '#FF9900', description: 'Serverless compute for containers' },
-    'aws-beanstalk': { kind: 'lucide', icon: 'Sprout', color: '#FF9900', description: 'Deploy and scale web applications' },
+    'aws-ec2': { kind: 'aws', icon: 'aws-ec2', color: '#FF9900', description: 'Virtual servers in the cloud' },
+    'aws-lambda': { kind: 'aws', icon: 'aws-lambda', color: '#FF9900', description: 'Run code without provisioning servers' },
+    'aws-ecs': { kind: 'aws', icon: 'aws-ecs', color: '#FF9900', description: 'Run containerized applications' },
+    'aws-eks': { kind: 'aws', icon: 'aws-eks', color: '#FF9900', description: 'Managed Kubernetes service' },
+    'aws-fargate': { kind: 'aws', icon: 'aws-fargate', color: '#FF9900', description: 'Serverless compute for containers' },
+    'aws-beanstalk': { kind: 'aws', icon: 'aws-beanstalk', color: '#FF9900', description: 'Deploy and scale web applications' },
 
     // ── AWS Storage ────────────────────────────────────────────────────────────
-    'aws-s3': { kind: 'lucide', icon: 'HardDrive', color: '#3F8624', description: 'Scalable object storage' },
-    'aws-ebs': { kind: 'lucide', icon: 'Disc', color: '#3F8624', description: 'Block storage for EC2 instances' },
-    'aws-efs': { kind: 'lucide', icon: 'FolderOpen', color: '#3F8624', description: 'Elastic file system for Linux workloads' },
-    'aws-glacier': { kind: 'lucide', icon: 'Archive', color: '#3F8624', description: 'Low-cost archival storage' },
+    'aws-s3': { kind: 'aws', icon: 'aws-s3', color: '#3F8624', description: 'Scalable object storage' },
+    'aws-ebs': { kind: 'aws', icon: 'aws-ebs', color: '#3F8624', description: 'Block storage for EC2 instances' },
+    'aws-efs': { kind: 'aws', icon: 'aws-efs', color: '#3F8624', description: 'Elastic file system for Linux workloads' },
+    'aws-glacier': { kind: 'aws', icon: 'aws-glacier', color: '#3F8624', description: 'Low-cost archival storage' },
 
     // ── AWS Database ───────────────────────────────────────────────────────────
-    'aws-rds': { kind: 'lucide', icon: 'Database', color: '#3B48CC', description: 'Managed relational database service' },
-    'aws-dynamodb': { kind: 'lucide', icon: 'Layers', color: '#3B48CC', description: 'Serverless NoSQL key-value database' },
-    'aws-elasticache': { kind: 'lucide', icon: 'Gauge', color: '#3B48CC', description: 'In-memory caching with Redis or Memcached' },
-    'aws-aurora': { kind: 'lucide', icon: 'Sparkles', color: '#3B48CC', description: 'MySQL/PostgreSQL-compatible cloud database' },
-    'aws-redshift': { kind: 'lucide', icon: 'BarChart2', color: '#3B48CC', description: 'Cloud data warehouse for analytics' },
-    'aws-documentdb': { kind: 'lucide', icon: 'FileText', color: '#3B48CC', description: 'MongoDB-compatible document database' },
+    'aws-rds': { kind: 'aws', icon: 'aws-rds', color: '#3B48CC', description: 'Managed relational database service' },
+    'aws-dynamodb': { kind: 'aws', icon: 'aws-dynamodb', color: '#3B48CC', description: 'Serverless NoSQL key-value database' },
+    'aws-elasticache': { kind: 'aws', icon: 'aws-elasticache', color: '#3B48CC', description: 'In-memory caching with Redis or Memcached' },
+    'aws-aurora': { kind: 'aws', icon: 'aws-aurora', color: '#3B48CC', description: 'MySQL/PostgreSQL-compatible cloud database' },
+    'aws-redshift': { kind: 'aws', icon: 'aws-redshift', color: '#3B48CC', description: 'Cloud data warehouse for analytics' },
+    'aws-documentdb': { kind: 'aws', icon: 'aws-documentdb', color: '#3B48CC', description: 'MongoDB-compatible document database' },
 
     // ── AWS Networking ─────────────────────────────────────────────────────────
-    'aws-api-gateway': { kind: 'lucide', icon: 'Webhook', color: '#A020F0', description: 'Create, publish, and secure APIs at scale' },
-    'aws-cloudfront': { kind: 'lucide', icon: 'RadioTower', color: '#A020F0', description: 'Global CDN and content delivery' },
-    'aws-route53': { kind: 'lucide', icon: 'Globe', color: '#A020F0', description: 'Scalable DNS and domain registration' },
-    'aws-vpc': { kind: 'lucide', icon: 'Network', color: '#A020F0', description: 'Isolated virtual network in AWS' },
-    'aws-elb': { kind: 'lucide', icon: 'Scale', color: '#A020F0', description: 'Classic load balancer for EC2' },
-    'aws-alb': { kind: 'lucide', icon: 'Shuffle', color: '#A020F0', description: 'Application load balancer (Layer 7)' },
+    'aws-api-gateway': { kind: 'aws', icon: 'aws-api-gateway', color: '#A020F0', description: 'Create, publish, and secure APIs at scale' },
+    'aws-cloudfront': { kind: 'aws', icon: 'aws-cloudfront', color: '#A020F0', description: 'Global CDN and content delivery' },
+    'aws-route53': { kind: 'aws', icon: 'aws-route53', color: '#A020F0', description: 'Scalable DNS and domain registration' },
+    'aws-vpc': { kind: 'aws', icon: 'aws-vpc', color: '#A020F0', description: 'Isolated virtual network in AWS' },
+    'aws-elb': { kind: 'aws', icon: 'aws-elb', color: '#A020F0', description: 'Classic load balancer for EC2' },
+    'aws-alb': { kind: 'aws', icon: 'aws-alb', color: '#A020F0', description: 'Application load balancer (Layer 7)' },
 
     // ── AWS Messaging ──────────────────────────────────────────────────────────
-    'aws-sqs': { kind: 'lucide', icon: 'MessageSquare', color: '#FF9900', description: 'Fully managed message queuing service' },
-    'aws-sns': { kind: 'lucide', icon: 'Bell', color: '#FF9900', description: 'Pub/sub messaging and mobile notifications' },
-    'aws-eventbridge': { kind: 'lucide', icon: 'Radio', color: '#FF9900', description: 'Serverless event bus for SaaS and AWS services' },
-    'aws-kinesis': { kind: 'lucide', icon: 'Activity', color: '#FF9900', description: 'Real-time data streaming at scale' },
+    'aws-sqs': { kind: 'aws', icon: 'aws-sqs', color: '#FF9900', description: 'Fully managed message queuing service' },
+    'aws-sns': { kind: 'aws', icon: 'aws-sns', color: '#FF9900', description: 'Pub/sub messaging and mobile notifications' },
+    'aws-eventbridge': { kind: 'aws', icon: 'aws-eventbridge', color: '#FF9900', description: 'Serverless event bus for SaaS and AWS services' },
+    'aws-kinesis': { kind: 'aws', icon: 'aws-kinesis', color: '#FF9900', description: 'Real-time data streaming at scale' },
 
     // ── AWS Auth & Security ────────────────────────────────────────────────────
-    'aws-cognito': { kind: 'lucide', icon: 'Users', color: '#DD344C', description: 'User sign-up, sign-in, and access control' },
-    'aws-iam': { kind: 'lucide', icon: 'KeyRound', color: '#DD344C', description: 'Manage access to AWS services and resources' },
-    'aws-secrets-manager': { kind: 'lucide', icon: 'Lock', color: '#DD344C', description: 'Rotate, manage, and retrieve secrets' },
-    'aws-waf': { kind: 'lucide', icon: 'ShieldAlert', color: '#DD344C', description: 'Web application firewall' },
-    'aws-shield': { kind: 'lucide', icon: 'Shield', color: '#DD344C', description: 'DDoS protection for AWS resources' },
+    'aws-cognito': { kind: 'aws', icon: 'aws-cognito', color: '#DD344C', description: 'User sign-up, sign-in, and access control' },
+    'aws-iam': { kind: 'aws', icon: 'aws-iam', color: '#DD344C', description: 'Manage access to AWS services and resources' },
+    'aws-secrets-manager': { kind: 'aws', icon: 'aws-secrets-manager', color: '#DD344C', description: 'Rotate, manage, and retrieve secrets' },
+    'aws-waf': { kind: 'aws', icon: 'aws-waf', color: '#DD344C', description: 'Web application firewall' },
+    'aws-shield': { kind: 'aws', icon: 'aws-shield', color: '#DD344C', description: 'DDoS protection for AWS resources' },
 
     // ── AWS Observability ──────────────────────────────────────────────────────
-    'aws-cloudwatch': { kind: 'lucide', icon: 'LayoutDashboard', color: '#E7157B', description: 'Monitor AWS resources and applications' },
-    'aws-xray': { kind: 'lucide', icon: 'GitBranch', color: '#E7157B', description: 'Distributed tracing for AWS applications' },
-    'aws-cloudtrail': { kind: 'lucide', icon: 'ScrollText', color: '#E7157B', description: 'Audit log of all AWS API calls' },
+    'aws-cloudwatch': { kind: 'aws', icon: 'aws-cloudwatch', color: '#E7157B', description: 'Monitor AWS resources and applications' },
+    'aws-xray': { kind: 'aws', icon: 'aws-xray', color: '#E7157B', description: 'Distributed tracing for AWS applications' },
+    'aws-cloudtrail': { kind: 'aws', icon: 'aws-cloudtrail', color: '#E7157B', description: 'Audit log of all AWS API calls' },
 
     // ── AWS DevOps ─────────────────────────────────────────────────────────────
-    'aws-codepipeline': { kind: 'lucide', icon: 'GitPullRequest', color: '#3F8624', description: 'Continuous delivery pipeline service' },
-    'aws-codebuild': { kind: 'lucide', icon: 'Hammer', color: '#3F8624', description: 'Fully managed build service' },
-    'aws-ecr': { kind: 'lucide', icon: 'Package', color: '#3F8624', description: 'Docker container image registry' },
-    'aws-cloudformation': { kind: 'lucide', icon: 'Settings', color: '#3F8624', description: 'Infrastructure as code for AWS' },
+    'aws-codepipeline': { kind: 'aws', icon: 'aws-codepipeline', color: '#3F8624', description: 'Continuous delivery pipeline service' },
+    'aws-codebuild': { kind: 'aws', icon: 'aws-codebuild', color: '#3F8624', description: 'Fully managed build service' },
+    'aws-ecr': { kind: 'aws', icon: 'aws-ecr', color: '#3F8624', description: 'Docker container image registry' },
+    'aws-cloudformation': { kind: 'aws', icon: 'aws-cloudformation', color: '#3F8624', description: 'Infrastructure as code for AWS' },
 
     // ── Databases ──────────────────────────────────────────────────────────────
     'mongodb': { kind: 'lucide', icon: 'Leaf', color: '#47A248', description: 'Document-oriented NoSQL database' },

@@ -1,6 +1,6 @@
 import type { ArchitectureNode, ArchitectureEdge, LayoutHints, PrimaryFlow, ComponentGroup, LayerType } from '../types';
 
-const LAYER_ORDER: LayerType[] = ['client', 'gateway', 'service', 'queue', 'database', 'cache', 'external', 'devops'];
+const LAYER_ORDER: LayerType[] = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external', 'group'];
 
 const GROUP_PATTERNS: Record<string, { keywords: string[]; color: string }> = {
   'RAG Pipeline': {
@@ -259,13 +259,12 @@ export function generateLayoutHints(
   
   const layerPositions: Record<LayerType, { x: number; y: number }> = {
     client: { x: 0, y: 200 },
-    gateway: { x: 200, y: 200 },
-    service: { x: 400, y: 200 },
-    queue: { x: 600, y: 200 },
-    database: { x: 800, y: 200 },
-    cache: { x: 800, y: 100 },
+    edge: { x: 200, y: 200 },
+    compute: { x: 400, y: 200 },
+    async: { x: 600, y: 200 },
+    data: { x: 800, y: 200 },
+    observe: { x: 600, y: 400 },
     external: { x: 1000, y: 200 },
-    devops: { x: 600, y: 400 },
     group: { x: 100, y: 100 },
   };
   

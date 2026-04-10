@@ -27,82 +27,161 @@ function CanvasPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
   
   if (nodeCount === 0) {
     return (
-      <div className="absolute inset-0" style={{ 
+      <div className="absolute inset-0 flex items-center justify-center" style={{ 
         background: '#FAFAFA',
         backgroundImage: 'radial-gradient(circle, #E0E0E0 1px, transparent 1px)',
         backgroundSize: '16px 16px'
       }}>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <Layers className="w-5 h-5" style={{ color: '#B0B0B0' }} />
-          </div>
+        <div className="w-12 h-12 rounded-[12px] flex items-center justify-center" style={{ background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          <Layers className="w-6 h-6" style={{ color: '#B0B0B0' }} />
         </div>
       </div>
     );
   }
 
-  const SCALE = 0.25;
-  const PADDING = 20;
+  const PADDING = 16;
+  const CARD_WIDTH = 160;
+  const CARD_HEIGHT = 70;
   
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   nodes.forEach((node) => {
-    const x = node.position?.x || 0;
-    const y = node.position?.y || 0;
-    const w = node.width || 160;
-    const h = node.height || 80;
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x + w);
-    maxY = Math.max(maxY, y + h);
+    if (node.width && node.height) {
+      const x = node.position?.x || 0;
+      const y = node.position?.y || 0;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + (node.width || CARD_WIDTH));
+      maxY = Math.max(maxY, y + (node.height || CARD_HEIGHT));
+    }
   });
 
-  const contentWidth = maxX - minX || 400;
-  const contentHeight = maxY - minY || 300;
+  if (minX === Infinity) {
+    minX = 0; minY = 0; maxX = 400; maxY = 300;
+  }
+
+  const diagramWidth = Math.max(maxX - minX, 200);
+  const diagramHeight = Math.max(maxY - minY, 150);
+  
+  const containerWidth = 280;
+  const containerHeight = 160;
+  const scaleX = (containerWidth - PADDING * 2) / diagramWidth;
+  const scaleY = (containerHeight - PADDING * 2) / diagramHeight;
+  const scale = Math.min(scaleX, scaleY, 0.4);
+  
+  const offsetX = (containerWidth - diagramWidth * scale) / 2 - minX * scale;
+  const offsetY = (containerHeight - diagramHeight * scale) / 2 - minY * scale;
+
+  const getNodeColor = (node: Node): string => {
+    if (node.data?.color) return node.data.color;
+    if (node.data?.layer) {
+      const layerColors: Record<string, string> = {
+        client: '#6366f1',
+        gateway: '#8B5CF6',
+        service: '#3B82F6',
+        queue: '#F59E0B',
+        database: '#10B981',
+        cache: '#EC4899',
+        external: '#6B7280',
+        devops: '#F97316',
+      };
+      return layerColors[node.data.layer] || '#3B82F6';
+    }
+    return '#3B82F6';
+  };
 
   return (
     <div className="absolute inset-0 overflow-hidden" style={{ background: '#FAFAFA' }}>
       <svg
-        className="absolute inset-0"
         width="100%"
         height="100%"
-        viewBox={`0 0 ${contentWidth + PADDING * 2} ${contentHeight + PADDING * 2}`}
+        viewBox={`0 0 ${containerWidth} ${containerHeight}`}
         preserveAspectRatio="xMidYMid meet"
       >
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="6"
+            markerHeight="6"
+            refX="5"
+            refY="3"
+            orient="auto"
+          >
+            <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
+          </marker>
+        </defs>
+        
         {edges?.map((edge, idx) => {
           const source = nodes.find((n) => n.id === edge.source);
           const target = nodes.find((n) => n.id === edge.target);
           if (!source || !target) return null;
           
-          const sx = (source.position?.x || 0) - minX + (source.width || 160) / 2 + PADDING;
-          const sy = (source.position?.y || 0) - minY + (source.height || 80) / 2 + PADDING;
-          const tx = (target.position?.x || 0) - minX + (target.width || 160) / 2 + PADDING;
-          const ty = (target.position?.y || 0) - minY + (target.height || 80) / 2 + PADDING;
+          const sx = (source.position?.x || 0) + (source.width || CARD_WIDTH) / 2;
+          const sy = (source.position?.y || 0) + (source.height || CARD_HEIGHT) / 2;
+          const tx = (target.position?.x || 0) + (target.width || CARD_WIDTH) / 2;
+          const ty = (target.position?.y || 0) + (target.height || CARD_HEIGHT) / 2;
           
-          const midX = (sx + tx) / 2;
-          const midY = (sy + ty) / 2;
-          const path = `M ${sx} ${sy} Q ${midX} ${sy} ${midX} ${midY} T ${tx} ${ty}`;
+          const x1 = sx * scale + offsetX;
+          const y1 = sy * scale + offsetY;
+          const x2 = tx * scale + offsetX;
+          const y2 = ty * scale + offsetY;
+          
+          const edgeColor = edge.data?.edgeType === 'async' ? '#F59E0B' 
+            : edge.data?.edgeType === 'stream' ? '#10B981'
+            : edge.data?.edgeType === 'event' ? '#EC4899'
+            : '#6366F1';
+          
+          const dashArray = edge.data?.edgeType === 'async' ? '4,2'
+            : edge.data?.edgeType === 'event' ? '2,2'
+            : '';
+          
+          const midX = (x1 + x2) / 2;
+          const path = `M ${x1} ${y1} C ${midX} ${y1} ${midX} ${y2} ${x2} ${y2}`;
           
           return (
             <path
               key={edge.id || idx}
               d={path}
               fill="none"
-              stroke="#CCCCCC"
-              strokeWidth="1.5"
+              stroke={edgeColor}
+              strokeWidth="1"
+              strokeDasharray={dashArray}
+              markerEnd="url(#arrowhead)"
+              opacity="0.6"
             />
           );
         })}
         
         {nodes.map((node, idx) => {
-          const x = (node.position?.x || 0) - minX + PADDING;
-          const y = (node.position?.y || 0) - minY + PADDING;
-          const w = (node.width || 160) * SCALE;
-          const h = (node.height || 80) * SCALE;
+          if (!node.width || !node.height) return null;
           
-          const nodeColor = node.data?.color || '#E0E0E0';
-          const isLightColor = ['#ffffff', '#f8f8f8', '#fafafa', '#f0f0f0'].some(c => 
-            nodeColor.toLowerCase() === c.toLowerCase()
-          );
+          const x = node.position?.x * scale + offsetX;
+          const y = node.position?.y * scale + offsetY;
+          const w = node.width * scale;
+          const h = node.height * scale;
+          
+          if (x + w < 0 || x > containerWidth || y + h < 0 || y > containerHeight) return null;
+          
+          const nodeColor = getNodeColor(node);
+          const isGroup = node.type === 'group' || node.data?.isGroup;
+          
+          if (isGroup) {
+            return (
+              <g key={node.id || idx}>
+                <rect
+                  x={x}
+                  y={y}
+                  width={w}
+                  height={h}
+                  rx="6"
+                  fill={node.data?.groupColor || '#8B5CF6'}
+                  opacity="0.15"
+                  stroke={node.data?.groupColor || '#8B5CF6'}
+                  strokeWidth="1"
+                  strokeDasharray="4,2"
+                />
+              </g>
+            );
+          }
           
           return (
             <g key={node.id || idx}>
@@ -111,29 +190,47 @@ function CanvasPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
                 y={y}
                 width={w}
                 height={h}
-                rx={Math.max(4, w * 0.15)}
-                fill={isLightColor ? '#E8E8E8' : nodeColor}
-                stroke={isLightColor ? '#CCCCCC' : 'none'}
-                strokeWidth="1"
-                opacity="0.85"
+                rx="4"
+                fill={nodeColor}
+                opacity="0.9"
               />
-              {node.data?.label && (
-                <text
-                  x={x + w / 2}
-                  y={y + h / 2}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={Math.max(8, w * 0.25)}
-                  fontWeight="500"
-                  fill={isLightColor ? '#666666' : 'white'}
-                >
-                  {node.data.label.slice(0, 8)}
-                </text>
+              {node.data?.label && w > 30 && h > 20 && (
+                <>
+                  <text
+                    x={x + w / 2}
+                    y={y + h / 2}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={Math.min(8, w * 0.2)}
+                    fontWeight="600"
+                    fill="white"
+                  >
+                    {node.data.label.length > 10 ? node.data.label.slice(0, 10) + '...' : node.data.label}
+                  </text>
+                  {w > 50 && h > 40 && (
+                    <text
+                      x={x + w / 2}
+                      y={y + h / 2 + 10}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={Math.min(6, w * 0.15)}
+                      fill="white"
+                      opacity="0.7"
+                    >
+                      {node.data.layer || 'service'}
+                    </text>
+                  )}
+                </>
               )}
             </g>
           );
         })}
       </svg>
+      
+      <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded text-[10px] font-medium" 
+           style={{ background: 'rgba(0,0,0,0.5)', color: 'white' }}>
+        {nodeCount} nodes
+      </div>
     </div>
   );
 }

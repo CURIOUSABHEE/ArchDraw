@@ -120,26 +120,26 @@ export function FlowEdge({
       <defs>
         <marker
           id={`arrow-${id}`}
-          markerWidth="6"
-          markerHeight="6"
-          refX="5"
-          refY="3"
+          markerWidth="5"
+          markerHeight="5"
+          refX="4"
+          refY="2.5"
           orient="auto"
           markerUnits="strokeWidth"
         >
-          <path d="M 0 0 L 0 6 L 6 3 z" fill={config.color} />
+          <path d="M 0 0 L 0 5 L 5 2.5 z" fill={config.color} />
         </marker>
         {config.markerStart && (
           <marker
             id={`arrow-start-${id}`}
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="5"
+            markerHeight="5"
             refX="1"
-            refY="3"
+            refY="2.5"
             orient="auto"
             markerUnits="strokeWidth"
           >
-            <path d="M 6 0 L 6 6 L 0 3 z" fill={config.color} />
+            <path d="M 5 0 L 5 5 L 0 2.5 z" fill={config.color} />
           </marker>
         )}
       </defs>

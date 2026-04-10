@@ -2,10 +2,66 @@ import { apiKeyManager } from '../utils/apiKeyManager';
 import type { SharedState, ArchitectureNode } from '../types';
 import { COMPONENT_AGENT_PROMPT } from '../constants';
 import { validateComponentOutput } from '../utils/outputValidator';
-import { getSystemRequirements } from '../utils/systemRequirements';
+import { extractUserPreferences, formatUserPreferencesForPrompt } from '../utils/userInputExtractor';
 import logger from '@/lib/logger';
 
 const MAX_COMPONENT_RETRIES = 3;
+
+function getProviderForModel(modelId: string): 'groq' | 'openrouter' {
+  return modelId.includes('/') ? 'openrouter' : 'groq';
+}
+
+const AWS_KEYWORDS = [
+  'aws', 'amazon', 'lambda', 'ec2', 's3', 'rds', 'dynamodb', 'aurora',
+  'cloudfront', 'api gateway', 'apigateway', 'alb', 'elb', 'load balancer',
+  'ecs', 'eks', 'fargate', 'sns', 'sqs', 'kinesis', 'eventbridge',
+  'elasticache', 'redis', 'cognito', 'iam', 'cloudwatch', 'xray',
+  'cloudtrail', 'route53', 'waf', 'shield', 'secrets manager', 'ecr',
+  'codepipeline', 'codebuild', 'step functions', 'sam', 'cloudformation',
+  'serverless', 'lambda function', 'serverless architecture'
+];
+
+export function detectAWSInPrompt(description: string): boolean {
+  const lower = description.toLowerCase();
+  return AWS_KEYWORDS.some(keyword => lower.includes(keyword));
+}
+
+export function enrichNodes(nodes: ArchitectureNode[]): ArchitectureNode[] {
+  const TIER_ORDER_LOCAL: Array<'client' | 'edge' | 'compute' | 'async' | 'data' | 'observe' | 'external'> = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
+  const TIER_COLORS_LOCAL: Record<string, string> = {
+    client: '#a855f7',
+    edge: '#8b5cf6',
+    compute: '#14b8a6',
+    async: '#f59e0b',
+    data: '#3b82f6',
+    observe: '#6b7280',
+    external: '#64748b',
+  };
+
+  return nodes.map(node => {
+    const enriched = { ...node };
+
+    if (!enriched.tier && enriched.layer) {
+      const tier = enriched.layer;
+      if (TIER_ORDER_LOCAL.includes(tier as typeof TIER_ORDER_LOCAL[number])) {
+        enriched.tier = tier as typeof TIER_ORDER_LOCAL[number];
+      }
+    }
+
+    if (enriched.tier && !enriched.tierColor) {
+      enriched.tierColor = TIER_COLORS_LOCAL[enriched.tier] || '#6366f1';
+    }
+
+    if (enriched.isGroup && !enriched.groupColor) {
+      enriched.groupColor = enriched.tierColor || '#64748b';
+    }
+
+    if (!enriched.width) enriched.width = 180;
+    if (!enriched.height) enriched.height = 70;
+
+    return enriched;
+  });
+}
 
 function isGhostNode(
   node: ArchitectureNode,
@@ -42,58 +98,36 @@ function isGhostNode(
   return false;
 }
 
-export async function runComponentAgent(state: SharedState): Promise<ArchitectureNode[]> {
+export async function runComponentAgent(state: SharedState, model?: string): Promise<ArchitectureNode[]> {
   const userIntent = state.userIntent;
-  const systemType = userIntent.systemType ?? 'Microservices Architecture';
-  const requirements = getSystemRequirements(systemType);
+  const selectedModel = model || 'llama-3.3-70b-versatile';
+  const provider = getProviderForModel(selectedModel);
+  const useAWS = detectAWSInPrompt(userIntent.description);
+  
+  const userPreferences = extractUserPreferences(userIntent.description);
+  const userPrefPrompt = formatUserPreferencesForPrompt(userPreferences);
 
-  const systemPromptSection = `
-
-════════════════════════════════════════════════════════════════════════════
-SYSTEM TYPE: ${systemType}
-════════════════════════════════════════════════════════════════════════════
-
-${requirements.description}
-
-REQUIRED CONTAINERS (MUST CREATE):
-${requirements.requiredGroups.map(g => `- ${g}`).join('\n')}
-
-TARGET: Generate 10-20 DETAILED components specific to ${systemType}.
-A rich architecture diagram needs variety across layers:
-- Client/edge layer (CDN, load balancers, client apps)
-- Gateway/API layer 
-- Service layer (multiple business logic services)
-- Data layer (databases, caches, object storage)
-- Messaging/queue layer
-- Analytics/observability layer
-
-MUST-INCLUDE COMPONENTS (at least 12 of these, be specific):
-${requirements.requiredLeafNodes.map(n => `- ${n}`).join('\n')}
-
-OPTIONAL COMPONENTS (add for depth):
-${requirements.optionalNodes.map(n => `- ${n}`).join('\n')}
-
-CRITICAL REQUIREMENTS:
-- Include MULTIPLE services in each layer (not just one)
-- Include infrastructure: CDN, Load Balancer, Redis, Kafka/RabbitMQ
-- Include data layer: databases, caches, object storage
-- Include observability: logging, metrics, tracing
-- For streaming: CDN → Transcoding → Object Storage → DRM → Recommendation
-- For e-commerce: Catalog → Cart → Checkout → Payment → Order → Inventory
-- For ride-sharing: Matching → Tracking → Pricing → Driver → Payment
-
-DO NOT generate a flat chain with only 3-4 nodes.
-`;
+  if (useAWS) {
+    logger.log('[ComponentAgent] AWS services detected in prompt');
+  } else {
+    logger.log('[ComponentAgent] No AWS detected - using generic components');
+  }
 
   const prompt = `${COMPONENT_AGENT_PROMPT}
 
-${systemPromptSection}
+${userPrefPrompt}
 
-User's System Description:
+═══════════════════════════════════════════════════════════════════════════
+USER'S ORIGINAL DESCRIPTION (USE AS THE SOLE AUTHORITY):
+═══════════════════════════════════════════════════════════════════════════
 ${userIntent.description}
 
-System Type: ${systemType}
-Complexity: ${userIntent.complexity}
+Complexity Level: ${userIntent.complexity || 'medium'}
+
+Generate components that EXACTLY match what the user described.
+Every technology mentioned MUST appear as a node.
+Every flow described MUST be represented.
+Every grouping specified MUST be created.
 
 Output the complete components/nodes array as JSON only.`;
 
@@ -103,7 +137,7 @@ Output the complete components/nodes array as JSON only.`;
     try {
       const result = await apiKeyManager.executeWithRetry(async (groq) => {
         const completion = await groq.chat.completions.create({
-          model: 'llama-3.3-70b-versatile',
+          model: selectedModel,
           messages: [
             { role: 'system', content: 'You are a JSON-only output system. Always respond with valid JSON object with a "nodes" array. Do NOT wrap in markdown code blocks. Output ONLY raw JSON.' },
             { role: 'user', content: prompt },
@@ -114,7 +148,7 @@ Output the complete components/nodes array as JSON only.`;
 
         const content = completion.choices[0]?.message?.content ?? '';
         return content;
-      });
+      }, { provider });
 
       const cleanedResult = result
         .replace(/```json\s*/gi, '')
@@ -131,7 +165,7 @@ Output the complete components/nodes array as JSON only.`;
           id: node.id ?? '',
           type: node.type ?? 'architectureNode',
           label: node.label ?? '',
-          layer: node.layer ?? 'service',
+          layer: node.layer ?? 'compute',
           width: node.width ?? 160,
           height: node.height ?? 80,
           icon: node.icon ?? 'box',
@@ -153,6 +187,7 @@ Output the complete components/nodes array as JSON only.`;
 
       nodes = nodes.map((node: Partial<ArchitectureNode>) => {
         const isGroupNode = node.isGroup === true;
+        const technology = node.metadata?.technology as string | undefined;
         
         if (isGroupNode) {
           node.type = 'group';
@@ -162,12 +197,15 @@ Output the complete components/nodes array as JSON only.`;
           id: node.id ?? `component-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: isGroupNode ? 'group' : 'architectureNode',
           label: node.label ?? 'Unknown',
-          layer: node.layer ?? 'service',
+          layer: node.layer ?? 'compute',
           layerIndex: node.layerIndex,
-          width: node.width ?? 160,
-          height: node.height ?? 80,
+          width: node.width ?? 180,
+          height: node.height ?? 70,
           icon: node.icon ?? 'box',
-          metadata: node.metadata ?? {},
+          metadata: {
+            ...node.metadata,
+            technology,
+          },
           isGroup: node.isGroup,
           parentId: node.parentId,
           groupLabel: node.groupLabel,
@@ -175,6 +213,13 @@ Output the complete components/nodes array as JSON only.`;
           serviceType: node.serviceType,
         };
       });
+
+      // Ensure minimum node count - always use generic components
+      if (nodes.length < 12) {
+        logger.warn(`[ComponentAgent] Only ${nodes.length} nodes generated, adding fallback services...`);
+        const fallback = getFallbackGenericComponents();
+        nodes = [...nodes, ...fallback.slice(0, 12 - nodes.length)];
+      }
 
       const validation = validateComponentOutput(nodes);
       if (!validation.valid) {
@@ -198,166 +243,515 @@ Output the complete components/nodes array as JSON only.`;
   }
 
   logger.error('[ComponentAgent] All retries failed, using defaults after validation failure:', lastError);
-  return generateDefaultComponents(userIntent);
+  return getFallbackGenericComponents();
 }
 
-function generateDefaultComponents(userIntent: SharedState['userIntent']): ArchitectureNode[] {
+function getFallbackGenericComponents(): ArchitectureNode[] {
   const components: ArchitectureNode[] = [];
-
-  const systemLower = userIntent.description.toLowerCase();
-  const isUberLike = systemLower.includes('uber') || systemLower.includes('ride') || systemLower.includes('taxi') || systemLower.includes('hailing');
-  const hasRealTime = systemLower.includes('realtime') || systemLower.includes('websocket') || systemLower.includes('socket.io') || systemLower.includes('stream');
-  const hasAuth = systemLower.includes('auth') || systemLower.includes('jwt') || systemLower.includes('login') || systemLower.includes('user');
-  const hasPayment = systemLower.includes('payment') || systemLower.includes('transaction') || systemLower.includes('pricing');
-  const hasChat = systemLower.includes('chat') || systemLower.includes('message');
-  const hasMonitoring = systemLower.includes('monitor') || systemLower.includes('devops') || systemLower.includes('logging') || systemLower.includes('metrics');
-
-  // Client App
+  
   components.push({
-    id: 'client_app',
+    id: 'client-app',
     type: 'architectureNode',
     label: 'Client App',
+    subtitle: 'web browser',
     layer: 'client',
-    width: 200,
-    height: 80,
+    tier: 'client',
+    tierColor: '#a855f7',
+    width: 180,
+    height: 70,
     icon: 'monitor',
+    serviceType: 'client',
+    metadata: { technology: 'generic-client' },
+  });
+
+  components.push({
+    id: 'cdn',
+    type: 'architectureNode',
+    label: 'CDN',
+    subtitle: 'content delivery',
+    layer: 'edge',
+    tier: 'edge',
+    tierColor: '#8b5cf6',
+    width: 160,
+    height: 70,
+    icon: 'globe',
+    serviceType: 'cdn',
+    metadata: { technology: 'generic-cdn' },
+  });
+
+  components.push({
+    id: 'load-balancer',
+    type: 'architectureNode',
+    label: 'Load Balancer',
+    subtitle: 'traffic routing',
+    layer: 'edge',
+    tier: 'edge',
+    tierColor: '#8b5cf6',
+    width: 180,
+    height: 70,
+    icon: 'scale',
+    serviceType: 'loadbalancer',
+    metadata: { technology: 'generic-lb' },
+  });
+
+  components.push({
+    id: 'api-gateway',
+    type: 'architectureNode',
+    label: 'API Gateway',
+    subtitle: 'REST API entry',
+    layer: 'edge',
+    tier: 'edge',
+    tierColor: '#8b5cf6',
+    width: 180,
+    height: 70,
+    icon: 'webhook',
+    serviceType: 'gateway',
+    metadata: { technology: 'generic-api-gateway' },
+  });
+
+  components.push({
+    id: 'auth-service',
+    type: 'architectureNode',
+    label: 'Auth Service',
+    subtitle: 'authentication',
+    layer: 'compute',
+    tier: 'compute',
+    tierColor: '#14b8a6',
+    width: 180,
+    height: 70,
+    icon: 'lock',
+    serviceType: 'auth',
+    metadata: { technology: 'generic-auth' },
+  });
+
+  components.push({
+    id: 'user-service',
+    type: 'architectureNode',
+    label: 'User Service',
+    subtitle: 'user management',
+    layer: 'compute',
+    tier: 'compute',
+    tierColor: '#14b8a6',
+    width: 180,
+    height: 70,
+    icon: 'users',
+    serviceType: 'api',
+    metadata: { technology: 'generic-service' },
+  });
+
+  components.push({
+    id: 'order-service',
+    type: 'architectureNode',
+    label: 'Order Service',
+    subtitle: 'order processing',
+    layer: 'compute',
+    tier: 'compute',
+    tierColor: '#14b8a6',
+    width: 180,
+    height: 70,
+    icon: 'package',
+    serviceType: 'api',
+    metadata: { technology: 'generic-service' },
+  });
+
+  components.push({
+    id: 'notification-service',
+    type: 'architectureNode',
+    label: 'Notification Service',
+    subtitle: 'alerts & emails',
+    layer: 'compute',
+    tier: 'compute',
+    tierColor: '#14b8a6',
+    width: 180,
+    height: 70,
+    icon: 'bell',
+    serviceType: 'api',
+    metadata: { technology: 'generic-service' },
+  });
+
+  components.push({
+    id: 'message-queue',
+    type: 'architectureNode',
+    label: 'Message Queue',
+    subtitle: 'async messaging',
+    layer: 'async',
+    tier: 'async',
+    tierColor: '#f59e0b',
+    width: 180,
+    height: 70,
+    icon: 'message-square',
+    serviceType: 'queue',
+    metadata: { technology: 'generic-queue' },
+  });
+
+  components.push({
+    id: 'event-bus',
+    type: 'architectureNode',
+    label: 'Event Bus',
+    subtitle: 'event streaming',
+    layer: 'async',
+    tier: 'async',
+    tierColor: '#f59e0b',
+    width: 180,
+    height: 70,
+    icon: 'radio',
+    serviceType: 'queue',
+    metadata: { technology: 'generic-event-bus' },
+  });
+
+  components.push({
+    id: 'primary-db',
+    type: 'architectureNode',
+    label: 'Primary Database',
+    subtitle: 'main data store',
+    layer: 'data',
+    tier: 'data',
+    tierColor: '#3b82f6',
+    width: 180,
+    height: 70,
+    icon: 'database',
+    serviceType: 'database',
+    metadata: { technology: 'generic-sql' },
+  });
+
+  components.push({
+    id: 'cache',
+    type: 'architectureNode',
+    label: 'Cache',
+    subtitle: 'Redis cache',
+    layer: 'data',
+    tier: 'data',
+    tierColor: '#3b82f6',
+    width: 160,
+    height: 70,
+    icon: 'gauge',
+    serviceType: 'cache',
+    metadata: { technology: 'generic-cache' },
+  });
+
+  components.push({
+    id: 'object-storage',
+    type: 'architectureNode',
+    label: 'Object Storage',
+    subtitle: 'file storage',
+    layer: 'data',
+    tier: 'data',
+    tierColor: '#3b82f6',
+    width: 180,
+    height: 70,
+    icon: 'hard-drive',
+    serviceType: 'storage',
+    metadata: { technology: 'generic-storage' },
+  });
+
+  components.push({
+    id: 'monitoring',
+    type: 'architectureNode',
+    label: 'Monitoring',
+    subtitle: 'logs & metrics',
+    layer: 'observe',
+    tier: 'observe',
+    tierColor: '#6b7280',
+    width: 180,
+    height: 70,
+    icon: 'activity',
+    serviceType: 'monitor',
+    metadata: { technology: 'generic-monitoring' },
+  });
+
+  return components;
+}
+
+function getFallbackAWSComponents(): ArchitectureNode[] {
+  return getFallbackAWSComponentsWithContext({ description: '', systemType: 'Microservices', complexity: 'medium' });
+}
+
+function getFallbackAWSComponentsWithContext(userIntent: SharedState['userIntent']): ArchitectureNode[] {
+  const components: ArchitectureNode[] = [];
+  const systemLower = userIntent.description.toLowerCase();
+
+  // Always add these foundational AWS components
+  components.push({
+    id: 'aws-vpc',
+    type: 'group',
+    isGroup: true,
+    groupLabel: 'AWS VPC',
+    groupColor: '#FF9900',
+    layer: 'group',
+    label: 'AWS VPC',
+    width: 900,
+    height: 600,
+    icon: 'network',
     metadata: {},
   });
 
-  // Auth Service
-  if (hasAuth) {
-    components.push({
-      id: 'auth_service',
-      type: 'architectureNode',
-      label: 'Authentication Service',
-      layer: 'service',
-      width: 200,
-      height: 80,
-      icon: 'lock',
-      metadata: {},
-    });
-  }
+  components.push({
+    id: 'client-app',
+    type: 'architectureNode',
+    label: 'Client App',
+    subtitle: 'web browser',
+    layer: 'client',
+    tier: 'client',
+    tierColor: '#a855f7',
+    width: 180,
+    height: 70,
+    icon: 'monitor',
+    serviceType: 'client',
+    metadata: { technology: 'generic-client' },
+  });
 
-  // Real-time Communication Service
-  if (hasRealTime || isUberLike) {
+  components.push({
+    id: 'aws-cloudfront',
+    type: 'architectureNode',
+    label: 'Amazon CloudFront',
+    subtitle: 'global CDN',
+    layer: 'edge',
+    tier: 'edge',
+    tierColor: '#8b5cf6',
+    width: 200,
+    height: 70,
+    icon: 'radio',
+    serviceType: 'cdn',
+    metadata: { technology: 'aws-cloudfront' },
+  });
+
+  components.push({
+    id: 'aws-api-gateway',
+    type: 'architectureNode',
+    label: 'Amazon API Gateway',
+    subtitle: 'REST API entry',
+    layer: 'edge',
+    tier: 'edge',
+    tierColor: '#8b5cf6',
+    width: 200,
+    height: 70,
+    icon: 'webhook',
+    serviceType: 'gateway',
+    metadata: { technology: 'aws-api-gateway' },
+  });
+
+  components.push({
+    id: 'aws-alb',
+    type: 'architectureNode',
+    label: 'Application Load Balancer',
+    subtitle: 'traffic routing',
+    layer: 'edge',
+    tier: 'edge',
+    tierColor: '#8b5cf6',
+    width: 200,
+    height: 70,
+    icon: 'scale',
+    serviceType: 'loadbalancer',
+    metadata: { technology: 'aws-alb' },
+  });
+
+  components.push({
+    id: 'aws-lambda',
+    type: 'architectureNode',
+    label: 'AWS Lambda',
+    subtitle: 'API handler',
+    layer: 'compute',
+    tier: 'compute',
+    tierColor: '#14b8a6',
+    width: 200,
+    height: 70,
+    icon: 'zap',
+    serviceType: 'compute',
+    parentId: 'aws-vpc',
+    metadata: { technology: 'aws-lambda' },
+  });
+
+  components.push({
+    id: 'aws-ecs',
+    type: 'architectureNode',
+    label: 'Amazon ECS',
+    subtitle: 'container runtime',
+    layer: 'compute',
+    tier: 'compute',
+    tierColor: '#14b8a6',
+    width: 200,
+    height: 70,
+    icon: 'box',
+    serviceType: 'compute',
+    parentId: 'aws-vpc',
+    metadata: { technology: 'aws-ecs' },
+  });
+
+  components.push({
+    id: 'aws-rds',
+    type: 'architectureNode',
+    label: 'Amazon RDS',
+    subtitle: 'user data',
+    layer: 'data',
+    tier: 'data',
+    tierColor: '#3b82f6',
+    width: 200,
+    height: 70,
+    icon: 'database',
+    serviceType: 'database',
+    parentId: 'aws-vpc',
+    metadata: { technology: 'aws-rds' },
+  });
+
+  components.push({
+    id: 'aws-dynamodb',
+    type: 'architectureNode',
+    label: 'Amazon DynamoDB',
+    subtitle: 'session data',
+    layer: 'data',
+    tier: 'data',
+    tierColor: '#3b82f6',
+    width: 200,
+    height: 70,
+    icon: 'layers',
+    serviceType: 'database',
+    parentId: 'aws-vpc',
+    metadata: { technology: 'aws-dynamodb' },
+  });
+
+  components.push({
+    id: 'aws-elasticache',
+    type: 'architectureNode',
+    label: 'Amazon ElastiCache',
+    subtitle: 'Redis cache',
+    layer: 'data',
+    tier: 'data',
+    tierColor: '#3b82f6',
+    width: 200,
+    height: 70,
+    icon: 'gauge',
+    serviceType: 'cache',
+    parentId: 'aws-vpc',
+    metadata: { technology: 'aws-elasticache' },
+  });
+
+  components.push({
+    id: 'aws-sqs',
+    type: 'architectureNode',
+    label: 'Amazon SQS',
+    subtitle: 'order events',
+    layer: 'async',
+    tier: 'async',
+    tierColor: '#f59e0b',
+    width: 200,
+    height: 70,
+    icon: 'message-square',
+    serviceType: 'queue',
+    metadata: { technology: 'aws-sqs' },
+  });
+
+  components.push({
+    id: 'aws-sns',
+    type: 'architectureNode',
+    label: 'Amazon SNS',
+    subtitle: 'notifications',
+    layer: 'async',
+    tier: 'async',
+    tierColor: '#f59e0b',
+    width: 200,
+    height: 70,
+    icon: 'bell',
+    serviceType: 'queue',
+    metadata: { technology: 'aws-sns' },
+  });
+
+  components.push({
+    id: 'aws-s3',
+    type: 'architectureNode',
+    label: 'Amazon S3',
+    subtitle: 'static assets',
+    layer: 'data',
+    tier: 'data',
+    tierColor: '#3b82f6',
+    width: 200,
+    height: 70,
+    icon: 'hard-drive',
+    serviceType: 'storage',
+    parentId: 'aws-vpc',
+    metadata: { technology: 'aws-s3' },
+  });
+
+  components.push({
+    id: 'aws-cognito',
+    type: 'architectureNode',
+    label: 'Amazon Cognito',
+    subtitle: 'user auth',
+    layer: 'compute',
+    tier: 'compute',
+    tierColor: '#14b8a6',
+    width: 200,
+    height: 70,
+    icon: 'users',
+    serviceType: 'auth',
+    parentId: 'aws-vpc',
+    metadata: { technology: 'aws-cognito' },
+  });
+
+  components.push({
+    id: 'aws-cloudwatch',
+    type: 'architectureNode',
+    label: 'Amazon CloudWatch',
+    subtitle: 'monitoring',
+    layer: 'observe',
+    tier: 'observe',
+    tierColor: '#6b7280',
+    width: 200,
+    height: 70,
+    icon: 'layout-dashboard',
+    serviceType: 'monitor',
+    metadata: { technology: 'aws-cloudwatch' },
+  });
+
+  // Add specific services based on keywords
+  if (systemLower.includes('payment') || systemLower.includes('transaction')) {
     components.push({
-      id: 'realtime_service',
+      id: 'aws-eventbridge',
       type: 'architectureNode',
-      label: 'Real-time Communication Service',
-      layer: 'service',
+      label: 'Amazon EventBridge',
+      subtitle: 'event bus',
+      layer: 'async',
+      tier: 'async',
+      tierColor: '#f59e0b',
       width: 200,
-      height: 80,
+      height: 70,
       icon: 'radio',
-      metadata: {},
+      serviceType: 'queue',
+      metadata: { technology: 'aws-eventbridge' },
     });
   }
 
-  // Ride Request and Matching Logic
-  if (isUberLike) {
+  if (systemLower.includes('kafka') || systemLower.includes('stream') || systemLower.includes('real-time')) {
     components.push({
-      id: 'ride_matching_service',
+      id: 'aws-kinesis',
       type: 'architectureNode',
-      label: 'Ride Request and Matching Logic',
-      layer: 'service',
+      label: 'Amazon Kinesis',
+      subtitle: 'data streaming',
+      layer: 'async',
+      tier: 'async',
+      tierColor: '#f59e0b',
       width: 200,
-      height: 80,
-      icon: 'filter',
-      metadata: {},
-    });
-  }
-
-  // Live Trip Status Updates
-  if (isUberLike) {
-    components.push({
-      id: 'trip_status_service',
-      type: 'architectureNode',
-      label: 'Live Trip Status Updates',
-      layer: 'service',
-      width: 200,
-      height: 80,
+      height: 70,
       icon: 'activity',
-      metadata: {},
+      serviceType: 'queue',
+      metadata: { technology: 'aws-kinesis' },
     });
   }
 
-  // Dynamic Pricing Engine
-  if (hasPayment || isUberLike) {
+  if (systemLower.includes('kubernetes') || systemLower.includes('k8s')) {
     components.push({
-      id: 'pricing_service',
+      id: 'aws-eks',
       type: 'architectureNode',
-      label: 'Dynamic Pricing Engine',
-      layer: 'service',
+      label: 'Amazon EKS',
+      subtitle: 'Kubernetes cluster',
+      layer: 'compute',
+      tier: 'compute',
+      tierColor: '#14b8a6',
       width: 200,
-      height: 80,
-      icon: 'zap',
-      metadata: {},
-    });
-  }
-
-  // In-app Chat Service
-  if (hasChat || isUberLike) {
-    components.push({
-      id: 'chat_service',
-      type: 'architectureNode',
-      label: 'In-app Chat Service',
-      layer: 'service',
-      width: 200,
-      height: 80,
-      icon: 'send',
-      metadata: {},
-    });
-  }
-
-  // Payment Gateway (External)
-  if (hasPayment || isUberLike) {
-    components.push({
-      id: 'payment_gateway',
-      type: 'architectureNode',
-      label: 'Payment Gateway',
-      layer: 'external',
-      width: 200,
-      height: 80,
-      icon: 'credit-card',
-      metadata: {},
-    });
-  }
-
-  // DevOps Monitoring
-  if (hasMonitoring || isUberLike) {
-    components.push({
-      id: 'devops_monitoring',
-      type: 'architectureNode',
-      label: 'DevOps Monitoring',
-      layer: 'devops',
-      width: 200,
-      height: 80,
-      icon: 'activity',
-      metadata: {},
-    });
-  }
-
-  // If no specific components detected, add generic ones
-  if (components.length <= 2) {
-    components.push({
-      id: 'api_gateway',
-      type: 'architectureNode',
-      label: 'API Gateway',
-      layer: 'gateway',
-      width: 200,
-      height: 80,
-      icon: 'shield',
-      metadata: {},
-    });
-
-    components.push({
-      id: 'main_service',
-      type: 'architectureNode',
-      label: 'Main Service',
-      layer: 'service',
-      width: 200,
-      height: 80,
-      icon: 'server',
-      metadata: {},
+      height: 70,
+      icon: 'circle-dot',
+      serviceType: 'compute',
+      parentId: 'aws-vpc',
+      metadata: { technology: 'aws-eks' },
     });
   }
 

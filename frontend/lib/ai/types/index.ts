@@ -2,6 +2,66 @@ export interface UserIntent {
   description: string;
   systemType: string;
   complexity: 'low' | 'medium' | 'high';
+  model?: string;
+}
+
+// ============================================================================
+// ARCHITECTURE REASONING TYPES
+// ============================================================================
+
+export type ArchitectureLayer = 
+  | 'presentation' 
+  | 'gateway' 
+  | 'application' 
+  | 'orchestration' 
+  | 'data' 
+  | 'observability';
+
+export interface NFRs {
+  scale: string;
+  latency: string;
+  consistency: 'strong' | 'eventual';
+  availability: string;
+  faultTolerance: string;
+}
+
+export interface ArchitectureBoundaries {
+  entryPoints: string[];
+  exitPoints: string[];
+  trustZones: string[];
+}
+
+export interface StressTestResult {
+  scenario: string;
+  outcome: string;
+  safe: boolean;
+  mitigation?: string;
+}
+
+export interface PatternSelection {
+  pattern: string;
+  justification: string;
+}
+
+export interface ArchitectureThinking {
+  systemType: string;
+  nfrs: NFRs;
+  capPosition: 'CP' | 'AP';
+  actors: string[];
+  boundaries: ArchitectureBoundaries;
+  layerAssignment: Record<string, ArchitectureLayer>;
+  patterns: PatternSelection[];
+  stressTests: StressTestResult[];
+  keyDecisions: string[];
+}
+
+export interface DesignDocument {
+  thinking: ArchitectureThinking;
+  diagram: {
+    nodes: ArchitectureNode[];
+    flows: string[][];
+  };
+  generatedAt: string;
 }
 
 export interface ArchitectureNode {
@@ -26,6 +86,11 @@ export interface ArchitectureNode {
   
   // SERVICE TYPE FIELD
   serviceType?: ServiceType;
+  
+  // TIER SYSTEM (new layout rules)
+  tier?: 'edge' | 'compute' | 'async' | 'data' | 'observe' | 'client' | 'external';
+  tierColor?: string;
+  subtitle?: string;
 }
 
 export interface ArchitectureEdge {
@@ -101,6 +166,9 @@ export interface ReactFlowNode {
     groupLabel?: string;
     groupColor?: string;
     serviceType?: ServiceType;
+    tier?: string;
+    tierColor?: string;
+    subtitle?: string;
   };
   width?: number;
   height?: number;
@@ -141,17 +209,42 @@ export interface ReactFlowEdge {
   };
 }
 
+export interface StressTestResult {
+  scenario: string;
+  outcome: string;
+  safe: boolean;
+}
+
+export interface ArchitectureAnalysis {
+  problemFraming?: string;
+  boundaries?: {
+    entryPoints?: string[];
+    exitPoints?: string[];
+    trustBoundaries?: string[];
+  };
+  layerAssignment?: Record<string, string>;
+  patternSelections?: { pattern: string; justification: string }[];
+  stressTestResults?: StressTestResult[];
+}
+
 export interface GenerationResult {
   type: 'architecture' | 'sequence';
   nodes: ReactFlowNode[];
   edges: ReactFlowEdge[];
   metadata: {
     score?: number;
+    grade?: 'A' | 'B' | 'C' | 'D';
     iterations?: number;
     totalNodes: number;
     totalEdges: number;
     systemType: string;
     generatedAt: string;
+    analysis?: ArchitectureAnalysis | null;
+    thinking?: ArchitectureThinking | null;
+    complexityTier?: 'simple' | 'moderate' | 'complex';
+    truncated?: boolean;
+    droppedEdgeCount?: number;
+    qualityWarnings?: string[];
     edgeLayoutMetrics?: {
       pathOptimizationScore: number;
       labelPositioningScore: number;
@@ -168,13 +261,12 @@ export interface GenerationResult {
 
 export type LayerType = 
   | 'client' 
-  | 'gateway' 
-  | 'service' 
-  | 'queue' 
-  | 'database' 
-  | 'cache' 
+  | 'edge' 
+  | 'compute' 
+  | 'async' 
+  | 'data' 
+  | 'observe' 
   | 'external' 
-  | 'devops'
   | 'group';
 
 export type ServiceType = 

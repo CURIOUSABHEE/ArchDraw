@@ -12,6 +12,7 @@ const generateDiagramSchema = z.object({
   description: z.string().min(1, 'Description is required').max(2000, 'Description must be under 2000 characters'),
   systemType: z.string().optional(),
   complexity: z.enum(['low', 'medium', 'high']).optional(),
+  model: z.string().optional(),
 });
 
 type GenerateDiagramInput = z.infer<typeof generateDiagramSchema>;
@@ -49,6 +50,7 @@ interface GenerateRequestBody {
   description: string;
   systemType?: string;
   complexity?: 'low' | 'medium' | 'high';
+  model?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -79,12 +81,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { description, systemType, complexity } = validatedInput.data as GenerateDiagramInput;
+    const { description, systemType, complexity, model } = validatedInput.data as GenerateDiagramInput;
 
     const userIntent: UserIntent = {
       description: description.trim(),
       systemType: systemType ?? inferSystemType(description),
       complexity: complexity ?? inferComplexity(description),
+      model,
     };
 
     const progressEvents: GenerationProgress[] = [];

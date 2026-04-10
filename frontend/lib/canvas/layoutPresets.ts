@@ -46,48 +46,6 @@ export const LAYOUT_PRESETS = [
       'elk.padding': '[top=50,left=24,bottom=24,right=24]',
     }
   },
-  {
-    id: 'stress',
-    label: 'Stress',
-    description: 'Minimizes edge length variation',
-    icon: '⬡',
-    elkOptions: {
-      'elk.algorithm': 'stress',
-      'elk.stress.desiredEdgeLength': '120',
-      'elk.spacing.nodeNode': '80',
-      'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-      'elk.padding': '[top=50,left=24,bottom=24,right=24]',
-    }
-  },
-  {
-    id: 'radial',
-    label: 'Radial',
-    description: 'Central hub with spokes',
-    icon: '◎',
-    elkOptions: {
-      'elk.algorithm': 'radial',
-      'elk.spacing.nodeNode': '80',
-      'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-      'elk.padding': '[top=50,left=24,bottom=24,right=24]',
-    }
-  },
-  {
-    id: 'layered-rl',
-    label: 'Right → Left',
-    description: 'Reverse flow, good for response paths',
-    icon: '←',
-    elkOptions: {
-      'elk.algorithm': 'layered',
-      'elk.direction': 'LEFT',
-      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-      'elk.edgeRouting': 'SPLINES',
-      'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-      'elk.spacing.nodeNode': '80',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '160',
-      'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-      'elk.padding': '[top=50,left=24,bottom=24,right=24]',
-    }
-  },
 ] as const;
 
 export type LayoutPreset = typeof LAYOUT_PRESETS[number];

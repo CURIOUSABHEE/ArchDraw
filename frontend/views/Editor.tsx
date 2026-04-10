@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import type { Node, Edge } from 'reactflow';
 import { Toolbar } from '@/components/Toolbar';
 import { ComponentSidebar } from '@/components/ComponentSidebar';
 import { CanvasSidebar } from '@/components/CanvasSidebar';
-import { Canvas } from '@/components/Canvas';
+import { Canvas, reactFlowRef } from '@/components/Canvas';
 import { CommandPalette } from '@/components/CommandPalette';
 import { PropertiesPanel } from '@/components/PropertiesPanel';
 import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData } from '@/components/CreateComponentModal';
@@ -119,6 +120,15 @@ export default function EditorPage() {
       const activeTag = (document.activeElement as HTMLElement)?.tagName?.toLowerCase();
       if (activeTag === 'input' || activeTag === 'textarea') return;
 
+      // f key — fit view
+      if (e.key === 'f') {
+        e.preventDefault();
+        if (reactFlowRef.instance?.fitView) {
+          reactFlowRef.instance.fitView({ padding: 0.1, duration: 200 });
+        }
+        return;
+      }
+
       const { undo, redo, deleteSelected } = useDiagramStore.getState();
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
       if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
@@ -182,7 +192,7 @@ export default function EditorPage() {
     };
   }, []);
 
-  const handleGenerate = async (description: string) => {
+  const handleGenerate = async (description: string, model?: string) => {
     setIsGenerating(true);
     setProgress(null);
 
@@ -195,102 +205,141 @@ export default function EditorPage() {
     }
 
     try {
-      const response = await fetch('/api/generate-diagram', {
+      // Use streaming endpoint for real-time feedback
+      const response = await fetch('/api/generate-diagram/streaming', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ description }),
+        body: JSON.stringify({ description, model, stream: true }),
       });
-
-      const data = await response.json();
-
-      // Process progress events for live updates
-      if (data.progress && data.progress.length > 0) {
-        const lastProgress = data.progress[data.progress.length - 1];
-        setProgress(lastProgress);
-      }
 
       if (!response.ok) {
-        throw new Error(data.details || data.error || 'Generation failed');
+        const errorData = await response.json();
+        throw new Error(errorData.details || errorData.error || 'Generation failed');
       }
 
-      const { data: result } = data;
-
-      if (result.type === 'sequence') {
-        const mermaidSyntax = result.metadata.mermaidSyntax;
-        const title = result.metadata.title || canvasName;
-        
-        importSequenceDiagram(mermaidSyntax, title);
-        
-        const { activeCanvasId } = useDiagramStore.getState();
-        renameCanvas(activeCanvasId, title);
-        
-        setProgress({
-          phase: 'complete',
-          iteration: 0,
-          currentAgent: 'complete',
-          score: 0,
-          message: `Created sequence diagram with ${result.metadata.actors?.length || 0} actors`,
-          progress: 100,
-        });
-
-        setTimeout(() => {
-          setIsGenerating(false);
-          setProgress(null);
-        }, 2000);
-        
-        toast.success(`Generated sequence diagram: ${title}`);
-        return;
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
       }
 
-      if (result.nodes && result.edges) {
-        const processedNodes = result.nodes.map((node: Record<string, unknown>) => ({
-          ...node,
-          type: 'systemNode',
-        }));
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-        const processedEdges = result.edges.map((edge: Record<string, unknown>) => ({
-          ...edge,
-          type: 'custom',
-        }));
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-        importDiagram(processedNodes, processedEdges);
-        
-        const { activeCanvasId } = useDiagramStore.getState();
-        renameCanvas(activeCanvasId, canvasName);
-        
-        setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 100);
-        toast.success(`Generated ${result.nodes.length} nodes and ${result.edges.length} edges`);
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6));
+              
+              if (event.type === 'progress') {
+                setProgress({
+                  phase: event.phase || 'generating',
+                  iteration: 0,
+                  currentAgent: event.phase || 'generating',
+                  score: 0,
+                  message: event.message || 'Generating...',
+                  progress: event.progress || 50,
+                });
+              } else if (event.type === 'complete') {
+                handleGenerationComplete(event.data, canvasName);
+                return;
+              } else if (event.type === 'cached') {
+                handleGenerationComplete(event.data, canvasName, true);
+                return;
+              } else if (event.type === 'error') {
+                throw new Error(event.message);
+              }
+            } catch (parseError) {
+              // Skip invalid JSON
+            }
+          }
+        }
       }
 
-      setProgress({
-        phase: 'complete',
-        iteration: result.metadata.iterations,
-        currentAgent: 'complete',
-        score: result.metadata.score,
-        message: `Created ${result.metadata.totalNodes} nodes and ${result.metadata.totalEdges} edges`,
-        progress: 100,
-      });
-
-      setTimeout(() => {
-        setIsGenerating(false);
-        setProgress(null);
-      }, 2000);
-
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Generation failed';
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Generation failed';
       setProgress({
         phase: 'error',
         iteration: 0,
         currentAgent: 'error',
         score: 0,
-        message,
+        message: message,
         progress: 0,
       });
-      setIsGenerating(false);
-      throw error;
+      toast.error(message);
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setProgress(null);
+      }, 2000);
     }
+  };
+
+  const handleGenerationComplete = (result: { type?: string; nodes?: unknown[]; edges?: unknown[]; metadata?: Record<string, unknown> }, canvasName: string, cached = false) => {
+    if (result.type === 'sequence') {
+      const mermaidSyntax = result.metadata?.mermaidSyntax as string;
+      const title = (result.metadata?.title as string) || canvasName;
+      
+      importSequenceDiagram(mermaidSyntax, title);
+      
+      const { activeCanvasId } = useDiagramStore.getState();
+      renameCanvas(activeCanvasId, title);
+      
+      setProgress({
+        phase: 'complete',
+        iteration: 0,
+        currentAgent: 'complete',
+        score: 0,
+        message: `Created sequence diagram with ${(result.metadata?.actors as unknown[])?.length || 0} actors`,
+        progress: 100,
+      });
+
+      toast.success(`Generated sequence diagram: ${title}`);
+      return;
+    }
+
+    if (result.nodes && result.edges) {
+      const processedNodes = (result.nodes as Record<string, unknown>[]).map((node) => ({
+        ...node,
+        type: 'systemNode',
+      }));
+
+      const processedEdges = (result.edges as Record<string, unknown>[]).map((edge) => ({
+        ...edge,
+        type: 'custom',
+      }));
+
+      importDiagram(processedNodes as unknown as Node[], processedEdges as unknown as Edge[]);
+      
+      const { activeCanvasId } = useDiagramStore.getState();
+      renameCanvas(activeCanvasId, canvasName);
+      
+      setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 100);
+      
+      if (cached) {
+        toast.success(`Loaded cached diagram: ${result.nodes.length} nodes`);
+      } else {
+        toast.success(`Generated ${result.nodes.length} nodes and ${result.edges.length} edges`);
+      }
+    }
+
+    setProgress({
+      phase: 'complete',
+      iteration: (result.metadata?.iterations as number) || 0,
+      currentAgent: 'complete',
+      score: (result.metadata?.score as number) || 0,
+      message: `Created ${(result.metadata?.totalNodes as number) || result.nodes?.length || 0} nodes`,
+      progress: 100,
+    });
   };
 
   return (

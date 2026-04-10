@@ -92,6 +92,18 @@ function CanvasInner() {
         setShowShortcuts((v) => !v);
         return;
       }
+      // f key — fit view
+      if (e.key === 'f' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+        const opts = { padding: 0.1, duration: 200 };
+        if (reactFlowInstance?.fitView) {
+          reactFlowInstance.fitView(opts);
+        }
+        if (reactFlowRef.instance?.fitView) {
+          reactFlowRef.instance.fitView(opts);
+        }
+        return;
+      }
       if (!(e.metaKey || e.ctrlKey) || e.key !== 'd') return;
       const active = document.activeElement;
       if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return;
@@ -121,7 +133,7 @@ function CanvasInner() {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setSelectedNodeIds]);
+  }, [setSelectedNodeIds, reactFlowInstance]);
 
   // Focus label input when a new edge is drawn
   useEffect(() => {

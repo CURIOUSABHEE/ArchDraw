@@ -5,7 +5,13 @@ import logger from '@/lib/logger';
 
 const SCORING_GENERIC_LABELS = ['GROUP', 'CONTAINER', 'BOX', 'SECTION', 'AREA'];
 
-export async function runScorerAgent(state: SharedState): Promise<ScoreResult> {
+function getProviderForModel(modelId: string): 'groq' | 'openrouter' {
+  return modelId.includes('/') ? 'openrouter' : 'groq';
+}
+
+export async function runScorerAgent(state: SharedState, model?: string): Promise<ScoreResult> {
+  const selectedModel = model || 'llama-3.3-70b-versatile';
+  const provider = getProviderForModel(selectedModel);
   const stateJson = JSON.stringify(state, null, 2);
 
   const prompt = `${SCORER_PROMPT}
@@ -18,7 +24,7 @@ Output your score report as JSON only.`;
   try {
     const result = await apiKeyManager.executeWithRetry(async (groq) => {
       const completion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: selectedModel,
         messages: [
           { role: 'system', content: 'You are a JSON-only output system. Always respond with valid JSON. Do NOT wrap in markdown code blocks. Output ONLY raw JSON.' },
           { role: 'user', content: prompt },
@@ -29,7 +35,7 @@ Output your score report as JSON only.`;
 
       const content = completion.choices[0]?.message?.content ?? '';
       return content;
-    });
+    }, { provider });
 
     // Strip markdown code blocks if present
     const cleanedResult = result

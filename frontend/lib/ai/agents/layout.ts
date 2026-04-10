@@ -14,9 +14,9 @@ ${componentsJson}
 Output the layout configuration and updated nodes as JSON only.`;
 
   try {
-    const result = await apiKeyManager.executeWithRetry(async (groq) => {
-      const completion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+      const result = await apiKeyManager.executeWithRetry(async (groq) => {
+        const completion = await groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: 'You are a JSON-only output system. Always respond with valid JSON object. Do NOT wrap in markdown code blocks. Output ONLY raw JSON.' },
           { role: 'user', content: prompt },
@@ -97,7 +97,7 @@ function generateDefaultLayout(components: ArchitectureNode[]): { layout: Layout
     algorithm: 'layered',
     direction: 'RIGHT',
     elkOptions: DEFAULT_ELK_OPTIONS,
-    layerOrder: ['client', 'gateway', 'service', 'queue', 'database', 'cache', 'external', 'devops'],
+    layerOrder: ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external', 'group'],
     totalWidth: maxX,
     totalHeight: maxY,
   };

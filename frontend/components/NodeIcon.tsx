@@ -18,6 +18,7 @@ import {
   LucideIcon,
 } from 'lucide-react';
 import { iconRegistry } from '@/lib/iconRegistry';
+import { AWSIcon, getAWSIcon } from './icons/AWSIcon';
 
 const LUCIDE_MAP: Record<string, LucideIcon> = {
   Server, Zap, Boxes, Box, CircleDot, Sprout,
@@ -47,6 +48,14 @@ export function NodeIcon({ technology, fallbackIcon, fallbackColor, size = 18 }:
   const entry = technology ? iconRegistry[technology] : undefined;
   const iconName = entry?.icon ?? fallbackIcon ?? 'Server';
   const color = entry?.color ?? fallbackColor ?? '#6366f1';
+  
+  if (entry?.kind === 'aws') {
+    const awsIcon = getAWSIcon(entry.icon);
+    if (awsIcon) {
+      return <AWSIcon iconId={entry.icon} size={size} color={color} />;
+    }
+  }
+  
   const Icon = LUCIDE_MAP[iconName] ?? Server;
   return <Icon size={size} style={{ color }} strokeWidth={2} />;
 }
@@ -54,4 +63,17 @@ export function NodeIcon({ technology, fallbackIcon, fallbackColor, size = 18 }:
 export function resolveNodeColor(technology?: string, fallbackColor?: string): string {
   if (technology && iconRegistry[technology]) return iconRegistry[technology].color;
   return fallbackColor ?? '#6366f1';
+}
+
+export function getNodeIcon(technology?: string): { icon: LucideIcon | typeof AWSIcon; kind: 'lucide' | 'aws'; color: string } | null {
+  if (!technology) return null;
+  
+  const entry = iconRegistry[technology];
+  if (!entry) return null;
+  
+  return {
+    icon: entry.kind === 'aws' ? AWSIcon : (LUCIDE_MAP[entry.icon] ?? Server),
+    kind: entry.kind,
+    color: entry.color,
+  };
 }

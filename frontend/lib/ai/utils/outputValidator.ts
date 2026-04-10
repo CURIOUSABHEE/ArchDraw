@@ -15,13 +15,13 @@ export function validateComponentOutput(nodes: ArchitectureNode[]): ValidationRe
   const groupNodes = nodes.filter(n => n.isGroup === true);
   const leafNodes = nodes.filter(n => !n.isGroup);
   
-  // CHECK 1: Minimum group requirement
-  if (groupNodes.length === 0) {
+  // CHECK 1: Group requirement (relaxed - groups are optional for simple diagrams)
+  // Groups are recommended but not required for user-driven generation
+  if (groupNodes.length === 0 && leafNodes.length > 5) {
     failures.push(
-      "FAILED: Zero group containers generated. " +
-      "Every diagram must have at least one container. " +
-      "Wrap the backend services in a container like 'BACKEND' or 'AWS SERVICES'. " +
-      "External third-party services must be in an 'EXTERNAL SERVICES' container."
+      "WARNING: No group containers generated. " +
+      "For diagrams with more than 5 nodes, consider adding containers " +
+      "to improve organization and readability."
     );
   }
   
@@ -59,18 +59,11 @@ export function validateComponentOutput(nodes: ArchitectureNode[]): ValidationRe
     );
   }
   
-  // CHECK 4: Node count sanity
-  if (leafNodes.length > 20) {
+  // CHECK 4: Node count sanity (relaxed for user-driven generation)
+  if (leafNodes.length > 30) {
     failures.push(
-      `FAILED: ${leafNodes.length} leaf nodes generated. Maximum is 20. ` +
-      `Consolidate related services into single nodes. ` +
-      `Example: merge 'JWT Validator', 'OAuth Handler', 'Session Manager' into one 'Auth Service' node.`
-    );
-  }
-  if (leafNodes.length < 6) {
-    failures.push(
-      `FAILED: Only ${leafNodes.length} leaf nodes generated. Minimum is 6. ` +
-      `The diagram is too sparse to be useful. Add more components.`
+      `WARNING: ${leafNodes.length} leaf nodes generated. Consider consolidating ` +
+      `related services for better readability.`
     );
   }
   

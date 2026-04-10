@@ -1,627 +1,1499 @@
-import type {
-  SharedState,
-  UserIntent,
-  GenerationResult,
-  GenerationProgress,
-  ReactFlowNode,
-  ReactFlowEdge,
-  ArchitectureEdge,
-  ArchitectureNode,
-  PathType,
-  HandlePosition,
-  CommunicationType,
-  LayoutHints,
-} from '../types';
-import {
-  runPlannerAgent,
-  runComponentAgent,
-  runEdgeAgent,
-  runScorerAgent,
-} from '../agents';
-import { detectDiagramType } from './router';
-import { runSequenceAgent } from './sequence';
-import { enrichPrompt } from '../utils/promptEnricher';
-import { generateLayoutHints } from './layoutHints';
-import {
-  MAX_ITERATIONS,
-  SCORE_THRESHOLD,
-  MAX_NODES,
-  MAX_EDGES_PER_NODE,
-  LAYER_ORDER,
-  DEFAULT_ELK_OPTIONS,
-  LAYER_X_POSITIONS,
-  NODE_WIDTH_STANDARD,
-  NODE_HEIGHT_STANDARD,
-  NODE_SPACING_VERTICAL,
-  CANVAS_WIDTH,
-  CANVAS_HEIGHT,
-  COMMUNICATION_STYLES,
-  EDGE_LABEL_CONFIG,
-} from '../constants';
-import {
-  computeELKLayout,
-  computeEdgePathsWithELK,
-} from './elkLayoutService';
-import {
-  computeEdgeLayout,
-  type EdgePath,
-} from './edgeLayout';
-import {
-  detectEdgeCollisions,
-  resolveCollisions,
-} from './edgeCollisionDetector';
-import {
-  optimizeEdgePaths,
-} from './edgePathOptimizer';
-import {
-  computeOptimalLabelPositions,
-} from './edgeLabelPositioner';
+import type { UserIntent, GenerationResult, GenerationProgress, ReactFlowNode, ReactFlowEdge, ArchitectureEdge, ArchitectureNode, PathType, ArchitectureBoundaries, ArchitectureLayer, LayerType } from '../types';
+import { apiKeyManager } from '../utils/apiKeyManager';
+import { enrichNodes } from '../agents/component';
+import { robustDetectIntent } from '../graph/ArchitectureGraph';
+import { computeELKLayout } from './elkLayoutService';
+import { computeEdgeLayout } from './edgeLayout';
+import { detectEdgeCollisions } from './edgeCollisionDetector';
+import { resolveCollisions as fixCollisions } from './edgeCollisionDetector';
+import { optimizeEdgePaths } from './edgePathOptimizer';
+import { computeOptimalLabelPositions } from './edgeLabelPositioner';
+import { filterBidirectionalEdges } from './edgeLayout';
+import { COMPONENT_AGENT_PROMPT, getComposedPrompt, REASONING_PROMPT, DIAGRAM_PROMPT, MODEL_CONFIG } from '../constants';
 import logger from '@/lib/logger';
 
 export type ProgressCallback = (progress: GenerationProgress) => void;
 
-export async function generateDiagram(
-  userIntent: UserIntent,
-  onProgress?: ProgressCallback
-): Promise<GenerationResult> {
-  const enrichedPrompt = enrichPrompt(userIntent.description, { systemType: userIntent.systemType });
+const GROQ_TIMEOUT_MS = 2500;
+const OPENROUTER_TIMEOUT_MS = 8000;
+const MAX_NODES = 20;
+const MAX_EDGES_PER_NODE = 3;
 
-  const emit = (phase: GenerationProgress['phase'], message: string, progress = 50) => {
-    onProgress?.({
-      phase,
-      iteration: 0,
-      currentAgent: phase,
-      score: 0,
-      message,
-      progress,
-    });
-  };
+const LAYER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
+const LAYER_X: Record<string, number> = { client: 50, edge: 320, compute: 650, async: 1000, data: 1350, observe: 1700, external: 2050 };
 
-  emit('planning', 'Analyzing request...', 10);
+const COMM_STYLES: Record<string, { color: string; dash: string; animated: boolean; marker: string }> = {
+  sync: { color: '#6366f1', dash: '', animated: false, marker: 'arrowclosed' },
+  async: { color: '#f59e0b', dash: '8,4', animated: true, marker: 'arrowclosed' },
+  stream: { color: '#10b981', dash: '4,2', animated: true, marker: 'arrowclosed' },
+  event: { color: '#ec4899', dash: '2,3', animated: true, marker: 'arrowclosed' },
+  dep: { color: '#6b7280', dash: '6,3', animated: false, marker: 'none' },
+};
 
-  const diagramType = await detectDiagramType(enrichedPrompt);
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
-  if (diagramType === 'sequence') {
-    emit('components', 'Generating sequence diagram...', 30);
-    const sequenceResult = await runSequenceAgent(enrichedPrompt);
-    emit('complete', 'Sequence diagram generated!', 100);
+interface CacheEntry { nodes: ArchitectureNode[]; flows: string[][]; ts: number }
 
-    return {
-      type: 'sequence',
-      nodes: [],
-      edges: [],
-      metadata: {
-        totalNodes: sequenceResult.actors.length,
-        totalEdges: 0,
-        systemType: userIntent.systemType,
-        generatedAt: new Date().toISOString(),
-        title: sequenceResult.title,
-        actors: sequenceResult.actors,
-        mermaidSyntax: sequenceResult.mermaidSyntax,
-      },
-    };
+class SemanticCache {
+  private memory = new Map<string, CacheEntry>();
+  private inFlight = new Map<string, Promise<CacheEntry>>();
+
+  buildCacheKey(intentType: string, description: string): string {
+    // Filter out common stop words that don't help distinguish prompts
+    const stopWords = new Set(['a', 'an', 'and', 'or', 'the', 'is', 'it', 'to', 'of', 'for', 'in', 'on', 'with', 'that', 'this', 'as', 'at', 'by', 'from', 'be', 'are', 'was', 'were', 'has', 'have', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'i', 'you', 'we', 'they', 'he', 'she', 'my', 'your', 'our', 'their', 'what', 'which', 'who', 'when', 'where', 'how', 'why']);
+    
+    const words = description
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.has(word))
+      .sort();
+    
+    // Take first 40 unique words - enough context to distinguish prompts
+    const uniqueWords = [...new Set(words)].slice(0, 40);
+    const key = uniqueWords.join(' ');
+    
+    // Create hash to keep key short but unique
+    const hash = Array.from(key).reduce((acc, char) => {
+      return ((acc << 5) - acc) + char.charCodeAt(0);
+    }, 0);
+    
+    return `${intentType}:${Math.abs(hash).toString(36)}:${key.slice(0, 80)}`;
   }
 
-  const initialLayoutHints: LayoutHints = {
-    primaryFlow: [],
-    groups: [],
-    layers: {
-      client: { x: 0, y: 200 },
-      gateway: { x: 200, y: 200 },
-      service: { x: 400, y: 200 },
-      queue: { x: 600, y: 200 },
-      database: { x: 800, y: 200 },
-      cache: { x: 800, y: 100 },
-      external: { x: 1000, y: 200 },
-      devops: { x: 600, y: 400 },
-      group: { x: 100, y: 100 },
+  get(key: string): LLMResponse | null {
+    const entry = this.memory.get(key);
+    if (entry && Date.now() - entry.ts < CACHE_TTL_MS) {
+      logger.log('[SemanticCache] HIT:', key.slice(0, 100));
+      return { nodes: entry.nodes, flows: entry.flows };
     }
-  };
+    if (entry) {
+      logger.log('[SemanticCache] STALE:', key.slice(0, 100));
+    } else {
+      logger.log('[SemanticCache] MISS:', key.slice(0, 100));
+    }
+    return null;
+  }
 
-  const state: SharedState = {
-    userIntent: {
-      ...userIntent,
-      description: enrichedPrompt,
-    },
-    components: [],
-    nodes: [],
-    edges: [],
-    layout: {
-      algorithm: 'layered',
-      direction: 'RIGHT',
-      elkOptions: DEFAULT_ELK_OPTIONS,
-      layerOrder: LAYER_ORDER,
-      totalWidth: 0,
-      totalHeight: 0,
-    },
-    layoutHints: initialLayoutHints,
-    issues: [],
-    score: 0,
-    iteration: 0,
-    history: [],
-  };
+  set(key: string, data: LLMResponse): void {
+    this.memory.set(key, { nodes: data.nodes, flows: data.flows, ts: Date.now() });
+    if (this.memory.size > 100) {
+      this.prune();
+    }
+  }
 
-  emit('planning', 'Starting diagram generation...', 10);
+  isInFlight(key: string): boolean {
+    return this.inFlight.has(key);
+  }
 
-  // ELK Layout result storage
-  let elkLayoutResult: Awaited<ReturnType<typeof computeELKLayout>> | null = null;
+  startRequest(key: string, promise: Promise<CacheEntry>): void {
+    this.inFlight.set(key, promise);
+    promise.finally(() => this.inFlight.delete(key));
+  }
 
-  try {
-    // PHASE 1: Generate components (1 API call)
-    emit('components', 'Analyzing system components...', 20);
-    state.components = await runComponentAgent(state);
-    emit('components', `Found ${state.components.length} components`, 30);
+  waitForRequest(key: string): Promise<CacheEntry> | undefined {
+    return this.inFlight.get(key);
+  }
 
-    // PHASE 2: Generate edges (1 API call)
-    emit('edges', 'Creating connections between components...', 40);
-    state.edges = await runEdgeAgent(state);
-    logger.log(`[Orchestrator] Generated ${state.edges.length} edges`);
-    emit('edges', `Created ${state.edges.length} connections`, 50);
-
-    // PHASE 3: Compute layout with ELK (0 API calls, uses elkjs)
-    emit('layout', 'Computing layout with ELK.js...', 60);
-    elkLayoutResult = await computeELKLayout(state.components, state.edges);
-    logger.log(`[Orchestrator] ELK layout computed ${elkLayoutResult.nodes.length} nodes`);
-
-    // PHASE 4: Score the diagram (1 API call)
-    emit('scoring', 'Calculating quality score...', 80);
-    let scoreResult = await runScorerAgent({
-      ...state,
-      nodes: state.components.map(c => ({ ...c, position: elkLayoutResult!.nodes.find(n => n.id === c.id)?.position ?? { x: 0, y: 0 } })),
-    });
-    state.score = scoreResult.score;
-    emit('scoring', `Score: ${scoreResult.score}/100 - ${scoreResult.verdict}`, 85);
-
-    // PHASE 5: Iteration Strategy - reduce complexity if needed
-    let iteration = 0;
-    while (scoreResult.score < SCORE_THRESHOLD && iteration < MAX_ITERATIONS) {
-      iteration++;
-      logger.log(`[Orchestrator] Iteration ${iteration}: Score ${scoreResult.score} < ${SCORE_THRESHOLD}, reducing complexity...`);
-      
-      // Iteration 1: Reduce node count
-      if (state.components.length > MAX_NODES) {
-        emit('components', `Reducing nodes (${state.components.length} → ${MAX_NODES})...`, 60);
-        state.components = state.components.slice(0, MAX_NODES);
-        logger.log(`[Orchestrator] Reduced to ${state.components.length} nodes`);
+  private prune(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.memory.entries()) {
+      if (now - entry.ts > CACHE_TTL_MS) {
+        this.memory.delete(key);
       }
-      
-      // Regenerate edges with reduced components
-      emit('edges', 'Recreating connections...', 70);
-      state.edges = await runEdgeAgent(state);
-      
-      // Re-layout
-      elkLayoutResult = await computeELKLayout(state.components, state.edges);
-      
-      // Re-score
-      scoreResult = await runScorerAgent({
-        ...state,
-        nodes: state.components.map(c => ({ ...c, position: elkLayoutResult!.nodes.find(n => n.id === c.id)?.position ?? { x: 0, y: 0 } })),
-      });
-      state.score = scoreResult.score;
-      emit('scoring', `Score: ${scoreResult.score}/100 - ${scoreResult.verdict}`, 80 + (iteration * 5));
-    }
-
-    emit('complete', 'Generation complete!', 100);
-
-  } catch (error) {
-    logger.error('Generation error:', error);
-    emit('error', `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 100);
-    throw error;
-  }
-
-  // Use ELK layout if available, otherwise fallback to computeLayeredLayout
-  logger.log(`[Orchestrator] state.components.length: ${state.components.length}`);
-  logger.log(`[Orchestrator] state.edges.length: ${state.edges.length}`);
-  logger.log(`[Orchestrator] elkLayoutResult?.nodes.length: ${elkLayoutResult?.nodes.length ?? 'null'}`);
-  
-  let reactFlowNodes: ReturnType<typeof computeLayeredLayout>;
-  if (elkLayoutResult && elkLayoutResult.nodes.length > 0) {
-    reactFlowNodes = elkLayoutResult.nodes;
-    logger.log('[Orchestrator] Using ELK layout');
-  } else {
-    reactFlowNodes = computeLayeredLayout(state.components, state.edges);
-    logger.log('[Orchestrator] Using fallback layout');
-  }
-  
-  logger.log(`[Orchestrator] reactFlowNodes.length: ${reactFlowNodes.length}`);
-  
-  const nodeIdSet = new Set(reactFlowNodes.map(n => n.id));
-  logger.log(`[Orchestrator] nodeIdSet.size: ${nodeIdSet.size}`);
-  
-  const reactFlowEdges = convertToReactFlowEdges(state.edges, nodeIdSet);
-  logger.log(`[Orchestrator] reactFlowEdges.length: ${reactFlowEdges.length}`);
-
-  // Edge Layout Pipeline - Collision avoidance loops until ALL collisions are resolved
-  let edgePaths = computeEdgeLayout(reactFlowNodes, reactFlowEdges);
-  let totalCollisionsResolved = 0;
-  let finalOptimizationScore = 0;
-  let finalCrossings = 0;
-  let collisionLoopCount = 0;
-
-  while (true) {
-    collisionLoopCount++;
-    logger.log(`[EdgeLayout] Collision avoidance loop #${collisionLoopCount}`);
-
-    // 1. Detect collisions
-    const collisionReport = detectEdgeCollisions(reactFlowNodes, reactFlowEdges, edgePaths);
-    
-    if (!collisionReport.hasCollisions) {
-      logger.log(`[EdgeLayout] All collisions resolved! (loops: ${collisionLoopCount})`);
-      break;
-    }
-
-    logger.log(`[EdgeLayout] Found ${collisionReport.totalCollisions} collisions - resolving...`);
-
-    // 2. Resolve all collisions in one pass
-    const { resolvedPaths } = resolveCollisions(
-      reactFlowNodes,
-      reactFlowEdges,
-      edgePaths,
-      collisionReport.collisions
-    );
-    edgePaths = resolvedPaths;
-    totalCollisionsResolved += collisionReport.collisions.length;
-
-    // 3. Optimize paths (parallel edge separation + crossing minimization)
-    const optimizationResult = optimizeEdgePaths(reactFlowNodes, reactFlowEdges, edgePaths);
-    edgePaths = optimizationResult.optimizedPaths;
-    finalOptimizationScore = optimizationResult.score;
-    finalCrossings = optimizationResult.metrics.edgeCrossings;
-
-    // Safety check - prevent infinite loops (max 20 collision avoidance loops)
-    if (collisionLoopCount >= 20) {
-      logger.warn(`[EdgeLayout] Max collision loops reached (20) - stopping`);
-      break;
     }
   }
 
-  // Final optimization pass
-  const finalOptimization = optimizeEdgePaths(reactFlowNodes, reactFlowEdges, edgePaths);
-  edgePaths = finalOptimization.optimizedPaths;
-  finalOptimizationScore = finalOptimization.score;
-  finalCrossings = finalOptimization.metrics.edgeCrossings;
-
-  // Compute optimal label positions (single pass, collision-aware)
-  const labelPositioningResult = computeOptimalLabelPositions(
-    reactFlowNodes,
-    reactFlowEdges,
-    edgePaths
-  );
-
-  // Apply computed label positions to edges
-  const finalEdges = reactFlowEdges.map(edge => {
-    const labelPos = labelPositioningResult.positions.get(edge.id);
-    const pathData = edgePaths.find(p => p.id === edge.id);
-    
-    return {
-      ...edge,
-      data: {
-        ...edge.data,
-        labelX: labelPos?.x ?? 0,
-        labelY: labelPos?.y ?? 0,
-        labelAngle: labelPos?.angle ?? 0,
-        waypoints: pathData?.waypoints,
-      },
-    };
-  });
-
-  // Final collision check
-  const finalCollisionCheck = detectEdgeCollisions(reactFlowNodes, finalEdges, edgePaths);
-  const remainingCollisions = finalCollisionCheck.totalCollisions;
-
-  logger.log(`[EdgeLayout] Complete - Resolved: ${totalCollisionsResolved}, Remaining: ${remainingCollisions}`);
-
-  const layoutHints = generateLayoutHints(state.components, state.edges);
-
-  return {
-    type: 'architecture',
-    nodes: reactFlowNodes,
-    edges: finalEdges,
-    metadata: {
-      score: state.score,
-      iterations: state.iteration,
-      totalNodes: reactFlowNodes.length,
-      totalEdges: finalEdges.length,
-      systemType: state.userIntent.systemType,
-      generatedAt: new Date().toISOString(),
-      edgeLayoutMetrics: {
-        pathOptimizationScore: finalOptimizationScore,
-        labelPositioningScore: labelPositioningResult.score,
-        collisionsResolved: totalCollisionsResolved,
-        edgeCrossings: finalCrossings,
-        remainingLabelCollisions: remainingCollisions,
-      },
-      layoutHints,
-    },
-  };
+  clear(): void {
+    this.memory.clear();
+    this.inFlight.clear();
+  }
 }
 
-/**
- * Compute LEFT-TO-RIGHT layered layout:
- * - Each layer at a fixed X position
- * - Nodes vertically CENTERED within the canvas
- * - Consistent spacing between nodes
- */
-function computeLayeredLayout(
-  nodes: ArchitectureNode[],
-  _edges: ArchitectureEdge[]
-): ReactFlowNode[] {
-  const reactFlowNodes: ReactFlowNode[] = [];
-  const nodeWidth = NODE_WIDTH_STANDARD;
-  const nodeHeight = NODE_HEIGHT_STANDARD;
+const semanticCache = new SemanticCache();
 
-  logger.log(`[computeLayeredLayout] Input nodes count: ${nodes.length}`);
-  if (nodes.length > 0) {
-    logger.log(`[computeLayeredLayout] First node sample:`, JSON.stringify(nodes[0]));
-  }
+// DISABLED: Caching was causing repeated diagrams for different prompts
+// TODO: Fix cache key generation to properly distinguish prompts
+const CACHE_ENABLED = false;
 
-  // 1. Group nodes by layer
-  const nodesByLayer: Record<string, ArchitectureNode[]> = {};
-  for (const node of nodes) {
-    const layer = node.layer || 'service';
-    if (!nodesByLayer[layer]) {
-      nodesByLayer[layer] = [];
-    }
-    nodesByLayer[layer].push(node);
-  }
+// ============================================================================
+// STREAMING TYPES & PARSER
+// ============================================================================
 
-  logger.log(`[computeLayeredLayout] nodesByLayer keys:`, Object.keys(nodesByLayer));
+export type StreamingCallback = (event: StreamingEvent) => void;
 
-  // 2. Calculate vertical centering offset
-  // Find the row with most nodes and calculate centerY based on that
-  let maxNodesInRow = 0;
-  for (const layer of LAYER_ORDER) {
-    const layerNodes = nodesByLayer[layer] || [];
-    maxNodesInRow = Math.max(maxNodesInRow, layerNodes.length);
-  }
-  logger.log(`[computeLayeredLayout] maxNodesInRow: ${maxNodesInRow}`);
-  const totalNodesHeight = maxNodesInRow * nodeHeight + (maxNodesInRow - 1) * NODE_SPACING_VERTICAL;
-  const centerY = Math.max(50, (CANVAS_HEIGHT - totalNodesHeight) / 2);
-
-  // 3. Position nodes in each layer (vertically centered)
-  for (const layer of LAYER_ORDER) {
-    const layerNodes = nodesByLayer[layer] || [];
-    if (layerNodes.length === 0) continue;
-
-    const layerX = LAYER_X_POSITIONS[layer] ?? 50;
-    logger.log(`[computeLayeredLayout] Layer ${layer}: ${layerNodes.length} nodes at x=${layerX}`);
-
-    // Calculate vertical centering for this layer
-    const layerTotalHeight = layerNodes.length * nodeHeight +
-                             (layerNodes.length - 1) * NODE_SPACING_VERTICAL;
-    const layerStartY = centerY;
-
-    // Position each node in this layer
-    layerNodes.forEach((node, index) => {
-      const y = layerStartY + index * (nodeHeight + NODE_SPACING_VERTICAL);
-
-      const nodeType = node.isGroup === true ? 'group' : 'systemNode';
-      reactFlowNodes.push({
-        id: node.id,
-        type: nodeType,
-        position: { x: layerX, y: y },
-        data: {
-          label: node.label || 'Unknown',
-          icon: node.icon || 'server',
-          layer: node.layer || 'service',
-          isGroup: node.isGroup,
-          parentId: node.parentId,
-          groupLabel: node.groupLabel,
-          groupColor: node.groupColor,
-          serviceType: node.serviceType,
-        },
-        width: node.isGroup ? node.width : nodeWidth,
-        height: node.isGroup ? node.height : nodeHeight,
-      });
-    });
-  }
-
-  logger.log(`[computeLayeredLayout] Output nodes count: ${reactFlowNodes.length}`);
-
-  // 4. Add any remaining nodes not in standard layers
-  const addedIds = new Set(reactFlowNodes.map(n => n.id));
-  const remainingNodes = nodes.filter(n => !addedIds.has(n.id));
-
-  if (remainingNodes.length > 0) {
-    logger.log(`[computeLayeredLayout] Remaining nodes: ${remainingNodes.length}`);
-    const defaultX = LAYER_X_POSITIONS.service ?? 490;
-    const layerTotalHeight = remainingNodes.length * nodeHeight +
-                             (remainingNodes.length - 1) * NODE_SPACING_VERTICAL;
-    const layerStartY = centerY;
-
-    remainingNodes.forEach((node, index) => {
-      const y = layerStartY + index * (nodeHeight + NODE_SPACING_VERTICAL);
-
-      const nodeType = node.isGroup === true ? 'group' : 'systemNode';
-      reactFlowNodes.push({
-        id: node.id,
-        type: nodeType,
-        position: { x: defaultX, y: y },
-        data: {
-          label: node.label || 'Unknown',
-          icon: node.icon || 'server',
-          layer: node.layer || 'service',
-          isGroup: node.isGroup,
-          parentId: node.parentId,
-          groupLabel: node.groupLabel,
-          groupColor: node.groupColor,
-          serviceType: node.serviceType,
-        },
-        width: node.isGroup ? node.width : nodeWidth,
-        height: node.isGroup ? node.height : nodeHeight,
-      });
-    });
-  }
-
-  logger.log(`[computeLayeredLayout] Final output nodes count: ${reactFlowNodes.length}`);
-
-  return reactFlowNodes;
+export interface StreamingEvent {
+  type: 'token' | 'node' | 'flow' | 'thinking' | 'complete' | 'error';
+  data?: string | ArchitectureNode | { path: string[]; label?: string };
+  reasoning?: Partial<ArchitectureAnalysis>;
 }
 
-/**
- * Convert internal edges to React Flow edges with proper configuration.
- * Uses FlowEdge's custom rendering via the 'custom' type mapping.
- *
- * For LEFT-TO-RIGHT layout:
- * - Uses right handles (source) and left handles (target)
- * - Assigns different handles for multi-edge separation
- * - Applies smooth path for most connections (from COMMUNICATION_STYLES)
- * - Labels have dark backgrounds to prevent collision issues
- */
-function convertToReactFlowEdges(
-  edges: ArchitectureEdge[],
-  validNodeIds: Set<string>
-): ReactFlowEdge[] {
-  const reactFlowEdges: ReactFlowEdge[] = [];
-  
-  // Track edge counts per source-target pair for multi-edge handling
-  const pairEdgeCount: Record<string, number> = {};
-  const pairEdgeIndex: Record<string, number> = {};
+class IncrementalJSONParser {
+  private buffer = '';
+  private completedObjects: Record<string, unknown>[] = [];
 
-  // Handle assignment patterns for multi-edge separation (LEFT-TO-RIGHT flow)
-  const sourceHandles: HandlePosition[] = ['right', 'right', 'right', 'right'];
-  const targetHandles: HandlePosition[] = ['left', 'left', 'left', 'left'];
+  push(chunk: string): void {
+    this.buffer += chunk;
+    this.tryExtractObjects();
+  }
 
-  for (const edge of edges) {
-    if (!validNodeIds.has(edge.source) || !validNodeIds.has(edge.target)) {
+  private tryExtractObjects(): void {
+    let depth = 0;
+    let start = -1;
+
+    for (let i = 0; i < this.buffer.length; i++) {
+      if (this.buffer[i] === '{') {
+        if (depth === 0) start = i;
+        depth++;
+      } else if (this.buffer[i] === '}') {
+        depth--;
+        if (depth === 0 && start !== -1) {
+          const candidate = this.buffer.slice(start, i + 1);
+          try {
+            const obj = JSON.parse(candidate);
+            this.completedObjects.push(obj);
+          } catch { /* incomplete JSON, continue */ }
+          start = -1;
+        }
+      }
+    }
+
+    if (this.completedObjects.length > 0) {
+      const lastBrace = this.buffer.lastIndexOf('}');
+      if (lastBrace !== -1) {
+        this.buffer = this.buffer.slice(lastBrace + 1);
+      }
+    }
+  }
+
+  drain(): Record<string, unknown>[] {
+    const objs = [...this.completedObjects];
+    this.completedObjects = [];
+    return objs;
+  }
+
+  getBuffer(): string {
+    return this.buffer;
+  }
+}
+
+async function* streamLLMResponse(
+  prompt: string,
+  intentType: string,
+  onToken: (token: string) => void
+): AsyncGenerator<string> {
+  const { systemPrompt, userPrompt } = getComposedPrompt(prompt, intentType);
+
+  const groqKeyEnvVars = [
+    'GROQ_API_KEY_FOR_DESC_1', 'GROQ_API_KEY_FOR_DESC_2', 'GROQ_API_KEY_FOR_DESC_3',
+    'GROQ_API_KEY_FOR_DESC_4', 'GROQ_API_KEY_FOR_DESC_5', 'GROQ_API_KEY_FOR_DESC_6',
+    'GROQ_API_KEY_FOR_DESC_7', 'GROQ_API_KEY_FOR_DESC_8', 'GROQ_API_KEY_FOR_DESC_9',
+  ];
+
+  for (const envVar of groqKeyEnvVars) {
+    const apiKey = process.env[envVar];
+    if (!apiKey || apiKey.startsWith('#')) continue;
+
+    try {
+      const Groq = (await import('groq-sdk')).default;
+      const groq = new Groq({ apiKey });
+
+      const stream = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Design the architecture for this system:\n\n${userPrompt}` }
+        ],
+        temperature: 0.2,
+        max_tokens: 1024,
+        stream: true,
+      });
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          onToken(content);
+          yield content;
+        }
+      }
+      return;
+    } catch (error) {
+      logger.log(`[Streaming] Groq key ${envVar} failed, trying next...`);
       continue;
     }
-
-    const commType = (edge.communicationType || 'sync') as CommunicationType;
-
-    // Track pair for multi-edge handling
-    const pairKey = `${edge.source}→${edge.target}`;
-    if (!pairEdgeCount[pairKey]) {
-      pairEdgeCount[pairKey] = 0;
-      pairEdgeIndex[pairKey] = 0;
-    }
-    const edgeIndex = pairEdgeIndex[pairKey]++;
-    pairEdgeCount[pairKey]++;
-
-    // Assign handles based on edge index for multi-edge separation
-    const sourceHandle = sourceHandles[edgeIndex % sourceHandles.length];
-    const targetHandle = targetHandles[edgeIndex % targetHandles.length];
-
-    // Get style from COMMUNICATION_STYLES
-    const style = COMMUNICATION_STYLES[commType] ?? COMMUNICATION_STYLES.sync;
-
-    reactFlowEdges.push({
-      id: `ai-${edge.source}-${edge.target}-${Math.random().toString(36).slice(2, 7)}`,
-      source: edge.source,
-      target: edge.target,
-      sourceHandle,
-      targetHandle,
-      type: 'custom',
-      animated: style.animated,
-      label: edge.label || '',
-      labelShowBg: EDGE_LABEL_CONFIG.labelShowBg,
-      labelBgPadding: EDGE_LABEL_CONFIG.labelBgPadding,
-      labelBgBorderRadius: EDGE_LABEL_CONFIG.labelBgBorderRadius,
-      labelBgStyle: EDGE_LABEL_CONFIG.labelBgStyle,
-      labelStyle: EDGE_LABEL_CONFIG.labelStyle,
-      style: {
-        stroke: style.color,
-        strokeWidth: 2,
-        strokeDasharray: style.strokeDasharray,
-      },
-      markerEnd: { type: style.markerEnd, color: style.color },
-      data: {
-        communicationType: commType,
-        pathType: style.pathType,
-        label: edge.label,
-        edgeVariant: edge.edgeVariant,
-      },
-    });
   }
 
-  return reactFlowEdges;
+  throw new Error('All Groq keys exhausted for streaming');
 }
 
-/**
- * Check for edge-node and edge-edge label collisions
- */
-function checkEdgeCollisions(
+async function parseStreamingResponse(
+  prompt: string,
+  useAWS: boolean,
+  intentType: string,
+  onEvent: StreamingCallback
+): Promise<LLMResponse> {
+  const parser = new IncrementalJSONParser();
+  const reasoning: Partial<ArchitectureAnalysis> = {};
+  const nodes: ArchitectureNode[] = [];
+  const flows: string[][] = [];
+  let accumulatedTokens = '';
+
+  try {
+    for await (const token of streamLLMResponse(prompt, intentType, (t: string) => {
+      accumulatedTokens += t;
+      parser.push(t);
+    })) {
+      const objs = parser.drain();
+      
+      for (const obj of objs) {
+        const objWithId = obj as Record<string, unknown>;
+        if (obj.type === 'node' || objWithId.id) {
+          const node = objWithId as unknown as ArchitectureNode;
+          if (node.id && node.label) {
+            nodes.push({
+              id: node.id,
+              type: 'architectureNode',
+              label: node.label,
+              layer: (node.layer as LayerType) || 'compute',
+              width: 180,
+              height: 70,
+              icon: node.icon || 'server',
+              metadata: node.metadata || {},
+              subtitle: node.subtitle || node.label,
+            });
+            onEvent({ type: 'node', data: nodes[nodes.length - 1] });
+          }
+        } else if (obj.type === 'flow' || objWithId.path) {
+          const flow = obj as { path: string[]; label?: string };
+          if (Array.isArray(flow.path) && flow.path.length >= 2) {
+            flows.push(flow.path);
+            onEvent({ type: 'flow', data: flow });
+          }
+        } else if (obj.systemType || obj.nfrs || obj.boundaries || obj.patterns) {
+          const thinkingObj = obj as { systemType?: string; boundaries?: ArchitectureAnalysis['boundaries']; patterns?: ArchitectureAnalysis['patternSelections']; stressTests?: ArchitectureAnalysis['stressTestResults'] };
+          reasoning.problemFraming = thinkingObj.systemType;
+          reasoning.boundaries = thinkingObj.boundaries;
+          reasoning.patternSelections = thinkingObj.patterns;
+          reasoning.stressTestResults = thinkingObj.stressTests;
+          onEvent({ type: 'thinking', reasoning });
+        }
+      }
+    }
+
+    if (nodes.length === 0 && flows.length === 0) {
+      const cleaned = accumulatedTokens.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+      const parsed = JSON.parse(cleaned);
+      
+      if (parsed.layerAssignment && Object.keys(parsed.layerAssignment).length > 0) {
+        Object.assign(reasoning, {
+          problemFraming: parsed.systemType,
+          boundaries: parsed.boundaries,
+          patternSelections: parsed.patterns,
+          stressTestResults: parsed.stressTests,
+        });
+
+        for (const [label, layer] of Object.entries(parsed.layerAssignment)) {
+          nodes.push({
+            id: label.toLowerCase().replace(/\s+/g, '-'),
+            type: 'architectureNode',
+            label,
+            layer: (layer as LayerType) || 'compute',
+            width: 180,
+            height: 70,
+            icon: 'server',
+            metadata: {},
+          });
+        }
+      }
+
+      if (parsed.flows) {
+        flows.push(...parsed.flows);
+      }
+    }
+
+    onEvent({ type: 'complete' });
+
+    return {
+      nodes,
+      flows,
+      reasoning: reasoning as ArchitectureAnalysis,
+      analysis: null,
+    };
+  } catch (error) {
+    onEvent({ type: 'error', data: error instanceof Error ? error.message : 'Streaming failed' });
+    throw error;
+  }
+}
+
+interface StressTestResult {
+  scenario: string;
+  outcome: string;
+  safe: boolean;
+}
+
+interface ArchitectureAnalysis {
+  problemFraming?: string;
+  boundaries?: { 
+    entryPoints?: string[]; 
+    exitPoints?: string[]; 
+    trustBoundaries?: string[] 
+  };
+  layerAssignment?: Record<string, string>;
+  patternSelections?: { pattern: string; justification: string }[];
+  stressTestResults?: StressTestResult[];
+}
+
+interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+interface QualityBreakdown {
+  structuralCompleteness: number;
+  flowCoverage: number;
+  edgeQuality: number;
+  reasoningDepth: number;
+}
+
+interface QualityScore {
+  score: number;
+  grade: 'A' | 'B' | 'C' | 'D';
+  breakdown: QualityBreakdown;
+  warnings: string[];
+}
+
+interface ComplexityProfile {
+  tier: 'simple' | 'moderate' | 'complex';
+  maxEdges: number;
+  maxNodesPerColumn: number;
+  splitDiagrams: boolean;
+}
+
+interface LLMResponse { 
+  nodes: ArchitectureNode[]; 
+  flows: string[][];
+  reasoning?: ArchitectureAnalysis;
+  analysis?: ArchitectureAnalysis | null;
+}
+
+// ============================================================================
+// DETERMINISTIC QUALITY SCORER
+// ============================================================================
+
+function scoreToGrade(score: number): 'A' | 'B' | 'C' | 'D' {
+  if (score >= 85) return 'A';
+  if (score >= 70) return 'B';
+  if (score >= 50) return 'C';
+  return 'D';
+}
+
+function getReachableNodes(nodes: ReactFlowNode[], edges: ReactFlowEdge[]): Set<string> {
+  const entryNodes = nodes.filter(n => n.data?.layer === 'client' || n.data?.layer === 'edge');
+  const reachable = new Set<string>(entryNodes.map(n => n.id));
+  const adj = new Map<string, string[]>();
+  
+  for (const edge of edges) {
+    if (!adj.has(edge.source)) adj.set(edge.source, []);
+    adj.get(edge.source)!.push(edge.target);
+  }
+
+  const queue = [...entryNodes.map(n => n.id)];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const neighbor of adj.get(current) || []) {
+      if (!reachable.has(neighbor)) {
+        reachable.add(neighbor);
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  return reachable;
+}
+
+function computeDiagramQualityScore(
   nodes: ReactFlowNode[],
-  edges: ReactFlowEdge[]
-): { hasCollisions: boolean; details: string[] } {
-  const collisions: string[] = [];
-  
-  // Create node bounding boxes
-  const nodeBoxes = nodes.map(node => ({
-    id: node.id,
-    x: node.position.x,
-    y: node.position.y,
-    width: node.width ?? NODE_WIDTH_STANDARD,
-    height: node.height ?? NODE_HEIGHT_STANDARD,
-  }));
+  edges: ReactFlowEdge[],
+  reasoning: ArchitectureAnalysis | null | undefined
+): QualityScore {
+  const breakdown: QualityBreakdown = {
+    structuralCompleteness: 0,
+    flowCoverage: 0,
+    edgeQuality: 0,
+    reasoningDepth: 0,
+  };
 
-  for (const edge of edges) {
-    const sourceNode = nodes.find(n => n.id === edge.source);
-    const targetNode = nodes.find(n => n.id === edge.target);
-    
-    if (!sourceNode || !targetNode) continue;
+  const hasEntryPoint = nodes.some(n => n.data?.layer === 'client' || n.data?.layer === 'edge');
+  const hasDataLayer = nodes.some(n => n.data?.layer === 'data');
+  const hasCompute = nodes.some(n => n.data?.layer === 'compute');
 
-    // Get source and target handle positions
-    const sourceX = sourceNode.position.x + (sourceNode.width ?? NODE_WIDTH_STANDARD) / 2;
-    const sourceY = sourceNode.position.y + (sourceNode.height ?? NODE_HEIGHT_STANDARD);
-    const targetX = targetNode.position.x + (targetNode.width ?? NODE_WIDTH_STANDARD) / 2;
-    const targetY = targetNode.position.y;
+  breakdown.structuralCompleteness =
+    (hasEntryPoint ? 15 : 0) +
+    (hasDataLayer ? 15 : 0) +
+    (hasCompute ? 10 : 0);
 
-    // Check if edge passes through any node
-    for (const nodeBox of nodeBoxes) {
-      if (nodeBox.id === edge.source || nodeBox.id === edge.target) continue;
+  const reachable = getReachableNodes(nodes, edges);
+  const orphanRatio = nodes.length > 0 ? 1 - (reachable.size / nodes.length) : 0;
+  breakdown.flowCoverage = Math.round(30 * (1 - orphanRatio));
 
-      // Simple intersection check for edge line with node box
-      const edgeMinX = Math.min(sourceX, targetX);
-      const edgeMaxX = Math.max(sourceX, targetX);
-      const edgeMinY = Math.min(sourceY, targetY);
-      const edgeMaxY = Math.max(sourceY, targetY);
+  const hasAsyncEdges = edges.some(e => e.data?.communicationType === 'async');
+  const edgeCount = edges.length;
+  breakdown.edgeQuality = Math.round(15 * (edgeCount > 0 ? Math.min(edgeCount / 10, 1) : 0)) +
+    (hasAsyncEdges ? 5 : 0);
 
-      const intersectsX = edgeMaxX > nodeBox.x && edgeMinX < nodeBox.x + nodeBox.width;
-      const intersectsY = edgeMaxY > nodeBox.y && edgeMinY < nodeBox.y + nodeBox.height;
+  const hasStressTest = (reasoning?.stressTestResults?.length ?? 0) >= 3;
+  const hasPatterns = (reasoning?.patternSelections?.length ?? 0) >= 2;
+  breakdown.reasoningDepth =
+    (hasStressTest ? 5 : 0) +
+    (hasPatterns ? 5 : 0);
 
-      if (intersectsX && intersectsY) {
-        collisions.push(`Edge ${edge.id} passes through node ${nodeBox.id}`);
+  const score = Object.values(breakdown).reduce((a, b) => a + b, 0);
+
+  const warnings: string[] = [];
+  if (breakdown.structuralCompleteness < 30) warnings.push('Missing key architectural layers.');
+  if (breakdown.flowCoverage < 20) warnings.push('Orphaned nodes detected — some components are unreachable.');
+  if (breakdown.edgeQuality < 10) warnings.push('Edges lack labels — data flows are ambiguous.');
+
+  return { score, grade: scoreToGrade(score), breakdown, warnings };
+}
+
+// ============================================================================
+// ADAPTIVE LIMITS
+// ============================================================================
+
+function deriveComplexityProfile(
+  nodeCount: number,
+  patternSelections: { pattern: string; justification: string }[] | undefined,
+  intentType: string
+): ComplexityProfile {
+  const patterns = patternSelections?.map(p => p.pattern.toLowerCase()) || [];
+  const isEventDriven = patterns.some(p => p.includes('event') || p.includes('async'));
+  const isMicroservices = patterns.some(p => p.includes('micro') || p.includes('service'));
+  const isDataPipeline = intentType.includes('pipeline') || intentType.includes('data');
+
+  if (nodeCount <= 6 && !isEventDriven && !isMicroservices) {
+    return { tier: 'simple', maxEdges: 20, maxNodesPerColumn: 4, splitDiagrams: false };
+  }
+
+  if (nodeCount <= 12 || isEventDriven) {
+    return { tier: 'moderate', maxEdges: 40, maxNodesPerColumn: 6, splitDiagrams: false };
+  }
+
+  return { tier: 'complex', maxEdges: 60, maxNodesPerColumn: 8, splitDiagrams: true };
+}
+
+function applyEdgeLimits(
+  edges: ArchitectureEdge[],
+  profile: ComplexityProfile
+): { edges: ArchitectureEdge[]; truncated: boolean; droppedCount: number } {
+  if (edges.length <= profile.maxEdges) {
+    return { edges, truncated: false, droppedCount: 0 };
+  }
+
+  const priority = (e: ArchitectureEdge): number => {
+    if (e.communicationType === 'sync') return 3;
+    if (e.communicationType === 'async') return 2;
+    if (e.animated) return 1;
+    return 0;
+  };
+
+  const sorted = [...edges].sort((a, b) => priority(b) - priority(a));
+  const kept = sorted.slice(0, profile.maxEdges);
+  const droppedCount = edges.length - kept.length;
+
+  return { edges: kept, truncated: true, droppedCount };
+}
+
+interface StressTest {
+  scenario: string;
+  outcome: string;
+  safe: boolean;
+  mitigation?: string;
+}
+
+function autoAddCompensatingComponents(
+  nodes: ArchitectureNode[],
+  stressTests: StressTest[] | undefined
+): ArchitectureNode[] {
+  if (!stressTests || stressTests.length === 0) return nodes;
+
+  const existingLabels = new Set(nodes.map(n => n.label.toLowerCase()));
+  const newNodes: ArchitectureNode[] = [];
+
+  for (const test of stressTests) {
+    if (test.safe) continue;
+
+    const scenario = test.scenario.toLowerCase();
+
+    if (scenario.includes('db') || scenario.includes('database') || scenario.includes('storage')) {
+      if (!existingLabels.has('cache') && !existingLabels.has('redis') && !existingLabels.has('memcached')) {
+        newNodes.push({
+          id: `auto-cache-${Date.now()}`,
+          type: 'architectureNode',
+          label: 'Cache Layer',
+          subtitle: 'Read-through cache for DB resilience',
+          layer: 'data',
+          tier: 'data',
+          tierColor: '#3b82f6',
+          width: 160,
+          height: 70,
+          icon: 'gauge',
+          serviceType: 'cache',
+          metadata: { autoAdded: true, reason: `Stress test: ${test.scenario}` },
+        });
+        existingLabels.add('cache');
+      }
+    }
+
+    if (scenario.includes('traffic') || scenario.includes('spike') || scenario.includes('load')) {
+      if (!existingLabels.has('load balancer') && !existingLabels.has('lb')) {
+        newNodes.push({
+          id: `auto-lb-${Date.now()}`,
+          type: 'architectureNode',
+          label: 'Load Balancer',
+          subtitle: 'Traffic distribution and auto-scaling',
+          layer: 'edge',
+          tier: 'edge',
+          tierColor: '#8b5cf6',
+          width: 170,
+          height: 70,
+          icon: 'scale',
+          serviceType: 'loadbalancer',
+          metadata: { autoAdded: true, reason: `Stress test: ${test.scenario}` },
+        });
+        existingLabels.add('load balancer');
+      }
+    }
+
+    if (scenario.includes('api') || scenario.includes('third-party') || scenario.includes('external')) {
+      if (!existingLabels.has('circuit breaker') && !existingLabels.has('cb')) {
+        newNodes.push({
+          id: `auto-cb-${Date.now()}`,
+          type: 'architectureNode',
+          label: 'Circuit Breaker',
+          subtitle: 'Fallback for external API failures',
+          layer: 'compute',
+          tier: 'compute',
+          tierColor: '#14b8a6',
+          width: 180,
+          height: 70,
+          icon: 'shield',
+          serviceType: 'generic',
+          metadata: { autoAdded: true, reason: `Stress test: ${test.scenario}` },
+        });
+        existingLabels.add('circuit breaker');
+      }
+    }
+
+    if (scenario.includes('job') || scenario.includes('background') || scenario.includes('worker')) {
+      if (!existingLabels.has('dead letter queue') && !existingLabels.has('dlq')) {
+        newNodes.push({
+          id: `auto-dlq-${Date.now()}`,
+          type: 'architectureNode',
+          label: 'Dead Letter Queue',
+          subtitle: 'Failed job retry and compensation',
+          layer: 'async',
+          tier: 'async',
+          tierColor: '#f59e0b',
+          width: 170,
+          height: 70,
+          icon: 'alert-circle',
+          serviceType: 'queue',
+          metadata: { autoAdded: true, reason: `Stress test: ${test.scenario}` },
+        });
+        existingLabels.add('dead letter queue');
       }
     }
   }
 
-  // Check for overlapping edge labels
-  const labelBoxes: { x: number; y: number; edgeId: string }[] = [];
-  for (const edge of edges) {
-    const sourceNode = nodes.find(n => n.id === edge.source);
-    const targetNode = nodes.find(n => n.id === edge.target);
-    
-    if (!sourceNode || !targetNode) continue;
+  if (newNodes.length > 0) {
+    logger.log(`[StressTest] Auto-added ${newNodes.length} compensating components:`,
+      newNodes.map(n => n.label).join(', '));
+  }
 
-    const labelX = (sourceNode.position.x + targetNode.position.x) / 2 + (sourceNode.width ?? NODE_WIDTH_STANDARD) / 2;
-    const labelY = (sourceNode.position.y + targetNode.position.y) / 2;
-    
-    for (const existing of labelBoxes) {
-      const dx = Math.abs(labelX - existing.x);
-      const dy = Math.abs(labelY - existing.y);
-      if (dx < 80 && dy < 30) {
-        collisions.push(`Labels overlap: ${edge.id} and ${existing.edgeId}`);
-      }
-    }
-    labelBoxes.push({ x: labelX, y: labelY, edgeId: edge.id });
+  return [...nodes, ...newNodes];
+}
+
+function validateReasoningOutput(reasoning: ArchitectureAnalysis | null | undefined): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!reasoning) {
+    return { valid: false, errors: ['MISSING_REASONING: No reasoning output from LLM'], warnings: [] };
+  }
+
+  if (!reasoning.boundaries?.entryPoints?.length) {
+    errors.push('MISSING_ENTRY_POINT: No entry point identified. Cannot generate flows.');
+  }
+
+  const hasDataLayer = Object.values(reasoning.layerAssignment || {})
+    .some(layer => layer?.toLowerCase() === 'data');
+  if (!hasDataLayer) {
+    errors.push('MISSING_DATA_LAYER: No data layer component. All systems persist state.');
+  }
+
+  if (!reasoning.patternSelections?.length) {
+    errors.push('MISSING_PATTERNS: No architectural patterns selected.');
+  }
+
+  if ((reasoning.stressTestResults?.length ?? 0) < 3) {
+    errors.push('INCOMPLETE_STRESS_TEST: Fewer than 3 failure scenarios evaluated.');
+  }
+
+  const unsafeScenarios = reasoning.stressTestResults?.filter(r => !r.safe) ?? [];
+  if (unsafeScenarios.length > 0) {
+    errors.push(
+      `UNSAFE_SCENARIOS: ${unsafeScenarios.length} failure scenario(s) have no recovery path: ` +
+      unsafeScenarios.map(s => s.scenario).join(', ')
+    );
+  }
+
+  if (!reasoning.boundaries?.trustBoundaries?.length) {
+    warnings.push('No trust boundaries defined. Consider adding auth/public boundary.');
   }
 
   return {
-    hasCollisions: collisions.length > 0,
-    details: collisions,
+    valid: errors.length === 0,
+    errors,
+    warnings,
   };
 }
 
-/**
- * Calculate adjusted ELK options with increased spacing to resolve collisions
- */
-function getCollisionSafeElkOptions(currentOptions: Record<string, string>): Record<string, string> {
-  const edgeNodeSpacing = parseInt(currentOptions['elk.spacing.edgeNode'] ?? '40', 10);
-  const newSpacing = edgeNodeSpacing + 10;
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), ms))
+    ]);
+  } catch { return null; }
+}
+
+async function callLLM(
+  prompt: string,
+  intentType: string = 'generic-web-app'
+): Promise<LLMResponse> {
+  const { systemPrompt, userPrompt } = getComposedPrompt(prompt, intentType);
+
+  const groqResponse = await withTimeout(
+    apiKeyManager.executeWithRetry(async (groq) => {
+      const res = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Design the architecture for this system:\n\n${userPrompt}` }
+        ],
+        temperature: 0.2,
+        max_tokens: 1024,
+        response_format: { type: 'json_object' },
+      });
+      return res.choices[0]?.message?.content ?? '';
+    }),
+    GROQ_TIMEOUT_MS
+  );
+
+  if (groqResponse) {
+    try {
+      const cleaned = groqResponse.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+      const parsed = JSON.parse(cleaned);
+      
+      if (parsed.systemType) {
+        logger.log('[LLM] SystemType:', parsed.systemType);
+      }
+      
+      let nodes = parsed.nodes || [];
+      const flows = parsed.flows || [];
+      
+      if (parsed.layerAssignment && Object.keys(parsed.layerAssignment).length > 0 && nodes.length === 0) {
+        nodes = Object.entries(parsed.layerAssignment).map(([label, layer]) => ({
+          id: label.toLowerCase().replace(/\s+/g, '-'),
+          label,
+          layer,
+          type: 'architectureNode',
+          width: 180,
+          height: 70,
+          icon: 'server',
+          metadata: {},
+        }));
+      }
+      
+      return {
+        nodes: nodes || [],
+        flows: flows || [],
+        reasoning: {
+          problemFraming: parsed.systemType,
+          boundaries: {
+            entryPoints: parsed.boundaries?.entryPoints || [],
+            exitPoints: parsed.boundaries?.exitPoints || [],
+            trustBoundaries: parsed.boundaries?.trustZones || [],
+          },
+          layerAssignment: parsed.layerAssignment || {},
+          patternSelections: parsed.patterns || [],
+          stressTestResults: parsed.stressTests || [],
+        },
+        analysis: null,
+      };
+    } catch (e) {
+      logger.error('[LLM] Parse error:', e);
+    }
+  }
+
+  logger.log('[LLM] Groq failed, trying OpenRouter...');
+  const orResponse = await withTimeout(callOpenRouter(prompt), OPENROUTER_TIMEOUT_MS);
+  if (orResponse) return orResponse;
+
+  logger.warn('[LLM] All providers failed, using fallback');
+  return getFallbackResponse();
+}
+
+async function callOpenRouter(prompt: string): Promise<LLMResponse> {
+  const OR_KEY = process.env.OPENROUTER_API_KEY;
+  if (!OR_KEY) throw new Error('No OpenRouter key');
+
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OR_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'meta-llama/llama-3.3-70b-instruct',
+      messages: [
+        { role: 'system', content: 'JSON only: {"nodes":[...],"flows":[[...]]}' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 1024,
+    }),
+  });
+
+  if (!res.ok) throw new Error(`OpenRouter error: ${res.status}`);
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content ?? '';
+  const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+  return JSON.parse(cleaned);
+}
+
+// ============================================================================
+// SPLIT LLM CALL STRATEGY
+// ============================================================================
+
+async function callReasoningLLM(
+  description: string,
+  intentType: string
+): Promise<ArchitectureAnalysis> {
+  const systemPrompt = REASONING_PROMPT
+    .replace('{description}', description)
+    .replace('{intent}', intentType);
+
+  const groqKeyEnvVars = [
+    'GROQ_API_KEY_FOR_DESC_1', 'GROQ_API_KEY_FOR_DESC_2', 'GROQ_API_KEY_FOR_DESC_3',
+    'GROQ_API_KEY_FOR_DESC_4', 'GROQ_API_KEY_FOR_DESC_5', 'GROQ_API_KEY_FOR_DESC_6',
+    'GROQ_API_KEY_FOR_DESC_7', 'GROQ_API_KEY_FOR_DESC_8', 'GROQ_API_KEY_FOR_DESC_9',
+  ];
+
+  for (const envVar of groqKeyEnvVars) {
+    const apiKey = process.env[envVar];
+    if (!apiKey || apiKey.startsWith('#')) continue;
+
+    try {
+      const Groq = (await import('groq-sdk')).default;
+      const groq = new Groq({ apiKey });
+
+      const res = await withTimeout(
+        groq.chat.completions.create({
+          model: MODEL_CONFIG.reasoning.primary,
+          messages: [{ role: 'user', content: systemPrompt }],
+          temperature: MODEL_CONFIG.reasoning.temperature,
+          max_tokens: MODEL_CONFIG.reasoning.maxTokens,
+          response_format: { type: 'json_object' },
+        }),
+        MODEL_CONFIG.reasoning.timeout
+      );
+
+      if (res) {
+        const content = res.choices[0]?.message?.content ?? '';
+        const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+        const parsed = JSON.parse(cleaned);
+        
+        logger.log('[Reasoning] SystemType:', parsed.systemType);
+        
+        return {
+          problemFraming: parsed.systemType,
+          boundaries: {
+            entryPoints: parsed.boundaries?.entryPoints || [],
+            exitPoints: parsed.boundaries?.exitPoints || [],
+            trustBoundaries: parsed.boundaries?.trustZones || [],
+          },
+          layerAssignment: parsed.layerAssignment || {},
+          patternSelections: parsed.patterns || [],
+          stressTestResults: parsed.stressTests || [],
+        };
+      }
+    } catch (error) {
+      logger.log(`[Reasoning] Groq key ${envVar} failed, trying next...`);
+      continue;
+    }
+  }
+
+  throw new Error('All Groq keys exhausted for reasoning');
+}
+
+async function callDiagramLLM(
+  reasoning: ArchitectureAnalysis,
+  onStreaming?: StreamingCallback
+): Promise<{ nodes: ArchitectureNode[]; flows: string[][] }> {
+  const reasoningJson = JSON.stringify(reasoning);
+  const systemPrompt = DIAGRAM_PROMPT.replace('{reasoning}', reasoningJson);
+
+  const groqKeyEnvVars = [
+    'GROQ_API_KEY_FOR_DESC_1', 'GROQ_API_KEY_FOR_DESC_2', 'GROQ_API_KEY_FOR_DESC_3',
+    'GROQ_API_KEY_FOR_DESC_4', 'GROQ_API_KEY_FOR_DESC_5', 'GROQ_API_KEY_FOR_DESC_6',
+    'GROQ_API_KEY_FOR_DESC_7', 'GROQ_API_KEY_FOR_DESC_8', 'GROQ_API_KEY_FOR_DESC_9',
+  ];
+
+  const nodes: ArchitectureNode[] = [];
+  const flows: string[][] = [];
+
+  for (const envVar of groqKeyEnvVars) {
+    const apiKey = process.env[envVar];
+    if (!apiKey || apiKey.startsWith('#')) continue;
+
+    try {
+      const Groq = (await import('groq-sdk')).default;
+      const groq = new Groq({ apiKey });
+
+      if (onStreaming) {
+        const stream = await withTimeout(
+          groq.chat.completions.create({
+            model: MODEL_CONFIG.diagram.primary,
+            messages: [{ role: 'user', content: systemPrompt }],
+            temperature: MODEL_CONFIG.diagram.temperature,
+            max_tokens: MODEL_CONFIG.diagram.maxTokens,
+            stream: true,
+          }),
+          MODEL_CONFIG.diagram.timeout
+        ) as AsyncIterable<{ choices: { delta: { content?: string } }[] }>;
+
+        if (stream) {
+          const parser = new IncrementalJSONParser();
+          let accumulated = '';
+
+          for await (const chunk of stream) {
+            const content = chunk.choices[0]?.delta?.content || '';
+            if (content) {
+              accumulated += content;
+              parser.push(content);
+              
+              const objs = parser.drain();
+              for (const obj of objs) {
+                const objWithId = obj as Record<string, unknown>;
+                if (objWithId.id && objWithId.label) {
+                  const node: ArchitectureNode = {
+                    id: String(objWithId.id),
+                    type: 'architectureNode',
+                    label: String(objWithId.label),
+                    layer: (objWithId.layer as LayerType) || 'compute',
+                    width: 180,
+                    height: 70,
+                    icon: (objWithId.icon as string) || 'server',
+                    metadata: {},
+                    subtitle: objWithId.subtitle ? String(objWithId.subtitle) : String(objWithId.label),
+                  };
+                  nodes.push(node);
+                  onStreaming({ type: 'node', data: node });
+                } else if (obj.type === 'flow' || (obj as Record<string, unknown>).path) {
+                  const flow = obj as { path: string[]; label?: string };
+                  if (Array.isArray(flow.path) && flow.path.length >= 2) {
+                    flows.push(flow.path);
+                    onStreaming({ type: 'flow', data: flow });
+                  }
+                }
+              }
+            }
+          }
+          
+          if (nodes.length === 0 && flows.length === 0) {
+            return parseDiagramResponse(accumulated);
+          }
+        }
+      } else {
+        const res = await withTimeout(
+          groq.chat.completions.create({
+            model: MODEL_CONFIG.diagram.primary,
+            messages: [{ role: 'user', content: systemPrompt }],
+            temperature: MODEL_CONFIG.diagram.temperature,
+            max_tokens: MODEL_CONFIG.diagram.maxTokens,
+            response_format: { type: 'json_object' },
+          }),
+          MODEL_CONFIG.diagram.timeout
+        );
+
+        if (res) {
+          const content = res.choices[0]?.message?.content ?? '';
+          return parseDiagramResponse(content);
+        }
+      }
+    } catch (error) {
+      logger.log(`[Diagram] Groq key ${envVar} failed, trying next...`);
+      continue;
+    }
+  }
+
+  throw new Error('All Groq keys exhausted for diagram');
+}
+
+function parseDiagramResponse(content: string): { nodes: ArchitectureNode[]; flows: string[][] } {
+  const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
   
+  const nodes: ArchitectureNode[] = [];
+  const flows: string[][] = [];
+  
+  const lines = cleaned.split('\n').filter(l => l.trim());
+  for (const line of lines) {
+    try {
+      const obj = JSON.parse(line);
+      if (obj.id && obj.label) {
+        nodes.push({
+          id: obj.id,
+          type: 'architectureNode',
+          label: obj.label,
+          layer: (obj.layer as LayerType) || 'compute',
+          width: 180,
+          height: 70,
+          icon: obj.icon || 'server',
+          metadata: {},
+          subtitle: obj.subtitle || obj.label,
+        });
+      } else if (obj.type === 'flow' || obj.path) {
+        if (Array.isArray(obj.path) && obj.path.length >= 2) {
+          flows.push(obj.path);
+        }
+      }
+    } catch { continue; }
+  }
+  
+  if (nodes.length === 0) {
+    const parsed = JSON.parse(cleaned);
+    if (parsed.layerAssignment) {
+      for (const [label, layer] of Object.entries(parsed.layerAssignment)) {
+        nodes.push({
+          id: label.toLowerCase().replace(/\s+/g, '-'),
+          type: 'architectureNode',
+          label,
+          layer: (layer as LayerType) || 'compute',
+          width: 180,
+          height: 70,
+          icon: 'server',
+          metadata: {},
+        });
+      }
+    }
+    if (parsed.flows) {
+      flows.push(...parsed.flows);
+    }
+  }
+  
+  return { nodes, flows };
+}
+
+function getFallbackResponse(): LLMResponse {
   return {
-    ...currentOptions,
-    'elk.spacing.edgeNode': newSpacing.toString(),
+    nodes: [
+      { id: 'client', type: 'architectureNode', label: 'Client App', layer: 'client', tier: 'client', tierColor: '#a855f7', width: 180, height: 70, icon: 'monitor', serviceType: 'client', metadata: {} },
+      { id: 'cdn', type: 'architectureNode', label: 'CDN', subtitle: 'content delivery', layer: 'edge', tier: 'edge', tierColor: '#8b5cf6', width: 180, height: 70, icon: 'globe', serviceType: 'cdn', metadata: { technology: 'generic-cdn' } },
+      { id: 'gateway', type: 'architectureNode', label: 'API Gateway', subtitle: 'REST entry', layer: 'edge', tier: 'edge', tierColor: '#8b5cf6', width: 180, height: 70, icon: 'webhook', serviceType: 'gateway', metadata: { technology: 'generic-api-gateway' } },
+      { id: 'auth', type: 'architectureNode', label: 'Auth Service', subtitle: 'authentication', layer: 'compute', tier: 'compute', tierColor: '#14b8a6', width: 180, height: 70, icon: 'lock', serviceType: 'auth', metadata: { technology: 'generic-auth' } },
+      { id: 'api', type: 'architectureNode', label: 'API Server', subtitle: 'business logic', layer: 'compute', tier: 'compute', tierColor: '#14b8a6', width: 180, height: 70, icon: 'server', serviceType: 'api', metadata: { technology: 'generic-api-server' } },
+      { id: 'queue', type: 'architectureNode', label: 'Message Queue', subtitle: 'async messaging', layer: 'async', tier: 'async', tierColor: '#f59e0b', width: 180, height: 70, icon: 'message-square', serviceType: 'queue', metadata: { technology: 'generic-queue' } },
+      { id: 'db', type: 'architectureNode', label: 'Database', subtitle: 'main store', layer: 'data', tier: 'data', tierColor: '#3b82f6', width: 180, height: 70, icon: 'database', serviceType: 'database', metadata: { technology: 'generic-sql' } },
+      { id: 'cache', type: 'architectureNode', label: 'Cache', subtitle: 'Redis cache', layer: 'data', tier: 'data', tierColor: '#3b82f6', width: 160, height: 70, icon: 'gauge', serviceType: 'cache', metadata: { technology: 'generic-cache' } },
+    ],
+    flows: [
+      ['Client App', 'CDN', 'API Gateway', 'API Server', 'Database'],
+      ['Client App', 'API Gateway', 'Auth Service'],
+      ['API Server', 'Message Queue'],
+      ['API Server', 'Cache'],
+    ],
   };
+}
+
+function flowsToEdges(nodes: ArchitectureNode[], flows: string[][]): ArchitectureEdge[] {
+  const edges: ArchitectureEdge[] = [];
+  const nodeMap = new Map(nodes.map(n => [n.label.toLowerCase(), n.id]));
+  const nodeTierMap = new Map(nodes.map(n => [n.id, n.tier || n.layer || 'compute']));
+  
+  const TIER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
+  const addedEdges = new Set<string>();
+
+  function isForwardFlow(srcTier: string, tgtTier: string): boolean {
+    const srcIdx = TIER_ORDER.indexOf(srcTier);
+    const tgtIdx = TIER_ORDER.indexOf(tgtTier);
+    return tgtIdx > srcIdx;
+  }
+
+  for (const flow of flows) {
+    for (let i = 0; i < flow.length - 1; i++) {
+      const srcKey = flow[i].toLowerCase();
+      const tgtKey = flow[i + 1].toLowerCase();
+      const srcId = nodeMap.get(srcKey);
+      const tgtId = nodeMap.get(tgtKey);
+
+      if (!srcId || !tgtId) continue;
+      if (srcId === tgtId) continue;
+
+      const srcTier = nodeTierMap.get(srcId) || 'compute';
+      const tgtTier = nodeTierMap.get(tgtId) || 'compute';
+
+      if (!isForwardFlow(srcTier, tgtTier)) {
+        logger.log(`[Flows] Skipping backward edge: ${flow[i]} (${srcTier}) → ${flow[i + 1]} (${tgtTier})`);
+        continue;
+      }
+
+      const edgeKey = `${srcId}→${tgtId}`;
+      if (addedEdges.has(edgeKey)) continue;
+      if (addedEdges.has(`${tgtId}→${srcId}`)) {
+        logger.log(`[Flows] Skipping bidirectional: ${tgtId} already connects to ${srcId}`);
+        continue;
+      }
+
+      addedEdges.add(edgeKey);
+
+      const commType = (tgtTier === 'async' || srcTier === 'async') ? 'async' : 'sync';
+      const style = COMM_STYLES[commType];
+
+      edges.push({
+        id: `e-${srcId}-${tgtId}`,
+        source: srcId,
+        target: tgtId,
+        sourceHandle: 'right',
+        targetHandle: 'left',
+        communicationType: commType as ArchitectureEdge['communicationType'],
+        pathType: 'smooth' as PathType,
+        label: '',
+        labelPosition: 'center',
+        animated: style.animated,
+        style: { stroke: style.color, strokeDasharray: style.dash, strokeWidth: 2 },
+        markerEnd: style.marker as 'arrowclosed' | 'none',
+        markerStart: 'none',
+      });
+    }
+  }
+
+  return edges;
+}
+
+function buildMinimalFlows(nodes: ArchitectureNode[]): string[][] {
+  const flows: string[][] = [];
+  const nodesByTier: Record<string, ArchitectureNode[]> = {};
+  
+  for (const node of nodes) {
+    if (node.isGroup) continue;
+    const tier = node.tier || node.layer || 'compute';
+    if (!nodesByTier[tier]) nodesByTier[tier] = [];
+    nodesByTier[tier].push(node);
+  }
+
+  const tierOrder = ['client', 'edge', 'compute', 'async', 'data'];
+  
+  for (let i = 0; i < tierOrder.length - 1; i++) {
+    const srcTier = tierOrder[i];
+    const tgtTier = tierOrder[i + 1];
+    const srcNodes = nodesByTier[srcTier] || [];
+    const tgtNodes = nodesByTier[tgtTier] || [];
+    
+    if (srcNodes.length === 0 || tgtNodes.length === 0) continue;
+
+    const primarySrc = srcNodes[0];
+    const primaryTgt = tgtNodes[0];
+
+    if (primarySrc && primaryTgt) {
+      flows.push([primarySrc.label, primaryTgt.label]);
+    }
+
+    for (const src of srcNodes.slice(0, 2)) {
+      for (const tgt of tgtNodes.slice(0, 2)) {
+        if (src.id !== primarySrc?.id || tgt.id !== primaryTgt?.id) {
+          if (flows.length < 8) {
+            flows.push([src.label, tgt.label]);
+          }
+        }
+      }
+    }
+  }
+
+  return flows;
+}
+
+function ensureConnectivity(nodes: ArchitectureNode[], edges: ArchitectureEdge[]): ArchitectureEdge[] {
+  const connected = new Set<string>();
+  const existingConnections = new Set<string>();
+  edges.forEach(e => { 
+    connected.add(e.source); 
+    connected.add(e.target);
+    existingConnections.add(`${e.source}→${e.target}`);
+  });
+
+  const orphans = nodes.filter(n => !connected.has(n.id) && !n.isGroup);
+  if (orphans.length === 0) return edges;
+
+  const tierOrder = ['client', 'edge', 'compute', 'async', 'data', 'observe'];
+  const byTier = new Map<string, ArchitectureNode[]>();
+  nodes.forEach(n => {
+    const tier = n.tier || n.layer || 'compute';
+    if (!byTier.has(tier)) byTier.set(tier, []);
+    byTier.get(tier)!.push(n);
+  });
+
+  const newEdges = [...edges];
+  for (const orphan of orphans) {
+    const orphanTier = orphan.tier || orphan.layer || 'compute';
+    const tierIdx = tierOrder.indexOf(orphanTier);
+    
+    const addedForOrphan = new Set<string>();
+
+    for (let offset = 1; offset <= 3; offset++) {
+      const fwdIdx = tierIdx + offset;
+      if (fwdIdx >= tierOrder.length) break;
+      
+      const fwdCandidates = byTier.get(tierOrder[fwdIdx])?.filter(n => {
+        const edgeKey = `${orphan.id}→${n.id}`;
+        const revKey = `${n.id}→${orphan.id}`;
+        return !addedForOrphan.has(n.id) && !existingConnections.has(edgeKey) && !existingConnections.has(revKey);
+      }) || [];
+      
+      const fwd = fwdCandidates.find(n => n.id !== orphan.id);
+      if (fwd && newEdges.length < 30) {
+        newEdges.push({
+          id: `e-connect-${orphan.id}-${fwd.id}`,
+          source: orphan.id,
+          target: fwd.id,
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          communicationType: tierOrder[fwdIdx] === 'async' ? 'async' : 'sync',
+          pathType: 'smooth',
+          label: '',
+          labelPosition: 'center',
+          animated: false,
+          style: { stroke: '#6366f1', strokeDasharray: '', strokeWidth: 2 },
+          markerEnd: 'arrowclosed',
+          markerStart: 'none',
+        });
+        connected.add(orphan.id);
+        addedForOrphan.add(fwd.id);
+        break;
+      }
+    }
+
+    if (!connected.has(orphan.id)) {
+      for (let bwdIdx = tierIdx - 1; bwdIdx >= 0; bwdIdx--) {
+        const bwdCandidates = byTier.get(tierOrder[bwdIdx])?.filter(n => {
+          const edgeKey = `${orphan.id}→${n.id}`;
+          return !addedForOrphan.has(n.id) && !existingConnections.has(edgeKey);
+        }) || [];
+        
+        const bwd = bwdCandidates.find(n => n.id !== orphan.id);
+        if (bwd && newEdges.length < 30) {
+          newEdges.push({
+            id: `e-connect-${orphan.id}-${bwd.id}`,
+            source: orphan.id,
+            target: bwd.id,
+            sourceHandle: 'right',
+            targetHandle: 'left',
+            communicationType: 'sync',
+            pathType: 'smooth',
+            label: '',
+            labelPosition: 'center',
+            animated: false,
+            style: { stroke: '#6366f1', strokeDasharray: '', strokeWidth: 2 },
+            markerEnd: 'arrowclosed',
+            markerStart: 'none',
+          });
+          connected.add(orphan.id);
+          addedForOrphan.add(bwd.id);
+          break;
+        }
+      }
+    }
+  }
+
+  return newEdges;
+}
+
+function computeLayout(nodes: ArchitectureNode[], edges: ArchitectureEdge[]): ReactFlowNode[] {
+  const byLayer: Record<string, ArchitectureNode[]> = {};
+  nodes.forEach(n => {
+    const layer = n.layer || 'compute';
+    if (!byLayer[layer]) byLayer[layer] = [];
+    byLayer[layer].push(n);
+  });
+
+  let maxInLayer = 0;
+  LAYER_ORDER.forEach(l => maxInLayer = Math.max(maxInLayer, (byLayer[l] || []).length));
+  const totalH = maxInLayer * 70 + (maxInLayer - 1) * 80;
+  const centerY = Math.max(50, (800 - totalH) / 2);
+
+  return nodes.map(node => ({
+    id: node.id,
+    type: node.isGroup ? 'group' : 'systemNode',
+    position: {
+      x: LAYER_X[node.layer || 'compute'] ?? 500,
+      y: centerY + (byLayer[node.layer || 'compute']?.indexOf(node) || 0) * 150,
+    },
+    data: {
+      label: node.label,
+      icon: node.icon || 'server',
+      layer: node.layer,
+      isGroup: node.isGroup,
+      parentId: node.parentId,
+      groupLabel: node.groupLabel,
+      groupColor: node.groupColor,
+      serviceType: node.serviceType,
+    },
+    width: node.width || 180,
+    height: node.height || 70,
+  }));
+}
+
+function toReactFlowEdges(edges: ArchitectureEdge[], nodeIds: Set<string>): ReactFlowEdge[] {
+  return edges
+    .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target))
+    .map((e, i) => {
+      const s = COMM_STYLES[e.communicationType || 'sync'];
+      return {
+        id: `rf-${e.source}-${e.target}-${i}`,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle || 'right',
+        targetHandle: e.targetHandle || 'left',
+        type: 'custom',
+        animated: s.animated,
+        label: '',
+        labelShowBg: true,
+        labelBgPadding: [8, 4] as [number, number],
+        labelBgBorderRadius: 4,
+        labelBgStyle: { fill: '#1e1e2e', fillOpacity: 0.9, stroke: '#334155', strokeWidth: 1 },
+        labelStyle: { fontSize: 10, fontWeight: 600, fill: '#e2e8f0' },
+        style: { stroke: s.color, strokeWidth: 1.5, strokeDasharray: s.dash },
+        markerEnd: { type: 'arrowclosed' as const, color: s.color },
+        data: { communicationType: e.communicationType, pathType: 'smooth' as PathType, label: '', color: s.color },
+      };
+    });
+}
+
+const MAX_COLLISION_LOOPS = 3;
+
+function resolveCollisionsOptimized(nodes: ReactFlowNode[], edges: ReactFlowEdge[]): ReactFlowEdge[] {
+  let paths = computeEdgeLayout(nodes, edges);
+  let report = detectEdgeCollisions(nodes, edges, paths);
+  let loops = 0;
+
+  while (report.hasCollisions && loops < MAX_COLLISION_LOOPS) {
+    const result = fixCollisions(nodes, edges, paths, report.collisions);
+    paths = result.resolvedPaths;
+    if (loops < MAX_COLLISION_LOOPS - 1) {
+      const opt = optimizeEdgePaths(nodes, edges, paths);
+      paths = opt.optimizedPaths;
+    }
+    report = detectEdgeCollisions(nodes, edges, paths);
+    loops++;
+  }
+
+  const labels = computeOptimalLabelPositions(nodes, edges, paths);
+  return edges.map(e => ({
+    ...e,
+    data: {
+      ...e.data,
+      labelX: labels.positions.get(e.id)?.x ?? 0,
+      labelY: labels.positions.get(e.id)?.y ?? 0,
+      waypoints: paths.find(p => p.id === e.id)?.waypoints,
+    },
+  }));
+}
+
+export async function generateDiagram(
+  userIntent: UserIntent,
+  onProgress?: ProgressCallback,
+  onStreaming?: StreamingCallback
+): Promise<GenerationResult> {
+  const start = Date.now();
+  const emit = (phase: GenerationProgress['phase'], msg: string, p = 50) =>
+    onProgress?.({ phase, iteration: 0, currentAgent: phase, score: 0, message: msg, progress: p });
+
+  try {
+    emit('planning', 'Preprocessing...', 5);
+
+    const intentSignals = await robustDetectIntent(userIntent.description);
+
+    if (intentSignals.ambiguous && intentSignals.confidence < 0.5) {
+      return {
+        type: 'architecture',
+        nodes: [],
+        edges: [],
+        metadata: {
+          totalNodes: 0,
+          totalEdges: 0,
+          systemType: intentSignals.systemType[0] || 'unknown',
+          generatedAt: new Date().toISOString(),
+        },
+      } as GenerationResult;
+    }
+
+    const intentType = intentSignals.systemType[0] || 'generic-web-app';
+    const cacheKey = semanticCache.buildCacheKey(intentType, userIntent.description);
+    logger.log('[Pipeline] Processing prompt:', userIntent.description.slice(0, 100));
+    logger.log('[Pipeline] Intent type:', intentType);
+    
+    const cachedResult = CACHE_ENABLED ? semanticCache.get(cacheKey) : null;
+
+    interface FullGenerationResult {
+      reasoning: ArchitectureAnalysis | null;
+      diagram: { nodes: ArchitectureNode[]; flows: string[][] };
+    }
+
+    const generationResult: FullGenerationResult = { reasoning: null, diagram: { nodes: [], flows: [] } };
+
+    if (cachedResult) {
+      emit('components', 'Using cached result...', 15);
+      generationResult.diagram = { nodes: cachedResult.nodes, flows: cachedResult.flows };
+    } else if (CACHE_ENABLED && semanticCache.isInFlight(cacheKey)) {
+      emit('components', 'Waiting for duplicate request...', 15);
+      const inFlightResult = await semanticCache.waitForRequest(cacheKey);
+      if (inFlightResult) {
+        generationResult.diagram = { nodes: inFlightResult.nodes, flows: inFlightResult.flows };
+        semanticCache.set(cacheKey, generationResult.diagram);
+      }
+    } else {
+      const requestPromise = (async (): Promise<{ nodes: ArchitectureNode[]; flows: string[][] }> => {
+        emit('components', 'Generating reasoning...', 10);
+        
+        const reasoningResult = await callReasoningLLM(
+          userIntent.description,
+          intentType
+        );
+        
+        onStreaming?.({ type: 'thinking', reasoning: reasoningResult });
+
+        emit('planning', 'Validating reasoning...', 20);
+        const validation = validateReasoningOutput(reasoningResult);
+
+        if (!validation.valid) {
+          logger.warn('[Pipeline] Reasoning validation failed:', validation.errors);
+          const fallback = getFallbackResponse();
+          return { nodes: fallback.nodes, flows: fallback.flows };
+        }
+
+        if (validation.warnings.length > 0) {
+          logger.log('[Pipeline] Reasoning warnings:', validation.warnings);
+        }
+
+        emit('components', 'Generating diagram...', 35);
+        
+        const result = await callDiagramLLM(reasoningResult, onStreaming);
+        onStreaming?.({ type: 'complete' });
+        
+        return result;
+      })();
+
+      semanticCache.startRequest(cacheKey, requestPromise as Promise<CacheEntry>);
+      const diagramResult = await requestPromise;
+      if (CACHE_ENABLED) {
+        semanticCache.set(cacheKey, diagramResult);
+      }
+      generationResult.diagram = diagramResult;
+    }
+
+    emit('components', 'Processing components...', 50);
+    let nodes = enrichNodes(generationResult.diagram.nodes);
+    nodes = nodes.filter(n => n.id && n.label);
+    nodes = nodes.slice(0, MAX_NODES);
+
+    const stressTests = generationResult.reasoning?.stressTestResults;
+    if (stressTests?.length) {
+      nodes = autoAddCompensatingComponents(nodes, stressTests);
+      nodes = nodes.slice(0, MAX_NODES);
+    }
+
+    if (nodes.length < 5) {
+      const fallback = getFallbackResponse();
+      nodes = [...nodes, ...fallback.nodes.filter(f => !nodes.find(n => n.label === f.label))].slice(0, 10);
+    }
+
+    emit('edges', 'Building connections...', 60);
+    let edges = flowsToEdges(nodes, generationResult.diagram.flows);
+    edges = ensureConnectivity(nodes, edges);
+
+    const complexityProfile = deriveComplexityProfile(
+      nodes.length,
+      generationResult.reasoning?.patternSelections,
+      intentType
+    );
+    const edgeResult = applyEdgeLimits(edges, complexityProfile);
+    edges = edgeResult.edges;
+
+    emit('layout', 'Computing layout...', 70);
+    const elkResult = await computeELKLayout(nodes, edges, { complexityTier: complexityProfile.tier });
+    const rfNodes = elkResult?.nodes?.length ? elkResult.nodes : computeLayout(nodes, edges);
+
+    emit('edges', 'Optimizing edges...', 85);
+    const nodeIds = new Set(rfNodes.map(n => n.id));
+    let rfEdges = toReactFlowEdges(edges, nodeIds);
+    rfEdges = filterBidirectionalEdges(rfEdges, 'keep-sync');
+    rfEdges = resolveCollisionsOptimized(rfNodes, rfEdges);
+
+    emit('scoring', 'Computing quality score...', 95);
+    const qualityScore = computeDiagramQualityScore(rfNodes, rfEdges, generationResult.reasoning);
+
+    const totalMs = Date.now() - start;
+
+    emit('complete', `Done in ${totalMs}ms`, 100);
+    logger.log(`[Pipeline] Total: ${totalMs}ms | nodes=${rfNodes.length} | edges=${rfEdges.length} | grade=${qualityScore.grade}`);
+
+    const extendedReasoning = generationResult.reasoning as (ArchitectureAnalysis & {
+      nfrs?: { scale: string; latency: string; consistency: 'strong' | 'eventual'; availability: string; faultTolerance: string };
+      capPosition?: 'CP' | 'AP';
+      actors?: string[];
+      keyDecisions?: string[];
+    }) | null;
+
+    const reasoning = generationResult.reasoning;
+
+    const thinking = reasoning ? {
+      systemType: intentType,
+      nfrs: extendedReasoning?.nfrs || { scale: 'unknown', latency: 'unknown', consistency: 'eventual' as const, availability: 'unknown', faultTolerance: 'unknown' },
+      capPosition: extendedReasoning?.capPosition || 'AP',
+      actors: extendedReasoning?.actors || [],
+      boundaries: reasoning.boundaries ? {
+        entryPoints: reasoning.boundaries.entryPoints || [],
+        exitPoints: reasoning.boundaries.exitPoints || [],
+        trustZones: (reasoning.boundaries as ArchitectureBoundaries & { trustBoundaries?: string[] }).trustBoundaries || [],
+      } : { entryPoints: [], exitPoints: [], trustZones: [] },
+      layerAssignment: (reasoning.layerAssignment || {}) as Record<string, ArchitectureLayer>,
+      patterns: reasoning.patternSelections || [],
+      stressTests: reasoning.stressTestResults || [],
+      keyDecisions: extendedReasoning?.keyDecisions || [],
+    } : null;
+
+    return {
+      type: 'architecture',
+      nodes: rfNodes,
+      edges: rfEdges,
+      metadata: {
+        score: qualityScore.score,
+        grade: qualityScore.grade,
+        iterations: 1,
+        totalNodes: rfNodes.length,
+        totalEdges: rfEdges.length,
+        systemType: intentType,
+        generatedAt: new Date().toISOString(),
+        analysis: reasoning || null,
+        thinking: thinking,
+        complexityTier: complexityProfile.tier,
+        truncated: edgeResult.truncated,
+        droppedEdgeCount: edgeResult.droppedCount,
+        qualityWarnings: qualityScore.warnings,
+      },
+    };
+  } catch (error) {
+    logger.error('[Pipeline] Error:', error);
+    emit('error', `Error: ${error instanceof Error ? error.message : 'Unknown'}`, 100);
+    throw error;
+  }
 }

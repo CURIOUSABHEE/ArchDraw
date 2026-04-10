@@ -198,6 +198,33 @@ function syncActiveCanvas(
   );
 }
 
+function mergeCanvases(localCanvases: CanvasTab[], dbCanvases: CanvasTab[]): CanvasTab[] {
+  const merged = new Map<string, CanvasTab>();
+  
+  // Add all DB canvases first
+  for (const c of dbCanvases) {
+    merged.set(c.id, c);
+  }
+  
+  // Merge local canvases, keeping the more recently updated version
+  for (const local of localCanvases) {
+    const existing = merged.get(local.id);
+    if (!existing) {
+      // New canvas not in DB yet - keep it
+      merged.set(local.id, local);
+    } else {
+      // Canvas exists in both - keep the more recent version
+      const localTime = local.updatedAt || 0;
+      const dbTime = existing.updatedAt || 0;
+      if (localTime > dbTime) {
+        merged.set(local.id, { ...local, isOpen: existing.isOpen, isPinned: existing.isPinned });
+      }
+    }
+  }
+  
+  return Array.from(merged.values()).sort((a, b) => (b.lastAccessedAt || 0) - (a.lastAccessedAt || 0));
+}
+
 // ── Debounced DB save (module-level so it's shared across calls) ──────────────
 const _debouncedSave = debounce(async (canvasId: string, get: () => DiagramState) => {
   if (!isSupabaseConfigured) return;
@@ -284,10 +311,14 @@ export const useDiagramStore = create<DiagramState>()(
       },
 
       removeCanvas: (id) => {
-        const { canvases, activeCanvasId, openCanvasIds } = get();
+        const { canvases, activeCanvasId, openCanvasIds, nodes, edges } = get();
         if (canvases.length <= 1) return;
-        const idx = canvases.findIndex((c) => c.id === id);
-        const next = canvases.filter((c) => c.id !== id);
+        
+        // Sync active canvas before removing
+        const synced = syncActiveCanvas(canvases, activeCanvasId, nodes, edges);
+        
+        const idx = synced.findIndex((c) => c.id === id);
+        const next = synced.filter((c) => c.id !== id);
         const newOpenIds = openCanvasIds.filter((cid) => cid !== id);
         
         let nextActiveId = activeCanvasId;
@@ -505,7 +536,7 @@ export const useDiagramStore = create<DiagramState>()(
 
       loadCanvasesFromDB: async () => {
         if (!isSupabaseConfigured) return;
-        const { activeCanvasId } = get();
+        const { activeCanvasId, canvases: localCanvases } = get();
         try {
           const supabase = getSupabaseClient();
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -514,7 +545,7 @@ export const useDiagramStore = create<DiagramState>()(
             .select('*')
             .order('updated_at', { ascending: false });
           if (data && data.length > 0) {
-            const canvases: CanvasTab[] = data.map((d: { id: string; name: string; nodes: Node[]; edges: Edge[]; updated_at: string }) => ({
+            const dbCanvases: CanvasTab[] = data.map((d: { id: string; name: string; nodes: Node[]; edges: Edge[]; updated_at: string }) => ({
               id: d.id,
               name: d.name,
               nodes: d.nodes ?? [],
@@ -523,9 +554,13 @@ export const useDiagramStore = create<DiagramState>()(
               isOpen: true,
               lastAccessedAt: new Date(d.updated_at).getTime(),
             }));
-            const openIds = canvases.map((c) => c.id);
-            const targetCanvas = canvases.find((c) => c.id === activeCanvasId) || canvases[0];
-            set({ canvases, openCanvasIds: openIds, activeCanvasId: targetCanvas.id, nodes: targetCanvas.nodes, edges: targetCanvas.edges });
+
+            // Merge local and DB canvases, keeping the most recent version of each
+            const mergedCanvases = mergeCanvases(localCanvases, dbCanvases);
+            
+            const openIds = mergedCanvases.map((c) => c.id);
+            const targetCanvas = mergedCanvases.find((c) => c.id === activeCanvasId) || mergedCanvases[0];
+            set({ canvases: mergedCanvases, openCanvasIds: openIds, activeCanvasId: targetCanvas.id, nodes: targetCanvas.nodes, edges: targetCanvas.edges });
           }
         } catch {
           // silently fail — guest fallback
@@ -862,15 +897,37 @@ export const useDiagramStore = create<DiagramState>()(
         showGrid: s.showGrid,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state && state.canvases && state.activeCanvasId) {
+        if (state && state.canvases && state.canvases.length > 0) {
+          // Ensure activeCanvasId is valid
+          if (!state.activeCanvasId || !state.canvases.find((c: CanvasTab) => c.id === state.activeCanvasId)) {
+            state.activeCanvasId = state.canvases[0].id;
+          }
+          
           const active = state.canvases.find((c: CanvasTab) => c.id === state.activeCanvasId);
           if (active) {
-            state.nodes = active.nodes;
-            state.edges = active.edges.map((e: Edge) => ({ ...e, type: 'custom' }));
-            state.canvases = state.canvases.map(c => ({
+            // Ensure nodes/edges match the active canvas
+            state.nodes = active.nodes || [];
+            state.edges = (active.edges || []).map((e: Edge) => ({ ...e, type: 'custom' }));
+            // Fix edge types in all canvases
+            state.canvases = state.canvases.map((c: CanvasTab) => ({
               ...c,
-              edges: c.edges.map((e: Edge) => ({ ...e, type: 'custom' }))
+              edges: (c.edges || []).map((e: Edge) => ({ ...e, type: 'custom' }))
             }));
+          } else {
+            // Fallback: create a default canvas if none exist
+            const defaultCanvas: CanvasTab = {
+              id: `canvas-${Date.now()}`,
+              name: 'Default',
+              nodes: [],
+              edges: [],
+              updatedAt: Date.now(),
+              isOpen: true,
+              lastAccessedAt: Date.now(),
+            };
+            state.canvases = [defaultCanvas];
+            state.activeCanvasId = defaultCanvas.id;
+            state.nodes = [];
+            state.edges = [];
           }
         }
       },

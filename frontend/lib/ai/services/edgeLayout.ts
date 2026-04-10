@@ -32,6 +32,86 @@ const DEFAULT_CONFIG: EdgeLayoutConfig = {
   routingMode: 'orthogonal',
 };
 
+// ============================================================================
+// BIDIRECTIONAL EDGE DETECTION
+// ============================================================================
+
+export interface BidirectionalEdgeResult {
+  bidirectionalPairs: Array<{ forward: string; reverse: string }>;
+  hasBidirectionalEdges: boolean;
+}
+
+export function detectBidirectionalEdges(edges: ReactFlowEdge[]): BidirectionalEdgeResult {
+  const bidirectionalPairs: Array<{ forward: string; reverse: string }> = [];
+  const forwardEdges = new Map<string, string>();
+  const reverseLookup = new Map<string, string>();
+
+  for (const edge of edges) {
+    const key = `${edge.source}→${edge.target}`;
+    forwardEdges.set(key, edge.id);
+    reverseLookup.set(edge.id, key);
+  }
+
+  for (const edge of edges) {
+    const reverseKey = `${edge.target}→${edge.source}`;
+    if (forwardEdges.has(reverseKey)) {
+      const forwardId = forwardEdges.get(reverseKey)!;
+      if (!bidirectionalPairs.some(p => p.forward === forwardId || p.reverse === forwardId)) {
+        bidirectionalPairs.push({ forward: forwardId, reverse: edge.id });
+      }
+    }
+  }
+
+  return {
+    bidirectionalPairs,
+    hasBidirectionalEdges: bidirectionalPairs.length > 0,
+  };
+}
+
+export function filterBidirectionalEdges(
+  edges: ReactFlowEdge[],
+  strategy: 'keep-forward' | 'keep-reverse' | 'keep-sync' | 'keep-async' = 'keep-forward'
+): ReactFlowEdge[] {
+  const { bidirectionalPairs } = detectBidirectionalEdges(edges);
+  
+  if (bidirectionalPairs.length === 0) return edges;
+
+  const bidirectionalSet = new Set<string>();
+  for (const pair of bidirectionalPairs) {
+    if (strategy === 'keep-forward') {
+      bidirectionalSet.add(pair.reverse);
+    } else if (strategy === 'keep-reverse') {
+      bidirectionalSet.add(pair.forward);
+    } else if (strategy === 'keep-sync') {
+      const forwardEdge = edges.find(e => e.id === pair.forward);
+      const reverseEdge = edges.find(e => e.id === pair.reverse);
+      const forwardIsSync = forwardEdge?.data?.communicationType === 'sync';
+      const reverseIsSync = reverseEdge?.data?.communicationType === 'sync';
+      if (forwardIsSync && !reverseIsSync) {
+        bidirectionalSet.add(pair.reverse);
+      } else if (reverseIsSync && !forwardIsSync) {
+        bidirectionalSet.add(pair.forward);
+      } else {
+        bidirectionalSet.add(pair.reverse);
+      }
+    } else if (strategy === 'keep-async') {
+      const forwardEdge = edges.find(e => e.id === pair.forward);
+      const reverseEdge = edges.find(e => e.id === pair.reverse);
+      const forwardIsAsync = forwardEdge?.data?.communicationType === 'async';
+      const reverseIsAsync = reverseEdge?.data?.communicationType === 'async';
+      if (forwardIsAsync && !reverseIsAsync) {
+        bidirectionalSet.add(pair.reverse);
+      } else if (reverseIsAsync && !forwardIsAsync) {
+        bidirectionalSet.add(pair.forward);
+      } else {
+        bidirectionalSet.add(pair.reverse);
+      }
+    }
+  }
+
+  return edges.filter(edge => !bidirectionalSet.has(edge.id));
+}
+
 export function computeEdgeLayout(
   nodes: ReactFlowNode[],
   edges: ReactFlowEdge[],

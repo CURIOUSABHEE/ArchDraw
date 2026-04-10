@@ -5,27 +5,106 @@ import logger from '@/lib/logger';
 
 const elk = new ELK();
 
+const LAYOUT_CACHE = new Map<string, { nodes: ReactFlowNode[]; timestamp: number }>();
+const LAYOUT_CACHE_TTL = 5 * 60 * 1000;
+
+const FAST_ELK_OPTIONS = {
+  'elk.algorithm': 'layered',
+  'elk.direction': 'RIGHT',
+  'elk.spacing.nodeNode': '80',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '180',
+  'elk.layered.compaction.onlyImprovePositions': 'true',
+  'elk.layered.crossingMinimization.strategy': 'NONE',
+  'elk.layered.nodePlacement.strategy': 'SIMPLE',
+  'elk.separateConnectedComponents': 'false',
+};
+
+function getTopologySignature(nodes: ArchitectureNode[]): string {
+  const layerCounts: Record<string, number> = {};
+  for (const node of nodes) {
+    const layer = node.layer || 'compute';
+    layerCounts[layer] = (layerCounts[layer] || 0) + 1;
+  }
+  return JSON.stringify(Object.entries(layerCounts).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+async function runELKLayoutAsync(
+  graph: unknown,
+  options?: Record<string, string>
+): Promise<unknown> {
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('ELK timeout')), 500);
+  });
+
+  const elkPromise = elk.layout(graph as Parameters<typeof elk.layout>[0]);
+
+  return Promise.race([elkPromise, timeoutPromise]);
+}
+
+function adjustCachedLayout(
+  cachedNodes: ReactFlowNode[],
+  actualNodes: ArchitectureNode[],
+  nodeWidth: number,
+  nodeHeight: number
+): ReactFlowNode[] {
+  const cachedMap = new Map(cachedNodes.map(n => [n.data?.label || n.id, n]));
+  const result: ReactFlowNode[] = [];
+
+  for (const node of actualNodes) {
+    const cached = cachedMap.get(node.label);
+    if (cached) {
+      result.push({
+        ...cached,
+        id: node.id,
+        data: {
+          ...cached.data,
+          label: node.label,
+          layer: node.layer,
+        },
+        width: node.width ?? nodeWidth,
+        height: node.height ?? nodeHeight,
+      });
+    } else {
+      result.push({
+        id: node.id,
+        type: 'systemNode',
+        position: { x: TIER_X[node.layer || 'compute'] ?? 500, y: 50 },
+        data: {
+          label: node.label,
+          icon: node.icon || 'box',
+          layer: node.layer,
+        },
+        width: node.width ?? nodeWidth,
+        height: node.height ?? nodeHeight,
+      });
+    }
+  }
+
+  return result;
+}
+
 export interface ELKLayoutConfig {
   elkOptions?: Record<string, string>;
   nodeWidth?: number;
   nodeHeight?: number;
 }
 
-export const DEFAULT_NODE_WIDTH = 80;
-export const DEFAULT_NODE_HEIGHT = 80;
+export const DEFAULT_NODE_WIDTH = 160;
+export const DEFAULT_NODE_HEIGHT = 70;
 
-const DEFAULT_ELK_OPTIONS = {
+const OPTIMIZED_ELK_OPTIONS = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
   'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
   'elk.edgeRouting': 'SPLINES',
   'elk.portConstraints': 'FIXED_SIDE',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '120',
-  'elk.spacing.nodeNode': '60',
-  'elk.spacing.edgeEdge': '40',
-  'elk.spacing.edgeNode': '60',
-  'elk.spacing.labelNode': '30',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '80',
+  'elk.spacing.nodeNode': '120',
+  'elk.spacing.edgeEdge': '60',
+  'elk.spacing.edgeNode': '100',
+  'elk.spacing.labelNode': '50',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '250',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '150',
+  'elk.layered.spacing.edgeEdgeBetweenLayers': '80',
   'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
   'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
@@ -33,94 +112,67 @@ const DEFAULT_ELK_OPTIONS = {
   'elk.layered.separatingEdges.strategy': 'CENTERING',
   'elk.layered.unnecessaryBendpoints': 'false',
   'elk.layered.mergeEdges': 'false',
-  'elk.layered.spacing.edgeEdgeBetweenLayers': '50',
+  'elk.layered.compaction.strategy': 'NONE',
+  'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
   'elk.edgeLabels.inline': 'false',
   'elk.edgeLabels.placement': 'CENTER',
-  'elk.padding': '[top=50, left=24, bottom=24, right=24]',
+  'elk.padding': '[top=80, left=50, bottom=80, right=50]',
 };
 
-const LAYER_X_POSITIONS: Record<number, number> = {
-  1: 60,
-  2: 320,
-  3: 580,
-  4: 900,
-  5: 1160,
+const TIER_X: Record<string, number> = {
+  client: 50,
+  edge: 400,
+  compute: 800,
+  async: 1200,
+  data: 1600,
+  observe: 2000,
+  external: 2400,
 };
-const LAYER_SPACING_Y = 100;
-const NODE_HEIGHT_DEFAULT = 60;
-const NODE_WIDTH_DEFAULT = 160;
-const CANVAS_HEIGHT = 600;
 
-function computeLayerAwarePositions(nodes: ArchitectureNode[]): Map<string, { x: number; y: number }> {
-  const positions = new Map<string, { x: number; y: number }>();
-  const nodesByLayer = new Map<number, ArchitectureNode[]>();
-  
-  for (const node of nodes) {
-    if (node.isGroup) continue;
-    const layer = node.layerIndex ?? 3;
-    if (!nodesByLayer.has(layer)) nodesByLayer.set(layer, []);
-    nodesByLayer.get(layer)!.push(node);
-  }
-  
-  for (const [layer, layerNodes] of nodesByLayer) {
-    if (layerNodes.length === 0) continue;
-    
-    const totalHeight = (layerNodes.length * NODE_HEIGHT_DEFAULT) + ((layerNodes.length - 1) * LAYER_SPACING_Y);
-    const startY = Math.max(40, (CANVAS_HEIGHT / 2) - (totalHeight / 2));
-    
-    layerNodes.forEach((node, index) => {
-      const x = LAYER_X_POSITIONS[layer] ?? LAYER_X_POSITIONS[3];
-      const y = startY + (index * (NODE_HEIGHT_DEFAULT + LAYER_SPACING_Y));
-      positions.set(node.id, { x, y });
-    });
-  }
-  
-  return positions;
+const LAYER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
+const MIN_VERTICAL_SPACING = 140;
+const MAX_NODES_PER_COLUMN = 4;
+
+export type ComplexityTier = 'simple' | 'moderate' | 'complex';
+
+export interface ELKLayoutConfig {
+  elkOptions?: Record<string, string>;
+  nodeWidth?: number;
+  nodeHeight?: number;
+  complexityTier?: ComplexityTier;
+  maxNodesPerColumn?: number;
 }
 
-// STEP 5A: Calculate group node dimensions based on children
-function calculateGroupDimensions(nodes: ArchitectureNode[]): ArchitectureNode[] {
-  const CHILD_WIDTH = 160;
-  const CHILD_HEIGHT = 60;
-  const CHILD_MARGIN = 20;
-  const GROUP_PADDING_H = 32;
-  const GROUP_PADDING_TOP = 48;
-  const GROUP_PADDING_BOTTOM = 24;
-  const ROW_GAP = 20;
+export function getELKOptionsForComplexity(tier: ComplexityTier): Record<string, string> {
+  const baseOptions: Record<string, string> = {};
+  
+  if (tier === 'simple') {
+    baseOptions['elk.spacing.nodeNode'] = '100';
+    baseOptions['elk.spacing.edgeNode'] = '80';
+    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '200';
+    baseOptions['elk.padding'] = '[top=50, left=30, bottom=50, right=30]';
+  } else if (tier === 'moderate') {
+    baseOptions['elk.spacing.nodeNode'] = '120';
+    baseOptions['elk.spacing.edgeNode'] = '100';
+    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '250';
+    baseOptions['elk.padding'] = '[top=80, left=50, bottom=80, right=50]';
+  } else {
+    baseOptions['elk.spacing.nodeNode'] = '160';
+    baseOptions['elk.spacing.edgeNode'] = '140';
+    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '350';
+    baseOptions['elk.padding'] = '[top=100, left=80, bottom=100, right=80]';
+  }
 
-  const groupNodes = nodes.filter(n => n.isGroup === true);
-  const childNodes = nodes.filter(n => n.parentId !== undefined);
+  return {
+    ...OPTIMIZED_ELK_OPTIONS,
+    ...baseOptions,
+  };
+}
 
-  return nodes.map(node => {
-    if (node.isGroup !== true) return node;
-
-    const children = childNodes.filter(c => c.parentId === node.id);
-    if (children.length === 0) return node;
-
-    const childCount = children.length;
-    let columnsCount: number;
-    if (childCount <= 2) columnsCount = childCount;
-    else if (childCount <= 4) columnsCount = 2;
-    else if (childCount <= 6) columnsCount = 3;
-    else columnsCount = 3;
-
-    const rows = Math.ceil(childCount / columnsCount);
-
-    let groupWidth: number;
-    if (childCount <= 2) {
-      groupWidth = (childCount * CHILD_WIDTH) + ((childCount - 1) * CHILD_MARGIN) + GROUP_PADDING_H;
-    } else {
-      groupWidth = (columnsCount * CHILD_WIDTH) + ((columnsCount - 1) * CHILD_MARGIN) + GROUP_PADDING_H;
-    }
-
-    const groupHeight = (rows * CHILD_HEIGHT) + ((rows - 1) * ROW_GAP) + GROUP_PADDING_TOP + GROUP_PADDING_BOTTOM;
-
-    return {
-      ...node,
-      width: Math.max(groupWidth, 240),
-      height: Math.max(groupHeight, 160),
-    };
-  });
+export interface LayoutResult {
+  nodes: ReactFlowNode[];
+  edgePaths: EdgePath[];
+  elkGraph: { id: string; x?: number; y?: number; width?: number; height?: number }[];
 }
 
 interface ELKNode {
@@ -163,25 +215,163 @@ interface ELKGraph {
   ports?: ELKPort[];
 }
 
-interface ELKLayoutEdge {
-  id: string;
-  sections?: {
-    startPoint?: { x: number; y: number };
-    endPoint?: { x: number; y: number };
-    bendPoints?: { x: number; y: number }[];
-    incomingShape?: string;
-    outgoingShape?: string;
-  }[];
+function distributeNodesVertically(
+  nodes: ArchitectureNode[],
+  startY: number,
+  maxPerColumn: number = MAX_NODES_PER_COLUMN
+): { x: number; y: number }[] {
+  const positions: { x: number; y: number }[] = [];
+  const columns = Math.ceil(nodes.length / maxPerColumn);
+  const columnWidth = 280;
+
+  for (let i = 0; i < nodes.length; i++) {
+    const column = Math.floor(i / maxPerColumn);
+    const row = i % maxPerColumn;
+    positions.push({
+      x: column * columnWidth,
+      y: startY + row * MIN_VERTICAL_SPACING,
+    });
+  }
+
+  return positions;
 }
 
-const LAYER_ORDER = ['client', 'gateway', 'service', 'queue', 'database', 'cache', 'external', 'devops'];
-const MAX_LAYER_DISTANCE_FOR_BEZIER = 3;
-const EDGE_ROUTING_COLLISION_THRESHOLD = 2;
+function createDistributedPorts(nodeId: string, side: 'EAST' | 'WEST', count: number): ELKPort[] {
+  if (count === 0) {
+    return [{
+      id: `${nodeId}-port-${side.toLowerCase()}-default`,
+      width: 10,
+      height: 10,
+      properties: {
+        'org.eclipse.elk.port.side': side,
+        'org.eclipse.elk.port.anchor': 'CENTER',
+      },
+    }];
+  }
 
-export interface LayoutResult {
-  nodes: ReactFlowNode[];
-  edgePaths: EdgePath[];
-  elkGraph: { id: string; x?: number; y?: number; width?: number; height?: number }[];
+  const ports: ELKPort[] = [];
+  const positions = count === 1 ? [0.5] : count === 2 ? [0.3, 0.7] : [0.25, 0.5, 0.75];
+
+  positions.slice(0, count).forEach((pos, idx) => {
+    const anchor = pos === 0.5 ? 'CENTER' : pos < 0.5 ? 'TOP' : 'BOTTOM';
+    ports.push({
+      id: `${nodeId}-port-${side.toLowerCase()}-${idx}`,
+      width: 8,
+      height: 8,
+      properties: {
+        'org.eclipse.elk.port.side': side,
+        'org.eclipse.elk.port.anchor': anchor as 'CENTER' | 'TOP' | 'BOTTOM',
+      },
+    });
+  });
+
+  return ports;
+}
+
+function calculateGroupDimensions(nodes: ArchitectureNode[]): ArchitectureNode[] {
+  const CHILD_WIDTH = 160;
+  const CHILD_HEIGHT = 60;
+  const CHILD_MARGIN = 20;
+  const GROUP_PADDING_H = 32;
+  const GROUP_PADDING_TOP = 48;
+  const GROUP_PADDING_BOTTOM = 24;
+  const ROW_GAP = 20;
+
+  return nodes.map(node => {
+    if (node.isGroup !== true) return node;
+
+    const children = nodes.filter(c => c.parentId === node.id);
+    if (children.length === 0) return node;
+
+    const columnsCount = Math.min(3, children.length);
+    const rows = Math.ceil(children.length / columnsCount);
+    const groupWidth = (columnsCount * CHILD_WIDTH) + ((columnsCount - 1) * CHILD_MARGIN) + GROUP_PADDING_H;
+    const groupHeight = (rows * CHILD_HEIGHT) + ((rows - 1) * ROW_GAP) + GROUP_PADDING_TOP + GROUP_PADDING_BOTTOM;
+
+    return {
+      ...node,
+      width: Math.max(groupWidth, 240),
+      height: Math.max(groupHeight, 160),
+    };
+  });
+}
+
+function postProcessLayout(
+  nodes: ReactFlowNode[],
+  edges: ReactFlowEdge[]
+): ReactFlowNode[] {
+  const nodesByTier: Record<string, ReactFlowNode[]> = {};
+  const NODE_HEIGHT = 70;
+  const LAYER_HEIGHT = 160;
+
+  for (const node of nodes) {
+    const tier = node.data?.layer || 'compute';
+    if (!nodesByTier[tier]) nodesByTier[tier] = [];
+    nodesByTier[tier].push(node);
+  }
+
+  const processedNodes = [...nodes];
+
+  for (const tier of LAYER_ORDER) {
+    const tierNodes = nodesByTier[tier] || [];
+    if (tierNodes.length <= 1) continue;
+
+    tierNodes.sort((a, b) => a.position.y - b.position.y);
+
+    let currentY = tierNodes[0].position.y;
+    for (let i = 0; i < tierNodes.length; i++) {
+      const node = tierNodes[i];
+      const nodeIndex = processedNodes.findIndex(n => n.id === node.id);
+      if (nodeIndex === -1) continue;
+
+      if (i > 0) {
+        const prevNode = tierNodes[i - 1];
+        const minY = prevNode.position.y + (prevNode.height || NODE_HEIGHT) + 50;
+        currentY = Math.max(currentY, minY);
+      }
+
+      processedNodes[nodeIndex] = {
+        ...processedNodes[nodeIndex],
+        position: { ...processedNodes[nodeIndex].position, y: currentY },
+      };
+
+      currentY += NODE_HEIGHT + 50;
+    }
+
+    const x = TIER_X[tier] ?? 500;
+    tierNodes.forEach(node => {
+      const nodeIndex = processedNodes.findIndex(n => n.id === node.id);
+      if (nodeIndex !== -1) {
+        processedNodes[nodeIndex] = {
+          ...processedNodes[nodeIndex],
+          position: { ...processedNodes[nodeIndex].position, x },
+        };
+      }
+    });
+  }
+
+  return processedNodes;
+}
+
+function resolveEdgeConflicts(
+  nodes: ReactFlowNode[],
+  edges: ReactFlowEdge[]
+): ReactFlowEdge[] {
+  const sourceCounts = new Map<string, number>();
+  const processed = edges.map(edge => {
+    const count = (sourceCounts.get(edge.source) || 0) + 1;
+    sourceCounts.set(edge.source, count);
+
+    let offset = 0;
+    if (count > 1) {
+      const offsetIndex = count - 1;
+      offset = (offsetIndex % 2 === 0 ? 1 : -1) * Math.floor(offsetIndex / 2) * 20;
+    }
+
+    return { ...edge, data: { ...edge.data, sourceOffset: offset } };
+  });
+
+  return processed;
 }
 
 export async function computeELKLayout(
@@ -191,23 +381,24 @@ export async function computeELKLayout(
 ): Promise<LayoutResult> {
   const nodeWidth = config.nodeWidth ?? DEFAULT_NODE_WIDTH;
   const nodeHeight = config.nodeHeight ?? DEFAULT_NODE_HEIGHT;
-  const elkOptions = { ...DEFAULT_ELK_OPTIONS, ...config.elkOptions };
 
-  // STEP 5A: Calculate group dimensions
-  const nodesWithGroupDims = calculateGroupDimensions(nodes);
-
-  // STEP 5B: Compute layer-aware X positions for each node
-  const layerAwarePositions = computeLayerAwarePositions(nodesWithGroupDims);
-  logger.log(`[ELK Layout] Layer-aware positions computed for ${layerAwarePositions.size} nodes`);
-  for (const [nodeId, pos] of layerAwarePositions) {
-    logger.log(`[ELK Layout]   ${nodeId}: x=${pos.x}, y=${pos.y}`);
+  const signature = getTopologySignature(nodes);
+  const cached = LAYOUT_CACHE.get(signature);
+  if (cached && Date.now() - cached.timestamp < LAYOUT_CACHE_TTL) {
+    logger.log(`[ELK] Cache hit for signature: ${signature}`);
+    const cachedNodes = adjustCachedLayout(cached.nodes, nodes, nodeWidth, nodeHeight);
+    return {
+      nodes: cachedNodes,
+      edgePaths: [],
+      elkGraph: cachedNodes.map(n => ({ id: n.id, x: n.position.x, y: n.position.y })),
+    };
   }
 
-  const nodeLayerMap = new Map<string, number>();
-  nodesWithGroupDims.forEach((node, index) => {
-    const layerIndex = LAYER_ORDER.indexOf(node.layer || 'service');
-    nodeLayerMap.set(node.id, layerIndex >= 0 ? layerIndex : 4);
-  });
+  const nodesWithGroupDims = calculateGroupDimensions(nodes);
+
+  const groupNodes = nodesWithGroupDims.filter(n => n.isGroup === true);
+  const childNodes = nodesWithGroupDims.filter(n => n.parentId !== undefined);
+  const rootNodes = nodesWithGroupDims.filter(n => !n.isGroup && !n.parentId);
 
   const incomingEdgeCount = new Map<string, number>();
   const outgoingEdgeCount = new Map<string, number>();
@@ -216,198 +407,102 @@ export async function computeELKLayout(
     outgoingEdgeCount.set(edge.source, (outgoingEdgeCount.get(edge.source) || 0) + 1);
   });
 
-  function validateAndFixOrphanNodes(
+  const nodeLayerMap = new Map<string, number>();
+  nodesWithGroupDims.forEach((node, index) => {
+    const tier = node.tier || node.layer || 'compute';
+    const layerIndex = LAYER_ORDER.indexOf(tier);
+    nodeLayerMap.set(node.id, layerIndex >= 0 ? layerIndex : 2);
+  });
+
+  const validateAndFixOrphanNodes = (
     nodes: ArchitectureNode[],
     edges: ArchitectureEdge[]
-  ): ArchitectureEdge[] {
+  ): ArchitectureEdge[] => {
     const connectedNodes = new Set<string>();
-    
     edges.forEach(edge => {
       connectedNodes.add(edge.source);
       connectedNodes.add(edge.target);
     });
 
     const orphanNodes = nodes.filter(node => !connectedNodes.has(node.id));
-    
-    if (orphanNodes.length > 0) {
-      logger.log(`[ELK Layout] Found ${orphanNodes.length} orphan nodes: ${orphanNodes.map(n => n.id).join(', ')}`);
-    }
-
     const fixedEdges = [...edges];
-    const nodeMap = new Map(nodes.map(n => [n.layer || 'service', n]));
+
+    if (orphanNodes.length === 0) return fixedEdges;
+
     const nodesByLayer = new Map<string, ArchitectureNode[]>();
-    
     nodes.forEach(node => {
       const layer = node.layer || 'service';
-      if (!nodesByLayer.has(layer)) {
-        nodesByLayer.set(layer, []);
-      }
+      if (!nodesByLayer.has(layer)) nodesByLayer.set(layer, []);
       nodesByLayer.get(layer)!.push(node);
     });
 
-    const layerOrder = ['client', 'gateway', 'service', 'queue', 'database', 'cache', 'external', 'devops'];
-
     for (const orphan of orphanNodes) {
       const orphanLayer = orphan.layer || 'service';
-      const orphanLayerIndex = layerOrder.indexOf(orphanLayer);
-      
+      const orphanLayerIndex = LAYER_ORDER.indexOf(orphanLayer);
+
       let targetNode: ArchitectureNode | undefined;
-      let sourceNode: ArchitectureNode | undefined;
-      
-      for (let i = orphanLayerIndex + 1; i < layerOrder.length; i++) {
-        const layerNodes = nodesByLayer.get(layerOrder[i]) || [];
+      for (let i = orphanLayerIndex + 1; i < LAYER_ORDER.length; i++) {
+        const layerNodes = nodesByLayer.get(LAYER_ORDER[i]) || [];
         const connected = layerNodes.find(n => connectedNodes.has(n.id));
-        if (connected) {
-          targetNode = connected;
-          break;
-        }
-      }
-      
-      if (!targetNode) {
-        for (let i = orphanLayerIndex - 1; i >= 0; i--) {
-          const layerNodes = nodesByLayer.get(layerOrder[i]) || [];
-          const connected = layerNodes.find(n => connectedNodes.has(n.id));
-          if (connected) {
-            sourceNode = connected;
-            break;
-          }
-        }
+        if (connected) { targetNode = connected; break; }
       }
 
-      const defaultEdgeProps = {
-        sourceHandle: 'right' as const,
-        targetHandle: 'left' as const,
-        communicationType: 'sync' as const,
-        pathType: 'smooth' as const,
-        labelPosition: 'center' as const,
-        animated: false,
-        style: {
-          stroke: '#6366f1',
-          strokeDasharray: '',
-          strokeWidth: 2,
-        },
-        markerEnd: 'arrowclosed' as const,
-        markerStart: 'none' as const,
-      };
+      if (!targetNode) {
+        for (let i = orphanLayerIndex - 1; i >= 0; i--) {
+          const layerNodes = nodesByLayer.get(LAYER_ORDER[i]) || [];
+          const connected = layerNodes.find(n => connectedNodes.has(n.id));
+          if (connected) { targetNode = connected; break; }
+        }
+      }
 
       if (targetNode) {
         fixedEdges.push({
           id: `auto-edge-${orphan.id}-to-${targetNode.id}`,
           source: orphan.id,
           target: targetNode.id,
-          label: `${orphan.label} → ${targetNode.label}`,
-          ...defaultEdgeProps,
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          communicationType: 'sync',
+          pathType: 'smooth',
+          label: '',
+          labelPosition: 'center',
+          animated: false,
+          style: { stroke: '#6366f1', strokeDasharray: '', strokeWidth: 2 },
+          markerEnd: 'arrowclosed',
+          markerStart: 'none',
         });
-        logger.log(`[ELK Layout] Connected orphan ${orphan.id} → ${targetNode.id}`);
-      } else if (sourceNode) {
-        fixedEdges.push({
-          id: `auto-edge-${sourceNode.id}-to-${orphan.id}`,
-          source: sourceNode.id,
-          target: orphan.id,
-          label: `${sourceNode.label} → ${orphan.label}`,
-          ...defaultEdgeProps,
-        });
-        logger.log(`[ELK Layout] Connected orphan ${sourceNode.id} → ${orphan.id}`);
-      } else {
-        const firstConnectedNode = nodes.find(n => n.id !== orphan.id && connectedNodes.has(n.id));
-        if (firstConnectedNode) {
-          fixedEdges.push({
-            id: `auto-edge-${orphan.id}-to-${firstConnectedNode.id}`,
-            source: orphan.id,
-            target: firstConnectedNode.id,
-            label: `${orphan.label} → ${firstConnectedNode.label}`,
-            ...defaultEdgeProps,
-          });
-          logger.log(`[ELK Layout] Connected orphan ${orphan.id} → ${firstConnectedNode.id}`);
-        }
+        connectedNodes.add(orphan.id);
       }
     }
 
     return fixedEdges;
-  }
+  };
 
   const validatedEdges = validateAndFixOrphanNodes(nodes, edges);
 
-  logger.log(`[ELK Layout] Validated edges: ${edges.length} → ${validatedEdges.length}`);
-
-  function createDistributedPorts(nodeId: string, side: 'EAST' | 'WEST', count: number): ELKPort[] {
-    const ports: ELKPort[] = [];
-    const positions = getDistributedPositions(count);
-
-    positions.forEach((pos, index) => {
-      const anchor = pos === 0.5 ? 'CENTER' : pos < 0.5 ? 'TOP' : 'BOTTOM';
-      ports.push({
-        id: `${nodeId}-port-${side.toLowerCase()}-${index}`,
-        width: 8,
-        height: 8,
-        properties: {
-          'org.eclipse.elk.port.side': side,
-          'org.eclipse.elk.port.anchor': anchor as 'CENTER' | 'TOP' | 'BOTTOM',
-        },
-      });
-    });
-
-    return ports;
-  }
-
-  function getDistributedPositions(count: number): number[] {
-    if (count === 1) return [0.5];
-    if (count === 2) return [0.3, 0.7];
-    if (count === 3) return [0.25, 0.5, 0.75];
-    const positions: number[] = [];
-    for (let i = 0; i < count; i++) {
-      positions.push((i + 1) / (count + 1));
-    }
-    return positions;
-  }
-
-  // STEP 5C: Build ELK graph with group hierarchy
-  const groupNodes = nodesWithGroupDims.filter(n => n.isGroup === true);
-  const childNodes = nodesWithGroupDims.filter(n => n.parentId !== undefined);
-  const rootNodes = nodesWithGroupDims.filter(n => !n.isGroup && !n.parentId);
-
-  function toElkNode(node: ArchitectureNode): ELKNode {
+  const toElkNode = (node: ArchitectureNode): ELKNode => {
     const width = node.width ?? nodeWidth;
     const height = node.height ?? nodeHeight;
     const inCount = validatedEdges.filter(e => e.target === node.id).length || incomingEdgeCount.get(node.id) || 0;
     const outCount = validatedEdges.filter(e => e.source === node.id).length || outgoingEdgeCount.get(node.id) || 0;
 
     const ports: ELKPort[] = [];
-
-    if (inCount > 0) {
-      ports.push(...createDistributedPorts(node.id, 'WEST', inCount));
-    }
-    if (outCount > 0) {
-      ports.push(...createDistributedPorts(node.id, 'EAST', outCount));
-    }
-
+    if (inCount > 0) ports.push(...createDistributedPorts(node.id, 'WEST', inCount));
+    if (outCount > 0) ports.push(...createDistributedPorts(node.id, 'EAST', outCount));
     if (inCount === 0 && outCount === 0) {
-      ports.push({
-        id: `${node.id}-port-west-default`,
-        width: 10,
-        height: 10,
-        properties: {
-          'org.eclipse.elk.port.side': 'WEST' as const,
-          'org.eclipse.elk.port.anchor': 'CENTER' as const,
-        },
-      });
-      ports.push({
-        id: `${node.id}-port-east-default`,
-        width: 10,
-        height: 10,
-        properties: {
-          'org.eclipse.elk.port.side': 'EAST' as const,
-          'org.eclipse.elk.port.anchor': 'CENTER' as const,
-        },
-      });
+      ports.push(...createDistributedPorts(node.id, 'WEST', 1));
+      ports.push(...createDistributedPorts(node.id, 'EAST', 1));
     }
+
+    const tier = node.tier || node.layer || 'compute';
+    const x = TIER_X[tier] ?? 500;
 
     return {
       id: node.id,
       width,
       height,
-      x: layerAwarePositions.get(node.id)?.x,
-      y: layerAwarePositions.get(node.id)?.y,
+      x,
+      y: 50,
       ports,
       layoutOptions: {
         'elk.nodeSize.constraints': 'MINIMUM_SIZE',
@@ -415,13 +510,10 @@ export async function computeELKLayout(
         'elk.portConstraints': 'FIXED_SIDE',
       },
     };
-  }
+  };
 
-  function toElkGroupNode(group: ArchitectureNode): ELKNode {
-    const children = childNodes
-      .filter(c => c.parentId === group.id)
-      .map(c => toElkNode(c));
-    
+  const toElkGroupNode = (group: ArchitectureNode): ELKNode => {
+    const children = childNodes.filter(c => c.parentId === group.id).map(toElkNode);
     return {
       id: group.id,
       width: group.width ?? 400,
@@ -433,227 +525,89 @@ export async function computeELKLayout(
         'elk.portConstraints': 'FIXED_SIDE',
       },
     };
-  }
+  };
 
   const elkNodes = [
     ...rootNodes.map(toElkNode),
     ...groupNodes.map(toElkGroupNode),
   ];
 
-  function calculateLayerDistance(sourceId: string, targetId: string): number {
-    const sourceLayer = nodeLayerMap.get(sourceId) ?? 0;
-    const targetLayer = nodeLayerMap.get(targetId) ?? 0;
-    return Math.abs(targetLayer - sourceLayer);
-  }
-
-  function getPortId(nodeId: string, side: 'source' | 'target', index: number, total: number): string {
-    const portSide = side === 'source' ? 'EAST' : 'WEST';
-    if (total <= 1) {
-      return `${nodeId}-port-${portSide.toLowerCase()}-default`;
-    }
-    return `${nodeId}-port-${portSide.toLowerCase()}-${index}`;
-  }
-
-  function detectEdgeCollisionsInPaths(edgePaths: EdgePath[], nodes: ReactFlowNode[]): { collisionCount: number; collidingEdgeIds: Set<string> } {
-    const collidingEdgeIds = new Set<string>();
-    const nodeBoxes = new Map<string, { x: number; y: number; width: number; height: number }>();
-    
-    for (const node of nodes) {
-      nodeBoxes.set(node.id, {
-        x: node.position.x,
-        y: node.position.y,
-        width: node.width ?? nodeWidth,
-        height: node.height ?? nodeHeight,
-      });
-    }
-
-    for (let i = 0; i < edgePaths.length; i++) {
-      const path1 = edgePaths[i];
-      
-      for (const wp of path1.waypoints) {
-        for (const [nodeId, box] of nodeBoxes) {
-          if (nodeId === path1.source || nodeId === path1.target) continue;
-          
-          if (wp.x >= box.x && wp.x <= box.x + box.width &&
-              wp.y >= box.y && wp.y <= box.y + box.height) {
-            collidingEdgeIds.add(path1.id);
-            break;
-          }
-        }
-      }
-
-      for (let j = i + 1; j < edgePaths.length; j++) {
-        const path2 = edgePaths[j];
-        
-        for (let k = 0; k < path1.waypoints.length - 1; k++) {
-          for (let l = 0; l < path2.waypoints.length - 1; l++) {
-            if (segmentsIntersect(
-              path1.waypoints[k], path1.waypoints[k + 1],
-              path2.waypoints[l], path2.waypoints[l + 1]
-            )) {
-              collidingEdgeIds.add(path1.id);
-              collidingEdgeIds.add(path2.id);
-            }
-          }
-        }
-      }
-    }
-
-    return { collisionCount: collidingEdgeIds.size, collidingEdgeIds };
-  }
-
-  function segmentsIntersect(p1: Point, p2: Point, p3: Point, p4: Point): boolean {
-    const d1 = direction(p3, p4, p1);
-    const d2 = direction(p3, p4, p2);
-    const d3 = direction(p1, p2, p3);
-    const d4 = direction(p1, p2, p4);
-    
-    if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
-        ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
-      return true;
-    }
-    return false;
-  }
-
-  function direction(p1: Point, p2: Point, p3: Point): number {
-    return (p3.x - p1.x) * (p2.y - p1.y) - (p2.x - p1.x) * (p3.y - p1.y);
-  }
-
   const edgeSourceIndex = new Map<string, number>();
   const edgeTargetIndex = new Map<string, number>();
 
   const elkEdges = validatedEdges.map((edge, edgeIdx) => {
-    const layerDistance = calculateLayerDistance(edge.source, edge.target);
-    const useOrthogonal = layerDistance > MAX_LAYER_DISTANCE_FOR_BEZIER;
-    const edgeRouting = useOrthogonal ? 'ORTHOGONAL' : 'SPLINES';
-
     const sourceIdx = edgeSourceIndex.get(edge.source) || 0;
     const targetIdx = edgeTargetIndex.get(edge.target) || 0;
-
     edgeSourceIndex.set(edge.source, sourceIdx + 1);
     edgeTargetIndex.set(edge.target, targetIdx + 1);
 
     const outCount = outgoingEdgeCount.get(edge.source) || 1;
     const inCount = incomingEdgeCount.get(edge.target) || 1;
 
-    const sourcePortId = getPortId(edge.source, 'source', sourceIdx, outCount);
-    const targetPortId = getPortId(edge.target, 'target', targetIdx, inCount);
-
-    const edgeDef: {
-      id: string;
-      sources: string[];
-      targets: string[];
-      sourcePort?: string;
-      targetPort?: string;
-      labels?: { text: string; width: number; height: number }[];
-      layoutOptions?: Record<string, string>;
-    } = {
+    return {
       id: edge.id,
       sources: [edge.source],
       targets: [edge.target],
-      sourcePort: sourcePortId,
-      targetPort: targetPortId,
+      sourcePort: `${edge.source}-port-east-${sourceIdx}`,
+      targetPort: `${edge.target}-port-west-${targetIdx}`,
     };
-
-    if (edge.label) {
-      const labelLength = edge.label.length * 8;
-      edgeDef.labels = [
-        {
-          text: edge.label,
-          width: Math.min(Math.max(labelLength, 80), 150),
-          height: 20,
-        },
-      ];
-    }
-
-    if (useOrthogonal) {
-      edgeDef.layoutOptions = {
-        'elk.edgeRouting': edgeRouting,
-        'elk.layered.separatingEdges.strategy': 'CENTERING',
-      };
-    }
-
-    logger.log(`[ELK Layout] Edge ${edgeIdx}: ${edge.source} → ${edge.target}, sourcePort=${sourcePortId}, targetPort=${targetPortId}, distance=${layerDistance}, routing=${edgeRouting}`);
-
-    return edgeDef;
   });
 
   try {
     const layoutStartTime = Date.now();
-    logger.log('[ELK Layout] Starting layout computation...');
-    logger.log(`[ELK Layout] Input nodes: ${nodes.length}, edges: ${edges.length}`);
+    logger.log(`[ELK] Starting layout: ${nodes.length} nodes, ${edges.length} edges`);
 
-    const elkGraph = await elk.layout({
+    const graph = {
       id: 'root',
-      layoutOptions: {
-        'elk.algorithm': elkOptions['elk.algorithm'],
-        'elk.direction': elkOptions['elk.direction'],
-        'elk.edgeRouting': elkOptions['elk.edgeRouting'],
-        'elk.portConstraints': elkOptions['elk.portConstraints'],
-        'elk.layered.spacing.nodeNodeBetweenLayers': elkOptions['elk.layered.spacing.nodeNodeBetweenLayers'],
-        'elk.spacing.nodeNode': elkOptions['elk.spacing.nodeNode'],
-        'elk.spacing.edgeEdge': elkOptions['elk.spacing.edgeEdge'],
-        'elk.spacing.edgeNode': elkOptions['elk.spacing.edgeNode'],
-        'elk.spacing.labelNode': elkOptions['elk.spacing.labelNode'],
-        'elk.layered.spacing.edgeNodeBetweenLayers': elkOptions['elk.layered.spacing.edgeNodeBetweenLayers'],
-        'elk.layered.considerModelOrder.strategy': elkOptions['elk.layered.considerModelOrder.strategy'],
-        'elk.layered.nodePlacement.strategy': elkOptions['elk.layered.nodePlacement.strategy'],
-        'elk.layered.crossingMinimization.strategy': elkOptions['elk.layered.crossingMinimization.strategy'],
-        'elk.layered.crossingMinimization.forceNodeModelOrder': elkOptions['elk.layered.crossingMinimization.forceNodeModelOrder'],
-        'elk.layered.separatingEdges.strategy': elkOptions['elk.layered.separatingEdges.strategy'],
-        'elk.layered.unnecessaryBendpoints': elkOptions['elk.layered.unnecessaryBendpoints'],
-        'elk.layered.mergeEdges': elkOptions['elk.layered.mergeEdges'],
-        'elk.layered.spacing.edgeEdgeBetweenLayers': elkOptions['elk.layered.spacing.edgeEdgeBetweenLayers'],
-        'elk.edgeLabels.inline': elkOptions['elk.edgeLabels.inline'],
-        'elk.edgeLabels.placement': elkOptions['elk.edgeLabels.placement'],
-      },
       children: elkNodes,
       edges: elkEdges,
-    }) as ELKGraph;
+    };
 
-    const layoutTime = Date.now() - layoutStartTime;
-    logger.log(`[ELK Layout] Completed in ${layoutTime}ms`);
-    logger.log(`[ELK Layout] Graph bounds: ${elkGraph.width ?? 0}x${elkGraph.height ?? 0}`);
-    logger.log(`[ELK Layout] ELK children count: ${elkGraph.children?.length ?? 0}`);
+    const elkGraph = await runELKLayoutAsync(graph) as ELKGraph;
 
-    const nodeMap = new Map<string, ArchitectureNode>();
-    for (const node of nodes) {
-      nodeMap.set(node.id, node);
-    }
+    logger.log(`[ELK] Completed in ${Date.now() - layoutStartTime}ms`);
 
-    const reactFlowNodes: ReactFlowNode[] = [];
+    LAYOUT_CACHE.set(signature, {
+      nodes: [],
+      timestamp: Date.now(),
+    });
+
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+    const extractAllNodes = (node: ELKGraph): { id: string; x?: number; y?: number; width?: number; height?: number }[] => {
+      const result: { id: string; x?: number; y?: number; width?: number; height?: number }[] = [];
+      if (node.id && node.id !== 'root' && node.x !== undefined && node.y !== undefined) {
+        result.push({ id: node.id, x: node.x, y: node.y, width: node.width, height: node.height });
+      }
+      if (node.children) {
+        for (const child of node.children) {
+          result.push(...extractAllNodes(child));
+        }
+      }
+      return result;
+    };
+
     const allELKNodes = extractAllNodes(elkGraph);
-    logger.log(`[ELK Layout] Extracted nodes: ${allELKNodes.length}`);
+    const reactFlowNodes: ReactFlowNode[] = [];
 
     for (const elkNode of allELKNodes) {
       const originalNode = nodeMap.get(elkNode.id);
-      if (!originalNode) {
-        logger.log(`[ELK Layout] No original node for: ${elkNode.id}`);
-        continue;
-      }
+      if (!originalNode) continue;
 
-      // STEP 5D: Set React Flow-specific fields for group nodes
       const isGroup = originalNode.isGroup === true;
       const isChild = originalNode.parentId !== undefined;
+      const tier = originalNode.tier || originalNode.layer || 'compute';
+      const x = TIER_X[tier] ?? elkNode.x ?? 500;
 
-      const nodeType = isGroup ? 'group' : 'systemNode';
-
-      // Enforce X position from layer, allow ELK to optimize Y
-      const enforcedX = LAYER_X_POSITIONS[originalNode.layerIndex ?? 3] ?? LAYER_X_POSITIONS[3];
-      
       reactFlowNodes.push({
         id: elkNode.id,
-        type: nodeType,
-        position: {
-          x: enforcedX,
-          y: elkNode.y ?? 0,
-        },
+        type: isGroup ? 'group' : 'systemNode',
+        position: { x, y: elkNode.y ?? 0 },
         data: {
           label: originalNode.label,
           icon: originalNode.icon ?? 'box',
           layer: originalNode.layer,
           layerIndex: originalNode.layerIndex,
-          // Group-specific data
           groupLabel: originalNode.groupLabel,
           groupColor: originalNode.groupColor,
           serviceType: originalNode.serviceType,
@@ -662,258 +616,59 @@ export async function computeELKLayout(
         height: originalNode.height ?? nodeHeight,
         zIndex: isGroup ? 0 : 1,
         extent: isChild ? 'parent' : undefined,
-        style: isGroup ? {
-          width: originalNode.width ?? nodeWidth,
-          height: originalNode.height ?? nodeHeight,
-        } : undefined,
+        style: isGroup ? { width: originalNode.width ?? nodeWidth, height: originalNode.height ?? nodeHeight } : undefined,
       });
     }
 
-    logger.log(`[ELK Layout] Final reactFlowNodes: ${reactFlowNodes.length}`);
+    const postProcessedNodes = postProcessLayout(reactFlowNodes, []);
 
-    let edgePaths = extractEdgePathsFromELK(elkGraph, nodes);
-
-    const collisionCheck = detectEdgeCollisionsInPaths(edgePaths, reactFlowNodes);
-    if (collisionCheck.collisionCount > 0) {
-      logger.log(`[ELK Layout] Detected ${collisionCheck.collisionCount} edge collisions - rerunning with ORTHOGONAL routing for colliding edges`);
-
-      const collidingEdgeIds = collisionCheck.collidingEdgeIds;
-      const reroutedEdges = edges.map(edge => {
-        const edgeDef: {
-          id: string;
-          sources: string[];
-          targets: string[];
-          sourcePort?: string;
-          targetPort?: string;
-          labels?: { text: string; width: number; height: number }[];
-          layoutOptions?: Record<string, string>;
-        } = {
-          id: edge.id,
-          sources: [edge.source],
-          targets: [edge.target],
-        };
-
-        const sourceIdx = edgeSourceIndex.get(edge.source) || 0;
-        const targetIdx = edgeTargetIndex.get(edge.target) || 0;
-        edgeSourceIndex.set(edge.source, sourceIdx + 1);
-        edgeTargetIndex.set(edge.target, targetIdx + 1);
-
-        const outCount = outgoingEdgeCount.get(edge.source) || 1;
-        const inCount = incomingEdgeCount.get(edge.target) || 1;
-
-        edgeDef.sourcePort = getPortId(edge.source, 'source', sourceIdx, outCount);
-        edgeDef.targetPort = getPortId(edge.target, 'target', targetIdx, inCount);
-
-        if (edge.label) {
-          const labelLength = edge.label.length * 8;
-          edgeDef.labels = [
-            {
-              text: edge.label,
-              width: Math.min(Math.max(labelLength, 80), 150),
-              height: 20,
-            },
-          ];
-        }
-
-        if (collidingEdgeIds.has(edge.id)) {
-          edgeDef.layoutOptions = {
-            'elk.edgeRouting': 'ORTHOGONAL',
-            'elk.layered.separatingEdges.strategy': 'CENTERING',
-          };
-          logger.log(`[ELK Layout] Edge ${edge.id} -> ORTHOGONAL (collision detected)`);
-        }
-
-        return edgeDef;
-      });
-
-      const elkGraphRerouted = await elk.layout({
-        id: 'root',
-        layoutOptions: {
-          'elk.algorithm': 'layered',
-          'elk.direction': 'RIGHT',
-          'elk.edgeRouting': 'ORTHOGONAL',
-          'elk.portConstraints': 'FIXED_SIDE',
-          'elk.layered.spacing.nodeNodeBetweenLayers': '350',
-          'elk.spacing.nodeNode': '160',
-          'elk.spacing.edgeEdge': '50',
-          'elk.spacing.edgeNode': '90',
-          'elk.spacing.labelNode': '60',
-          'elk.layered.spacing.edgeNodeBetweenLayers': '100',
-          'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-          'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-          'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-          'elk.layered.separatingEdges.strategy': 'CENTERING',
-          'elk.edgeLabels.placement': 'CENTER',
-        },
-        children: elkNodes,
-        edges: reroutedEdges,
-      }) as ELKGraph;
-
-      edgePaths = extractEdgePathsFromELK(elkGraphRerouted, nodes);
-      logger.log(`[ELK Layout] Rerouted layout completed`);
-    }
-
-    return {
-      nodes: reactFlowNodes,
-      edgePaths,
+    const result = {
+      nodes: postProcessedNodes,
+      edgePaths: [],
       elkGraph: allELKNodes,
     };
+
+    LAYOUT_CACHE.set(signature, {
+      nodes: postProcessedNodes,
+      timestamp: Date.now(),
+    });
+
+    return result;
   } catch (error) {
-    logger.error('[ELK Layout] Error:', error);
+    logger.error('[ELK] Error:', error);
     return computeFallbackLayout(nodes, edges, nodeWidth, nodeHeight);
   }
 }
 
-function extractAllNodes(elkNode: ELKGraph): { id: string; x?: number; y?: number; width?: number; height?: number }[] {
-  const result: { id: string; x?: number; y?: number; width?: number; height?: number }[] = [];
-
-  if (elkNode.id && elkNode.id !== 'root' && elkNode.x !== undefined && elkNode.y !== undefined) {
-    result.push({
-      id: elkNode.id,
-      x: elkNode.x,
-      y: elkNode.y,
-      width: elkNode.width,
-      height: elkNode.height,
-    });
-  }
-
-  if (elkNode.children) {
-    for (const child of elkNode.children) {
-      result.push(...extractAllNodes(child));
-    }
-  }
-
-  return result;
-}
-
-function extractEdgePathsFromELK(elkGraph: ELKGraph, nodes: ArchitectureNode[]): EdgePath[] {
-  const edgePaths: EdgePath[] = [];
-  const nodeMap = new Map<string, { x: number; y: number; width: number; height: number }>();
-
-  const allNodes = extractAllNodes(elkGraph);
-  for (const elkNode of allNodes) {
-    const originalNode = nodes.find(n => n.id === elkNode.id);
-    if (!originalNode) continue;
-
-    nodeMap.set(elkNode.id, {
-      x: elkNode.x ?? 0,
-      y: elkNode.y ?? 0,
-      width: originalNode.width ?? DEFAULT_NODE_WIDTH,
-      height: originalNode.height ?? DEFAULT_NODE_HEIGHT,
-    });
-  }
-
-  function extractEdges(graph: ELKGraph): void {
-    if (graph.edges) {
-      for (const elkEdge of graph.edges as ELKLayoutEdge[]) {
-        if (!elkEdge.sections || elkEdge.sections.length === 0) continue;
-
-        const waypoints: Point[] = [];
-        const section = elkEdge.sections[0];
-
-        if (section.startPoint) {
-          waypoints.push({ x: section.startPoint.x, y: section.startPoint.y });
-        }
-
-        if (section.bendPoints) {
-          for (const bend of section.bendPoints) {
-            waypoints.push({ x: bend.x, y: bend.y });
-          }
-        }
-
-        if (section.endPoint) {
-          waypoints.push({ x: section.endPoint.x, y: section.endPoint.y });
-        }
-
-        if (waypoints.length >= 2) {
-          edgePaths.push({
-            id: elkEdge.id,
-            source: elkEdge.sections[0]?.incomingShape ?? '',
-            target: elkEdge.sections[0]?.outgoingShape ?? '',
-            sourceHandle: 'right',
-            targetHandle: 'left',
-            waypoints,
-            labelPosition: computeLabelPositionFromWaypoints(waypoints),
-            pathType: 'orthogonal',
-          });
-        }
-      }
-    }
-
-    if (graph.children) {
-      for (const child of graph.children) {
-        extractEdges(child);
-      }
-    }
-  }
-
-  extractEdges(elkGraph);
-
-  return edgePaths;
-}
-
-function computeLabelPositionFromWaypoints(waypoints: Point[]): Point {
-  if (waypoints.length < 2) return waypoints[0] ?? { x: 0, y: 0 };
-
-  const midIndex = Math.floor(waypoints.length / 2);
-  const p1 = waypoints[midIndex - 1] ?? waypoints[0];
-  const p2 = waypoints[midIndex] ?? waypoints[waypoints.length - 1];
-
-  return {
-    x: (p1.x + p2.x) / 2,
-    y: (p1.y + p2.y) / 2,
-  };
-}
-
 function computeFallbackLayout(
   nodes: ArchitectureNode[],
-  _edges: ArchitectureEdge[],
+  edges: ArchitectureEdge[],
   nodeWidth: number,
   nodeHeight: number
 ): LayoutResult {
-  logger.warn('[ELK Layout] Using fallback layout');
-
-  const LAYER_X_POSITIONS: Record<string, number> = {
-    client: 50,
-    gateway: 350,
-    service: 650,
-    queue: 950,
-    database: 1250,
-    cache: 1550,
-    external: 1850,
-    devops: 2150,
-  };
-
-  const LAYER_ORDER = ['client', 'gateway', 'service', 'queue', 'database', 'cache', 'external', 'devops'];
+  logger.warn('[ELK] Using fallback layout');
 
   const nodesByLayer: Record<string, ArchitectureNode[]> = {};
   for (const node of nodes) {
-    const layer = node.layer || 'service';
-    if (!nodesByLayer[layer]) {
-      nodesByLayer[layer] = [];
-    }
+    const layer = node.tier || node.layer || 'compute';
+    if (!nodesByLayer[layer]) nodesByLayer[layer] = [];
     nodesByLayer[layer].push(node);
   }
 
   const reactFlowNodes: ReactFlowNode[] = [];
-  const verticalSpacing = nodeHeight + 60;
+  const verticalSpacing = nodeHeight + 80;
 
   for (const layer of LAYER_ORDER) {
     const layerNodes = nodesByLayer[layer] || [];
     if (layerNodes.length === 0) continue;
 
-    const layerX = LAYER_X_POSITIONS[layer] ?? 400;
-
-    const totalHeight = layerNodes.length * verticalSpacing - 60;
-    const startY = Math.max(50, (800 - totalHeight) / 2);
+    const layerX = TIER_X[layer] ?? 500;
+    let y = 50;
 
     layerNodes.forEach((node, index) => {
-      const y = startY + index * verticalSpacing;
-
-      const nodeType = node.isGroup === true ? 'group' : 'systemNode';
       reactFlowNodes.push({
         id: node.id,
-        type: nodeType,
+        type: node.isGroup === true ? 'group' : 'systemNode',
         position: { x: layerX, y },
         data: {
           label: node.label,
@@ -929,31 +684,8 @@ function computeFallbackLayout(
         width: node.width ?? nodeWidth,
         height: node.height ?? nodeHeight,
       });
+      y += verticalSpacing;
     });
-  }
-
-  for (const node of nodes) {
-    if (!reactFlowNodes.find(n => n.id === node.id)) {
-      const nodeType = node.isGroup === true ? 'group' : 'systemNode';
-      reactFlowNodes.push({
-        id: node.id,
-        type: nodeType,
-        position: { x: 400, y: 50 + reactFlowNodes.length * verticalSpacing },
-        data: {
-          label: node.label,
-          icon: node.icon ?? 'box',
-          layer: node.layer,
-          layerIndex: node.layerIndex,
-          isGroup: node.isGroup,
-          parentId: node.parentId,
-          groupLabel: node.groupLabel,
-          groupColor: node.groupColor,
-          serviceType: node.serviceType,
-        },
-        width: node.width ?? nodeWidth,
-        height: node.height ?? nodeHeight,
-      });
-    }
   }
 
   return {
@@ -974,20 +706,12 @@ export function computeEdgePathsWithELK(
   for (const edge of edges) {
     const sourceNode = nodeMap.get(edge.source);
     const targetNode = nodeMap.get(edge.target);
-
     if (!sourceNode || !targetNode) continue;
 
     const sourceHandlePos = getHandlePosition(sourceNode, edge.sourceHandle);
     const targetHandlePos = getHandlePosition(targetNode, edge.targetHandle);
 
-    const waypoints = computeSplineWaypoints(
-      sourceHandlePos,
-      targetHandlePos,
-      sourceNode,
-      targetNode,
-      edge,
-      elkOptions
-    );
+    const waypoints = computeSplineWaypoints(sourceHandlePos, targetHandlePos, sourceNode, targetNode, edge, elkOptions);
 
     edgePaths.push({
       id: edge.id,
@@ -1011,17 +735,11 @@ function getHandlePosition(node: ReactFlowNode, handleId: string): Point {
   const y = node.position.y;
 
   switch (handleId) {
-    case 'top':
-      return { x: x + width / 2, y };
-    case 'bottom':
-      return { x: x + width / 2, y: y + height };
+    case 'top': return { x: x + width / 2, y };
+    case 'bottom': return { x: x + width / 2, y: y + height };
     case 'left':
-    case 'left-mid':
-      return { x, y: y + height / 2 };
-    case 'right':
-    case 'right-mid':
-    default:
-      return { x: x + width, y: y + height / 2 };
+    case 'left-mid': return { x, y: y + height / 2 };
+    default: return { x: x + width, y: y + height / 2 };
   }
 }
 
@@ -1034,42 +752,31 @@ function computeSplineWaypoints(
   elkOptions?: Record<string, string>
 ): Point[] {
   const waypoints: Point[] = [sourcePos];
-
   const dx = targetPos.x - sourcePos.x;
   const dy = targetPos.y - sourcePos.y;
+  const edgeNodeMargin = parseInt(elkOptions?.['elk.spacing.edgeNode'] ?? '100', 10);
+  const labelMargin = parseInt(elkOptions?.['elk.spacing.labelNode'] ?? '50', 10);
 
-  const edgeNodeMargin = parseInt(elkOptions?.['elk.spacing.edgeNode'] ?? '40', 10);
-  const labelMargin = parseInt(elkOptions?.['elk.spacing.labelNode'] ?? '30', 10);
-
-  const sourceWidth = sourceNode.width ?? DEFAULT_NODE_WIDTH;
   const sourceHeight = sourceNode.height ?? DEFAULT_NODE_HEIGHT;
-  const targetWidth = targetNode.width ?? DEFAULT_NODE_WIDTH;
   const targetHeight = targetNode.height ?? DEFAULT_NODE_HEIGHT;
-
   const sourceCenterY = sourceNode.position.y + sourceHeight / 2;
   const targetCenterY = targetNode.position.y + targetHeight / 2;
 
   if (Math.abs(dx) > Math.abs(dy)) {
     const midX = sourcePos.x + dx / 2;
     waypoints.push({ x: midX, y: sourcePos.y });
-
-    const verticalOffset = Math.abs(dy) > (sourceHeight + targetHeight) / 2
-      ? 0
-      : Math.sign(dy) * edgeNodeMargin;
-
+    const verticalOffset = Math.abs(dy) > (sourceHeight + targetHeight) / 2 ? 0 : Math.sign(dy) * edgeNodeMargin;
     waypoints.push({ x: midX, y: targetCenterY + verticalOffset - labelMargin });
   } else {
     const midY = (sourceCenterY + targetCenterY) / 2;
     const exitX = sourcePos.x + edgeNodeMargin;
     const entryX = targetPos.x - edgeNodeMargin;
-
     waypoints.push({ x: exitX, y: sourcePos.y });
     waypoints.push({ x: exitX, y: midY });
     waypoints.push({ x: entryX, y: midY });
   }
 
   waypoints.push(targetPos);
-
   return simplifyWaypoints(waypoints);
 }
 
@@ -1077,35 +784,32 @@ function simplifyWaypoints(waypoints: Point[]): Point[] {
   if (waypoints.length <= 2) return waypoints;
 
   const simplified: Point[] = [waypoints[0]];
-
   for (let i = 1; i < waypoints.length - 1; i++) {
     const prev = simplified[simplified.length - 1];
     const curr = waypoints[i];
     const next = waypoints[i + 1];
-
-    const isCollinear =
-      (prev.x === curr.x && curr.x === next.x) ||
-      (prev.y === curr.y && curr.y === next.y);
-
-    if (!isCollinear) {
-      simplified.push(curr);
-    }
+    const isCollinear = (prev.x === curr.x && curr.x === next.x) || (prev.y === curr.y && curr.y === next.y);
+    if (!isCollinear) simplified.push(curr);
   }
-
   simplified.push(waypoints[waypoints.length - 1]);
   return simplified;
+}
+
+function computeLabelPositionFromWaypoints(waypoints: Point[]): Point {
+  if (waypoints.length < 2) return waypoints[0] ?? { x: 0, y: 0 };
+  const midIndex = Math.floor(waypoints.length / 2);
+  const p1 = waypoints[midIndex - 1] ?? waypoints[0];
+  const p2 = waypoints[midIndex] ?? waypoints[waypoints.length - 1];
+  return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
 }
 
 export function generateSVGPath(waypoints: Point[]): string {
   if (waypoints.length === 0) return '';
   if (waypoints.length === 1) return `M ${waypoints[0].x} ${waypoints[0].y}`;
-
   let path = `M ${waypoints[0].x} ${waypoints[0].y}`;
-
   for (let i = 1; i < waypoints.length; i++) {
     path += ` L ${waypoints[i].x} ${waypoints[i].y}`;
   }
-
   return path;
 }
 
@@ -1114,77 +818,87 @@ export function generateBezierPath(waypoints: Point[]): string {
   if (waypoints.length === 2) {
     return `M ${waypoints[0].x} ${waypoints[0].y} C ${waypoints[0].x + 50} ${waypoints[0].y}, ${waypoints[1].x - 50} ${waypoints[1].y}, ${waypoints[1].x} ${waypoints[1].y}`;
   }
-
-  const tension = 0.3;
-  const smoothCorner = 40;
-
   let path = `M ${waypoints[0].x} ${waypoints[0].y}`;
-
   for (let i = 1; i < waypoints.length; i++) {
-    const prev = waypoints[i - 1];
-    const curr = waypoints[i];
-
-    const isHorizontal = prev.y === curr.y;
-    const isVertical = prev.x === curr.x;
-
-    if (isHorizontal || isVertical) {
-      path += ` L ${curr.x} ${curr.y}`;
-    } else {
-      const cp1x = prev.x + Math.sign(curr.x - prev.x) * smoothCorner;
-      const cp1y = prev.y;
-      const cp2x = curr.x - Math.sign(curr.x - prev.x) * smoothCorner;
-      const cp2y = curr.y;
-
-      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${curr.x} ${curr.y}`;
-    }
+    path += ` L ${waypoints[i].x} ${waypoints[i].y}`;
   }
-
   return path;
 }
 
 export function generateSmoothstepPath(waypoints: Point[]): string {
   if (waypoints.length < 2) return '';
-  if (waypoints.length === 2) {
-    return `M ${waypoints[0].x} ${waypoints[0].y} L ${waypoints[1].x} ${waypoints[1].y}`;
-  }
+  return `M ${waypoints[0].x} ${waypoints[0].y} L ${waypoints[waypoints.length - 1].x} ${waypoints[waypoints.length - 1].y}`;
+}
 
-  const cornerRadius = 8;
-  let path = `M ${waypoints[0].x} ${waypoints[0].y}`;
+export function runSpeculativeELK(
+  nodes: ArchitectureNode[],
+  onLayoutReady: (layout: LayoutResult) => void
+): void {
+  if (nodes.length < 4) return;
 
-  for (let i = 1; i < waypoints.length; i++) {
-    const prev = waypoints[i - 1];
-    const curr = waypoints[i];
-
-    const dx = curr.x - prev.x;
-    const dy = curr.y - prev.y;
-
-    if (dx === 0 || dy === 0) {
-      path += ` L ${curr.x} ${curr.y}`;
-    } else {
-      const absDx = Math.abs(dx);
-      const absDy = Math.abs(dy);
-      const r = Math.min(cornerRadius, absDx / 2, absDy / 2);
-
-      const midX = prev.x + dx / 2;
-      const midY = prev.y + dy / 2;
-
-      if (Math.abs(dx) > Math.abs(dy)) {
-        const cornerX = prev.x + Math.sign(dx) * r;
-        path += ` L ${cornerX} ${prev.y}`;
-        path += ` Q ${prev.x + Math.sign(dx) * r * 2} ${prev.y}, ${prev.x + Math.sign(dx) * r * 2} ${prev.y + Math.sign(dy) * r}`;
-        path += ` L ${prev.x + Math.sign(dx) * r * 2} ${curr.y - Math.sign(dy) * r}`;
-        path += ` Q ${prev.x + Math.sign(dx) * r * 2} ${curr.y}, ${prev.x + Math.sign(dx) * r * 2 + Math.sign(dx) * r} ${curr.y}`;
-        path += ` L ${curr.x} ${curr.y}`;
-      } else {
-        const cornerY = prev.y + Math.sign(dy) * r;
-        path += ` L ${prev.x} ${cornerY}`;
-        path += ` Q ${prev.x} ${prev.y + Math.sign(dy) * r * 2}, ${prev.x + Math.sign(dx) * r} ${prev.y + Math.sign(dy) * r * 2}`;
-        path += ` L ${curr.x - Math.sign(dx) * r} ${prev.y + Math.sign(dy) * r * 2}`;
-        path += ` Q ${curr.x} ${prev.y + Math.sign(dy) * r * 2}, ${curr.x} ${prev.y + Math.sign(dy) * r * 2 + Math.sign(dy) * r}`;
-        path += ` L ${curr.x} ${curr.y}`;
-      }
+  runELKLayoutQuick(nodes).then(layout => {
+    if (layout) {
+      onLayoutReady(layout);
     }
-  }
+  }).catch(() => {});
+}
 
-  return path;
+async function runELKLayoutQuick(nodes: ArchitectureNode[]): Promise<LayoutResult | null> {
+  const nodeWidth = DEFAULT_NODE_WIDTH;
+  const nodeHeight = DEFAULT_NODE_HEIGHT;
+
+  const elkNodes = nodes.map(node => ({
+    id: node.id,
+    width: node.width ?? nodeWidth,
+    height: node.height ?? nodeHeight,
+    x: TIER_X[node.layer || 'compute'] ?? 500,
+    y: 50,
+    ports: [
+      { id: `${node.id}-port-west-default`, width: 10, height: 10, properties: { 'org.eclipse.elk.port.side': 'WEST' as const, 'org.eclipse.elk.port.anchor': 'CENTER' as const } },
+      { id: `${node.id}-port-east-default`, width: 10, height: 10, properties: { 'org.eclipse.elk.port.side': 'EAST' as const, 'org.eclipse.elk.port.anchor': 'CENTER' as const } },
+    ],
+    layoutOptions: {
+      'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+      'elk.nodeSize.minimum': `${node.width ?? nodeWidth}, ${node.height ?? nodeHeight}`,
+    },
+  }));
+
+  try {
+    const graph = {
+      id: 'root',
+      children: elkNodes,
+      edges: [],
+    };
+
+    const elkGraph = await runELKLayoutAsync(graph) as ELKGraph;
+
+    const reactFlowNodes: ReactFlowNode[] = elkGraph.children?.map((elkNode, i) => {
+      const originalNode = nodes[i];
+      const tier = originalNode?.tier || originalNode?.layer || 'compute';
+      return {
+        id: elkNode.id,
+        type: 'systemNode',
+        position: { x: elkNode.x ?? TIER_X[tier] ?? 500, y: elkNode.y ?? 0 },
+        data: {
+          label: originalNode.label,
+          icon: originalNode.icon ?? 'box',
+          layer: originalNode.layer,
+        },
+        width: elkNode.width ?? nodeWidth,
+        height: elkNode.height ?? nodeHeight,
+      };
+    }) ?? [];
+
+    return {
+      nodes: reactFlowNodes,
+      edgePaths: [],
+      elkGraph: elkGraph.children?.map(n => ({ id: n.id, x: n.x, y: n.y, width: n.width, height: n.height })) ?? [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function clearLayoutCache(): void {
+  LAYOUT_CACHE.clear();
 }

@@ -3,6 +3,7 @@ import type { SharedState, ArchitectureEdge, ArchitectureNode, CommunicationType
 import { EDGE_AGENT_PROMPT, COMMUNICATION_STYLES, LAYER_ORDER } from '../constants';
 import { COMPONENT_PORTS, getStrictPortConfig } from '@/lib/componentPorts';
 import { validateEdgeOutput } from '../utils/outputValidator';
+import { extractUserPreferences } from '../utils/userInputExtractor';
 import logger from '@/lib/logger';
 
 const MAX_EDGE_RETRIES = 2;
@@ -70,12 +71,12 @@ function calculateHandlePosition(
   const layer = node.layer;
   
   if (isSource) {
-    if (layer === 'database' || layer === 'cache' || layer === 'external') {
+    if (layer === 'data' || layer === 'observe' || layer === 'external') {
       return LEFT_PORTS[getPortIndex(connectionIndex, totalConnections, maxPorts)];
     }
     return RIGHT_PORTS[getPortIndex(connectionIndex, totalConnections, maxPorts)];
   } else {
-    if (layer === 'gateway' || layer === 'client') {
+    if (layer === 'edge' || layer === 'client') {
       return RIGHT_PORTS[getPortIndex(connectionIndex, totalConnections, maxPorts)];
     }
     return LEFT_PORTS[getPortIndex(connectionIndex, totalConnections, maxPorts)];
@@ -148,7 +149,7 @@ function validateArchitectureRules(
   const nodeMap = new Map(nodes.map(n => [n.id, n]));
 
   const getLayer = (nodeId: string): string => {
-    return nodeMap.get(nodeId)?.layer || 'service';
+    return nodeMap.get(nodeId)?.layer || 'compute';
   };
 
   const getNodeLabel = (nodeId: string): string => {
@@ -163,25 +164,25 @@ function validateArchitectureRules(
     const sourceLabel = getNodeLabel(edge.source);
     const targetLabel = getNodeLabel(edge.target);
 
-    const isSourceSink = ['database', 'cache', 'devops'].includes(sourceLayer);
-    const isTargetSource = ['gateway', 'client'].includes(targetLayer);
+    const isSourceSink = ['data', 'observe', 'external'].includes(sourceLayer);
+    const isTargetSource = ['edge', 'client'].includes(targetLayer);
 
-    if (sourceLayer === 'client' && targetLayer === 'database') {
+    if (sourceLayer === 'client' && targetLayer === 'data') {
       issues.push({
         edgeId: edge.id || 'unknown',
         source: sourceLabel,
         target: targetLabel,
-        issue: 'Client cannot connect directly to database',
+        issue: 'Client cannot connect directly to data tier',
         severity: 'error'
       });
     }
 
-    if (sourceLayer === 'client' && targetLayer === 'queue') {
+    if (sourceLayer === 'client' && targetLayer === 'async') {
       issues.push({
         edgeId: edge.id || 'unknown',
         source: sourceLabel,
         target: targetLabel,
-        issue: 'Client cannot connect directly to queue',
+        issue: 'Client cannot connect directly to async tier',
         severity: 'error'
       });
     }
@@ -216,7 +217,7 @@ function validateArchitectureRules(
       });
     }
 
-    if (sourceLayer === 'external' && targetLayer === 'service') {
+    if (sourceLayer === 'external' && targetLayer === 'compute') {
       const issuesForThis = issues.filter(i => i.edgeId === edge.id);
       if (issuesForThis.length === 0) {
         issues.push({
@@ -229,12 +230,12 @@ function validateArchitectureRules(
       }
     }
 
-    if (sourceLayer === 'devops' && targetLayer === 'service') {
+    if (sourceLayer === 'observe' && targetLayer === 'compute') {
       issues.push({
         edgeId: edge.id || 'unknown',
         source: sourceLabel,
         target: targetLabel,
-        issue: 'DevOps/observability should not be in request path',
+        issue: 'Observe tier should not be in request path',
         severity: 'warning'
       });
     }
@@ -250,7 +251,7 @@ function validateArchitectureRules(
     }
   }
 
-  const queueNodes = nodes.filter(n => n.layer === 'queue');
+  const queueNodes = nodes.filter(n => n.layer === 'async');
   for (const queue of queueNodes) {
     const producers = edges.filter(e => e.source !== queue.id && e.target === queue.id).length;
     const consumers = edges.filter(e => e.source === queue.id).length;
@@ -260,7 +261,7 @@ function validateArchitectureRules(
         edgeId: `queue-${queue.id}`,
         source: queue.label,
         target: '',
-        issue: `Queue ${queue.label} has no producers`,
+        issue: `Async ${queue.label} has no producers`,
         severity: 'warning'
       });
     }
@@ -270,7 +271,7 @@ function validateArchitectureRules(
         edgeId: `queue-${queue.id}`,
         source: queue.label,
         target: '',
-        issue: `Queue ${queue.label} has no consumers`,
+        issue: `Async ${queue.label} has no consumers`,
         severity: 'warning'
       });
     }
@@ -287,31 +288,31 @@ function validateFlowCompleteness(
   const nodeMap = new Map(nodes.map(n => [n.id, n]));
   
   const getLayer = (nodeId: string): string => {
-    return nodeMap.get(nodeId)?.layer || 'service';
+    return nodeMap.get(nodeId)?.layer || 'compute';
   };
   
   const layersPresent = new Set(nodes.map(n => n.layer));
   
-  const hasWriteFlow = layersPresent.has('client') && layersPresent.has('service');
-  const hasDatabase = layersPresent.has('database');
-  const hasQueue = layersPresent.has('queue');
-  const hasCache = layersPresent.has('cache');
-  const hasGateway = layersPresent.has('gateway');
+  const hasWriteFlow = layersPresent.has('client') && layersPresent.has('compute');
+  const hasDatabase = layersPresent.has('data');
+  const hasQueue = layersPresent.has('async');
+  const hasCache = layersPresent.has('data');
+  const hasGateway = layersPresent.has('edge');
   
-  if (layersPresent.has('service') && hasDatabase) {
+  if (layersPresent.has('compute') && hasDatabase) {
     const serviceToDb = edges.filter(e => {
       const source = e.source;
       const target = e.target;
       if (!source || !target) return false;
-      return getLayer(source) === 'service' && getLayer(target) === 'database';
+      return getLayer(source) === 'compute' && getLayer(target) === 'data';
     });
     
     if (serviceToDb.length === 0 && hasWriteFlow) {
       issues.push({
         edgeId: 'flow-write',
-        source: 'service',
-        target: 'database',
-        issue: 'No write flow: services should connect to database for persistence',
+        source: 'compute',
+        target: 'data',
+        issue: 'No write flow: compute should connect to data tier for persistence',
         severity: 'warning'
       });
     }
@@ -322,15 +323,15 @@ function validateFlowCompleteness(
       const source = e.source;
       const target = e.target;
       if (!source || !target) return false;
-      return getLayer(source) === 'service' && getLayer(target) === 'cache';
+      return getLayer(source) === 'compute' && getLayer(target) === 'data';
     });
     
     if (serviceToCache.length === 0 && hasWriteFlow) {
       issues.push({
         edgeId: 'flow-cache',
-        source: 'service',
-        target: 'cache',
-        issue: 'Cache exists but no service connects to it (read optimization missing)',
+        source: 'compute',
+        target: 'data',
+        issue: 'Cache exists but no compute connects to it (read optimization missing)',
         severity: 'warning'
       });
     }
@@ -339,14 +340,14 @@ function validateFlowCompleteness(
       const source = e.source;
       const target = e.target;
       if (!source || !target) return false;
-      return getLayer(source) === 'cache' && getLayer(target) === 'database';
+      return getLayer(source) === 'data' && getLayer(target) === 'data';
     });
     
     if (serviceToCache.length > 0 && cacheToDb.length === 0) {
       issues.push({
         edgeId: 'flow-cache-fallback',
-        source: 'cache',
-        target: 'database',
+        source: 'data',
+        target: 'data',
         issue: 'Cache exists but has no fallback to database',
         severity: 'warning'
       });
@@ -354,7 +355,7 @@ function validateFlowCompleteness(
   }
   
   if (hasQueue) {
-    const queueNodes = nodes.filter(n => n.layer === 'queue');
+    const queueNodes = nodes.filter(n => n.layer === 'async');
     
     for (const queue of queueNodes) {
       const producers = edges.filter(e => e.target === queue.id).length;
@@ -383,23 +384,23 @@ function validateFlowCompleteness(
   }
   
   const clientNodes = nodes.filter(n => n.layer === 'client');
-  const gatewayNodes = nodes.filter(n => n.layer === 'gateway');
-  const serviceNodes = nodes.filter(n => n.layer === 'service');
+  const gatewayNodes = nodes.filter(n => n.layer === 'edge');
+  const serviceNodes = nodes.filter(n => n.layer === 'compute');
   
   if (clientNodes.length > 0 && gatewayNodes.length > 0) {
     const clientToGateway = edges.filter(e => {
       const source = e.source;
       const target = e.target;
       if (!source || !target) return false;
-      return getLayer(source) === 'client' && getLayer(target) === 'gateway';
+      return getLayer(source) === 'client' && getLayer(target) === 'edge';
     });
     
     if (clientToGateway.length === 0) {
       issues.push({
         edgeId: 'flow-client-gateway',
         source: 'client',
-        target: 'gateway',
-        issue: 'Client exists but does not connect to gateway',
+        target: 'edge',
+        issue: 'Client exists but does not connect to edge tier',
         severity: 'warning'
       });
     }
@@ -410,15 +411,15 @@ function validateFlowCompleteness(
       const source = e.source;
       const target = e.target;
       if (!source || !target) return false;
-      return getLayer(source) === 'gateway' && getLayer(target) === 'service';
+      return getLayer(source) === 'edge' && getLayer(target) === 'compute';
     });
     
     if (gatewayToService.length === 0) {
       issues.push({
         edgeId: 'flow-gateway-service',
-        source: 'gateway',
-        target: 'service',
-        issue: 'Gateway exists but does not connect to services',
+        source: 'edge',
+        target: 'compute',
+        issue: 'Edge tier exists but does not connect to compute tier',
         severity: 'warning'
       });
     }
@@ -644,8 +645,10 @@ function fixArchitectureIssues(
   return fixedEdges;
 }
 
-export async function runEdgeAgent(state: SharedState): Promise<ArchitectureEdge[]> {
+export async function runEdgeAgent(state: SharedState, model?: string): Promise<ArchitectureEdge[]> {
   const nodesToUse = state.components.length > 0 ? state.components : state.nodes;
+  const selectedModel = model || 'llama-3.3-70b-versatile';
+  const provider = selectedModel.includes('/') ? 'openrouter' : 'groq';
   
   if (nodesToUse.length === 0) {
     logger.warn('[EdgeAgent] No nodes available, returning empty edges');
@@ -658,37 +661,25 @@ export async function runEdgeAgent(state: SharedState): Promise<ArchitectureEdge
     layer: n.layer
   })), null, 2);
 
-  const systemType = state.userIntent.systemType ?? 'Microservices Architecture';
-  const { getSystemRequirements } = await import('../utils/systemRequirements');
-  const requirements = getSystemRequirements(systemType);
+  const userPreferences = extractUserPreferences(state.userIntent.description);
 
-  const systemEdgeSection = `
-CRITICAL: Create edges specific to ${systemType}.
+  const userFlowSection = userPreferences.flows.length > 0 ? `
+══════════════════════════════════════════════════════════════════════════════
+USER-SPECIFIED FLOWS (MUST CREATE THESE EDGES EXACTLY):
+══════════════════════════════════════════════════════════════════════════════
+The user described these specific flows. Create edges that follow this exact order:
+${userPreferences.flows.map(flow => {
+  const steps = flow.steps.join(' → ');
+  const critical = flow.critical ? ' [CRITICAL - must be prominent]' : '';
+  const type = `[${flow.type.toUpperCase()}]`;
+  return `${type} ${steps}${critical}`;
+}).join('\n')}
 
-For STREAMING systems, include these critical paths:
-- Client → CDN → API Gateway (content delivery)
-- Video Upload → Transcoding → Object Storage (upload pipeline)
-- Object Storage → CDN (content distribution)
-- Playback → Cache → Database (read optimization)
-
-For E-COMMERCE systems, include:
-- Client → CDN → Gateway (delivery)
-- Product Catalog → Cache → Database (read path)
-- Cart → Checkout → Payment → Order (transaction flow)
-
-For RIDE-SHARING systems, include:
-- Rider → Gateway → Auth (authentication)
-- Rider Request → Matching Engine → Driver (matching flow)
-- Trip → Pricing → Payment (billing flow)
-
-ALWAYS include:
-- At least one async/queue edge for background processing
-- Cache layer edges (cache hit/miss patterns)
-- Database write edges
-
-REQUIRED EDGE PATTERNS:
-${requirements.requiredEdges.map(([from, to]) => `- ${from} → ${to}`).join('\n') || 'None specified'}
-`;
+For each flow:
+1. Find matching nodes in the current nodes list (fuzzy match on labels)
+2. Create edges connecting them in the exact order specified
+3. Use the correct communication type for each connection
+`.trim() : '';
 
   let lastError = '';
 
@@ -696,17 +687,15 @@ ${requirements.requiredEdges.map(([from, to]) => `- ${from} → ${to}`).join('\n
     try {
       const prompt = `${EDGE_AGENT_PROMPT}
 
-${systemEdgeSection}
-
-User's System Description:
+${userFlowSection ? `${userFlowSection}\n` : ''}
+User's System Description (USE AS AUTHORITY):
 ${state.userIntent.description}
-
-System Type: ${systemType}
 
 Current Nodes (${nodesToUse.length}):
 ${nodesJson}
 
-IMPORTANT: You MUST create edges connecting all the nodes. Every node must have at least one connection.
+IMPORTANT: Create edges that EXACTLY match the flows described by the user.
+Every node must have at least one connection.
 
 Output JSON with an "edges" array. Each edge must have:
 - id: unique edge id
@@ -717,7 +706,7 @@ Output JSON with an "edges" array. Each edge must have:
 
       const result = await apiKeyManager.executeWithRetry(async (groq) => {
         const completion = await groq.chat.completions.create({
-          model: 'llama-3.3-70b-versatile',
+          model: selectedModel,
           messages: [
             { role: 'system', content: 'You are a JSON-only output system. Always respond with valid JSON object with an "edges" array. Do NOT wrap in markdown code blocks.' },
             { role: 'user', content: prompt },
@@ -728,7 +717,7 @@ Output JSON with an "edges" array. Each edge must have:
 
         const content = completion.choices[0]?.message?.content ?? '';
         return content;
-      });
+      }, { provider });
 
       const cleanedResult = result
         .replace(/```json\s*/gi, '')
@@ -856,16 +845,16 @@ function createFullEdge(
     sourceHandle: sourceHandle as HandlePosition,
     targetHandle: targetHandle as HandlePosition,
     communicationType: commType,
-    pathType: style.pathType,
+    pathType: (style.pathType ?? 'smooth') as PathType,
     label: edge.label ?? `${commType.toUpperCase()} Call`,
     labelPosition: 'center',
     animated: style.animated,
     style: {
       stroke: style.color,
-      strokeDasharray: style.strokeDasharray,
+      strokeDasharray: style.strokeDasharray ?? '',
       strokeWidth: 2,
     },
-    markerEnd: style.markerEnd as MarkerType,
+    markerEnd: (style.markerEnd ?? 'arrowclosed') as MarkerType,
     markerStart: 'none',
     edgeVariant: edge.edgeVariant ?? 'solid',
   };
@@ -1097,16 +1086,16 @@ function createEdge(
     sourceHandle: 'right',
     targetHandle: 'left',
     communicationType: commType,
-    pathType: style.pathType,
+    pathType: (style.pathType ?? 'smooth') as PathType,
     label,
     labelPosition: 'center',
     animated: style.animated,
     style: {
       stroke: style.color,
-      strokeDasharray: style.strokeDasharray,
+      strokeDasharray: style.strokeDasharray ?? '',
       strokeWidth: 2,
     },
-    markerEnd: style.markerEnd as MarkerType,
+    markerEnd: (style.markerEnd ?? 'arrowclosed') as MarkerType,
     markerStart: 'none',
   };
 }

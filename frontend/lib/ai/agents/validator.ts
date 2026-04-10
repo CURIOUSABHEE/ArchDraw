@@ -14,9 +14,9 @@ ${stateJson}
 Output your validation report as JSON only.`;
 
   try {
-    const result = await apiKeyManager.executeWithRetry(async (groq) => {
-      const completion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+      const result = await apiKeyManager.executeWithRetry(async (groq) => {
+        const completion = await groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: 'You are a JSON-only output system. Always respond with valid JSON. Do NOT wrap in markdown code blocks. Output ONLY raw JSON.' },
           { role: 'user', content: prompt },
