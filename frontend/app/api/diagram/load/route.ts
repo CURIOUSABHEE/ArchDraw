@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       sessionId,
-      url: `/flow?session=${sessionId}`,
+      url: `/editor?session=${sessionId}`,
       message: 'Diagram ready. Open this URL to view it.',
     });
   } catch (error) {
