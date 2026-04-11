@@ -73,6 +73,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
   };
   diagramUrl?: string;
   sessionId?: string;
+  embeddedDiagram?: { nodes: ReactFlowNode[]; edges: ReactFlowEdge[] };
   message?: string;
   errors?: string[];
 }> {
@@ -227,6 +228,10 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
       },
       diagramUrl,
       sessionId,
+      embeddedDiagram: {
+        nodes: layoutResult.nodes,
+        edges: layoutResult.edges,
+      },
       message,
       errors: errors.length > 0 ? errors : undefined,
     };

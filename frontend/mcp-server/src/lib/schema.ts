@@ -165,6 +165,10 @@ export const GenerateDiagramOutputSchema = z.object({
   }),
   diagramUrl: z.string().optional(),
   sessionId: z.string().optional(),
+  embeddedDiagram: z.object({
+    nodes: z.array(z.unknown()),
+    edges: z.array(z.unknown()),
+  }).optional(),
   message: z.string().optional(),
   errors: z.array(z.string()).optional(),
 });

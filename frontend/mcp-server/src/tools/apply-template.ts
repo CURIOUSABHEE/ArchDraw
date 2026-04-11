@@ -239,6 +239,7 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
   };
   diagramUrl?: string;
   sessionId?: string;
+  embeddedDiagram?: { nodes: ReactFlowNode[]; edges: ReactFlowEdge[] };
   message?: string;
   errors?: string[];
 }> {
@@ -406,6 +407,10 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
       },
       diagramUrl,
       sessionId,
+      embeddedDiagram: {
+        nodes: reactFlowNodes,
+        edges: reactFlowEdges,
+      },
       message,
       errors: errors.length > 0 ? errors : undefined,
     };
