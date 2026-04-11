@@ -143,10 +143,9 @@ export default function EditorPage() {
         setShowCreateModal(true);
       }
 
-      // Cmd/Ctrl + K: Open canvas switcher
+      // Cmd/Ctrl + K: Open command palette (not canvas sidebar)
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setCanvasSidebarOpen(true);
+        // Command palette handles its own Cmd+K, don't open canvas sidebar
       }
     };
     window.addEventListener('keydown', handler);
