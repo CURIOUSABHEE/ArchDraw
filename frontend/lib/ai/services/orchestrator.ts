@@ -919,7 +919,9 @@ async function callDiagramLLM(
     }
   }
 
-  throw new Error('All Groq keys exhausted for diagram');
+  // All Groq keys failed - use fallback instead of throwing
+  logger.log('[Diagram] All Groq keys exhausted, using fallback response');
+  return { nodes: getFallbackResponse().nodes, flows: getFallbackResponse().flows };
 }
 
 function parseDiagramResponse(content: string): { nodes: ArchitectureNode[]; flows: string[][] } {
