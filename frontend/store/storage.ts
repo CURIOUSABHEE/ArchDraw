@@ -37,7 +37,21 @@ function queuedSetItem(key: string, value: string): void {
     try {
       localStorage.setItem(key, value);
     } catch (e) {
-      console.warn(`[storage] setItem failed for key "${key}":`, e);
+      const err = e as Error;
+      if (err.name === 'QuotaExceededError') {
+        console.warn(`[storage] localStorage quota exceeded for key "${key}"`);
+      } else if (err.message?.includes('Lock')) {
+        console.warn(`[storage] Storage lock conflict for key "${key}" - retrying`);
+        setTimeout(() => {
+          try {
+            localStorage.setItem(key, value);
+          } catch {
+            console.warn(`[storage] Retry failed for key "${key}"`);
+          }
+        }, 100);
+      } else {
+        console.warn(`[storage] setItem failed for key "${key}":`, e);
+      }
     }
   });
   flushQueue();

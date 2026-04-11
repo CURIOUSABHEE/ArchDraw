@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local diagram sessions (runtime storage)
+.diagram-sessions.json

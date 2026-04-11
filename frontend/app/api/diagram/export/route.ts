@@ -1,6 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { diagramStore } from '../load/route';
+import fs from 'fs';
+import path from 'path';
+
+export interface DiagramData {
+  nodes: unknown[];
+  edges: unknown[];
+  label?: string;
+  createdAt: Date;
+  source?: 'mcp' | 'manual';
+}
+
+const STORAGE_FILE = path.join(process.cwd(), '.diagram-sessions.json');
+
+function loadStore(): Map<string, DiagramData> {
+  try {
+    if (fs.existsSync(STORAGE_FILE)) {
+      const data = JSON.parse(fs.readFileSync(STORAGE_FILE, 'utf-8')) as Record<string, DiagramData>;
+      const map = new Map<string, DiagramData>();
+      for (const [key, value] of Object.entries(data)) {
+        map.set(key, {
+          ...value,
+          createdAt: new Date(value.createdAt),
+        });
+      }
+      return map;
+    }
+  } catch (e) {
+    console.error('Failed to load diagram store:', e);
+  }
+  return new Map();
+}
+
+const diagramStore = loadStore();
 
 const ExportSchema = z.object({
   sessionId: z.string().uuid(),
