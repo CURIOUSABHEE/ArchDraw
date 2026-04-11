@@ -44,9 +44,9 @@ export function AutoLayoutButton() {
       setTimeout(() => {
         fitView({ 
           padding: 0.15, 
-          duration: 400,
+          duration: 500,
         });
-      }, 50);
+      }, 100);
 
     } catch (error) {
       console.error('[AutoLayout] Failed to apply layout:', error);

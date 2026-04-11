@@ -4,6 +4,9 @@ import type { LayoutPreset } from './layoutPresets';
 
 const elk = new ELK();
 
+const DEFAULT_NODE_WIDTH = 200;
+const DEFAULT_NODE_HEIGHT = 100;
+
 export async function applyLayoutPreset(
   nodes: Node[],
   edges: Edge[],
@@ -19,15 +22,15 @@ export async function applyLayoutPreset(
           .filter(n => n.parentId === node.id)
           .map(child => ({
             id: child.id,
-            width: child.width ?? 160,
-            height: child.height ?? 60,
+            width: child.width ?? DEFAULT_NODE_WIDTH,
+            height: child.height ?? DEFAULT_NODE_HEIGHT,
           }))
       : [];
 
     return {
       id: node.id,
-      width: node.width ?? (isGroup ? 320 : 160),
-      height: node.height ?? (isGroup ? 240 : 60),
+      width: node.width ?? (isGroup ? 400 : DEFAULT_NODE_WIDTH),
+      height: node.height ?? (isGroup ? 300 : DEFAULT_NODE_HEIGHT),
       ...(children.length > 0 ? { children } : {}),
     };
   });

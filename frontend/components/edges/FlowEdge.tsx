@@ -11,6 +11,14 @@ import { useTheme } from '@/lib/theme';
 import type { EdgeData, EdgeType, PathType } from '@/data/edgeTypes';
 import { getEdgeConfig, getEffectivePathType } from '@/data/edgeTypes';
 
+const COMM_COLORS: Record<string, { color: string; dash: string; animated: boolean }> = {
+  sync: { color: '#6366f1', dash: '', animated: false },
+  async: { color: '#f59e0b', dash: '8,4', animated: true },
+  stream: { color: '#10b981', dash: '4,2', animated: true },
+  event: { color: '#ec4899', dash: '2,3', animated: true },
+  dep: { color: '#94a3b8', dash: '6,6', animated: true },
+};
+
 interface PathResult {
   path: string;
   labelX: number;
@@ -64,6 +72,10 @@ function getPath(
   }
 }
 
+function getCommunicationStyle(communicationType: string | undefined): { color: string; dash: string; animated: boolean } {
+  return COMM_COLORS[communicationType || 'sync'] || COMM_COLORS.sync;
+}
+
 export function FlowEdge({
   id,
   sourceX, sourceY, targetX, targetY,
@@ -74,36 +86,43 @@ export function FlowEdge({
   const edgeType: EdgeType | undefined = data?.edgeType;
   const customPathType: PathType | undefined = data?.pathType;
   const edgeVariant: 'solid' | 'dashed' | 'dotted' | undefined = data?.edgeVariant;
+  const communicationType: string | undefined = data?.communicationType;
   const pathType = getEffectivePathType(edgeType, customPathType);
   const config = getEdgeConfig(edgeType);
   
-  const { isDark } = useTheme();
+  const commStyle = getCommunicationStyle(communicationType);
+  const isDark = useTheme().isDark;
 
   const { path: edgePath, labelX, labelY } = useMemo(() => {
     return getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition);
   }, [pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
 
   const animationClass = useMemo(() => {
-    if (!config.animated) return '';
-    return `flow-${config.id}`;
-  }, [config.animated, config.id]);
+    const shouldAnimate = commStyle.animated || config.animated;
+    if (!shouldAnimate) return '';
+    return `flow-${id}`;
+  }, [commStyle.animated, config.animated, id]);
 
+  const strokeColor = commStyle.color || config.color;
+  
   const strokeStyle: React.CSSProperties = useMemo(() => {
-    let dashArray = config.dash;
+    let dashArray = commStyle.dash || config.dash;
     if (edgeVariant === 'dashed') {
       dashArray = '8,4';
     } else if (edgeVariant === 'dotted') {
       dashArray = '2,2';
+    } else if (edgeVariant === 'solid' || !edgeVariant) {
+      dashArray = '';
     }
     return {
-      stroke: config.color,
-      strokeWidth: selected ? 2 : 1.5,
-      strokeDasharray: dashArray,
+      stroke: strokeColor,
+      strokeWidth: selected ? 2.5 : 2,
+      strokeDasharray: dashArray || undefined,
       transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s',
       opacity: selected ? 1 : 0.85,
-      filter: selected ? `drop-shadow(0 0 4px ${config.color}40)` : 'none',
+      filter: selected ? `drop-shadow(0 0 4px ${strokeColor}40)` : 'none',
     };
-  }, [config.color, config.dash, edgeVariant, selected]);
+  }, [commStyle.dash, config.dash, edgeVariant, selected, strokeColor]);
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
@@ -120,26 +139,26 @@ export function FlowEdge({
       <defs>
         <marker
           id={`arrow-${id}`}
-          markerWidth="5"
-          markerHeight="5"
-          refX="4"
-          refY="2.5"
+          markerWidth="8"
+          markerHeight="8"
+          refX="6"
+          refY="3"
           orient="auto"
           markerUnits="strokeWidth"
         >
-          <path d="M 0 0 L 0 5 L 5 2.5 z" fill={config.color} />
+          <path d="M 0 0 L 0 6 L 6 3 z" fill={strokeColor} />
         </marker>
         {config.markerStart && (
           <marker
             id={`arrow-start-${id}`}
-            markerWidth="5"
-            markerHeight="5"
-            refX="1"
-            refY="2.5"
-            orient="auto"
+            markerWidth="8"
+            markerHeight="8"
+            refX="2"
+            refY="3"
+            orient="auto-start-reverse"
             markerUnits="strokeWidth"
           >
-            <path d="M 5 0 L 5 5 L 0 2.5 z" fill={config.color} />
+            <path d="M 6 0 L 6 6 L 0 3 z" fill={strokeColor} />
           </marker>
         )}
       </defs>
