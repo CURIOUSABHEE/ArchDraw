@@ -424,10 +424,10 @@ function CanvasInner() {
           const edge = edges.find((e) => e.id === pendingLabelEdgeId);
           const srcNode = edge ? nodes.find((n) => n.id === edge.source) : null;
           const tgtNode = edge ? nodes.find((n) => n.id === edge.target) : null;
-          const midX = srcNode && tgtNode
+          const midX = srcNode && tgtNode && typeof srcNode.position?.x === 'number' && typeof tgtNode.position?.x === 'number'
             ? (srcNode.position.x + (srcNode.width ?? 140) / 2 + tgtNode.position.x + (tgtNode.width ?? 140) / 2) / 2
             : 400;
-          const midY = srcNode && tgtNode
+          const midY = srcNode && tgtNode && typeof srcNode.position?.y === 'number' && typeof tgtNode.position?.y === 'number'
             ? (srcNode.position.y + (srcNode.height ?? 80) / 2 + tgtNode.position.y + (tgtNode.height ?? 80) / 2) / 2
             : 300;
           return (
