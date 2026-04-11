@@ -30,7 +30,7 @@ import { FlowEdge } from '@/components/edges/FlowEdge';
 import { useCanvasTheme } from '@/lib/theme';
 import { TemplateModal } from '@/components/TemplateModal';
 import { AutoLayoutButton } from '@/components/canvas/toolbar/AutoLayoutButton';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import type { Node, Edge } from 'reactflow';
 
@@ -89,7 +89,12 @@ function CanvasInner() {
 
   // Load diagram from session URL on mount
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const importDiagram = useDiagramStore((s) => s.importDiagram);
+  const addCanvas = useDiagramStore((s) => s.addCanvas);
+  const switchCanvas = useDiagramStore((s) => s.switchCanvas);
+  const activeCanvasId = useDiagramStore((s) => s.activeCanvasId);
   const loadSession = useCallback(async (sessionId: string) => {
     try {
       const response = await fetch(`/api/diagram/session/${sessionId}`);
@@ -114,21 +119,50 @@ function CanvasInner() {
           pathType: e.data?.pathType || e.type || 'smooth',
         },
       }));
+      
+      const canvasId = addCanvas(data.label || 'Session Diagram', sessionId);
       importDiagram(nodesWithType, edgesWithType);
       reactFlowInstance.setNodes(nodesWithType);
       reactFlowInstance.setEdges(edgesWithType);
+      router.replace(`/editor?canvas=${canvasId}`);
       toast.success(`Diagram loaded: ${data.label || 'Untitled'}`);
       setTimeout(() => reactFlowInstance.fitView({ padding: 0.2, duration: 400 }), 100);
     } catch {
       toast.error('Failed to load diagram');
     }
-  }, [importDiagram, reactFlowInstance]);
+  }, [importDiagram, reactFlowInstance, addCanvas, router]);
 
   useEffect(() => {
     const sessionId = searchParams.get('session');
     if (!sessionId) return;
     loadSession(sessionId);
   }, [searchParams, loadSession]);
+
+  // Handle canvas ID from URL
+  useEffect(() => {
+    const canvasId = searchParams.get('canvas');
+    if (!canvasId) return;
+    
+    // Check if canvas exists in store
+    const canvases = useDiagramStore.getState().canvases;
+    const exists = canvases.find(c => c.id === canvasId);
+    
+    if (exists) {
+      const currentCanvasId = activeCanvasId;
+      if (currentCanvasId !== canvasId) {
+        switchCanvas(canvasId);
+      }
+    }
+  }, [searchParams, switchCanvas, activeCanvasId]);
+
+  // Sync active canvas ID to URL
+  useEffect(() => {
+    const currentCanvasId = activeCanvasId;
+    const urlCanvasId = searchParams.get('canvas');
+    if (currentCanvasId && currentCanvasId !== urlCanvasId) {
+      router.replace(`/editor?canvas=${currentCanvasId}`, { scroll: false });
+    }
+  }, [activeCanvasId, searchParams, router]);
 
   // Cmd+D / Ctrl+D — duplicate selected nodes
   useEffect(() => {

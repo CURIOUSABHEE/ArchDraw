@@ -93,7 +93,7 @@ interface DiagramState {
   importSequenceDiagram: (mermaidSyntax: string, title: string) => void;
 
   getRandomAnimalName: () => string;
-  addCanvas: (customName?: string) => string;
+  addCanvas: (customName?: string, canvasId?: string) => string;
   removeCanvas: (id: string) => void;
   switchCanvas: (id: string) => void;
   renameCanvas: (id: string, name: string) => void;
@@ -103,6 +103,7 @@ interface DiagramState {
   getOpenCanvases: () => CanvasTab[];
   getVisibleCanvases: () => CanvasTab[];
   getOverflowCanvases: () => CanvasTab[];
+  getActiveCanvasId: () => string;
 
   // ── User / Auth ───────────────────────────────────────────────────────────
   userProfile: UserProfile | null;
@@ -181,8 +182,14 @@ interface DiagramState {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function makeCanvas(name: string): CanvasTab {
-  return { id: `canvas-${Date.now()}-${Math.random().toString(36).slice(2)}`, name, nodes: [], edges: [], updatedAt: Date.now() };
+function makeCanvas(name: string, id?: string): CanvasTab {
+  return { 
+    id: id || `canvas-${Date.now()}-${Math.random().toString(36).slice(2)}`, 
+    name, 
+    nodes: [], 
+    edges: [], 
+    updatedAt: Date.now() 
+  };
 }
 
 const INITIAL_CANVAS = makeCanvas('Elephant');
@@ -282,7 +289,7 @@ export const useDiagramStore = create<DiagramState>()(
         return `${baseAnimal} ${counter}`;
       },
 
-      addCanvas: (customName?: string) => {
+      addCanvas: (customName?: string, canvasId?: string) => {
         const { canvases, openCanvasIds, getRandomAnimalName } = get();
         
         const baseName = customName || getRandomAnimalName();
@@ -295,7 +302,7 @@ export const useDiagramStore = create<DiagramState>()(
           newName = `${baseName} ${counter}`;
         }
         
-        const newCanvas = makeCanvas(newName);
+        const newCanvas = makeCanvas(newName, canvasId);
         const canvasWithMeta = { ...newCanvas, isOpen: true, lastAccessedAt: Date.now() };
         const newOpenIds = [...openCanvasIds, newCanvas.id];
         set({ 
@@ -526,6 +533,10 @@ export const useDiagramStore = create<DiagramState>()(
         
         // Return overflow: open canvases not in visible
         return openCanvases.filter((c) => !visibleIds.has(c.id));
+      },
+
+      getActiveCanvasId: () => {
+        return get().activeCanvasId;
       },
 
       // ── User / Auth ────────────────────────────────────────────────────────
