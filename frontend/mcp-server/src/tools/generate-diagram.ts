@@ -72,6 +72,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
     direction: string;
   };
   diagramUrl?: string;
+  sessionId?: string;
   message?: string;
   errors?: string[];
 }> {
@@ -164,7 +165,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         sourceHandle: 'right' as const,
         targetHandle: 'left' as const,
         communicationType: commType as ArchitectureEdge['communicationType'],
-        pathType: 'step' as ArchitectureEdge['pathType'],
+        pathType: 'smooth' as ArchitectureEdge['pathType'],
         label: edge.label || '',
         labelPosition: 'center' as const,
         animated: commType !== 'sync' && commType !== 'dep',
@@ -187,6 +188,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
 
     let diagramUrl: string | undefined;
     let message: string | undefined;
+    let sessionId: string | undefined;
 
     const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000';
 
@@ -205,7 +207,8 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
       if (saveResponse.ok) {
         const saveData = await saveResponse.json() as { sessionId: string; url: string };
         diagramUrl = `${API_BASE}${saveData.url}`;
-        message = `Diagram generated with ${layoutResult.nodes.length} nodes and ${layoutResult.edges.length} edges. Open this link to view it: ${diagramUrl}`;
+        sessionId = saveData.sessionId;
+        message = `✅ Diagram ready! Open this URL to view and edit the diagram:\n\n${diagramUrl}\n\nOr copy and paste this link in your browser. The diagram has ${layoutResult.nodes.length} nodes and ${layoutResult.edges.length} edges.\n\n**To export**: Use the session ID "${sessionId}" with the export_diagram tool (format: json/png/svg).`;
       }
     } catch {
       message = `Diagram generated with ${layoutResult.nodes.length} nodes and ${layoutResult.edges.length} edges.`;
@@ -223,6 +226,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         direction,
       },
       diagramUrl,
+      sessionId,
       message,
       errors: errors.length > 0 ? errors : undefined,
     };

@@ -128,6 +128,9 @@ export interface DiagramResult {
     layoutAlgorithm: string;
     direction: string;
   };
+  diagramUrl?: string;
+  sessionId?: string;
+  message?: string;
   errors?: string[];
 }
 

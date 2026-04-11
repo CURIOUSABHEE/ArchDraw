@@ -23,7 +23,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'step',
+    pathType: 'smooth',
   },
   async: {
     id: 'async',
@@ -33,7 +33,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'step',
+    pathType: 'smooth',
   },
   stream: {
     id: 'stream',
@@ -43,7 +43,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'step',
+    pathType: 'smooth',
   },
   event: {
     id: 'event',
@@ -53,7 +53,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'step',
+    pathType: 'smooth',
   },
   dep: {
     id: 'dep',
@@ -63,7 +63,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'step',
+    pathType: 'smooth',
   },
 };
 

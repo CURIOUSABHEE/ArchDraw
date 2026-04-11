@@ -237,6 +237,9 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
     nodeCount: number;
     edgeCount: number;
   };
+  diagramUrl?: string;
+  sessionId?: string;
+  message?: string;
   errors?: string[];
 }> {
   const errors: string[] = [];
@@ -366,6 +369,32 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
       };
     });
 
+    let diagramUrl: string | undefined;
+    let message: string | undefined;
+    let sessionId: string | undefined;
+    const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000';
+
+    try {
+      const saveResponse = await fetch(`${API_BASE}/api/diagram/load`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nodes: reactFlowNodes,
+          edges: reactFlowEdges,
+          label: template.name,
+        }),
+      });
+
+      if (saveResponse.ok) {
+        const saveData = await saveResponse.json() as { sessionId: string; url: string };
+        diagramUrl = `${API_BASE}${saveData.url}`;
+        sessionId = saveData.sessionId;
+        message = `✅ Template loaded! Open this URL to view and edit the diagram:\n\n${diagramUrl}\n\nOr copy and paste this link in your browser. The template has ${reactFlowNodes.length} nodes and ${reactFlowEdges.length} edges.\n\n**To export**: Use the session ID "${sessionId}" with the export_diagram tool (format: json/png/svg).`;
+      }
+    } catch {
+      message = `Template applied with ${reactFlowNodes.length} nodes and ${reactFlowEdges.length} edges.`;
+    }
+
     return {
       success: true,
       nodes: reactFlowNodes,
@@ -375,6 +404,9 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
         nodeCount: reactFlowNodes.length,
         edgeCount: reactFlowEdges.length,
       },
+      diagramUrl,
+      sessionId,
+      message,
       errors: errors.length > 0 ? errors : undefined,
     };
 

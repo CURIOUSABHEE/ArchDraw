@@ -89,31 +89,40 @@ function CanvasInner() {
 
   // Load diagram from session URL on mount
   const searchParams = useSearchParams();
+  const importDiagram = useDiagramStore((s) => s.importDiagram);
+  const loadSession = useCallback(async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/diagram/session/${sessionId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to load diagram');
+        return;
+      }
+
+      const data = await response.json();
+      const nodesWithType = (data.nodes as Node[]).map((n) => ({
+        ...n,
+        type: n.type || 'systemNode',
+      }));
+      const edgesWithType = (data.edges as Edge[]).map((e) => ({
+        ...e,
+        type: e.type || 'custom',
+      }));
+      importDiagram(nodesWithType, edgesWithType);
+      reactFlowInstance.setNodes(nodesWithType);
+      reactFlowInstance.setEdges(edgesWithType);
+      toast.success(`Diagram loaded: ${data.label || 'Untitled'}`);
+      setTimeout(() => reactFlowInstance.fitView({ padding: 0.2, duration: 400 }), 100);
+    } catch {
+      toast.error('Failed to load diagram');
+    }
+  }, [importDiagram, reactFlowInstance]);
+
   useEffect(() => {
     const sessionId = searchParams.get('session');
     if (!sessionId) return;
-
-    const loadSession = async () => {
-      try {
-        const response = await fetch(`/api/diagram/session/${sessionId}`);
-        if (!response.ok) {
-          const error = await response.json();
-          toast.error(error.error || 'Failed to load diagram');
-          return;
-        }
-
-        const data = await response.json();
-        reactFlowInstance.setNodes(data.nodes as Node[]);
-        reactFlowInstance.setEdges(data.edges as Edge[]);
-        toast.success(`Diagram loaded: ${data.label || 'Untitled'}`);
-        setTimeout(() => reactFlowInstance.fitView({ padding: 0.2, duration: 400 }), 100);
-      } catch {
-        toast.error('Failed to load diagram');
-      }
-    };
-
-    loadSession();
-  }, [searchParams]);
+    loadSession(sessionId);
+  }, [searchParams, loadSession]);
 
   // Cmd+D / Ctrl+D — duplicate selected nodes
   useEffect(() => {

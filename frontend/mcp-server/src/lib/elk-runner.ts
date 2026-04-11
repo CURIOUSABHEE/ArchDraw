@@ -198,7 +198,7 @@ function createReactFlowEdge(
 ): ReactFlowEdge {
   const commType = edge.communicationType || 'sync';
   const commStyle = COMM_COLORS[commType] || COMM_COLORS.sync;
-  const pathType = edge.pathType || 'step';
+  const pathType = edge.pathType || 'smooth';
   
   return {
     id: edge.id,
@@ -396,7 +396,7 @@ export async function runELKLayout(
         target: edge.target,
         sourceHandle: 'right',
         targetHandle: 'left',
-        type: edge.pathType || 'step',
+        type: edge.pathType || 'smooth',
         animated: commStyle.animated,
         label: edge.label || '',
         labelShowBg: true,
@@ -511,7 +511,7 @@ export function runFallbackLayout(
       target: edge.target,
       sourceHandle: 'right',
       targetHandle: 'left',
-      type: edge.pathType || 'step',
+      type: edge.pathType || 'smooth',
       animated: commStyle.animated,
       label: edge.label || '',
       labelShowBg: true,
@@ -527,7 +527,7 @@ export function runFallbackLayout(
       markerEnd: { type: 'arrowclosed', color: commStyle.color },
       data: {
         communicationType: commType as 'sync' | 'async' | 'stream' | 'event' | 'dep',
-        pathType: edge.pathType || 'step',
+        pathType: edge.pathType || 'smooth',
         label: edge.label || '',
       },
     };

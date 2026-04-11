@@ -36,6 +36,38 @@ function getStepPath(
   return { path, labelX: midX, labelY: (sourceY + targetY) / 2 };
 }
 
+function getBezierPathWithOffset(
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+  sourcePosition: Position,
+  targetPosition: Position,
+): PathResult {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const curveStrength = Math.min(Math.abs(dx) * 0.5, 80);
+  
+  let controlOffset1: { x: number; y: number };
+  let controlOffset2: { x: number; y: number };
+
+  if (sourcePosition === Position.Right || sourcePosition === Position.Left) {
+    controlOffset1 = { x: sourceX + Math.sign(dx) * curveStrength, y: sourceY };
+    controlOffset2 = { x: targetX - Math.sign(dx) * curveStrength, y: targetY };
+  } else {
+    controlOffset1 = { x: sourceX, y: sourceY + Math.sign(dy) * curveStrength };
+    controlOffset2 = { x: targetX, y: targetY - Math.sign(dy) * curveStrength };
+  }
+
+  const path = `M ${sourceX} ${sourceY} C ${controlOffset1.x} ${controlOffset1.y}, ${controlOffset2.x} ${controlOffset2.y}, ${targetX} ${targetY}`;
+  
+  return {
+    path,
+    labelX: (sourceX + targetX) / 2,
+    labelY: (sourceY + targetY) / 2,
+  };
+}
+
 function getPath(
   pathType: PathType,
   sourceX: number,
@@ -45,13 +77,25 @@ function getPath(
   sourcePosition: Position,
   targetPosition: Position,
 ): PathResult {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const minCurveDistance = 100;
+  
   switch (pathType) {
     case 'bezier': {
-      const [path] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
-      return { path, labelX: (sourceX + targetX) / 2, labelY: (sourceY + targetY) / 2 };
+      if (distance < minCurveDistance) {
+        const [path] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+        return { path, labelX: (sourceX + targetX) / 2, labelY: (sourceY + targetY) / 2 };
+      }
+      return getBezierPathWithOffset(sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition);
     }
     
     case 'smooth': {
+      if (distance < minCurveDistance) {
+        const [path] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+        return { path, labelX: (sourceX + targetX) / 2, labelY: (sourceY + targetY) / 2 };
+      }
       const [path, labelX, labelY] = getSmoothStepPath({
         sourceX, sourceY, sourcePosition,
         targetX, targetY, targetPosition,
@@ -66,8 +110,14 @@ function getPath(
     
     case 'straight':
     default: {
-      const [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
-      return { path, labelX, labelY };
+      if (Math.abs(dx) < minCurveDistance && Math.abs(dy) < minCurveDistance) {
+        const [path] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+        return { path, labelX: (sourceX + targetX) / 2, labelY: (sourceY + targetY) / 2 };
+      }
+      const midX = sourceX + dx * 0.5;
+      const midY = sourceY + dy * 0.5;
+      const path = `M ${sourceX} ${sourceY} L ${midX} ${sourceY} L ${midX} ${midY} L ${midX} ${targetY} L ${targetX} ${targetY}`;
+      return { path, labelX: midX, labelY: (sourceY + targetY) / 2 };
     }
   }
 }
@@ -94,7 +144,17 @@ export function FlowEdge({
   const isDark = useTheme().isDark;
 
   const { path: edgePath, labelX, labelY } = useMemo(() => {
-    return getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition);
+    const result = getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition);
+    const dx = targetX - sourceX;
+    const dy = targetY - sourceY;
+    const perpendicularOffset = Math.min(Math.sqrt(dx * dx + dy * dy) * 0.1, 15);
+    const perpX = dy === 0 ? 0 : (dy / Math.abs(dy || 1)) * perpendicularOffset;
+    const perpY = dx === 0 ? 0 : -(dx / Math.abs(dx || 1)) * perpendicularOffset;
+    return {
+      ...result,
+      labelX: result.labelX + perpX,
+      labelY: result.labelY + perpY,
+    };
   }, [pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
 
   const animationClass = useMemo(() => {

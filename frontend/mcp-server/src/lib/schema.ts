@@ -73,6 +73,52 @@ export type FixLayoutInput = z.infer<typeof FixLayoutInputSchema>;
 export type ListNodeTypesInput = z.infer<typeof ListNodeTypesInputSchema>;
 export type ApplyTemplateInput = z.infer<typeof ApplyTemplateInputSchema>;
 
+// New schemas for additional tools
+export const UpdateDiagramInputSchema = z.object({
+  addNodes: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    tier: z.string(),
+    subtitle: z.string().optional(),
+    icon: z.string().optional(),
+  })).optional(),
+  removeNodeIds: z.array(z.string()).optional(),
+  addEdges: z.array(z.object({
+    source: z.string(),
+    target: z.string(),
+    communicationType: z.enum(['sync', 'async', 'stream', 'event', 'dep']).optional(),
+    label: z.string().optional(),
+  })).optional(),
+  removeEdgeIds: z.array(z.string()).optional(),
+  updateNodes: z.array(z.object({
+    id: z.string(),
+    label: z.string().optional(),
+    subtitle: z.string().optional(),
+    tier: z.string().optional(),
+  })).optional(),
+});
+
+export const SaveCheckpointInputSchema = z.object({
+  name: z.string().min(1).describe('Name for the checkpoint'),
+  description: z.string().optional().describe('Optional description'),
+});
+
+export const LoadCheckpointInputSchema = z.object({
+  name: z.string().min(1).describe('Checkpoint name to restore'),
+  listAvailable: z.boolean().optional().default(false).describe('If true, list all checkpoints without restoring'),
+});
+
+export type UpdateDiagramInput = z.infer<typeof UpdateDiagramInputSchema>;
+export type SaveCheckpointInput = z.infer<typeof SaveCheckpointInputSchema>;
+export type LoadCheckpointInput = z.infer<typeof LoadCheckpointInputSchema>;
+
+export const ExportDiagramInputSchema = z.object({
+  sessionId: z.string().uuid().describe('Session ID from a previous diagram generation'),
+  format: z.enum(['json', 'png', 'svg']).default('json').describe('Export format: json (diagram data), png/svg (export instructions)'),
+});
+
+export type ExportDiagramInput = z.infer<typeof ExportDiagramInputSchema>;
+
 export const GenerateDiagramOutputSchema = z.object({
   success: z.boolean(),
   nodes: z.array(z.object({
@@ -117,6 +163,9 @@ export const GenerateDiagramOutputSchema = z.object({
     layoutAlgorithm: z.string(),
     direction: z.string(),
   }),
+  diagramUrl: z.string().optional(),
+  sessionId: z.string().optional(),
+  message: z.string().optional(),
   errors: z.array(z.string()).optional(),
 });
 
@@ -184,5 +233,8 @@ export const ApplyTemplateOutputSchema = z.object({
     nodeCount: z.number(),
     edgeCount: z.number(),
   }),
+  diagramUrl: z.string().optional(),
+  sessionId: z.string().optional(),
+  message: z.string().optional(),
   errors: z.array(z.string()).optional(),
 });

@@ -105,7 +105,7 @@ export async function fixLayout(input: FixLayoutInput): Promise<{
         sourceHandle: 'right',
         targetHandle: 'left',
         communicationType: (commType) as ArchitectureEdge['communicationType'],
-        pathType: 'step',
+        pathType: 'smooth',
         label: '',
         labelPosition: 'center',
         animated: commType !== 'sync' && commType !== 'dep',

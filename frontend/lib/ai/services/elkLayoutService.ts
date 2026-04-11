@@ -302,7 +302,9 @@ function postProcessLayout(
 ): ReactFlowNode[] {
   const nodesByTier: Record<string, ReactFlowNode[]> = {};
   const NODE_HEIGHT = 70;
-  const LAYER_HEIGHT = 160;
+  const NODE_WIDTH = 160;
+  const VERTICAL_SPACING = 80;
+  const HORIZONTAL_SPACING = 100;
 
   for (const node of nodes) {
     const tier = node.data?.layer || 'compute';
@@ -326,7 +328,7 @@ function postProcessLayout(
 
       if (i > 0) {
         const prevNode = tierNodes[i - 1];
-        const minY = prevNode.position.y + (prevNode.height || NODE_HEIGHT) + 50;
+        const minY = prevNode.position.y + (prevNode.height || NODE_HEIGHT) + VERTICAL_SPACING;
         currentY = Math.max(currentY, minY);
       }
 
@@ -335,7 +337,7 @@ function postProcessLayout(
         position: { ...processedNodes[nodeIndex].position, y: currentY },
       };
 
-      currentY += NODE_HEIGHT + 50;
+      currentY += (node.height || NODE_HEIGHT) + VERTICAL_SPACING;
     }
 
     const x = TIER_X[tier] ?? 500;
@@ -656,7 +658,8 @@ function computeFallbackLayout(
   }
 
   const reactFlowNodes: ReactFlowNode[] = [];
-  const verticalSpacing = nodeHeight + 80;
+  const verticalSpacing = nodeHeight + 100;
+  const nodeSpacing = nodeWidth + 80;
 
   for (const layer of LAYER_ORDER) {
     const layerNodes = nodesByLayer[layer] || [];
