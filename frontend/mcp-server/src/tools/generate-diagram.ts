@@ -202,6 +202,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
           nodes: layoutResult.nodes,
           edges: layoutResult.edges,
           label,
+          source: 'mcp',
         }),
       });
 

@@ -6,6 +6,7 @@ export interface DiagramData {
   edges: unknown[];
   label?: string;
   createdAt: Date;
+  source?: 'mcp' | 'manual';
 }
 
 export const diagramStore = new Map<string, DiagramData>();
@@ -15,6 +16,7 @@ const LoadDiagramSchema = z.object({
   nodes: z.array(z.object({}).passthrough()),
   edges: z.array(z.object({}).passthrough()),
   label: z.string().optional(),
+  source: z.enum(['mcp', 'manual']).optional().default('manual'),
 });
 
 export async function POST(request: NextRequest) {
@@ -30,6 +32,7 @@ export async function POST(request: NextRequest) {
       edges: validated.edges,
       label,
       createdAt: new Date(),
+      source: validated.source,
     });
 
     return NextResponse.json({

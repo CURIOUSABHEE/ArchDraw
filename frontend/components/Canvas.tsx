@@ -105,6 +105,7 @@ function CanvasInner() {
       }
 
       const data = await response.json();
+      const isMCP = data.source === 'mcp';
       const nodesWithType = (data.nodes as Node[]).map((n) => ({
         ...n,
         type: n.type || 'systemNode',
@@ -120,7 +121,8 @@ function CanvasInner() {
         },
       }));
       
-      const canvasId = addCanvas(data.label || 'Session Diagram', sessionId);
+      const canvasName = isMCP ? `MCP: ${data.label || 'Diagram'}` : (data.label || 'Session Diagram');
+      const canvasId = addCanvas(canvasName, sessionId);
       importDiagram(nodesWithType, edgesWithType);
       reactFlowInstance.setNodes(nodesWithType);
       reactFlowInstance.setEdges(edgesWithType);

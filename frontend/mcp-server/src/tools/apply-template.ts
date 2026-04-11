@@ -383,6 +383,7 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
           nodes: reactFlowNodes,
           edges: reactFlowEdges,
           label: template.name,
+          source: 'mcp',
         }),
       });
 
