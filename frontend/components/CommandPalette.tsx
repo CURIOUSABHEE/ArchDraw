@@ -143,13 +143,13 @@ export function CommandPalette() {
 
   const handleOpenCanvas = useCallback((id: string) => {
     setOpen(false);
-    router.push('/editor');
+    router.push(`/editor?canvas=${id}`);
   }, [router]);
 
   const handleCreateCanvas = useCallback(() => {
     const newId = addCanvas();
     setOpen(false);
-    router.push('/editor');
+    router.push(`/editor?canvas=${newId}`);
   }, [addCanvas, router]);
 
   // Build display items with sections
