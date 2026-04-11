@@ -216,6 +216,10 @@ export function Toolbar() {
   const [shareUrl, setShareUrl] = useState('');
   const [embedUrl, setEmbedUrl] = useState('');
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareSessionId, setShareSessionId] = useState('');
+  const [shareAccessType, setShareAccessType] = useState<'restricted' | 'anyone'>('anyone');
+  const [shareLinkPermission, setShareLinkPermission] = useState<'viewer' | 'editor'>('viewer');
+  const [sharePeople, setSharePeople] = useState<Array<{email: string; name: string; role: string}>>([]);
   const [emailCapture, setEmailCapture] = useState<EmailCaptureReason | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
@@ -274,6 +278,32 @@ export function Toolbar() {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const dataUrlToBlob = (dataUrl: string): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to convert to blob'));
+          }
+        }, 'image/png');
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = dataUrl;
+    });
   };
 
   const doExport = async (format: ExportFormat) => {
@@ -343,7 +373,7 @@ export function Toolbar() {
               );
             },
           });
-          const pngBlob = await (await fetch(pngDataUrl)).blob();
+          const pngBlob = await dataUrlToBlob(pngDataUrl);
           downloadFile(pngBlob, 'archdraw-export.png');
           toast.warning('SVG too large, exported as PNG instead');
         } else {
@@ -407,7 +437,7 @@ export function Toolbar() {
         toast.success('Exported as PDF');
       } else {
         const suffix = pixelRatio === 1 ? '' : pixelRatio === 2 ? '@2x' : '@4x';
-        downloadFile(await (await fetch(dataUrl)).blob(), `archdraw-export${suffix}.png`);
+        downloadFile(await dataUrlToBlob(dataUrl), `archdraw-export${suffix}.png`);
         toast.success(`Exported as PNG ${pixelRatio}x`);
       }
     } catch (err) {
@@ -446,39 +476,56 @@ export function Toolbar() {
   };
 
   const doShare = async () => {
-    if (!isSupabaseConfigured) {
-      toast.error('Supabase is not configured');
-      return;
-    }
-    setIsSharing(true);
+    // Get user info for owner
+    const user = useAuthStore.getState().user;
+    const userEmail = user?.email || 'owner@local';
+    const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Owner';
+    
     try {
-      const supabase = getSupabaseClient();
-      const canvasName = activeCanvas?.name ?? 'Untitled';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from('shared_canvases')
-        .insert({ canvas_name: canvasName, nodes, edges })
-        .select('id')
-        .single();
-      if (error) {
-        console.error('Share error:', error);
-        toast.error('Could not generate link: ' + error.message);
-        return;
+      const response = await fetch('/api/diagram/load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nodes,
+          edges,
+          label: activeCanvas?.name ?? 'Shared Diagram',
+          source: 'manual',
+          accessType: 'anyone',
+          linkPermission: 'viewer',
+          users: [{
+            email: userEmail,
+            name: userName,
+            role: 'owner',
+            addedAt: Date.now(),
+          }],
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
+        const shareUrl = `${baseUrl}/share/${data.sessionId}`;
+        setShareUrl(shareUrl);
+        setShareSessionId(data.sessionId);
+        setShareAccessType('anyone');
+        setShareLinkPermission('viewer');
+        
+        // Capture users from response if exists
+        const user = useAuthStore.getState().user;
+        const userEmail = user?.email || 'owner@local';
+        const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Owner';
+        setSharePeople([{ email: userEmail, name: userName, role: 'owner' }]);
+        
+        setShareModalOpen(true);
+      } else {
+        toast.error('Could not generate share link');
       }
-      if (!data?.id) {
-        toast.error('Could not generate link, try again');
-        return;
-      }
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
-      setShareUrl(baseUrl + '/share/' + data.id);
-      setEmbedUrl(baseUrl + '/embed/' + data.id);
-      setShareModalOpen(true);
     } catch (err) {
-      console.error('Share exception:', err);
-      toast.error('Could not generate link, try again');
-    } finally {
-      setIsSharing(false);
+      console.error('Share error:', err);
+      toast.error('Could not generate share link');
     }
+    
+    setIsSharing(false);
   };
 
   const handleShare = () => {
@@ -900,11 +947,78 @@ export function Toolbar() {
         </div>
       </header>
 
-      {shareModalOpen && (
+      {shareModalOpen && shareUrl && (
         <ShareModal
-          canvasId={activeCanvas?.id ?? ''}
-          canvasName={activeCanvas?.name ?? 'Untitled'}
+          isOpen={shareModalOpen}
           onClose={() => setShareModalOpen(false)}
+          shareUrl={shareUrl}
+          sessionId={shareSessionId}
+          accessType={shareAccessType}
+          linkPermission={shareLinkPermission}
+          initialPeople={sharePeople.map(p => ({
+            id: p.email,
+            name: p.name,
+            email: p.email,
+            role: p.role === 'owner' ? 'owner' : p.role === 'editor' ? 'can edit' : 'can view',
+          }))}
+          onAccessChange={(accessType, linkPermission) => {
+            setShareAccessType(accessType);
+            setShareLinkPermission(linkPermission);
+            
+            // Persist to backend
+            fetch('/api/diagram/load', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: shareSessionId,
+                accessType,
+                linkPermission,
+              }),
+            }).catch(console.error);
+          }}
+          onInvite={(email, role) => {
+            const userName = email.split('@')[0];
+            setSharePeople(prev => [...prev, { email, name: userName, role }]);
+            
+            fetch('/api/diagram/load', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: shareSessionId,
+                email,
+                name: userName,
+                role: role === 'can edit' ? 'editor' : 'viewer',
+              }),
+            }).catch(console.error);
+          }}
+          onRemove={(userId) => {
+            setSharePeople(prev => prev.filter(p => p.email !== userId));
+            
+            fetch('/api/diagram/load', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: shareSessionId,
+                email: userId,
+              }),
+            }).catch(console.error);
+          }}
+          onRoleChange={(userId, newRole) => {
+            setSharePeople(prev => prev.map(p => 
+              p.email === userId ? { ...p, role: newRole === 'can edit' ? 'editor' : 'viewer' } : p
+            ));
+            
+            fetch('/api/diagram/load', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: shareSessionId,
+                email: userId,
+                name: sharePeople.find(p => p.email === userId)?.name || userId,
+                role: newRole === 'can edit' ? 'editor' : 'viewer',
+              }),
+            }).catch(console.error);
+          }}
         />
       )}
       {emailCapture && (

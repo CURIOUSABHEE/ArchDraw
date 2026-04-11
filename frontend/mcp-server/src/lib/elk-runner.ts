@@ -230,7 +230,7 @@ function createReactFlowEdge(
 }
 
 export function generateELKOptions(_direction: string = 'RIGHT', density: 'low' | 'medium' | 'high' = 'medium'): Record<string, string> {
-  const spacingMultiplier = density === 'high' ? 1.8 : density === 'medium' ? 1.5 : 1.2;
+  const spacingMultiplier = density === 'high' ? 1.5 : density === 'medium' ? 1.2 : 1.0;
   
   const options: Record<string, string> = {
     'elk.algorithm': 'layered',
@@ -238,25 +238,26 @@ export function generateELKOptions(_direction: string = 'RIGHT', density: 'low' 
     'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
     'elk.edgeRouting': 'ORTHOGONAL',
     'elk.portConstraints': 'FIXED_SIDE',
-    'elk.spacing.nodeNode': String(Math.round(150 * spacingMultiplier)),
-    'elk.spacing.edgeEdge': String(Math.round(60 * spacingMultiplier)),
-    'elk.spacing.edgeNode': String(Math.round(80 * spacingMultiplier)),
+    'elk.spacing.nodeNode': String(Math.round(60 * spacingMultiplier)),
+    'elk.spacing.edgeEdge': String(Math.round(40 * spacingMultiplier)),
+    'elk.spacing.edgeNode': String(Math.round(60 * spacingMultiplier)),
     'elk.spacing.labelNode': '50',
-    'elk.layered.spacing.nodeNodeBetweenLayers': String(Math.round(200 * spacingMultiplier)),
-    'elk.layered.spacing.edgeNodeBetweenLayers': String(Math.round(160 * spacingMultiplier)),
+    'elk.layered.spacing.nodeNodeBetweenLayers': String(Math.round(120 * spacingMultiplier)),
+    'elk.layered.spacing.edgeNodeBetweenLayers': String(Math.round(100 * spacingMultiplier)),
     'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
     'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
     'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
     'elk.layered.crossingMinimization.forceNodeModelOrder': 'false',
     'elk.layered.separatingEdges.strategy': 'CENTERING',
-    'elk.layered.unnecessaryBendpoints': 'true',
+    'elk.layered.unnecessaryBendpoints': 'false',
     'elk.layered.edgeRouting.selfLoopDistribution': 'EVEN',
     'elk.layered.mergeEdges': 'false',
     'elk.edgeLabels.inline': 'false',
     'elk.edgeLabels.placement': 'CENTER',
-    'elk.padding': '[top=80, left=60, bottom=80, right=60]',
+    'elk.padding': '[top=60, left=60, bottom=60, right=60]',
     'elk.layered.layering.strategy': 'LONGEST_PATH',
     'elk.layered.initialization.strategy': 'MULTI_LEVEL',
+    'elk.aspectRatio': '2.0',
   };
   
   return options;

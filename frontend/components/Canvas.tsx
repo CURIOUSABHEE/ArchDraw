@@ -31,6 +31,7 @@ import { useCanvasTheme } from '@/lib/theme';
 import { TemplateModal } from '@/components/TemplateModal';
 import { AutoLayoutButton } from '@/components/canvas/toolbar/AutoLayoutButton';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { DiagramLegend } from '@/components/DiagramLegend';
 import { toast } from 'sonner';
 import type { Node, Edge } from 'reactflow';
 
@@ -176,6 +177,7 @@ function CanvasInner() {
   }, [activeCanvasId, searchParams, router, urlCanvasHandled]);
 
   // Cmd+D / Ctrl+D — duplicate selected nodes
+  // Cmd+0 / Ctrl+0 — fit view
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // ? key — toggle shortcuts modal
@@ -183,18 +185,33 @@ function CanvasInner() {
         setShowShortcuts((v) => !v);
         return;
       }
-      // f key — fit view
-      if (e.key === 'f' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+      
+      // Cmd+0 / Ctrl+0 — fit view to all nodes
+      if ((e.metaKey || e.ctrlKey) && e.key === '0') {
         e.preventDefault();
-        const opts = { padding: 0.1, duration: 200 };
+        const fitOpts = { padding: 0.12, duration: 400, maxZoom: 1.0, minZoom: 0.3 };
         if (reactFlowInstance?.fitView) {
-          reactFlowInstance.fitView(opts);
+          reactFlowInstance.fitView(fitOpts);
         }
         if (reactFlowRef.instance?.fitView) {
-          reactFlowRef.instance.fitView(opts);
+          reactFlowRef.instance.fitView(fitOpts);
         }
         return;
       }
+      
+      // f key — fit view
+      if (e.key === 'f' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+        const fitOpts = { padding: 0.12, duration: 200, maxZoom: 1.0, minZoom: 0.3 };
+        if (reactFlowInstance?.fitView) {
+          reactFlowInstance.fitView(fitOpts);
+        }
+        if (reactFlowRef.instance?.fitView) {
+          reactFlowRef.instance.fitView(fitOpts);
+        }
+        return;
+      }
+      
       if (!(e.metaKey || e.ctrlKey) || e.key !== 'd') return;
       const active = document.activeElement;
       if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return;
@@ -225,6 +242,23 @@ function CanvasInner() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [setSelectedNodeIds, reactFlowInstance]);
+
+  // Auto-fit viewport when nodes change
+  useEffect(() => {
+    if (nodes.length === 0) return;
+    
+    const timer = setTimeout(() => {
+      const fitOpts = { padding: 0.12, duration: 500, maxZoom: 1.0, minZoom: 0.3 };
+      if (reactFlowInstance?.fitView) {
+        reactFlowInstance.fitView(fitOpts);
+      }
+      if (reactFlowRef.instance?.fitView) {
+        reactFlowRef.instance.fitView(fitOpts);
+      }
+    }, 150);
+    
+    return () => clearTimeout(timer);
+  }, [nodes.length, edges.length]);
 
   // Focus label input when a new edge is drawn
   useEffect(() => {
@@ -348,14 +382,14 @@ function CanvasInner() {
   }, [setCanvasMode, dismissOnboarding]);
 
   return (
-    <div className="flex-1 relative overflow-hidden bg-background">
+    <div className="flex-1 relative overflow-hidden" style={{ background: isDark ? '#0F172A' : '#F8FAFC' }}>
       {/* Soft canvas background - minimal gradient */}
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
           background: isDark
             ? 'radial-gradient(ellipse at center, rgba(40, 50, 70, 0.2) 0%, transparent 60%)'
-            : 'radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.8) 0%, hsl(var(--canvas-bg)) 70%)',
+            : 'radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.4) 0%, transparent 60%)',
         }}
       />
       <div className="absolute inset-0">
@@ -411,9 +445,10 @@ function CanvasInner() {
         {showGrid && (
           <Background
             variant={BackgroundVariant.Dots}
-            color={isDark ? 'rgba(100, 120, 150, 0.15)' : 'rgba(180, 190, 200, 0.4)'}
+            color={isDark ? 'rgba(100, 120, 150, 0.15)' : 'rgba(203, 213, 225, 0.5)'}
             gap={24}
-            size={1}
+            size={1.5}
+            style={{ opacity: 0.5 }}
           />
         )}
         <Controls
@@ -484,7 +519,10 @@ function CanvasInner() {
         })()}
       </ReactFlow>
       </div>
-
+      
+      {/* Diagram Legend */}
+      <DiagramLegend />
+      
       <GuideLines />
 
       {contextMenu && (

@@ -1,202 +1,194 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
+import { Monitor, Shield, Cpu, Zap, Database, Activity, Globe, Server } from 'lucide-react';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
-import { NodeIcon, resolveNodeColor } from '@/components/NodeIcon';
 import { useTheme } from '@/lib/theme';
+
+const TIER_COLORS: Record<string, string> = {
+  client: '#8B5CF6',
+  edge: '#6366F1',
+  compute: '#0D9488',
+  async: '#F59E0B',
+  data: '#3B82F6',
+  observe: '#6B7280',
+  external: '#F43F5E',
+};
+
+const TIER_ICONS: Record<string, React.ElementType> = {
+  client: Monitor,
+  edge: Shield,
+  compute: Cpu,
+  async: Zap,
+  data: Database,
+  observe: Activity,
+  external: Globe,
+};
 
 function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
   const { isDark } = useTheme();
-  const accent = data.accentColor ?? data.color ?? '#6366f1';
-  const resolvedAccent = data.technology ? resolveNodeColor(data.technology, accent) : accent;
+
+  const tierColor = useMemo(() => {
+    const tier = (data.category || '').toLowerCase();
+    return TIER_COLORS[tier] || TIER_COLORS.compute;
+  }, [data.category]);
+
+  const TierIcon = useMemo(() => {
+    const tier = (data.category || '').toLowerCase();
+    return TIER_ICONS[tier] || Server;
+  }, [data.category]);
+
   const hasError = data.hasError;
-  const isAIGenerated = data.icon && !data.technology;
 
   const nodeStyles: React.CSSProperties = {
     width: data.nodeWidth ?? 200,
     minWidth: 200,
-    minHeight: 80,
-    maxHeight: 100,
-    height: 'auto',
+    height: 72,
     boxSizing: 'border-box',
     borderRadius: 14,
-    background: isDark
-      ? 'linear-gradient(145deg, hsl(220 18% 15%) 0%, hsl(220 18% 11%) 100%)'
-      : 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
-    border: 'none',
+    background: isDark ? 'hsl(220 18% 12%)' : '#FFFFFF',
+    border: selected ? `2px solid ${tierColor}` : '1px solid #E5E7EB',
     boxShadow: selected
-      ? `0 0 0 2px ${resolvedAccent}, 0 8px 32px ${resolvedAccent}30, 0 4px 12px hsl(var(--foreground) / 0.1)`
+      ? `0 0 0 3px ${tierColor}33, 0 2px 8px rgba(0,0,0,0.08)`
       : hasError
-        ? '0 0 0 2px rgba(239,68,68,0.5), 0 4px 16px rgba(239,68,68,0.2)'
-        : isDark
-          ? `0 6px 20px hsl(var(--foreground) / 0.3), inset 0 1px 0 hsl(var(--foreground) / 0.1)`
-          : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)',
-    transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        ? '0 0 0 2px rgba(239,68,68,0.5), 0 2px 8px rgba(239,68,68,0.2)'
+        : '0 2px 8px rgba(0,0,0,0.08)',
+    transition: 'all 180ms ease',
     cursor: 'pointer',
     position: 'relative',
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    padding: '0 16px',
-    gap: 12,
-  };
-
-  const iconContainerStyle: React.CSSProperties = {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    background: isAIGenerated 
-      ? 'rgba(139, 92, 246, 0.15)' 
-      : isDark ? `${resolvedAccent}20` : `${resolvedAccent}12`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  };
-
-  const handleStyle: React.CSSProperties = {
-    width: 12,
-    height: 12,
-    background: isDark ? 'hsl(var(--card))' : '#ffffff',
-    border: `2px solid ${resolvedAccent}60`,
-    borderRadius: '50%',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    boxShadow: '0 2px 8px hsl(var(--foreground) / 0.15)',
+    padding: 0,
+    overflow: 'hidden',
   };
 
   return (
     <div
-      className="relative group"
+      className="group"
       style={nodeStyles}
       onClick={() => setSelectedNodeId(id)}
       onMouseEnter={(e) => {
-        if (!selected) {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = isDark
-            ? `0 8px 24px hsl(var(--foreground) / 0.35), 0 0 0 1px ${resolvedAccent}40`
-            : `0 8px 24px hsl(var(--foreground) / 0.12), 0 0 0 1px ${resolvedAccent}20`;
+        if (!selected && !hasError) {
+          e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.12), 0 0 0 1px ${tierColor}66`;
         }
       }}
       onMouseLeave={(e) => {
-        if (!selected) {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = isDark
-            ? `0 6px 20px hsl(var(--foreground) / 0.3), inset 0 1px 0 hsl(var(--foreground) / 0.1)`
-            : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)';
+        if (!selected && !hasError) {
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
         }
       }}
     >
-      {/* Subtle shine overlay */}
-      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/8 via-white/[0.02] to-transparent group-hover:from-white/[0.12] group-hover:via-white/[0.04] transition-all duration-300 dark:from-white/8 dark:via-white/[0.02] dark:to-transparent" />
-      
-      {/* LEFT handles (targets) - for incoming edges from left */}
+      {/* LEFT ACCENT BAR */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 4,
+          backgroundColor: tierColor,
+          borderRadius: '4px 0 0 4px',
+        }}
+      />
+
+      {/* LEFT handles */}
       <Handle
         type="target"
         position={Position.Left}
         id="left"
-        style={{ ...handleStyle, left: -5 }}
+        style={{
+          width: 10,
+          height: 10,
+          background: '#FFFFFF',
+          border: `2px solid ${tierColor}`,
+          borderRadius: '50%',
+          left: -4,
+          zIndex: 10,
+        }}
       />
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="left-top"
-        style={{ ...handleStyle, left: -5, top: '25%' }}
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="left-mid"
-        style={{ ...handleStyle, left: -5, top: '50%' }}
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="left-bot"
-        style={{ ...handleStyle, left: -5, top: '75%' }}
-      />
-      
-      {/* RIGHT handles (sources) - for outgoing edges to right */}
+
+      {/* RIGHT handles */}
       <Handle
         type="source"
         position={Position.Right}
         id="right"
-        style={{ ...handleStyle, right: -5 }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right-top"
-        style={{ ...handleStyle, right: -5, top: '25%' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right-mid"
-        style={{ ...handleStyle, right: -5, top: '50%' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right-bot"
-        style={{ ...handleStyle, right: -5, top: '75%' }}
-      />
-      
-      {/* TOP/BOTTOM handles (hidden) - for vertical connections */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="top"
-        style={{ ...handleStyle, top: -5, opacity: 0 }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="bottom"
-        style={{ ...handleStyle, bottom: -5, opacity: 0 }}
+        style={{
+          width: 10,
+          height: 10,
+          background: '#FFFFFF',
+          border: `2px solid ${tierColor}`,
+          borderRadius: '50%',
+          right: -4,
+          zIndex: 10,
+        }}
       />
 
-      <div style={{
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        gap: 12,
-        width: '100%',
-        height: '100%',
-        minHeight: 80,
-        padding: '12px 0',
-      }}>
-        {/* Icon */}
-        <div style={iconContainerStyle}>
-          {data.technology ? (
-            <NodeIcon technology={data.technology} size={20} />
-          ) : (
-            <NodeIcon 
-              technology={undefined} 
-              fallbackIcon={data.icon} 
-              fallbackColor={isAIGenerated ? '#8b5cf6' : resolvedAccent} 
-              size={20} 
-            />
-          )}
-        </div>
+      {/* Hidden handles */}
+      <Handle type="target" position={Position.Top} id="top" style={{ opacity: 0, width: 0, height: 0 }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" style={{ opacity: 0, width: 0, height: 0 }} />
 
-        {/* Label */}
-        <span style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: isDark ? 'hsl(var(--foreground))' : 'hsl(var(--foreground))',
-          textAlign: 'left',
-          wordBreak: 'break-word',
-          overflowWrap: 'break-word',
-          lineHeight: 1.3,
-          margin: 0,
+      {/* Icon Container */}
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          backgroundColor: `${tierColor}1F`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          marginLeft: 16,
+        }}
+      >
+        <TierIcon size={20} color={tierColor} strokeWidth={2} />
+      </div>
+
+      {/* Text Block */}
+      <div
+        style={{
           flex: 1,
-        }}>
+          marginLeft: 12,
+          marginRight: 16,
+          minWidth: 0,
+          overflow: 'hidden',
+        }}
+      >
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: isDark ? '#F1F5F9' : '#0F172A',
+            letterSpacing: '-0.01em',
+            margin: 0,
+            lineHeight: 1.3,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           {data.label}
-        </span>
+        </p>
+        {data.sublabel && (
+          <p
+            style={{
+              fontSize: 11,
+              fontWeight: 500,
+              color: '#94A3B0',
+              margin: '2px 0 0 0',
+              lineHeight: 1.2,
+              maxWidth: 140,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {data.sublabel}
+          </p>
+        )}
       </div>
     </div>
   );

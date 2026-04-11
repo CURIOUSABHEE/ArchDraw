@@ -18,7 +18,6 @@ export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Display text: only show if user has set a custom label
   const displayText = label?.trim() ? label.trim() : null;
 
   const enterEdit = useCallback(() => {
@@ -35,10 +34,8 @@ export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
     setEditing(false);
   }, []);
 
-  // Auto-focus input when edit mode opens
   useEffect(() => {
     if (editing) {
-      // Small delay so AnimatePresence has mounted the input before we focus
       const t = setTimeout(() => inputRef.current?.focus(), 30);
       return () => clearTimeout(t);
     }
@@ -53,11 +50,9 @@ export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
       e.preventDefault();
       cancel();
     }
-    // Prevent React Flow from intercepting Delete/Backspace while typing
     e.stopPropagation();
   };
 
-  // Estimate input width from draft length so the box doesn't feel too wide or narrow
   const inputWidth = Math.max(80, Math.min(150, draft.length * 6 + 32));
 
   if (!displayText && !editing) {
@@ -82,15 +77,16 @@ export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
           transition={{ duration: 0.1 }}
           style={{
             width: inputWidth,
-            background: '#1e293b',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 9999,
-            color: '#f1f5f9',
+            background: '#FFFFFF',
+            border: '1px solid #E5E7EB',
+            borderRadius: 4,
+            color: '#111118',
             fontSize: 10,
-            fontFamily: 'system-ui, sans-serif',
-            padding: '2px 8px',
+            fontFamily: 'Inter, -apple-system, sans-serif',
+            padding: '2px 6px',
             outline: 'none',
             textAlign: 'center',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
           }}
         />
       ) : (
@@ -107,15 +103,18 @@ export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
           title="Double-click to edit"
           style={{
             display: 'inline-block',
-            background: '#1e293b',
-            color: '#94a3b8',
-            borderRadius: 9999,
+            background: '#FFFFFF',
+            color: '#6B7280',
+            borderRadius: 4,
+            border: '1px solid #E5E7EB',
             fontSize: 10,
-            fontFamily: 'system-ui, sans-serif',
-            padding: '1px 6px',
+            fontFamily: 'Inter, -apple-system, sans-serif',
+            fontWeight: 500,
+            padding: '2px 6px',
             cursor: 'text',
             userSelect: 'none',
             whiteSpace: 'nowrap',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           }}
         >
           {displayText}

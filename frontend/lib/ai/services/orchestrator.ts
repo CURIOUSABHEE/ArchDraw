@@ -753,6 +753,78 @@ async function callOpenRouter(prompt: string): Promise<LLMResponse> {
   return JSON.parse(cleaned);
 }
 
+async function callOpenRouterDiagram(prompt: string): Promise<{ nodes: ArchitectureNode[]; flows: string[][] } | null> {
+  const OR_KEY = process.env.OPENROUTER_API_KEY;
+  if (!OR_KEY) {
+    logger.log('[Diagram] No OpenRouter key configured');
+    return null;
+  }
+
+  const systemPrompt = `You are an expert software architect that generates architecture diagrams.
+
+Your job is to output ONLY raw nodes and flows in NDJSON format (newline-delimited JSON).
+One JSON object per line. No explanations, no markdown, no code fences, no preamble.
+
+OUTPUT FORMAT — STRICT RULES:
+Output two sections in this exact order:
+1. Node lines — one node object per line
+2. Flow lines — one flow object per line
+
+NODE format:
+{"id": "unique_id", "label": "Display Name", "subtitle": "short description", "layer": "LAYER_NAME", "icon": "icon_name"}
+
+FLOW format:
+{"type": "flow", "path": ["node_id_1", "node_id_2", "node_id_3"]}
+
+LAYER VALUES: "client", "edge", "compute", "async", "data", "observe", "external"
+
+FLOW RULES:
+1. Every node MUST appear in at least one flow path.
+2. Flows represent the request/data journey from client → edge → compute → data.
+3. You MUST output at least 2–4 flow objects.
+4. Each flow path array must contain ONLY node IDs that exist in your node list.
+5. Flows can branch — use separate flow lines for separate paths.
+6. IDs must be snake_case, short, unique. Good: "api_gateway", "postgres_db", "redis_cache"
+
+VALIDATION:
+- No markdown code fences (no \`\`\`)
+- No prose or explanation — only JSON lines
+- Every line is valid parseable JSON
+- All node IDs are unique snake_case strings
+- All IDs used in flow paths exist as defined nodes
+- At least 1 flow per 3 nodes
+- No node is orphaned (every node in at least 1 flow)
+- Nodes come BEFORE flows in output`;
+
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${OR_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-3.3-70b-instruct',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.2,
+        max_tokens: 1024,
+      }),
+    });
+
+    if (!res.ok) {
+      logger.log('[Diagram] OpenRouter error:', res.status);
+      return null;
+    }
+
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content ?? '';
+    return parseDiagramResponse(content);
+  } catch (error) {
+    logger.log('[Diagram] OpenRouter exception:', error);
+    return null;
+  }
+}
+
 // ============================================================================
 // SPLIT LLM CALL STRATEGY
 // ============================================================================
@@ -919,8 +991,20 @@ async function callDiagramLLM(
     }
   }
 
-  // All Groq keys failed - use fallback instead of throwing
-  logger.log('[Diagram] All Groq keys exhausted, using fallback response');
+  // All Groq keys failed - try OpenRouter as fallback
+  logger.log('[Diagram] All Groq keys exhausted, trying OpenRouter...');
+  try {
+    const orResult = await callOpenRouterDiagram(systemPrompt);
+    if (orResult && orResult.nodes.length > 0) {
+      logger.log('[Diagram] OpenRouter succeeded');
+      return orResult;
+    }
+  } catch (orError) {
+    logger.log('[Diagram] OpenRouter failed:', orError);
+  }
+
+  // Both failed - use fallback
+  logger.log('[Diagram] All providers exhausted, using fallback response');
   return { nodes: getFallbackResponse().nodes, flows: getFallbackResponse().flows };
 }
 
@@ -1402,7 +1486,10 @@ export async function generateDiagram(
 
     emit('edges', 'Building connections...', 60);
     let edges = flowsToEdges(nodes, generationResult.diagram.flows);
+    logger.log('[Pipeline] Flows from LLM:', generationResult.diagram.flows);
+    logger.log('[Pipeline] Edges from flowsToEdges:', edges.length);
     edges = ensureConnectivity(nodes, edges);
+    logger.log('[Pipeline] Edges after ensureConnectivity:', edges.length);
 
     const complexityProfile = deriveComplexityProfile(
       nodes.length,
@@ -1414,7 +1501,9 @@ export async function generateDiagram(
 
     emit('layout', 'Computing layout...', 70);
     const elkResult = await computeELKLayout(nodes, edges, { complexityTier: complexityProfile.tier });
+    logger.log('[Pipeline] ELK result nodes:', elkResult?.nodes?.length || 0, 'edges:', edges.length);
     const rfNodes = elkResult?.nodes?.length ? elkResult.nodes : computeLayout(nodes, edges);
+    logger.log('[Pipeline] Final nodes positions sample:', rfNodes.slice(0, 2).map(n => ({ id: n.id, pos: n.position })));
 
     emit('edges', 'Optimizing edges...', 85);
     const nodeIds = new Set(rfNodes.map(n => n.id));

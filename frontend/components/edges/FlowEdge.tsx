@@ -11,12 +11,12 @@ import { useTheme } from '@/lib/theme';
 import type { EdgeData, EdgeType, PathType } from '@/data/edgeTypes';
 import { getEdgeConfig, getEffectivePathType } from '@/data/edgeTypes';
 
-const COMM_COLORS: Record<string, { color: string; dash: string; animated: boolean }> = {
-  sync: { color: '#6366f1', dash: '', animated: false },
-  async: { color: '#f59e0b', dash: '8,4', animated: true },
-  stream: { color: '#10b981', dash: '4,2', animated: true },
-  event: { color: '#ec4899', dash: '2,3', animated: true },
-  dep: { color: '#94a3b8', dash: '6,6', animated: true },
+const COMM_COLORS: Record<string, { color: string; dash: string; animated: boolean; strokeWidth: number }> = {
+  sync: { color: '#6366F1', dash: '', animated: false, strokeWidth: 2.5 },
+  async: { color: '#F59E0B', dash: '8,4', animated: true, strokeWidth: 2.5 },
+  stream: { color: '#10B981', dash: '4,2', animated: true, strokeWidth: 2.5 },
+  event: { color: '#EC4899', dash: '2,3', animated: true, strokeWidth: 2.5 },
+  dep: { color: '#CBD5E1', dash: '4,4', animated: false, strokeWidth: 1.5 },
 };
 
 interface PathResult {
@@ -122,7 +122,7 @@ function getPath(
   }
 }
 
-function getCommunicationStyle(communicationType: string | undefined): { color: string; dash: string; animated: boolean } {
+function getCommunicationStyle(communicationType: string | undefined): { color: string; dash: string; animated: boolean; strokeWidth: number } {
   return COMM_COLORS[communicationType || 'sync'] || COMM_COLORS.sync;
 }
 
@@ -167,6 +167,8 @@ export function FlowEdge({
   
   const strokeStyle: React.CSSProperties = useMemo(() => {
     let dashArray = commStyle.dash || config.dash;
+    let strokeWidth = commStyle.strokeWidth;
+    
     if (edgeVariant === 'dashed') {
       dashArray = '8,4';
     } else if (edgeVariant === 'dotted') {
@@ -174,15 +176,15 @@ export function FlowEdge({
     } else if (edgeVariant === 'solid' || !edgeVariant) {
       dashArray = '';
     }
+    
     return {
       stroke: strokeColor,
-      strokeWidth: selected ? 2.5 : 2,
+      strokeWidth: selected ? strokeWidth + 0.5 : strokeWidth,
       strokeDasharray: dashArray || undefined,
       transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s',
-      opacity: selected ? 1 : 0.85,
-      filter: selected ? `drop-shadow(0 0 4px ${strokeColor}40)` : 'none',
+      opacity: selected ? 1 : 0.9,
     };
-  }, [commStyle.dash, config.dash, edgeVariant, selected, strokeColor]);
+  }, [commStyle, config.dash, edgeVariant, selected, strokeColor]);
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
@@ -199,26 +201,26 @@ export function FlowEdge({
       <defs>
         <marker
           id={`arrow-${id}`}
-          markerWidth="8"
-          markerHeight="8"
-          refX="6"
-          refY="3"
+          markerWidth="10"
+          markerHeight="10"
+          refX="8"
+          refY="5"
           orient="auto"
           markerUnits="strokeWidth"
         >
-          <path d="M 0 0 L 0 6 L 6 3 z" fill={strokeColor} />
+          <path d="M 0 0 L 0 10 L 10 5 z" fill={strokeColor} />
         </marker>
         {config.markerStart && (
           <marker
             id={`arrow-start-${id}`}
-            markerWidth="8"
-            markerHeight="8"
+            markerWidth="10"
+            markerHeight="10"
             refX="2"
-            refY="3"
+            refY="5"
             orient="auto-start-reverse"
             markerUnits="strokeWidth"
           >
-            <path d="M 6 0 L 6 6 L 0 3 z" fill={strokeColor} />
+            <path d="M 10 0 L 10 10 L 0 5 z" fill={strokeColor} />
           </marker>
         )}
       </defs>

@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { redis, redisKeys } from '@/lib/redis';
+import fs from 'fs';
+import path from 'path';
 
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -35,6 +37,14 @@ interface SharedCanvas {
   canvas_name: string;
   nodes: unknown[];
   edges: unknown[];
+}
+
+interface DiagramData {
+  nodes: unknown[];
+  edges: unknown[];
+  label?: string;
+  createdAt: string;
+  source?: 'mcp' | 'manual';
 }
 
 interface DiagramResponse {
@@ -79,7 +89,38 @@ export async function GET(
     );
   }
 
-  // Try Redis cache first
+  // Try local session store first
+  const STORAGE_FILE = path.join(process.cwd(), '.diagram-sessions.json');
+  let sessionData: DiagramData | null = null;
+  
+  try {
+    if (fs.existsSync(STORAGE_FILE)) {
+      const store = JSON.parse(fs.readFileSync(STORAGE_FILE, 'utf-8')) as Record<string, DiagramData>;
+      sessionData = store[id] || null;
+    }
+  } catch {
+    // Continue to Redis
+  }
+
+  // Return from session store if found
+  if (sessionData) {
+    console.log(`[Embed] SESSION-STORE-HIT: ${id}`);
+    const response: DiagramResponse = {
+      id,
+      canvas_name: sessionData.label || 'Shared Diagram',
+      nodes: sessionData.nodes,
+      edges: sessionData.edges,
+    };
+    
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
+        'Access-Control-Allow-Origin': corsOrigin,
+      },
+    });
+  }
+
+  // Try Redis cache second
   let data: SharedCanvas | null = null;
   try {
     data = await redis.get<SharedCanvas>(redisKeys.sharedCanvas(id));

@@ -121,16 +121,16 @@ const OPTIMIZED_ELK_OPTIONS = {
 
 const TIER_X: Record<string, number> = {
   client: 50,
-  edge: 400,
-  compute: 800,
-  async: 1200,
-  data: 1600,
-  observe: 2000,
-  external: 2400,
+  edge: 350,
+  compute: 700,
+  async: 1100,
+  data: 1500,
+  observe: 1900,
+  external: 2300,
 };
 
 const LAYER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
-const MIN_VERTICAL_SPACING = 140;
+const MIN_VERTICAL_SPACING = 60;
 const MAX_NODES_PER_COLUMN = 4;
 
 export type ComplexityTier = 'simple' | 'moderate' | 'complex';

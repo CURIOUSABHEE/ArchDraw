@@ -8,6 +8,8 @@
  *
  * This adapter queues all setItem calls so they execute one at a time,
  * eliminating the concurrency conflict.
+ * 
+ * Also handles AbortError from Web Locks API conflicts in Chrome/Edge.
  */
 
 type WriteTask = () => void;
@@ -16,6 +18,27 @@ const isBrowser = typeof window !== "undefined";
 
 const writeQueue: WriteTask[] = [];
 let writing = false;
+
+const isAbortError = (err: unknown): boolean => {
+  if (err instanceof DOMException) return err.name === 'AbortError';
+  if (err instanceof Error) return err.name === 'AbortError';
+  if (typeof err === 'object' && err !== null) {
+    return (err as { name?: string }).name === 'AbortError';
+  }
+  return false;
+};
+
+const isLockError = (err: unknown): boolean => {
+  if (isAbortError(err)) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return msg.includes('steal') || msg.includes('Lock') || msg.includes('lock');
+  }
+  if (err instanceof Error) {
+    const msg = err.message;
+    return msg.includes('Lock') && (msg.includes('steal') || msg.includes('abort'));
+  }
+  return false;
+};
 
 function flushQueue() {
   if (writing || writeQueue.length === 0) return;
@@ -26,7 +49,7 @@ function flushQueue() {
   } finally {
     writing = false;
     if (writeQueue.length > 0) {
-      setTimeout(flushQueue, 0);
+      setTimeout(flushQueue, 50);
     }
   }
 }
@@ -37,20 +60,26 @@ function queuedSetItem(key: string, value: string): void {
     try {
       localStorage.setItem(key, value);
     } catch (e) {
-      const err = e as Error;
-      if (err.name === 'QuotaExceededError') {
-        console.warn(`[storage] localStorage quota exceeded for key "${key}"`);
-      } else if (err.message?.includes('Lock')) {
-        console.warn(`[storage] Storage lock conflict for key "${key}" - retrying`);
+      if (isAbortError(e)) {
+        console.warn(`[storage] AbortError for key "${key}" - will retry`);
         setTimeout(() => {
           try {
             localStorage.setItem(key, value);
-          } catch {
-            console.warn(`[storage] Retry failed for key "${key}"`);
+          } catch (retryErr) {
+            if (isAbortError(retryErr)) {
+              console.warn(`[storage] Retry also aborted for "${key}" - giving up`);
+            } else {
+              console.warn(`[storage] Retry failed for key "${key}":`, retryErr);
+            }
           }
-        }, 100);
+        }, 200);
       } else {
-        console.warn(`[storage] setItem failed for key "${key}":`, e);
+        const err = e as Error;
+        if (err.name === 'QuotaExceededError') {
+          console.warn(`[storage] localStorage quota exceeded for key "${key}"`);
+        } else {
+          console.warn(`[storage] setItem failed for key "${key}":`, e);
+        }
       }
     }
   });
@@ -62,7 +91,11 @@ export const serializedStorage = {
     if (!isBrowser) return null;
     try {
       return localStorage.getItem(key);
-    } catch {
+    } catch (e) {
+      if (isAbortError(e)) {
+        console.warn(`[storage] AbortError on getItem("${key}") - returning null`);
+        return null;
+      }
       return null;
     }
   },
@@ -74,7 +107,9 @@ export const serializedStorage = {
     try {
       localStorage.removeItem(key);
     } catch (e) {
-      console.warn(`[storage] removeItem failed for key "${key}":`, e);
+      if (!isAbortError(e)) {
+        console.warn(`[storage] removeItem failed for key "${key}":`, e);
+      }
     }
   },
 };

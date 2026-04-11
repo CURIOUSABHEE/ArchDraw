@@ -85,6 +85,28 @@ export default function RootLayout({
                   }
                 } catch (e) {}
               })();
+              
+              // Global handler for Web Locks API AbortErrors (LevelDB/localStorage conflicts)
+              window.addEventListener('unhandledrejection', function(event) {
+                var reason = event.reason;
+                if (reason && reason.name === 'AbortError' && reason.message && (
+                  reason.message.includes('steal') || 
+                  reason.message.includes('Lock') ||
+                  reason.message.includes('lock')
+                )) {
+                  event.preventDefault();
+                  console.warn('[ArchDraw] Storage lock conflict suppressed:', reason.message);
+                }
+              });
+              
+              // Also catch sync errors from storage operations
+              window.addEventListener('error', function(event) {
+                var msg = event.message;
+                if (msg && msg.includes && msg.includes('AbortError') && msg.includes('Lock')) {
+                  event.preventDefault();
+                  console.warn('[ArchDraw] Storage lock error suppressed');
+                }
+              });
             `,
           }}
         />
