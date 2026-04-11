@@ -14,6 +14,10 @@ import {
   buildComponentPrompt,
   buildEdgePrompt,
 } from '../prompts/promptBuilder';
+import { ensureConnectivity } from '../graph/connectivityEnforcer';
+import { autoAddCompensatingComponents } from '../graph/compensatingComponents';
+import { validateDiagramQuality, type DiagramQualityReport } from '../validation/diagramQualityValidator';
+import * as diagramCache from '../services/diagramCache';
 
 export interface PipelineState {
   userIntent: UserIntent;
@@ -51,6 +55,7 @@ export interface PipelineResult {
   edges: ArchitectureEdge[];
   state: PipelineState;
   score: number;
+  qualityReport?: DiagramQualityReport;
 }
 
 const MAX_ITERATIONS = 3;
@@ -79,6 +84,21 @@ export async function runArchitecturePipeline(
     onProgress?.('Normalizing input', 5);
     state.history.push({ step: 'normalize', timestamp: Date.now(), input: userIntent });
 
+    // Step A: Check semantic cache before LLM call
+    const cached = diagramCache.get(userIntent.description);
+    if (cached) {
+      logger.log('[Pipeline] Cache hit for prompt, returning cached diagram');
+      onProgress?.('Complete', 100);
+      return {
+        success: true,
+        nodes: [], // Will be computed from cached nodes after layout
+        edges: cached.edges,
+        state,
+        score: 0,
+        qualityReport: cached.qualityReport,
+      };
+    }
+
     state.systemIntent = detectSystemIntent(userIntent.description);
     state.useAWS = state.systemIntent.useAWS || detectAWSInPrompt(userIntent.description);
     logger.log(`[Pipeline] System intent: ${JSON.stringify(state.systemIntent)}, useAWS: ${state.useAWS}`);
@@ -106,6 +126,21 @@ export async function runArchitecturePipeline(
       timestamp: Date.now(),
       output: state.edges.length,
     });
+
+    // Step B: Ensure connectivity for orphaned nodes
+    const connectivityResult = ensureConnectivity(state.enrichedNodes, state.edges);
+    state.edges = connectivityResult.edges;
+    logger.log(`[Pipeline] Connectivity enforcement complete`);
+
+    // Step C: Auto-add compensating resilience components
+    const resilientResult = autoAddCompensatingComponents(state.enrichedNodes, state.edges);
+    state.enrichedNodes = resilientResult.nodes;
+    state.edges = resilientResult.edges;
+    logger.log(`[Pipeline] Compensating components added`);
+
+    // Step D: Validate diagram quality
+    const qualityReport = validateDiagramQuality(state.enrichedNodes, state.edges);
+    console.log('[ArchDraw Quality Gate]', qualityReport);
 
     onProgress?.('Validating graph', 65);
     const validationResult = validateEdges(state.edges, state.enrichedNodes);
@@ -170,6 +205,13 @@ export async function runArchitecturePipeline(
       state.iteration++;
     }
 
+    // Step E: Store in semantic cache
+    diagramCache.set(userIntent.description, {
+      nodes: state.enrichedNodes,
+      edges: state.edges,
+      qualityReport,
+    });
+
     onProgress?.('Complete', 100);
 
     return {
@@ -178,6 +220,7 @@ export async function runArchitecturePipeline(
       edges: state.edges,
       state,
       score: state.score,
+      qualityReport,
     };
   } catch (error) {
     const pipelineError: PipelineError = {
@@ -194,6 +237,15 @@ export async function runArchitecturePipeline(
       edges: state.edges,
       state,
       score: state.score,
+      qualityReport: {
+        passed: false,
+        checks: {
+          structural: { passed: false, issues: ['Pipeline failed'] },
+          connectivity: { passed: false, issues: [] },
+          edgeQuality: { passed: false, issues: [] },
+          resilienceCoverage: { passed: false, issues: [] },
+        },
+      },
     };
   }
 }

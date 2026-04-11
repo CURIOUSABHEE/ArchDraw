@@ -31,7 +31,7 @@ import { useCanvasTheme } from '@/lib/theme';
 import { TemplateModal } from '@/components/TemplateModal';
 import { AutoLayoutButton } from '@/components/canvas/toolbar/AutoLayoutButton';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { DiagramLegend } from '@/components/DiagramLegend';
+
 import { toast } from 'sonner';
 import type { Node, Edge } from 'reactflow';
 
@@ -519,9 +519,6 @@ function CanvasInner() {
         })()}
       </ReactFlow>
       </div>
-      
-      {/* Diagram Legend */}
-      <DiagramLegend />
       
       <GuideLines />
 
