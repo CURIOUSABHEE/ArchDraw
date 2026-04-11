@@ -206,7 +206,7 @@ function createReactFlowEdge(
     target: edge.target,
     sourceHandle: 'right',
     targetHandle: 'left',
-    type: pathType,
+    type: 'custom',
     animated: commStyle.animated,
     label: edge.label || '',
     labelShowBg: true,
@@ -223,6 +223,7 @@ function createReactFlowEdge(
     data: {
       communicationType: commType as 'sync' | 'async' | 'stream' | 'event' | 'dep',
       pathType,
+      edgeType: commType,
       label: edge.label || '',
     },
   };
@@ -389,6 +390,7 @@ export async function runELKLayout(
       
       const commType = edge.communicationType || 'sync';
       const commStyle = COMM_COLORS[commType] || COMM_COLORS.sync;
+      const pathType = edge.pathType || 'smooth';
       
       return {
         id: edge.id,
@@ -396,7 +398,7 @@ export async function runELKLayout(
         target: edge.target,
         sourceHandle: 'right',
         targetHandle: 'left',
-        type: edge.pathType || 'smooth',
+        type: 'custom',
         animated: commStyle.animated,
         label: edge.label || '',
         labelShowBg: true,
@@ -412,7 +414,8 @@ export async function runELKLayout(
         markerEnd: { type: 'arrowclosed', color: commStyle.color },
         data: {
           communicationType: commType as 'sync' | 'async' | 'stream' | 'event' | 'dep',
-          pathType: edge.pathType || 'smooth',
+          pathType,
+          edgeType: commType,
           label: edge.label || '',
         },
       };
@@ -504,6 +507,7 @@ export function runFallbackLayout(
     
     const commType = edge.communicationType || 'sync';
     const commStyle = COMM_COLORS[commType] || COMM_COLORS.sync;
+    const pathType = edge.pathType || 'smooth';
     
     return {
       id: edge.id,
@@ -511,7 +515,7 @@ export function runFallbackLayout(
       target: edge.target,
       sourceHandle: 'right',
       targetHandle: 'left',
-      type: edge.pathType || 'smooth',
+      type: 'custom',
       animated: commStyle.animated,
       label: edge.label || '',
       labelShowBg: true,
@@ -527,7 +531,8 @@ export function runFallbackLayout(
       markerEnd: { type: 'arrowclosed', color: commStyle.color },
       data: {
         communicationType: commType as 'sync' | 'async' | 'stream' | 'event' | 'dep',
-        pathType: edge.pathType || 'smooth',
+        pathType,
+        edgeType: commType,
         label: edge.label || '',
       },
     };

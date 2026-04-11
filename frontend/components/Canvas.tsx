@@ -106,7 +106,13 @@ function CanvasInner() {
       }));
       const edgesWithType = (data.edges as Edge[]).map((e) => ({
         ...e,
-        type: e.type || 'custom',
+        type: e.type && e.type !== 'smooth' && e.type !== 'bezier' && e.type !== 'step' && e.type !== 'straight' 
+          ? e.type 
+          : 'custom',
+        data: {
+          ...e.data,
+          pathType: e.data?.pathType || e.type || 'smooth',
+        },
       }));
       importDiagram(nodesWithType, edgesWithType);
       reactFlowInstance.setNodes(nodesWithType);

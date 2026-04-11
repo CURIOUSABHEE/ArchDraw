@@ -114,6 +114,7 @@ export interface ReactFlowEdge {
     pathType: PathType;
     label: string;
     edgeVariant?: EdgeVariant;
+    edgeType?: CommunicationType;
   };
 }
 
