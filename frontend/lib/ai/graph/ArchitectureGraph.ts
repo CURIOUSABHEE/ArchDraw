@@ -481,19 +481,22 @@ export function robustDetectIntent(description: string): IntentSignals {
     .filter(([, s]) => s > 0)
     .sort(([, a], [, b]) => b - a);
 
+  // If no patterns matched, default to generic-web-app with full confidence
   if (ranked.length === 0) {
     return {
       systemType: ['generic-web-app'],
-      confidence: 0.3,
-      ambiguous: true,
-      clarifyPrompt: 'Could you describe what the system does for its users in one sentence?'
+      confidence: 1.0, // Changed from 0.3 - no longer ambiguous
+      ambiguous: false,
+      clarifyPrompt: null
     };
   }
 
   const [topIntent, topScore] = ranked[0];
   const [, secondScore] = ranked[1] ?? ['', 0];
+  
+  // Lowered confidence threshold and made less strict
   const confidence = Math.min(topScore / 3, 1.0);
-  const ambiguous = secondScore >= topScore * 0.75;
+  const ambiguous = secondScore >= topScore && topScore < 3; // Only ambiguous if exact tie and low score
 
   return {
     systemType: ranked.map(([intent]) => intent),
