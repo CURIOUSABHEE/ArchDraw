@@ -138,10 +138,16 @@ function CanvasInner() {
     loadSession(sessionId);
   }, [searchParams, loadSession]);
 
-  // Handle canvas ID from URL
+  // Handle canvas ID from URL - only on initial load or external navigation
+  const [urlCanvasHandled, setUrlCanvasHandled] = useState(false);
   useEffect(() => {
+    if (urlCanvasHandled) return;
+    
     const canvasId = searchParams.get('canvas');
-    if (!canvasId) return;
+    if (!canvasId) {
+      setUrlCanvasHandled(true);
+      return;
+    }
     
     // Check if canvas exists in store
     const canvases = useDiagramStore.getState().canvases;
@@ -153,16 +159,19 @@ function CanvasInner() {
         switchCanvas(canvasId);
       }
     }
-  }, [searchParams, switchCanvas, activeCanvasId]);
+    setUrlCanvasHandled(true);
+  }, [searchParams, switchCanvas, activeCanvasId, urlCanvasHandled]);
 
-  // Sync active canvas ID to URL
+  // Sync active canvas ID to URL - only update if not just handled URL
   useEffect(() => {
+    if (!urlCanvasHandled) return;
+    
     const currentCanvasId = activeCanvasId;
     const urlCanvasId = searchParams.get('canvas');
     if (currentCanvasId && currentCanvasId !== urlCanvasId) {
       router.replace(`/editor?canvas=${currentCanvasId}`, { scroll: false });
     }
-  }, [activeCanvasId, searchParams, router]);
+  }, [activeCanvasId, searchParams, router, urlCanvasHandled]);
 
   // Cmd+D / Ctrl+D — duplicate selected nodes
   useEffect(() => {
