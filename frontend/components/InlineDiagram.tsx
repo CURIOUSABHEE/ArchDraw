@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap, ReactFlowProvider,
   useNodesState, useEdgesState, Node, Edge, OnNodesChange, OnEdgesChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { ExternalLink, Download, Loader2 } from 'lucide-react';
+import { ExternalLink, Download } from 'lucide-react';
 import { SystemNode } from '@/components/SystemNode';
 import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
@@ -48,16 +48,17 @@ interface InlineDiagramProps {
 
 export function InlineDiagram({ data, onOpenFullEditor, height = 400 }: InlineDiagramProps) {
   const { isDark } = useTheme();
-  const [isLoading, setIsLoading] = useState(true);
   
   const [nodes, setNodes, onNodesChange] = useNodesState(data.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(data.edges);
 
   useEffect(() => {
     setNodes(data.nodes);
+  }, [data.nodes, setNodes]);
+
+  useEffect(() => {
     setEdges(data.edges);
-    setIsLoading(false);
-  }, [data.nodes, data.edges, setNodes, setEdges]);
+  }, [data.edges, setEdges]);
 
   const defaultEdgeOptions = useMemo(() => ({
     type: 'custom',
@@ -76,12 +77,6 @@ export function InlineDiagram({ data, onOpenFullEditor, height = 400 }: InlineDi
 
   return (
     <div className="relative rounded-lg overflow-hidden border border-border/50 bg-background">
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-      )}
-      
       <ReactFlow
         nodes={nodes}
         edges={edges}
