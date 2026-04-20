@@ -30,7 +30,7 @@ export function ContextMenu({ menu, onClose }: Props) {
   const { screenToFlowPosition, fitView } = useReactFlow();
   const {
     nodes, removeNode, setSelectedNodeId,
-    selectedNodeIds, createGroup,
+    selectedNodeIds, createGroup, ungroupNodes, moveToGroup,
     pushHistory, fitView: storeFitView,
   } = useDiagramStore();
 
@@ -98,6 +98,31 @@ export function ContextMenu({ menu, onClose }: Props) {
     createGroup();
     onClose();
   }, [menu.nodeId, selectedNodeIds, createGroup, onClose]);
+
+  const addNestedGroup = useCallback(() => {
+    if (!menu.nodeId) return;
+    const node = nodes.find((n) => n.id === menu.nodeId);
+    if (!node) return;
+    const ids = selectedNodeIds.length > 0 ? selectedNodeIds : [menu.nodeId];
+    useDiagramStore.setState({ selectedNodeIds: ids });
+    createGroup(node.parentId || node.id);
+    onClose();
+  }, [menu.nodeId, nodes, selectedNodeIds, createGroup, onClose]);
+
+  const handleUngroup = useCallback(() => {
+    if (!menu.nodeId) return;
+    const node = nodes.find((n) => n.id === menu.nodeId);
+    if (node?.type === 'groupNode') {
+      ungroupNodes(menu.nodeId);
+    }
+    onClose();
+  }, [menu.nodeId, nodes, ungroupNodes, onClose]);
+
+  const removeFromGroup = useCallback(() => {
+    if (!menu.nodeId) return;
+    moveToGroup(menu.nodeId, null);
+    onClose();
+  }, [menu.nodeId, moveToGroup, onClose]);
 
   const selectAll = useCallback(() => {
     const allIds = nodes.map((n) => n.id);
@@ -168,6 +193,29 @@ export function ContextMenu({ menu, onClose }: Props) {
           <MenuItem icon={<Group size={14} />} onClick={addToGroup}>
             Add to Group
           </MenuItem>
+          <MenuItem icon={<Group size={14} />} onClick={addNestedGroup}>
+            Create Nested Group
+          </MenuItem>
+          {(() => {
+            const node = nodes.find((n) => n.id === menu.nodeId);
+            if (node?.type === 'groupNode') {
+              return (
+                <>
+                  <MenuItem icon={<Group size={14} />} onClick={handleUngroup}>
+                    Ungroup
+                  </MenuItem>
+                </>
+              );
+            }
+            if (node?.parentId) {
+              return (
+                <MenuItem icon={<Group size={14} />} onClick={removeFromGroup}>
+                  Remove from Group
+                </MenuItem>
+              );
+            }
+            return null;
+          })()}
           <Separator />
           <MenuItemWithSubmenu 
             icon={<Type size={14} />} 
