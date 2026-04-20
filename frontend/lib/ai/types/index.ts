@@ -91,6 +91,12 @@ export interface ArchitectureNode {
   tier?: 'edge' | 'compute' | 'async' | 'data' | 'observe' | 'client' | 'external';
   tierColor?: string;
   subtitle?: string;
+  
+  // TECH FIELD (specific technology)
+  tech?: string;
+  status?: 'healthy' | 'warning' | 'error' | 'unknown';
+  isExternal?: boolean;
+  hideTierTag?: boolean;
 }
 
 export interface ArchitectureEdge {
@@ -169,6 +175,10 @@ export interface ReactFlowNode {
     tier?: string;
     tierColor?: string;
     subtitle?: string;
+    tech?: string;
+    status?: 'healthy' | 'warning' | 'error' | 'unknown';
+    isExternal?: boolean;
+    hideTierTag?: boolean;
   };
   width?: number;
   height?: number;
@@ -201,7 +211,7 @@ export interface ReactFlowEdge {
     communicationType: CommunicationType;
     pathType: PathType;
     label: string;
-    edgeVariant?: 'solid' | 'dashed' | 'dotted';
+    edgeVariant?: 'solid' | 'dashed' | 'dotted' | 'feedback';
     labelX?: number;
     labelY?: number;
     labelAngle?: number;
@@ -292,7 +302,7 @@ export type HandlePosition = 'right' | 'left' | 'top' | 'bottom' | 'right-top' |
 
 export type MarkerType = 'arrowclosed' | 'arrow' | 'none';
 
-export type EdgeVariant = 'solid' | 'dashed' | 'dotted';
+export type EdgeVariant = 'solid' | 'dashed' | 'dotted' | 'feedback';
 
 export type AgentAction = 'component' | 'layout' | 'edges' | 'edge_fix' | 'validate' | 'stop';
 

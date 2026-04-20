@@ -12,6 +12,14 @@ export async function applyLayoutPreset(
   edges: Edge[],
   preset: LayoutPreset
 ): Promise<Node[]> {
+  if (preset.isFreeform) {
+    return nodes;
+  }
+
+  if (!preset.elkOptions) {
+    return nodes;
+  }
+
   const groupNodes = nodes.filter(n => n.type === 'group' || n.type === 'groupNode');
   const leafNodes = nodes.filter(n => n.type !== 'group' && n.type !== 'groupNode');
 

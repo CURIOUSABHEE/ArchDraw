@@ -80,7 +80,7 @@ export interface EdgeData {
   label?: string;
   edgeType?: EdgeType;
   pathType?: PathType;
-  edgeVariant?: 'solid' | 'dashed' | 'dotted';
+  edgeVariant?: 'solid' | 'dashed' | 'dotted' | 'feedback';
   hideLabel?: boolean;
   communicationType?: 'sync' | 'async' | 'stream' | 'event' | 'dep';
 }

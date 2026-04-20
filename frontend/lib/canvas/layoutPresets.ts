@@ -1,5 +1,13 @@
 export const LAYOUT_PRESETS = [
   {
+    id: 'freeform',
+    label: 'Free-form',
+    description: 'Keep nodes where they are',
+    icon: '✋',
+    elkOptions: null,
+    isFreeform: true,
+  },
+  {
     id: 'layered-lr',
     label: 'Left → Right',
     description: 'Classic architecture flow',
@@ -64,6 +72,13 @@ export const LAYOUT_PRESETS = [
   },
 ] as const;
 
-export type LayoutPreset = typeof LAYOUT_PRESETS[number];
+export interface LayoutPreset {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  elkOptions: Record<string, string> | null;
+  isFreeform?: boolean;
+}
 
 export const DEFAULT_PRESET_ID = 'layered-lr';

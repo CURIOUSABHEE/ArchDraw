@@ -83,6 +83,7 @@ const OUTPUT_FORMAT: PromptModule = {
     "tierColor": "#hexcolor",
     "serviceType": "service-type",
     "technology": "generic-service or aws-service",
+    "tech": "specific-technology",
     "width": 180,
     "height": 70
   },
@@ -96,7 +97,18 @@ const OUTPUT_FORMAT: PromptModule = {
     "width": 400,
     "height": 200
   }
-]`,
+]
+
+TECH FIELD INSTRUCTION:
+For each node, include a 'tech' field with the specific technology name in lowercase.
+Examples: a PostgreSQL database node gets tech: 'postgres'. A Kafka queue gets tech: 'kafka'.
+A Next.js service gets tech: 'nextjs'. A Redis cache gets tech: 'redis'.
+A generic service with no specific technology gets tech: 'service'.
+Use only these exact tech strings: postgres, mysql, mongodb, redis, kafka, rabbitmq, sqs,
+nodejs, python, golang, typescript, javascript, react, nextjs, vue, angular, django, fastapi,
+nginx, docker, kubernetes, aws, gcp, azure, prometheus, grafana, datadog, service, database,
+queue, cache, worker, user, external, gateway, loadbalancer, auth, firewall, monitoring.
+If none match, use 'service' as the default.`,
 };
 
 const MIN_NODES: PromptModule = {

@@ -98,6 +98,95 @@ function isGhostNode(
   return false;
 }
 
+function normalizeTechField(tech: string | undefined, serviceType: string | undefined): string {
+  if (!tech) {
+    if (serviceType === 'database') return 'database';
+    if (serviceType === 'queue' || serviceType === 'async') return 'queue';
+    if (serviceType === 'cache') return 'cache';
+    if (serviceType === 'auth') return 'auth';
+    if (serviceType === 'loadbalancer') return 'loadbalancer';
+    if (serviceType === 'monitor' || serviceType === 'monitoring') return 'monitoring';
+    return 'service';
+  }
+  
+  const normalized = tech.toLowerCase().trim().replace(/[\s-]+/g, '');
+  
+  const techMap: Record<string, string> = {
+    'postgresql': 'postgres',
+    'postgressql': 'postgres',
+    'mysql': 'mysql',
+    'mongodb': 'mongodb',
+    'mongo': 'mongodb',
+    'redis': 'redis',
+    'elasticsearch': 'elasticsearch',
+    'elastic': 'elasticsearch',
+    'dynamodb': 'dynamodb',
+    'kafka': 'kafka',
+    'rabbitmq': 'rabbitmq',
+    'rabbit': 'rabbitmq',
+    'sqs': 'sqs',
+    'sns': 'sns',
+    'nats': 'nats',
+    'react': 'react',
+    'nextjs': 'nextjs',
+    'next': 'nextjs',
+    'vuejs': 'vue',
+    'vue': 'vue',
+    'angular': 'angular',
+    'nodejs': 'nodejs',
+    'node': 'nodejs',
+    'typescript': 'typescript',
+    'ts': 'typescript',
+    'javascript': 'javascript',
+    'js': 'javascript',
+    'python': 'python',
+    'py': 'python',
+    'golang': 'golang',
+    'go': 'golang',
+    'django': 'django',
+    'fastapi': 'fastapi',
+    'fast': 'fastapi',
+    'spring': 'spring',
+    'docker': 'docker',
+    'kubernetes': 'kubernetes',
+    'k8s': 'kubernetes',
+    'aws': 'aws',
+    'gcp': 'gcp',
+    'azure': 'azure',
+    'nginx': 'nginx',
+    'grafana': 'grafana',
+    'prometheus': 'prometheus',
+    'datadog': 'datadog',
+    'lambda': 'lambda',
+    'awslambda': 'lambda',
+    'database': 'database',
+    'db': 'database',
+    'rds': 'rds',
+    'aurora': 'aurora',
+    'queue': 'queue',
+    'cache': 'cache',
+    'worker': 'worker',
+    'gateway': 'gateway',
+    'api': 'service',
+    'service': 'service',
+    'function': 'service',
+    'loadbalancer': 'loadbalancer',
+    'lb': 'loadbalancer',
+    'auth': 'auth',
+    'oauth': 'auth',
+    'jwt': 'auth',
+    'firewall': 'firewall',
+    'waf': 'firewall',
+    'monitoring': 'monitoring',
+    'monitor': 'monitoring',
+    'external': 'external',
+    'thirdparty': 'external',
+    'saas': 'external',
+  };
+  
+  return techMap[normalized] || 'service';
+}
+
 export async function runComponentAgent(state: SharedState, model?: string): Promise<ArchitectureNode[]> {
   const userIntent = state.userIntent;
   const selectedModel = model || 'llama-3.3-70b-versatile';
@@ -193,6 +282,9 @@ Output the complete components/nodes array as JSON only.`;
           node.type = 'group';
         }
         
+        const rawTech = (node as Partial<ArchitectureNode> & { tech?: string }).tech || technology;
+        const tech = normalizeTechField(rawTech, node.serviceType);
+        
         return {
           id: node.id ?? `component-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           type: isGroupNode ? 'group' : 'architectureNode',
@@ -211,6 +303,7 @@ Output the complete components/nodes array as JSON only.`;
           groupLabel: node.groupLabel,
           groupColor: node.groupColor,
           serviceType: node.serviceType,
+          tech,
         };
       });
 
