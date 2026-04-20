@@ -60,14 +60,26 @@ function queuedSetItem(key: string, value: string): void {
     try {
       localStorage.setItem(key, value);
     } catch (e) {
-      if (isAbortError(e)) {
-        console.warn(`[storage] AbortError for key "${key}" - will retry`);
+      if (isAbortError(e) || isLockError(e)) {
+        const isLock = isLockError(e);
+        console.warn(`[storage] ${isLock ? 'Lock conflict' : 'AbortError'} for key "${key}" - will retry`);
         setTimeout(() => {
           try {
             localStorage.setItem(key, value);
           } catch (retryErr) {
-            if (isAbortError(retryErr)) {
-              console.warn(`[storage] Retry also aborted for "${key}" - giving up`);
+            if (isAbortError(retryErr) || isLockError(retryErr)) {
+              console.warn(`[storage] Retry also failed for "${key}" - will try one more time`);
+              setTimeout(() => {
+                try {
+                  localStorage.setItem(key, value);
+                } catch (finalErr) {
+                  if (isAbortError(finalErr) || isLockError(finalErr)) {
+                    console.warn(`[storage] Final retry failed for "${key}" - discarding write`);
+                  } else {
+                    console.warn(`[storage] Final retry failed for "${key}":`, finalErr);
+                  }
+                }
+              }, 300);
             } else {
               console.warn(`[storage] Retry failed for key "${key}":`, retryErr);
             }
@@ -92,8 +104,8 @@ export const serializedStorage = {
     try {
       return localStorage.getItem(key);
     } catch (e) {
-      if (isAbortError(e)) {
-        console.warn(`[storage] AbortError on getItem("${key}") - returning null`);
+      if (isAbortError(e) || isLockError(e)) {
+        console.warn(`[storage] ${isLockError(e) ? 'Lock conflict' : 'AbortError'} on getItem("${key}") - returning null`);
         return null;
       }
       return null;
@@ -107,7 +119,7 @@ export const serializedStorage = {
     try {
       localStorage.removeItem(key);
     } catch (e) {
-      if (!isAbortError(e)) {
+      if (!isAbortError(e) && !isLockError(e)) {
         console.warn(`[storage] removeItem failed for key "${key}":`, e);
       }
     }
