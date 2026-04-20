@@ -31,9 +31,20 @@ export function AutoLayoutButton() {
   const handlePresetClick = useCallback(async (preset: LayoutPreset) => {
     if (isLoading) return;
 
-    setIsLoading(true);
     setActiveLayoutPresetId(preset.id);
     setIsOpen(false);
+
+    if (preset.isFreeform) {
+      setTimeout(() => {
+        fitView({ 
+          padding: 0.15, 
+          duration: 500,
+        });
+      }, 100);
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const currentNodes = nodes;
@@ -95,7 +106,7 @@ export function AutoLayoutButton() {
           ) : (
             <span style={{ fontSize: '14px' }}>{activePreset?.icon ?? '→'}</span>
           )}
-          Auto Layout
+          {(activePreset as LayoutPreset)?.isFreeform ? 'Free-form' : 'Auto Layout'}
           <span style={{
             fontSize: '10px',
             color: 'var(--color-text-secondary)',

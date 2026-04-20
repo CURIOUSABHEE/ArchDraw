@@ -61,10 +61,12 @@ function CanvasInner() {
     selectedNodeIds, selectedEdgeId,
     setSelectedNodeId, setSelectedNodeIds, setSelectedEdgeId,
     showGrid,
-    pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData, setCanvasMode
+    pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData, setCanvasMode,
+    canvasDarkMode,
   } = useDiagramStore();
   const canvasTheme = useCanvasTheme();
-  const { isDark } = canvasTheme;
+  const { isDark: appIsDark } = canvasTheme;
+  const isDark = canvasDarkMode;
 
   const reactFlowInstance = useReactFlow();
   const { onNodeDrag, onNodeDragStop: onNodeDragStopSnap } = useSnapping();
@@ -382,16 +384,16 @@ function CanvasInner() {
   }, [setCanvasMode, dismissOnboarding]);
 
   return (
-    <div className="flex-1 relative overflow-hidden" style={{ background: isDark ? '#0F172A' : '#F8FAFC' }}>
+    <div className="flex-1 relative overflow-hidden" style={{ background: isDark ? '#0F172A' : '#FFFFFF' }}>
       {/* Soft canvas background - minimal gradient */}
-      <div 
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: isDark
-            ? 'radial-gradient(ellipse at center, rgba(40, 50, 70, 0.2) 0%, transparent 60%)'
-            : 'radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.4) 0%, transparent 60%)',
-        }}
-      />
+      {!isDark && (
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'transparent',
+          }}
+        />
+      )}
       <div className="absolute inset-0">
         <ReactFlow
           nodes={nodes}
@@ -420,6 +422,7 @@ function CanvasInner() {
           maxZoom={2}
           fitView
           elevateNodesOnSelect
+          style={{ background: isDark ? '#0F172A' : '#FFFFFF' }}
           elevateEdgesOnSelect={true}
           selectNodesOnDrag={false}
           panOnScroll

@@ -1,29 +1,52 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { X, Settings, Type, Palette, Trash2 } from 'lucide-react';
+import { X, Type, Database, Server, Zap, Globe, Activity, Shield } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 
-const TECH_OPTIONS: Record<string, string[]> = {
-  'Data Storage': ['PostgreSQL', 'MySQL', 'SQLite', 'MongoDB', 'DynamoDB', 'Cassandra', 'Elasticsearch', 'S3', 'GCS'],
-  'Caching': ['Redis', 'Memcached', 'Varnish'],
-  'Messaging & Events': ['RabbitMQ', 'Kafka', 'SQS', 'SNS', 'NATS', 'Pulsar'],
-  'Compute': ['Node.js', 'Python', 'Go', 'Java', 'Rust', '.NET', 'Ruby'],
-  'Auth & Security': ['Auth0', 'Keycloak', 'Okta', 'Cognito', 'Firebase Auth'],
-  'Observability': ['Prometheus', 'Grafana', 'Datadog', 'New Relic', 'Jaeger', 'Zipkin'],
-  'AI / ML': ['OpenAI', 'Anthropic', 'Pinecone', 'Weaviate', 'HuggingFace'],
+const TIER_ICONS: Record<string, React.ElementType> = {
+  client: Globe,
+  edge: Shield,
+  compute: Server,
+  async: Zap,
+  data: Database,
+  observe: Activity,
 };
 
-const ACCENT_SWATCHES = [
-  { color: '#06b6d4', label: 'Teal' },
-  { color: '#ec4899', label: 'Pink' },
-  { color: '#f59e0b', label: 'Amber' },
-  { color: '#3b82f6', label: 'Blue' },
-  { color: '#8b5cf6', label: 'Purple' },
-  { color: '#f97316', label: 'Coral' },
-  { color: '#10b981', label: 'Green' },
-  { color: '#ef4444', label: 'Red' },
-];
+const TECH_LABELS: Record<string, string> = {
+  postgres: 'PostgreSQL',
+  mysql: 'MySQL',
+  mongodb: 'MongoDB',
+  redis: 'Redis',
+  elasticsearch: 'Elasticsearch',
+  kafka: 'Kafka',
+  rabbitmq: 'RabbitMQ',
+  sqs: 'Amazon SQS',
+  react: 'React',
+  nextjs: 'Next.js',
+  nodejs: 'Node.js',
+  python: 'Python',
+  golang: 'Go',
+  typescript: 'TypeScript',
+  javascript: 'JavaScript',
+  docker: 'Docker',
+  kubernetes: 'Kubernetes',
+  aws: 'AWS',
+  nginx: 'Nginx',
+  grafana: 'Grafana',
+  prometheus: 'Prometheus',
+  lambda: 'AWS Lambda',
+  service: 'Service',
+  database: 'Database',
+  queue: 'Queue',
+  cache: 'Cache',
+  gateway: 'Gateway',
+  loadbalancer: 'Load Balancer',
+  auth: 'Authentication',
+  firewall: 'Firewall',
+  monitoring: 'Monitoring',
+  external: 'External',
+};
 
 function EdgePropertiesPanel() {
   const { selectedEdgeId, edges, updateEdgeLabel, setSelectedEdgeId } = useDiagramStore();
@@ -39,10 +62,7 @@ function EdgePropertiesPanel() {
   return (
     <div className="floating-panel p-4">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-          <span className="text-sm font-medium">Edge</span>
-        </div>
+        <span className="text-sm font-medium">Edge Properties</span>
         <button 
           onClick={() => setSelectedEdgeId(null)} 
           className="floating-icon-btn !w-8 !h-8"
@@ -105,8 +125,8 @@ export function PropertiesPanel() {
   if (!node) return null;
 
   const data = node.data;
-  const techOptions = TECH_OPTIONS[data.category] ?? [];
-  const activeAccent = data.accentColor ?? data.color ?? '#6366f1';
+  const TierIcon = TIER_ICONS[data.category?.toLowerCase()] || Server;
+  const techLabel = data.tech ? TECH_LABELS[data.tech.toLowerCase()] || data.tech : null;
 
   const commitLabel = () => {
     if (localLabel.trim()) updateNodeData(node.id, { label: localLabel.trim() });
@@ -126,10 +146,7 @@ export function PropertiesPanel() {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ background: activeAccent }} />
-          <span className="text-sm font-medium">Properties</span>
-        </div>
+        <span className="text-sm font-medium">Node Info</span>
         <button
           onClick={() => setSelectedNodeId(null)}
           className="floating-icon-btn !w-8 !h-8"
@@ -139,18 +156,6 @@ export function PropertiesPanel() {
       </div>
 
       <div className="space-y-4 mt-4">
-        {/* Category badge */}
-        {data.category && (
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-medium"
-              style={{ background: `${activeAccent}15`, color: activeAccent }}
-            >
-              {data.category}
-            </span>
-          </div>
-        )}
-
         {/* Label */}
         <div>
           <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground block mb-2 flex items-center gap-1.5">
@@ -167,61 +172,72 @@ export function PropertiesPanel() {
           />
         </div>
 
-        {/* Tech */}
-        {techOptions.length > 0 && (
+        {/* Category / Tier */}
+        {data.category && (
           <div>
             <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground block mb-2 flex items-center gap-1.5">
-              <Settings className="w-3 h-3" />
-              Technology
+              <TierIcon className="w-3 h-3" />
+              Tier
             </label>
-            <div className="flex flex-wrap gap-1.5">
-              {techOptions.map((tech) => (
-                <button
-                  key={tech}
-                  onClick={() => updateNodeData(node.id, { tech, icon: undefined })}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
-                    data.tech === tech
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-accent/50 text-muted-foreground hover:bg-accent'
-                  }`}
-                >
-                  {tech}
-                </button>
-              ))}
+            <div className="px-3 py-2 text-xs bg-secondary rounded-xl capitalize">
+              {data.category}
             </div>
           </div>
         )}
 
-        {/* Accent swatches */}
+        {/* Technology */}
+        {(data.tech || data.technology) && (
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground block mb-2">
+              Technology
+            </label>
+            <div className="px-3 py-2 text-xs bg-secondary rounded-xl">
+              {techLabel || data.technology || data.tech}
+            </div>
+          </div>
+        )}
+
+        {/* Subtitle / Description */}
+        {(data.sublabel || data.description) && (
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground block mb-2">
+              Description
+            </label>
+            <div className="px-3 py-2 text-xs bg-secondary rounded-xl text-muted-foreground">
+              {data.sublabel || data.description}
+            </div>
+          </div>
+        )}
+
+        {/* Component Type */}
+        {data.componentType && (
+          <div>
+            <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground block mb-2">
+              Type
+            </label>
+            <div className="px-3 py-2 text-xs bg-secondary rounded-xl capitalize">
+              {data.componentType}
+            </div>
+          </div>
+        )}
+
+        {/* Node ID (for reference) */}
         <div>
-          <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground block mb-2.5 flex items-center gap-1.5">
-            <Palette className="w-3 h-3" />
-            Color
+          <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground block mb-2">
+            ID
           </label>
-          <div className="flex gap-2">
-            {ACCENT_SWATCHES.map(({ color, label }) => (
-              <button
-                key={color}
-                title={label}
-                onClick={() => updateNodeData(node.id, { color, accentColor: color })}
-                className="w-6 h-6 rounded-full transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50"
-                style={{
-                  background: color,
-                  boxShadow: activeAccent === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : undefined,
-                }}
-              />
-            ))}
+          <div className="px-3 py-2 text-xs bg-secondary rounded-xl text-muted-foreground font-mono truncate" title={node.id}>
+            {node.id}
           </div>
         </div>
 
         {/* Delete */}
-        <div className="pt-4">
+        <div className="pt-4 border-t border-border/50">
           <button
             onClick={() => { removeNode(node.id); setSelectedNodeId(null); }}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            Delete
+            Delete Node
           </button>
         </div>
       </div>

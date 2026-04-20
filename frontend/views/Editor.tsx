@@ -343,7 +343,7 @@ export default function EditorPage() {
 
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ padding: 16, background: '#F4F4F4' }}>
+      <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ padding: 16, background: '#FFFFFF' }}>
         <Toolbar />
         <div className="flex flex-1 overflow-hidden relative">
           {canvasSidebarOpen && (

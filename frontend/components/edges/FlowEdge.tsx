@@ -17,6 +17,7 @@ const COMM_COLORS: Record<string, { color: string; dash: string; animated: boole
   stream: { color: '#10B981', dash: '4,2', animated: true, strokeWidth: 2.5 },
   event: { color: '#EC4899', dash: '2,3', animated: true, strokeWidth: 2.5 },
   dep: { color: '#CBD5E1', dash: '4,4', animated: false, strokeWidth: 1.5 },
+  feedback: { color: '#EF4444', dash: '12,4,4,4', animated: true, strokeWidth: 2 },
 };
 
 interface PathResult {
@@ -135,7 +136,7 @@ export function FlowEdge({
 }: EdgeProps<EdgeData>) {
   const edgeType: EdgeType | undefined = data?.edgeType;
   const customPathType: PathType | undefined = data?.pathType;
-  const edgeVariant: 'solid' | 'dashed' | 'dotted' | undefined = data?.edgeVariant;
+  const edgeVariant: 'solid' | 'dashed' | 'dotted' | 'feedback' | undefined = data?.edgeVariant;
   const communicationType: string | undefined = data?.communicationType;
   const pathType = getEffectivePathType(edgeType, customPathType);
   const config = getEdgeConfig(edgeType);
@@ -169,10 +170,14 @@ export function FlowEdge({
     let dashArray = commStyle.dash || config.dash;
     let strokeWidth = commStyle.strokeWidth;
     
+    // Edge variant takes precedence over communication type
     if (edgeVariant === 'dashed') {
       dashArray = '8,4';
     } else if (edgeVariant === 'dotted') {
       dashArray = '2,2';
+    } else if (edgeVariant === 'feedback') {
+      dashArray = '12,4,4,4';
+      strokeWidth = 2;
     } else if (edgeVariant === 'solid' || !edgeVariant) {
       dashArray = '';
     }

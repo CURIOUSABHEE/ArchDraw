@@ -1,19 +1,41 @@
 'use client';
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Handle, Position, NodeProps, NodeResizer, useReactFlow } from 'reactflow';
+import type { Node } from 'reactflow';
+import { ChevronRight, ChevronDown } from 'lucide-react';
+import { useDiagramStore } from '@/store/diagramStore';
 
 export interface GroupNodeData {
   label: string;
   color?: string;
+  collapsed?: boolean;
 }
 
 function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
   const { setNodes } = useReactFlow();
+  const nodes = useDiagramStore((s: { nodes: Node[] }) => s.nodes);
+  const moveToGroup = useDiagramStore((s: { moveToGroup: (nodeId: string, groupId: string | null) => void }) => s.moveToGroup);
   const color = data.color ?? '#6366f1';
   const [label, setLabel] = useState(data.label);
   const [editing, setEditing] = useState(false);
+  const [collapsed, setCollapsed] = useState(data.collapsed ?? false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const depth = useMemo(() => {
+    const findDepth = (nodeId: string, currentDepth = 0): number => {
+      const node = nodes.find((n: Node) => n.id === nodeId);
+      if (!node?.parentId) return currentDepth;
+      return findDepth(node.parentId, currentDepth + 1);
+    };
+    return findDepth(id, 0);
+  }, [id, nodes]);
+
+  const childCount = useMemo(() => {
+    return nodes.filter((n: Node) => n.parentId === id).length;
+  }, [id, nodes]);
+
+  const hasChildren = childCount > 0;
 
   useEffect(() => {
     setLabel(data.label);
@@ -27,8 +49,26 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
 
   const commitEdit = useCallback(() => {
     setEditing(false);
-    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, label } } : n));
+    setNodes((nds: Node[]) => nds.map((n: Node) => n.id === id ? { ...n, data: { ...n.data, label } } : n));
   }, [id, label, setNodes]);
+
+  const toggleCollapse = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCollapsed(!collapsed);
+    setNodes((nds: Node[]) => nds.map((n: Node) => n.id === id ? { ...n, data: { ...n.data, collapsed: !collapsed } } : n));
+    if (!collapsed && hasChildren) {
+      const children = nodes.filter((n: Node) => n.parentId === id);
+      const parent = nodes.find((n: Node) => n.id === id);
+      if (parent) {
+        children.forEach((child: Node) => {
+          moveToGroup(child.id, null);
+        });
+      }
+    }
+  }, [collapsed, hasChildren, id, nodes, setNodes, moveToGroup]);
+
+  const borderOpacity = selected ? 1 : depth > 0 ? 0.6 : 0.4;
+  const bgOpacity = depth > 0 ? 0.08 : 0.06;
 
   return (
     <>
@@ -47,20 +87,64 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
           width: '100%',
           height: '100%',
           minWidth: 0,
-          border: `2px dashed ${selected ? color : `${color}40`}`,
+          border: `2px dashed ${selected ? color : `${color}${Math.round(borderOpacity * 255).toString(16).padStart(2, '0')}`}`,
           borderRadius: 16,
-          background: `${color}06`,
+          background: `${color}${Math.round(bgOpacity * 255).toString(16).padStart(2, '0')}`,
           position: 'relative',
           boxSizing: 'border-box',
           boxShadow: selected ? `0 0 0 2px ${color}30, inset 0 0 30px ${color}08` : 'none',
           transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+          paddingLeft: depth > 0 ? 8 : 0,
         }}
       >
-        {/* Label at top-left */}
+        {/* Depth indicator */}
+        {depth > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 3,
+              backgroundColor: color,
+              borderRadius: '3px 0 0 3px',
+              opacity: 0.6,
+            }}
+          />
+        )}
+
+        {/* Label row with collapse toggle */}
         <div
-          style={{ position: 'absolute', top: 10, left: 14 }}
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: depth > 0 ? 16 : 14,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
           onDoubleClick={startEdit}
         >
+          {hasChildren ? (
+            <button
+              onClick={toggleCollapse}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                color: color,
+              }}
+            >
+              {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+            </button>
+          ) : (
+            <span style={{ width: 14, display: 'inline-block' }} />
+          )}
+          
           {editing ? (
             <input
               ref={inputRef}
@@ -102,6 +186,18 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
               }}
             >
               {label}
+            </span>
+          )}
+          
+          {hasChildren && !editing && (
+            <span
+              style={{
+                fontSize: 10,
+                color: `${color}80`,
+                fontWeight: 500,
+              }}
+            >
+              {collapsed ? `${childCount} hidden` : childCount}
             </span>
           )}
         </div>

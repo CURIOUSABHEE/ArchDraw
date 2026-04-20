@@ -28,6 +28,7 @@ import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { CanvasThemeToggle } from '@/components/CanvasThemeToggle';
 import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
 import {
   Select,
@@ -753,6 +754,7 @@ export function Toolbar() {
           <span className="w-px h-4 bg-border/50 mx-1" />
 
           <ThemeToggle />
+          <CanvasThemeToggle />
 
           <span className="w-px h-4 bg-border/50 mx-1" />
 
