@@ -44,8 +44,12 @@ export interface NodeData {
   componentType?: string;
   color?: string;
   icon?: string;
+  iconUrl?: string;
   description?: string;
   tech?: string;
+  status?: 'healthy' | 'warning' | 'error' | 'unknown';
+  isExternal?: boolean;
+  hideTierTag?: boolean;
   sublabel?: string;
   hasError?: boolean;
   accentColor?: string;
@@ -126,6 +130,7 @@ interface DiagramState {
   edgeAnimations: boolean;
   showGrid: boolean;
   darkMode: boolean;
+  canvasDarkMode: boolean;
   sidebarOpen: boolean;
   canvasMode: 'empty' | 'editing' | 'template';
   activeLayoutPresetId: string;
@@ -133,6 +138,7 @@ interface DiagramState {
   toggleEdgeAnimations: () => void;
   toggleGrid: () => void;
   toggleDarkMode: () => void;
+  toggleCanvasDarkMode: () => void;
   setSidebarOpen: (open: boolean) => void;
   setCanvasMode: (mode: 'empty' | 'editing' | 'template') => void;
   setActiveLayoutPresetId: (id: string) => void;
@@ -157,7 +163,9 @@ interface DiagramState {
   clearDiagram: () => void;
   deleteSelected: () => void;
   selectAll: () => void;
-  createGroup: () => void;
+  createGroup: (parentId?: string) => void;
+  ungroupNodes: (groupId: string) => void;
+  moveToGroup: (nodeId: string, groupId: string | null) => void;
   loadTemplate: (nodes: Node[], edges: Edge[]) => void;
 
   // ── Fit view ──────────────────────────────────────────────────────────────
@@ -595,6 +603,7 @@ export const useDiagramStore = create<DiagramState>()(
       edgeAnimations: true,
       showGrid: true,
       darkMode: true,
+      canvasDarkMode: false,
       sidebarOpen: true,
       canvasMode: 'empty',
       activeLayoutPresetId: 'layered-lr',
@@ -606,6 +615,9 @@ export const useDiagramStore = create<DiagramState>()(
       toggleDarkMode: () => {
         const next = !get().darkMode;
         set({ darkMode: next });
+      },
+      toggleCanvasDarkMode: () => {
+        set({ canvasDarkMode: !get().canvasDarkMode });
       },
       toggleEdgeAnimations: () => {
         const next = !get().edgeAnimations;
@@ -782,29 +794,62 @@ export const useDiagramStore = create<DiagramState>()(
       },
 
       deleteSelected: () => {
-        const { selectedNodeId, removeNode } = get();
-        if (selectedNodeId) removeNode(selectedNodeId);
+        const { selectedNodeId, selectedNodeIds, selectedEdgeId, deleteEdge, pushHistory, nodes: currentNodes, edges: currentEdges, canvases: currentCanvases, activeCanvasId } = get();
+        
+        if (selectedEdgeId) {
+          pushHistory();
+          deleteEdge(selectedEdgeId);
+          return;
+        }
+        
+        const idsToDelete = selectedNodeIds.length > 0 ? selectedNodeIds : (selectedNodeId ? [selectedNodeId] : []);
+        
+        if (idsToDelete.length === 0) return;
+        
+        pushHistory();
+        
+        const newNodes = currentNodes.filter((n) => !idsToDelete.includes(n.id));
+        const newEdges = currentEdges.filter((e) => !idsToDelete.includes(e.source) && !idsToDelete.includes(e.target));
+        const canvases = syncActiveCanvas(currentCanvases, activeCanvasId, newNodes, newEdges);
+        
+        set({ nodes: newNodes, edges: newEdges, canvases, selectedNodeIds: [], selectedNodeId: null });
+        get().saveCanvasToDB(activeCanvasId);
       },
 
       selectAll: () => set({ selectedNodeId: null }),
 
-      createGroup: () => {
+      createGroup: (parentId?: string) => {
         const { nodes, selectedNodeIds, pushHistory, activeCanvasId, canvases, edges } = get();
         if (selectedNodeIds.length < 2) return;
         pushHistory();
         const PAD = 24;
         const selected = nodes.filter((n) => selectedNodeIds.includes(n.id));
-        const minX = Math.min(...selected.map((n) => n.position.x)) - PAD;
-        const minY = Math.min(...selected.map((n) => n.position.y)) - PAD;
-        const maxX = Math.max(...selected.map((n) => n.position.x + (n.width ?? 160))) + PAD;
-        const maxY = Math.max(...selected.map((n) => n.position.y + (n.height ?? 80))) + PAD;
+        
+        let minX = Math.min(...selected.map((n) => n.position.x)) - PAD;
+        let minY = Math.min(...selected.map((n) => n.position.y)) - PAD;
+        let maxX = Math.max(...selected.map((n) => n.position.x + (n.width ?? 160))) + PAD;
+        let maxY = Math.max(...selected.map((n) => n.position.y + (n.height ?? 80))) + PAD;
+        
+        if (parentId) {
+          const parent = nodes.find((n) => n.id === parentId);
+          if (parent) {
+            minX = parent.position.x + PAD;
+            minY = parent.position.y + PAD;
+            maxX = parent.position.x + (parent.width ?? 400) - PAD;
+            maxY = parent.position.y + (parent.height ?? 300) - PAD;
+          }
+        }
+        
         const groupId = `group-${Date.now()}`;
         const groupNode: Node = {
           id: groupId, type: 'groupNode',
           position: { x: minX, y: minY },
           style: { width: maxX - minX, height: maxY - minY },
           data: { label: 'Group' }, zIndex: -1,
+          parentId: parentId,
+          extent: parentId ? 'parent' as const : undefined,
         };
+        
         const newNodes = [groupNode, ...nodes.map((n) =>
           selectedNodeIds.includes(n.id)
             ? { ...n, parentId: groupId, extent: 'parent' as const, position: { x: n.position.x - minX, y: n.position.y - minY } }
@@ -812,6 +857,64 @@ export const useDiagramStore = create<DiagramState>()(
         )];
         const newCanvases = syncActiveCanvas(canvases, activeCanvasId, newNodes, edges);
         set({ nodes: newNodes, canvases: newCanvases, selectedNodeIds: [] });
+        get().saveCanvasToDB(activeCanvasId);
+      },
+
+      ungroupNodes: (groupId: string) => {
+        const { nodes, pushHistory, activeCanvasId, canvases, edges } = get();
+        const group = nodes.find((n) => n.id === groupId);
+        if (!group || group.type !== 'groupNode') return;
+        pushHistory();
+        
+        const children = nodes.filter((n) => n.parentId === groupId);
+        const parentOffset = { x: group.position.x, y: group.position.y };
+        
+        const newNodes = nodes
+          .filter((n) => n.id !== groupId)
+          .map((n) => {
+            if (n.parentId === groupId) {
+              return {
+                ...n,
+                parentId: group.parentId,
+                extent: group.parentId ? 'parent' as const : undefined,
+                position: { x: n.position.x + parentOffset.x, y: n.position.y + parentOffset.y },
+              };
+            }
+            return n;
+          });
+        
+        const newCanvases = syncActiveCanvas(canvases, activeCanvasId, newNodes, edges);
+        set({ nodes: newNodes, canvases: newCanvases, selectedNodeIds: children.map((c) => c.id) });
+        get().saveCanvasToDB(activeCanvasId);
+      },
+
+      moveToGroup: (nodeId: string, groupId: string | null) => {
+        const { nodes, pushHistory, activeCanvasId, canvases, edges } = get();
+        const node = nodes.find((n) => n.id === nodeId);
+        if (!node) return;
+        pushHistory();
+        
+        let newPosition = { ...node.position };
+        if (groupId) {
+          const group = nodes.find((n) => n.id === groupId);
+          if (group) {
+            newPosition = { x: node.position.x - group.position.x, y: node.position.y - group.position.y };
+          }
+        } else if (node.parentId) {
+          const parent = nodes.find((n) => n.id === node.parentId);
+          if (parent) {
+            newPosition = { x: node.position.x + parent.position.x, y: node.position.y + parent.position.y };
+          }
+        }
+        
+        const newNodes = nodes.map((n) =>
+          n.id === nodeId
+            ? { ...n, parentId: groupId ?? undefined, extent: groupId ? 'parent' as const : undefined, position: newPosition }
+            : n
+        );
+        
+        const newCanvases = syncActiveCanvas(canvases, activeCanvasId, newNodes, edges);
+        set({ nodes: newNodes, canvases: newCanvases });
         get().saveCanvasToDB(activeCanvasId);
       },
 
@@ -904,6 +1007,7 @@ export const useDiagramStore = create<DiagramState>()(
         nodes: s.nodes,
         edges: s.edges,
         darkMode: s.darkMode,
+        canvasDarkMode: s.canvasDarkMode,
         edgeAnimations: s.edgeAnimations,
         showGrid: s.showGrid,
       }),
