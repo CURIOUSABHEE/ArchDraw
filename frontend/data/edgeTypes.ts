@@ -1,6 +1,6 @@
 import { MarkerType } from 'reactflow';
 
-export type PathType = 'smooth' | 'bezier' | 'step' | 'straight';
+export type PathType = 'smooth' | 'Smoothstep' | 'bezier' | 'step' | 'straight';
 export type EdgeType = 'sync' | 'async' | 'stream' | 'event' | 'dep';
 
 export interface EdgeTypeConfig {
@@ -19,21 +19,21 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     id: 'sync',
     label: 'Sync',
     color: '#6366f1',
-    dash: '8 6',
-    animated: true,
+    dash: '',
+    animated: false,
     markerStart: false,
     markerEnd: true,
-    pathType: 'smooth',
+    pathType: 'Smoothstep',
   },
   async: {
     id: 'async',
     label: 'Async',
     color: '#f59e0b',
-    dash: '6 4',
+    dash: '8 6',
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'smooth',
+    pathType: 'Smoothstep',
   },
   stream: {
     id: 'stream',
@@ -43,7 +43,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'smooth',
+    pathType: 'Smoothstep',
   },
   event: {
     id: 'event',
@@ -53,7 +53,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'smooth',
+    pathType: 'Smoothstep',
   },
   dep: {
     id: 'dep',
@@ -63,12 +63,13 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     animated: true,
     markerStart: false,
     markerEnd: true,
-    pathType: 'smooth',
+    pathType: 'Smoothstep',
   },
 };
 
 export const PATH_TYPE_DEFAULTS: Record<PathType, { borderRadius?: number }> = {
   smooth: { borderRadius: 24 },
+  Smoothstep: { borderRadius: 50 },
   bezier: {},
   step: { borderRadius: 0 },
   straight: {},

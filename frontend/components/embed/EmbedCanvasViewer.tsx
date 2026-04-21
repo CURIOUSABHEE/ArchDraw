@@ -7,6 +7,7 @@ import ReactFlow, {
   Controls,
   ReactFlowProvider,
   useReactFlow,
+  ConnectionLineType,
   type Node,
   type Edge,
 } from 'reactflow';
@@ -87,10 +88,11 @@ function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls
         fitView
         fitViewOptions={{ padding: 0.15 }}
         proOptions={{ hideAttribution: true }}
+        connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
           type: 'custom',
           style: pathTypeConfig[pathType],
-          data: { edgeType: 'sync', pathType },
+          data: { edgeType: 'sync', pathType: 'Smoothstep' },
         }}
       >
         <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>

@@ -1,11 +1,42 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type { Node, Edge } from 'reactflow';
 import type { LayoutPreset } from './layoutPresets';
+import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
 
 const elk = new ELK();
 
 const DEFAULT_NODE_WIDTH = 200;
 const DEFAULT_NODE_HEIGHT = 100;
+const DEFAULT_GROUP_WIDTH = 400;
+const DEFAULT_GROUP_HEIGHT = 300;
+
+const BASE_ELK_OPTIONS: Record<string, string> = {
+  'elk.algorithm': 'layered',
+  'elk.direction': 'RIGHT',
+  'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+  'elk.spacing.nodeNode': '120',
+  'elk.spacing.edgeNode': '80',
+  'elk.spacing.edgeEdge': '60',
+  'elk.spacing.labelNode': '50',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '250',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '150',
+  'elk.layered.spacing.edgeEdgeBetweenLayers': '80',
+  'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+  'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+  'elk.layered.crossingMinimization.forceNodeModelOrder': 'false',
+  'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+  'elk.layered.separatingEdges.strategy': 'CENTERING',
+  'elk.layered.unnecessaryBendpoints': 'false',
+  'elk.layered.mergeEdges': 'false',
+  'elk.layered.cycleBreaking.strategy': 'GREEDY',
+  'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
+  'elk.edgeRouting': 'ORTHOGONAL',
+  'elk.portConstraints': 'FIXED_SIDE',
+  'elk.edgeLabels.inline': 'false',
+  'elk.edgeLabels.placement': 'CENTER',
+  'elk.padding': '[top=60, left=40, bottom=60, right=40]',
+  'elk.separateConnectedComponents': 'false',
+};
 
 export async function applyLayoutPreset(
   nodes: Node[],
@@ -25,20 +56,37 @@ export async function applyLayoutPreset(
 
   const elkNodes = nodes.map(node => {
     const isGroup = node.type === 'group' || node.type === 'groupNode';
+    const nodeWidth = node.width ?? (isGroup ? DEFAULT_GROUP_WIDTH : DEFAULT_NODE_WIDTH);
+    const nodeHeight = node.height ?? (isGroup ? DEFAULT_GROUP_HEIGHT : DEFAULT_NODE_HEIGHT);
+    
     const children = isGroup
       ? leafNodes
           .filter(n => n.parentId === node.id)
-          .map(child => ({
-            id: child.id,
-            width: child.width ?? DEFAULT_NODE_WIDTH,
-            height: child.height ?? DEFAULT_NODE_HEIGHT,
-          }))
+          .map(child => {
+            const childWidth = child.width ?? DEFAULT_NODE_WIDTH;
+            const childHeight = child.height ?? DEFAULT_NODE_HEIGHT;
+            return {
+              id: child.id,
+              width: childWidth,
+              height: childHeight,
+              layoutOptions: {
+                'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+                'elk.nodeSize.minimum': `${childWidth}, ${childHeight}`,
+                'elk.portConstraints': 'FIXED_SIDE',
+              },
+            };
+          })
       : [];
 
     return {
       id: node.id,
-      width: node.width ?? (isGroup ? 400 : DEFAULT_NODE_WIDTH),
-      height: node.height ?? (isGroup ? 300 : DEFAULT_NODE_HEIGHT),
+      width: nodeWidth,
+      height: nodeHeight,
+      layoutOptions: {
+        'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+        'elk.nodeSize.minimum': `${nodeWidth}, ${nodeHeight}`,
+        'elk.portConstraints': 'FIXED_SIDE',
+      },
       ...(children.length > 0 ? { children } : {}),
     };
   });
@@ -60,9 +108,14 @@ export async function applyLayoutPreset(
       targets: [e.target],
     }));
 
+  const mergedOptions: Record<string, string> = {
+    ...BASE_ELK_OPTIONS,
+    ...preset.elkOptions,
+  };
+
   const elkGraph = {
     id: 'root',
-    layoutOptions: preset.elkOptions,
+    layoutOptions: mergedOptions,
     children: rootElkNodes,
     edges: elkEdges,
   };
@@ -71,15 +124,34 @@ export async function applyLayoutPreset(
     const layouted = await elk.layout(elkGraph);
 
     const positionMap = new Map<string, { x: number; y: number }>();
+    const sizeMap = new Map<string, { width?: number; height?: number }>();
 
-    function extractPositions(elkNodes: { id: string; x?: number; y?: number; width?: number; height?: number; children?: typeof elkNodes }[], parentX = 0, parentY = 0) {
+    function extractPositions(
+      elkNodes: Array<{
+        id: string;
+        x?: number;
+        y?: number;
+        width?: number;
+        height?: number;
+        children?: Array<{
+          id: string;
+          x?: number;
+          y?: number;
+          width?: number;
+          height?: number;
+        }>;
+      }>,
+      parentX: number = 0,
+      parentY: number = 0
+    ) {
       for (const elkNode of elkNodes ?? []) {
-        positionMap.set(elkNode.id, {
-          x: elkNode.x ?? 0,
-          y: elkNode.y ?? 0,
-        });
+        const absoluteX = (elkNode.x ?? 0) + parentX;
+        const absoluteY = (elkNode.y ?? 0) + parentY;
+        positionMap.set(elkNode.id, { x: absoluteX, y: absoluteY });
+        sizeMap.set(elkNode.id, { width: elkNode.width, height: elkNode.height });
+        
         if (elkNode.children && elkNode.children.length > 0) {
-          extractPositions(elkNode.children, elkNode.x ?? 0, elkNode.y ?? 0);
+          extractPositions(elkNode.children, absoluteX, absoluteY);
         }
       }
     }
@@ -88,17 +160,26 @@ export async function applyLayoutPreset(
 
     return nodes.map(node => {
       const newPos = positionMap.get(node.id);
+      const size = sizeMap.get(node.id);
       if (!newPos) return node;
+      
+      const isGroup = node.type === 'group' || node.type === 'groupNode';
+      
+      if (isGroup) {
+        return {
+          ...node,
+          position: newPos,
+          style: {
+            ...node.style,
+            width: size?.width ?? node.width ?? DEFAULT_GROUP_WIDTH,
+            height: size?.height ?? node.height ?? DEFAULT_GROUP_HEIGHT,
+          },
+        };
+      }
+      
       return {
         ...node,
         position: newPos,
-        ...(node.type === 'group' || node.type === 'groupNode' ? {
-          style: {
-            ...node.style,
-            width: layouted.children?.find(c => c.id === node.id)?.width ?? node.style?.width,
-            height: layouted.children?.find(c => c.id === node.id)?.height ?? node.style?.height,
-          }
-        } : {})
       };
     });
   } catch (error) {

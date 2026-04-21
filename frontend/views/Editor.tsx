@@ -343,26 +343,27 @@ export default function EditorPage() {
 
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ padding: 16, background: '#FFFFFF' }}>
+      <div className="fixed inset-0 overflow-hidden" style={{ background: '#FFFFFF' }}>
+        {sequenceDiagrams[activeCanvasId] ? (
+          <SequenceDiagramViewer />
+        ) : (
+          <Canvas />
+        )}
+        
         <Toolbar />
-        <div className="flex flex-1 overflow-hidden relative">
-          {canvasSidebarOpen && (
-            <CanvasSidebar onClose={() => setCanvasSidebarOpen(false)} />
-          )}
-          {sidebarOpen && (
-            <ComponentSidebar
-              onOpenCreateModal={() => setShowCreateModal(true)}
-            />
-          )}
-          <div className="flex flex-col flex-1 overflow-hidden" style={{ minWidth: 0 }}>
-            {sequenceDiagrams[activeCanvasId] ? (
-              <SequenceDiagramViewer />
-            ) : (
-              <Canvas />
-            )}
-          </div>
-          {(selectedNodeId || selectedEdgeId) && <PropertiesPanel />}
-        </div>
+        
+        {canvasSidebarOpen && (
+          <CanvasSidebar onClose={() => setCanvasSidebarOpen(false)} />
+        )}
+        
+        {sidebarOpen && (
+          <ComponentSidebar
+            onOpenCreateModal={() => setShowCreateModal(true)}
+          />
+        )}
+        
+        {(selectedNodeId || selectedEdgeId) && <PropertiesPanel />}
+        
         <CommandPalette />
         <OnboardingOverlay />
         <FloatingAIBar onGenerate={handleGenerate} />

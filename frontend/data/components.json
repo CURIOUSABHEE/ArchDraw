@@ -1,7 +1,7 @@
 [
   {
     "id": "client_web",
-    "label": "Web Client",
+    "label": "Web",
     "category": "Client & Entry",
     "color": "#6366f1",
     "icon": "Monitor",
@@ -9,7 +9,7 @@
   },
   {
     "id": "client_mobile",
-    "label": "Mobile Client",
+    "label": "Mobile",
     "category": "Client & Entry",
     "color": "#6366f1",
     "icon": "Smartphone",

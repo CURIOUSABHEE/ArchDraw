@@ -6,6 +6,7 @@ import { useReactFlow } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
 import { LAYOUT_PRESETS, LayoutPreset } from '@/lib/canvas/layoutPresets';
 import { applyLayoutPreset } from '@/lib/canvas/applyLayout';
+import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
 
 export function AutoLayoutButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -49,8 +50,8 @@ export function AutoLayoutButton() {
     try {
       const currentNodes = nodes;
       const currentEdges = edges;
-      const newNodes = await applyLayoutPreset(currentNodes, currentEdges, preset);
-      setNodes(newNodes);
+      const layoutedNodes = await applyLayoutPreset(currentNodes, currentEdges, preset);
+      setNodes(resolveNodeCollisions(layoutedNodes));
 
       setTimeout(() => {
         fitView({ 

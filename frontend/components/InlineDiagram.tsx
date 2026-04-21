@@ -3,7 +3,8 @@
 import { useMemo, useCallback, useEffect } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap, ReactFlowProvider,
-  useNodesState, useEdgesState, Node, Edge, OnNodesChange, OnEdgesChange,
+  useNodesState, useEdgesState, ConnectionLineType,
+  Node, Edge, OnNodesChange, OnEdgesChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { ExternalLink, Download } from 'lucide-react';
@@ -62,7 +63,7 @@ export function InlineDiagram({ data, onOpenFullEditor, height = 400 }: InlineDi
 
   const defaultEdgeOptions = useMemo(() => ({
     type: 'custom',
-    data: { edgeType: 'sync', pathType: 'smooth' },
+    data: { edgeType: 'sync', pathType: 'Smoothstep' },
   }), []);
 
   const handleOpenEditor = useCallback(() => {
@@ -92,6 +93,7 @@ export function InlineDiagram({ data, onOpenFullEditor, height = 400 }: InlineDi
         fitView
         fitViewOptions={{ padding: 0.15 }}
         proOptions={{ hideAttribution: true }}
+        connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={defaultEdgeOptions}
         minZoom={0.1}
         maxZoom={2}

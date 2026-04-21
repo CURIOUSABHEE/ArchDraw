@@ -3,6 +3,7 @@
 import { useState, Fragment } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap, ReactFlowProvider,
+  ConnectionLineType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Download } from 'lucide-react';
@@ -147,9 +148,10 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
         fitView
         fitViewOptions={{ padding: 0.15 }}
         proOptions={{ hideAttribution: true }}
+        connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
           type: 'custom',
-          data: { edgeType: 'sync', connectionType: 'smooth' },
+          data: { edgeType: 'sync', pathType: 'Smoothstep' },
         }}
       >
         <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
