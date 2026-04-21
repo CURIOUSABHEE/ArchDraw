@@ -20,7 +20,7 @@ export const EdgeInputSchema = z.object({
   source: z.string().describe('Source node ID (the node where the edge starts)'),
   target: z.string().describe('Target node ID (the node where the edge ends)'),
   communicationType: z.enum(['sync', 'async', 'stream', 'event', 'dep']).default('sync').describe('Communication pattern: sync (solid), async (dashed animated), stream (streaming), event (event-driven), dep (dependency/gray)'),
-  pathType: z.enum(['smooth', 'bezier', 'step', 'straight']).default('smooth').describe('Edge path style'),
+  pathType: z.enum(['smooth', 'Smoothstep', 'bezier', 'step', 'straight']).default('Smoothstep').describe('Edge path style'),
   label: z.string().optional().describe('Optional label shown on the edge'),
 });
 
