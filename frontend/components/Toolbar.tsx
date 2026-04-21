@@ -23,12 +23,11 @@ import { toast } from 'sonner';
 import { ShareModal } from '@/components/ShareModal';
 import { TemplateModal } from '@/components/TemplateModal';
 import { EmailCaptureModal, type EmailCaptureReason } from '@/components/EmailCaptureModal';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+
 import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { CanvasThemeToggle } from '@/components/CanvasThemeToggle';
 import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
 import {
   Select,
@@ -38,7 +37,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-type ExportFormat = 'png-dark-1x' | 'png-dark-2x' | 'png-dark-4x' | 'png-light-1x' | 'png-light-2x' | 'png-light-4x' | 'png-transparent-1x' | 'png-transparent-2x' | 'png-transparent-4x' | 'svg-dark' | 'svg-light' | 'svg-transparent' | 'json' | 'pdf' | 'html-embed';
+type ExportFormat = 'png-dark-4x' | 'png-light-4x' | 'png-transparent-4x' | 'svg-dark' | 'svg-light' | 'svg-transparent' | 'json' | 'pdf' | 'html-embed';
 
 interface EmbedNode {
   id: string;
@@ -237,6 +236,22 @@ export function Toolbar() {
   const overflowCanvases = getOverflowCanvases();
   const overflowCount = overflowCanvases.length;
 
+  // Count nodes/edges in current canvas for delete confirmation
+  const currentCanvasForDelete = canvases.find(c => c.id === activeCanvasId);
+  const deleteNodeCount = currentCanvasForDelete?.nodes.length ?? 0;
+  const deleteEdgeCount = currentCanvasForDelete?.edges.length ?? 0;
+
+  const handleDeleteCanvas = () => {
+    setConfirmDeleteId(activeCanvasId);
+  };
+
+  const confirmDelete = () => {
+    if (confirmDeleteId) {
+      removeCanvas(confirmDeleteId);
+      setConfirmDeleteId(null);
+    }
+  };
+
   const normalizePathType = (type: string): string => {
     // Normalize invalid values to valid ones
     if (type === 'smoothstep') return 'smooth';
@@ -388,18 +403,12 @@ export function Toolbar() {
       const { toPng } = await import('html-to-image');
       
       const pixelRatioMap: Record<string, number> = {
-        'png-dark-1x': 1,
-        'png-dark-2x': 2,
         'png-dark-4x': 4,
-        'png-light-1x': 1,
-        'png-light-2x': 2,
         'png-light-4x': 4,
-        'png-transparent-1x': 1,
-        'png-transparent-2x': 2,
         'png-transparent-4x': 4,
       };
       
-      const pixelRatio = pixelRatioMap[format] || 2;
+      const pixelRatio = pixelRatioMap[format] || 4;
       
       const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
       if (!element) return;
@@ -571,7 +580,13 @@ export function Toolbar() {
   return (
     <>
       <header
-        className="floating-toolbar mx-auto my-3 flex items-center justify-between px-4 z-30 shrink-0"
+        className="floating-toolbar flex items-center justify-between px-4 z-50"
+        style={{
+          position: 'fixed',
+          top: 16,
+          left: '50%',
+          transform: 'translateX(-50%)',
+        }}
       >
         {/* LEFT: Sidebar toggle + Canvas tabs */}
         <div className="flex items-center gap-2">
@@ -754,7 +769,6 @@ export function Toolbar() {
           <span className="w-px h-4 bg-border/50 mx-1" />
 
           <ThemeToggle />
-          <CanvasThemeToggle />
 
           <span className="w-px h-4 bg-border/50 mx-1" />
 
@@ -765,6 +779,14 @@ export function Toolbar() {
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>AI</span>
+          </button>
+
+          <button
+            onClick={handleDeleteCanvas}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+            title="Delete canvas"
+          >
+            <Trash2 className="w-4 h-4" />
           </button>
 
           <button
@@ -795,10 +817,8 @@ export function Toolbar() {
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG - Dark</p>
                   </div>
                   {([
-                    { label: 'Standard (1x)', format: 'png-dark-1x' },
-                    { label: 'High-Res (2x)', format: 'png-dark-2x' },
-                    { label: 'Ultra (4x)', format: 'png-dark-4x' },
-                  ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
+                    { label: 'High Quality (4x)', format: 'png-dark-4x' as ExportFormat },
+                  ]).map(({ label, format }) => (
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
@@ -811,10 +831,8 @@ export function Toolbar() {
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG - Light</p>
                   </div>
                   {([
-                    { label: 'Standard (1x)', format: 'png-light-1x' },
-                    { label: 'High-Res (2x)', format: 'png-light-2x' },
-                    { label: 'Ultra (4x)', format: 'png-light-4x' },
-                  ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
+                    { label: 'High Quality (4x)', format: 'png-light-4x' as ExportFormat },
+                  ]).map(({ label, format }) => (
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
@@ -827,10 +845,8 @@ export function Toolbar() {
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PNG - Transparent</p>
                   </div>
                   {([
-                    { label: 'Standard (1x)', format: 'png-transparent-1x' },
-                    { label: 'High-Res (2x)', format: 'png-transparent-2x' },
-                    { label: 'Ultra (4x)', format: 'png-transparent-4x' },
-                  ] as { label: string; format: ExportFormat }[]).map(({ label, format }) => (
+                    { label: 'High Quality (4x)', format: 'png-transparent-4x' as ExportFormat },
+                  ]).map(({ label, format }) => (
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
@@ -1034,20 +1050,53 @@ export function Toolbar() {
       {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}
 
       {/* Delete confirmation modal */}
-      <ConfirmDialog
-        isOpen={!!confirmDeleteId}
-        title="Delete canvas?"
-        description="This canvas has nodes. Deleting it is permanent."
-        confirmText="Delete"
-        destructive
-        onConfirm={() => {
-          if (confirmDeleteId) {
-            removeCanvas(confirmDeleteId);
-            setConfirmDeleteId(null);
-          }
-        }}
-        onCancel={() => setConfirmDeleteId(null)}
-      />
+      {confirmDeleteId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={() => setConfirmDeleteId(null)}
+        >
+          <div
+            className="rounded-xl overflow-hidden w-80"
+            style={{
+              background: 'white',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5">
+              <h3 className="text-base font-semibold" style={{ color: '#111827' }}>
+                Delete canvas?
+              </h3>
+              <p className="text-sm mt-2" style={{ color: '#6B7280', lineHeight: 1.5 }}>
+                This will delete <strong>"{currentCanvasForDelete?.name || 'this canvas'}"</strong> and remove {deleteNodeCount} node{deleteNodeCount !== 1 ? 's' : ''} and {deleteEdgeCount} edge{deleteEdgeCount !== 1 ? 's' : ''}.
+              </p>
+              <p className="text-sm mt-2" style={{ color: '#EF4444' }}>
+                This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex border-t" style={{ borderColor: '#E5E7EB' }}>
+              <button
+                className="flex-1 py-3 text-sm font-medium transition-colors"
+                style={{ color: '#6B7280' }}
+                onClick={() => setConfirmDeleteId(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="flex-1 py-3 text-sm font-medium transition-colors border-l"
+                style={{ color: '#EF4444', borderColor: '#E5E7EB' }}
+                onClick={() => {
+                  removeCanvas(confirmDeleteId);
+                  setConfirmDeleteId(null);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

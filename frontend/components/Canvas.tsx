@@ -1,7 +1,7 @@
 'use client';
 
 import ReactFlow, {
-  Background, BackgroundVariant, Controls, MiniMap,
+  Background, BackgroundVariant, Controls, MiniMap, Panel,
   useReactFlow, ReactFlowProvider,
   NodeMouseHandler, EdgeMouseHandler, NodeDragHandler,
   SelectionMode, ConnectionLineType,
@@ -34,6 +34,8 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
 import { toast } from 'sonner';
 import type { Node, Edge } from 'reactflow';
+import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
+import { useAutoLayout } from '@/src/hooks/useAutoLayout';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -63,6 +65,7 @@ function CanvasInner() {
     showGrid,
     pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData, setCanvasMode,
     canvasDarkMode,
+    setNodes,
   } = useDiagramStore();
   const canvasTheme = useCanvasTheme();
   const { isDark: appIsDark } = canvasTheme;
@@ -70,6 +73,7 @@ function CanvasInner() {
 
   const reactFlowInstance = useReactFlow();
   const { onNodeDrag, onNodeDragStop: onNodeDragStopSnap } = useSnapping();
+  const { triggerLayout, isLayouting } = useAutoLayout();
   useMiddleMousePan();
   const [labelDraft, setLabelDraft] = useState('');
   const labelInputRef = useRef<HTMLInputElement>(null);
@@ -295,9 +299,26 @@ function CanvasInner() {
 
   const onNodeDragStop: NodeDragHandler = useCallback((_e, node) => {
     onNodeDragStopSnap(_e, node, reactFlowInstance.getNodes());
+    
+    const currentNodes = reactFlowInstance.getNodes();
+    setNodes(resolveNodeCollisions(currentNodes));
+    
+    triggerLayout();
+    
     useDiagramStore.getState().pushHistory();
     dismissOnboarding();
-  }, [onNodeDragStopSnap, reactFlowInstance, dismissOnboarding]);
+  }, [onNodeDragStopSnap, reactFlowInstance, setNodes, dismissOnboarding, triggerLayout]);
+
+  const handleOnConnect = useCallback((connection: any) => {
+    onConnect(connection);
+    triggerLayout();
+  }, [onConnect, triggerLayout]);
+
+  const handleOnNodesChange = useCallback((changes: any[]) => {
+    onNodesChange(changes);
+    const hasAddition = changes.some((c) => c.type === 'add');
+    if (hasAddition) triggerLayout();
+  }, [onNodesChange, triggerLayout]);
 
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -384,7 +405,7 @@ function CanvasInner() {
   }, [setCanvasMode, dismissOnboarding]);
 
   return (
-    <div className="flex-1 relative overflow-hidden" style={{ background: isDark ? '#0F172A' : '#FFFFFF' }}>
+    <div className="fixed inset-0" style={{ background: isDark ? '#1a1a1a' : '#FFFFFF' }}>
       {/* Soft canvas background - minimal gradient */}
       {!isDark && (
         <div 
@@ -398,9 +419,9 @@ function CanvasInner() {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
+          onNodesChange={handleOnNodesChange}
           onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
+          onConnect={handleOnConnect}
           nodeTypes={NODE_TYPES}
           edgeTypes={EDGE_TYPES}
           onDragOver={onDragOver}
@@ -422,7 +443,7 @@ function CanvasInner() {
           maxZoom={2}
           fitView
           elevateNodesOnSelect
-          style={{ background: isDark ? '#0F172A' : '#FFFFFF' }}
+          style={{ background: isDark ? '#1a1a1a' : '#FFFFFF' }}
           elevateEdgesOnSelect={true}
           selectNodesOnDrag={false}
           panOnScroll
@@ -434,10 +455,15 @@ function CanvasInner() {
           connectionLineType={ConnectionLineType.SmoothStep}
           defaultEdgeOptions={{
             type: 'custom',
-            data: { connectionType: 'smooth' },
+            data: { connectionType: 'smooth', pathType: 'Smoothstep' },
           }}
         >
           <AutoLayoutButton />
+          {isLayouting && (
+            <Panel position="bottom-center">
+              <span style={{ fontSize: 11, color: '#666', background: 'rgba(255,255,255,0.9)', padding: '4px 12px', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>Arranging…</span>
+            </Panel>
+          )}
           <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
           <defs>
             <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
@@ -445,27 +471,47 @@ function CanvasInner() {
             </marker>
           </defs>
         </svg>
-        {showGrid && (
-          <Background
-            variant={BackgroundVariant.Dots}
-            color={isDark ? 'rgba(100, 120, 150, 0.15)' : 'rgba(203, 213, 225, 0.5)'}
-            gap={24}
-            size={1.5}
-            style={{ opacity: 0.5 }}
-          />
-        )}
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={20}
+          size={1.2}
+          color={isDark ? '#3a3a3a' : 'rgba(203, 213, 225, 0.5)'}
+          style={{ opacity: isDark ? 1 : 0.5 }}
+        />
         <Controls
           showInteractive={false}
-          className="!bg-white !rounded-xl !shadow-lg"
-          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}
+          style={{
+            background: '#111111',
+            border: '1px solid #2a2a2a',
+            borderRadius: '8px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          }}
         />
         <MiniMap
           nodeStrokeWidth={3}
           zoomable
           pannable
-          className="!bg-white !rounded-xl !shadow-lg cursor-move"
-          maskColor={isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.04)'}
-          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}
+          style={{
+            background: '#111111',
+            border: '1px solid #2a2a2a',
+            borderRadius: '8px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          }}
+          nodeColor={(node) => {
+            const serviceType = (node.data as { serviceType?: string })?.serviceType;
+            const colors: Record<string, string> = {
+              client: '#60a5fa',
+              gateway: '#a78bfa',
+              service: '#34d399',
+              queue: '#f59e0b',
+              database: '#f87171',
+              cache: '#fb923c',
+              auth: '#e879f9',
+              monitoring: '#94a3b8',
+            };
+            return colors[serviceType ?? ''] ?? '#6ee7b7';
+          }}
+          maskColor="rgba(0,0,0,0.6)"
         />
 
         {/* Floating label prompt after double-clicking an edge */}

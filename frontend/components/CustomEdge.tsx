@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   EdgeProps,
   getSmoothStepPath,
@@ -11,6 +12,7 @@ import {
   useReactFlow,
 } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
+import { EDGE_TOOLTIPS } from '@/data/edgeTooltips';
 
 export type EdgeStyleType = 'solid' | 'dashed' | 'dotted';
 export type EdgeConnectionType = 'smooth' | 'straight' | 'orthogonal';
@@ -339,6 +341,68 @@ function CustomEdgeComponent({
           </div>
         </EdgeLabelRenderer>
       )}
+
+      {/* Edge Tooltip on Hover */}
+      {hovered && !editing && (() => {
+        const midX = (sourceX + targetX) / 2;
+        const midY = (sourceY + targetY) / 2;
+        return createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              left: midX + 200,
+              top: midY + 100,
+              zIndex: 9999,
+              pointerEvents: 'none',
+            }}
+          >
+            <div
+              style={{
+                background: '#1a1a1a',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 8,
+                padding: '8px 12px',
+                width: 220,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+              }}
+            >
+              <div className="text-xs font-semibold text-white mb-1">
+                {label || 'Connection'}
+              </div>
+              {(() => {
+                const labelKey = Object.keys(EDGE_TOOLTIPS).find(k => 
+                  k.toLowerCase() === label?.toLowerCase()
+                ) || 'REST';
+                const edgeInfo = EDGE_TOOLTIPS[labelKey] || EDGE_TOOLTIPS['REST'];
+                if (!edgeInfo) return null;
+                return (
+                  <>
+                    <div className="text-[10px] text-amber-300 mb-1">
+                      {edgeInfo.protocol}
+                    </div>
+                    {edgeInfo.description && (
+                      <div className="text-[10px] text-slate-300 leading-tight mb-1">
+                        {edgeInfo.description.substring(0, 80)}...
+                      </div>
+                    )}
+                    {edgeInfo.whyThisProtocol && (
+                      <div className="text-[9px] text-emerald-400 leading-tight mb-1">
+                        Why: {edgeInfo.whyThisProtocol.substring(0, 60)}...
+                      </div>
+                    )}
+                    {edgeInfo.alternative && (
+                      <div className="text-[9px] text-slate-500 leading-tight">
+                        vs {edgeInfo.alternative}: {edgeInfo.alternativeWhy?.substring(0, 50)}...
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
     </>
   );
 }

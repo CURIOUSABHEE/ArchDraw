@@ -1,114 +1,233 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useCallback } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
-import { getTierColor, getTierBg } from '@/lib/tierColors';
-import { NODE_DIMENSIONS, STATUS_COLORS } from './nodes/nodeDesignTokens';
-import { NodeShapeRenderer } from './nodes/shapes/NodeShapeRenderer';
-import { TechIconRenderer } from './nodes/icons/TechIconRenderer';
+import { useCanvasTheme } from '@/lib/theme';
 
-const { width: NODE_WIDTH, height: NODE_HEIGHT, borderRadius: BORDER_RADIUS } = NODE_DIMENSIONS;
+const NODE_WIDTH = 160;
+const NODE_HEIGHT = 80;
+const BORDER_RADIUS = 12;
+
+interface NodeStyleConfig {
+  background: string;
+  border: string;
+  borderHover: string;
+  shadow: string;
+  shadowSelected: string;
+  titleColor: string;
+  subtitleColor: string;
+  handleBg: string;
+  handleBorder: string;
+}
+
+const LIGHT_STYLES: NodeStyleConfig = {
+  background: '#FFFFFF',
+  border: '#E5E7EB',
+  borderHover: '#D1D5DB',
+  shadow: '0 1px 3px rgba(0,0,0,0.08)',
+  shadowSelected: '0 0 0 2px rgba(99,102,241,0.4), 0 4px 12px rgba(99,102,241,0.2)',
+  titleColor: '#111827',
+  subtitleColor: '#6B7280',
+  handleBg: '#FFFFFF',
+  handleBorder: '#9CA3AF',
+};
+
+const DARK_STYLES: NodeStyleConfig = {
+  background: '#1F2937',
+  border: '#374151',
+  borderHover: '#4B5563',
+  shadow: '0 1px 4px rgba(0,0,0,0.3)',
+  shadowSelected: '0 0 0 2px rgba(129,140,248,0.5), 0 4px 12px rgba(129,140,248,0.25)',
+  titleColor: '#F9FAFB',
+  subtitleColor: '#9CA3AF',
+  handleBg: '#374151',
+  handleBorder: '#6B7280',
+};
+
+const STATUS_COLORS = {
+  healthy: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  unknown: '#6B7280',
+};
+
+const STATUS_LABELS = {
+  healthy: 'Healthy',
+  warning: 'Warning',
+  error: 'Error',
+  unknown: 'Unknown',
+};
+
+function getTierColorNormalized(layer?: string): string {
+  const tier = (layer || 'compute').toLowerCase();
+  const colorMap: Record<string, string> = {
+    client: '#8B5CF6',
+    edge: '#6366F1',
+    compute: '#0D9488',
+    async: '#F59E0B',
+    data: '#3B82F6',
+    observe: '#6B7280',
+    external: '#F43F5E',
+  };
+  return colorMap[tier] || colorMap.compute;
+}
+
+function NodeHandle({ 
+  type, 
+  position, 
+  id, 
+  color,
+  styles,
+}: { 
+  type: 'target' | 'source'; 
+  position: Position; 
+  id: string;
+  color: string;
+  styles: NodeStyleConfig;
+}) {
+  const isLeft = position === Position.Left;
+  const isRight = position === Position.Right;
+  const isTop = position === Position.Top;
+  const isBottom = position === Position.Bottom;
+  
+  // Calculate position based on node dimensions
+  // Node is 80px tall, so center is at y=40
+  const nodeCenterY = NODE_HEIGHT / 2; // 40px
+  
+  const getHandleStyle = (): React.CSSProperties => {
+    const baseStyle: React.CSSProperties = {
+      width: 10,
+      height: 10,
+      background: styles.handleBg,
+      border: `2px solid ${color}`,
+      borderRadius: '50%',
+      transition: 'all 150ms ease',
+      zIndex: 10,
+    };
+    
+    if (isLeft) {
+      return {
+        ...baseStyle,
+        left: -5,
+        top: nodeCenterY,
+        transform: 'translateY(-50%)',
+      };
+    }
+    if (isRight) {
+      return {
+        ...baseStyle,
+        right: -5,
+        top: nodeCenterY,
+        transform: 'translateY(-50%)',
+      };
+    }
+    if (isTop) {
+      return {
+        ...baseStyle,
+        top: -5,
+        left: '50%',
+        transform: 'translateX(-50%)',
+      };
+    }
+    // Bottom
+    return {
+      ...baseStyle,
+      bottom: -5,
+      left: '50%',
+      transform: 'translateX(-50%)',
+    };
+  };
+  
+  return (
+    <Handle
+      type={type}
+      position={position}
+      id={id}
+      className={`!opacity-0 group-hover:!opacity-100 transition-opacity duration-150`}
+      style={getHandleStyle()}
+    />
+  );
+}
 
 function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
-  const canvasDarkMode = useDiagramStore((s) => s.canvasDarkMode);
-
-  const tierColor = useMemo(() => {
-    const tier = (data.category || '').toLowerCase();
-    return getTierColor(tier, canvasDarkMode);
-  }, [data.category, canvasDarkMode]);
-
-  const tierBg = useMemo(() => {
-    const tier = (data.category || '').toLowerCase();
-    return getTierBg(tier, canvasDarkMode);
-  }, [data.category, canvasDarkMode]);
-
-  const isDark = canvasDarkMode;
-  const statusColor = STATUS_COLORS[data.status || 'unknown'];
-  const isExternal = data.isExternal === true;
-  const hideTierTag = data.hideTierTag === true;
-
-  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!selected) {
-      e.currentTarget.style.borderColor = `${tierColor}99`;
-    }
+  const { isDark } = useCanvasTheme();
+  
+  const nodeData = data as NodeData & {
+    layer?: string;
+    subtitle?: string;
+    status?: 'healthy' | 'warning' | 'error' | 'unknown';
+    color?: string;
+    nodeWidth?: number;
   };
+  
+  const styles = isDark ? DARK_STYLES : LIGHT_STYLES;
+  const tierColor = getTierColorNormalized(nodeData.layer);
+  const accentColor = nodeData.color || tierColor || '#0D9488';
+  
+  const statusColor = STATUS_COLORS[nodeData.status || 'healthy'];
+  const showStatus = nodeData.status && nodeData.status !== 'healthy';
 
-  const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!selected) {
-      e.currentTarget.style.borderColor = `${tierColor}4D`;
-    }
-  };
+  const handleClick = useCallback(() => {
+    setSelectedNodeId(id);
+  }, [id, setSelectedNodeId]);
 
   return (
     <div
+      className="group"
       style={{
-        width: data.nodeWidth ?? NODE_WIDTH,
-        minWidth: data.nodeWidth ?? NODE_WIDTH,
+        width: nodeData.nodeWidth || NODE_WIDTH,
+        minWidth: nodeData.nodeWidth || NODE_WIDTH,
         height: NODE_HEIGHT,
-        boxSizing: 'border-box',
         borderRadius: BORDER_RADIUS,
-        background: isDark ? '#1e1e1e' : '#FFFFFF',
-        borderWidth: selected ? 2 : 1,
-        borderStyle: isExternal ? 'dashed' : 'solid',
-        borderColor: selected ? tierColor : `${tierColor}4D`,
-        boxShadow: selected ? `0 0 0 3px ${tierColor}33` : 'none',
-        transition: 'border-color 150ms ease, box-shadow 150ms ease',
+        background: styles.background,
+        borderTopWidth: 1,
+        borderRightWidth: 1,
+        borderBottomWidth: 1,
+        borderLeftWidth: 3,
+        borderTopStyle: 'solid',
+        borderRightStyle: 'solid',
+        borderBottomStyle: 'solid',
+        borderLeftStyle: 'solid',
+        borderTopColor: selected ? accentColor : styles.border,
+        borderRightColor: selected ? accentColor : styles.border,
+        borderBottomColor: selected ? accentColor : styles.border,
+        borderLeftColor: accentColor,
+        boxShadow: selected 
+          ? styles.shadowSelected 
+          : styles.shadow,
+        transition: 'all 150ms ease',
         cursor: 'pointer',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
       }}
-      onClick={() => setSelectedNodeId(id)}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
     >
-      {/* Handle: Left */}
-      <Handle
+      <NodeHandle
         type="target"
         position={Position.Left}
         id="left"
-        style={{
-          width: 10,
-          height: 10,
-          background: '#FFFFFF',
-          border: `2px solid ${tierColor}`,
-          borderRadius: '50%',
-          left: -4,
-          opacity: 0,
-          transition: 'opacity 150ms ease',
-        }}
-        className="group-hover:!opacity-100"
+        color={accentColor}
+        styles={styles}
       />
-
-      {/* Handle: Right */}
-      <Handle
+      <NodeHandle
         type="source"
         position={Position.Right}
         id="right"
-        style={{
-          width: 10,
-          height: 10,
-          background: '#FFFFFF',
-          border: `2px solid ${tierColor}`,
-          borderRadius: '50%',
-          right: -4,
-          opacity: 0,
-          transition: 'opacity 150ms ease',
-        }}
+        color={accentColor}
+        styles={styles}
       />
-
-      {/* Handle: Top */}
+      
+      {/* Hide unused handles */}
       <Handle
         type="target"
         position={Position.Top}
         id="top"
         style={{ opacity: 0, width: 0, height: 0 }}
       />
-
-      {/* Handle: Bottom */}
       <Handle
         type="source"
         position={Position.Bottom}
@@ -116,143 +235,105 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         style={{ opacity: 0, width: 0, height: 0 }}
       />
 
-      {/* Header Row */}
+      {/* Header: Icon + Title */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '4px 8px',
-          height: 20,
+          gap: 6,
+          padding: '8px 10px 4px',
+          flex: 1,
         }}
       >
-        {/* Status Dot */}
+        {/* Type Icon */}
         <div
           style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            backgroundColor: statusColor,
+            width: 24,
+            height: 24,
+            borderRadius: 6,
+            background: `${accentColor}15`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             flexShrink: 0,
           }}
-        />
-
-        {/* External Badge */}
-        {isExternal && (
-          <span
-            style={{
-              fontSize: 8,
-              fontWeight: 600,
-              color: tierColor,
-              backgroundColor: `${tierColor}15`,
-              padding: '1px 4px',
-              borderRadius: 4,
-              letterSpacing: '0.05em',
-            }}
-          >
-            EXT
-          </span>
-        )}
-
-        {/* Tier Tag */}
-        {!hideTierTag && (
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 500,
-              color: tierColor,
-              backgroundColor: `${tierColor}1A`,
-              padding: '2px 6px',
-              borderRadius: 9999,
-              maxWidth: 60,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-            title={data.category}
-          >
-            {data.category}
-          </span>
-        )}
-      </div>
-
-      {/* Icon Zone */}
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-        }}
-      >
-        <div style={{ position: 'relative' }}>
-          <NodeShapeRenderer
-            nodeType={data.tech || data.category || 'service'}
-            size={64}
-            tierColor={tierColor}
-          />
+        >
           <div
             style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
+              width: 12,
+              height: 12,
+              borderRadius: 3,
+              background: accentColor,
             }}
-          >
-            <TechIconRenderer
-              tech={data.tech || 'service'}
-              size={32}
-              tierColor={tierColor}
-            />
-          </div>
+          />
         </div>
-      </div>
-
-      {/* Label Zone */}
-      <div
-        style={{
-          padding: '4px 8px 8px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 2,
-        }}
-      >
+        
+        {/* Title */}
         <p
           style={{
-            fontSize: 14,
-            fontWeight: 500,
-            color: isDark ? '#F1F5F9' : '#0F172A',
+            fontSize: 12,
+            fontWeight: 600,
+            color: styles.titleColor,
             margin: 0,
-            lineHeight: 1.2,
-            maxWidth: 100,
-            whiteSpace: 'nowrap',
+            lineHeight: 1.3,
+            flex: 1,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}
           title={data.label}
         >
           {data.label}
         </p>
-        {data.sublabel && (
+      </div>
+
+      {/* Footer: Subtitle + Status */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 10px 8px',
+        }}
+      >
+        {/* Subtitle */}
+        {nodeData.subtitle && (
           <p
             style={{
-              fontSize: 12,
-              fontWeight: 500,
-              color: tierColor,
-              opacity: 0.8,
+              fontSize: 10,
+              color: styles.subtitleColor,
               margin: 0,
               lineHeight: 1.2,
-              maxWidth: 100,
-              whiteSpace: 'nowrap',
+              flex: 1,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
-            title={data.sublabel}
+            title={nodeData.subtitle}
           >
-            {data.sublabel}
+            {nodeData.subtitle}
           </p>
+        )}
+        
+        {/* Status indicator */}
+        {showStatus && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              flexShrink: 0,
+            }}
+          >
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: statusColor,
+              }}
+            />
+          </div>
         )}
       </div>
     </div>
