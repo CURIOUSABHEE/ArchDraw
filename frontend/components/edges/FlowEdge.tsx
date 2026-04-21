@@ -7,34 +7,55 @@ import {
 import { EdgeContextMenu } from './EdgeContextMenu';
 import { EdgeToolbar } from './EdgeToolbar';
 import { EdgeLabel } from './EdgeLabel';
-import { useTheme } from '@/lib/theme';
+import { useCanvasTheme } from '@/lib/theme';
 import type { EdgeData, EdgeType, PathType } from '@/data/edgeTypes';
 import { getEdgeConfig, getEffectivePathType } from '@/data/edgeTypes';
 
-const COMM_COLORS: Record<string, { color: string; dash: string; animated: boolean; strokeWidth: number }> = {
-  sync: { color: '#6366F1', dash: '', animated: false, strokeWidth: 2.5 },
-  async: { color: '#F59E0B', dash: '8,4', animated: true, strokeWidth: 2.5 },
-  stream: { color: '#10B981', dash: '4,2', animated: true, strokeWidth: 2.5 },
-  event: { color: '#EC4899', dash: '2,3', animated: true, strokeWidth: 2.5 },
-  dep: { color: '#CBD5E1', dash: '4,4', animated: false, strokeWidth: 1.5 },
-  feedback: { color: '#EF4444', dash: '12,4,4,4', animated: true, strokeWidth: 2 },
+const EDGE_COLORS = {
+  light: {
+    default: '#9CA3AF',
+    hover: '#6B7280',
+    selected: '#2563EB',
+    async: '#F59E0B',
+    error: '#EF4444',
+    success: '#10B981',
+    data: '#F87171',
+  },
+  dark: {
+    default: '#4B5563',
+    hover: '#9CA3AF',
+    selected: '#3B82F6',
+    async: '#FBBF24',
+    error: '#EF4444',
+    success: '#34D399',
+    data: '#FB7185',
+  },
 };
+
+function getEdgeStyle(connectionType: string | undefined, label: string | undefined, isDark: boolean): { color: string; dash: string; animated: boolean; strokeWidth: number } {
+  const lowerLabel = label?.toLowerCase() ?? '';
+  const lowerType = connectionType?.toLowerCase() ?? '';
+  const colors = isDark ? EDGE_COLORS.dark : EDGE_COLORS.light;
+  
+  if (lowerType === 'error' || lowerLabel.includes('error') || lowerLabel.includes('failed')) {
+    return { color: colors.error, dash: '', animated: false, strokeWidth: 1.5 };
+  }
+  if (lowerType === 'success' || lowerLabel.includes('success') || lowerLabel.includes('ok')) {
+    return { color: colors.success, dash: '', animated: false, strokeWidth: 1.5 };
+  }
+  if (lowerType === 'async' || lowerType === 'publish' || lowerType === 'consume' || lowerLabel.includes('event') || lowerLabel.includes('publish') || lowerLabel.includes('consume') || lowerLabel.includes('queue')) {
+    return { color: colors.async, dash: '8,4', animated: true, strokeWidth: 1.5 };
+  }
+  if (lowerType === 'sql' || lowerType === 'data' || lowerLabel.includes('sql') || lowerLabel.includes('query') || lowerLabel.includes('cache')) {
+    return { color: colors.data, dash: '', animated: false, strokeWidth: 1.5 };
+  }
+  return { color: colors.default, dash: '', animated: false, strokeWidth: 1.5 };
+}
 
 interface PathResult {
   path: string;
   labelX: number;
   labelY: number;
-}
-
-function getStepPath(
-  sourceX: number,
-  sourceY: number,
-  targetX: number,
-  targetY: number,
-): PathResult {
-  const midX = (sourceX + targetX) / 2;
-  const path = `M ${sourceX} ${sourceY} L ${midX} ${sourceY} L ${midX} ${targetY} L ${targetX} ${targetY}`;
-  return { path, labelX: midX, labelY: (sourceY + targetY) / 2 };
 }
 
 function getBezierPathWithOffset(
@@ -84,6 +105,19 @@ function getPath(
   const minCurveDistance = 100;
   
   switch (pathType) {
+    case 'Smoothstep': {
+      if (distance < minCurveDistance) {
+        const [path] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+        return { path, labelX: (sourceX + targetX) / 2, labelY: (sourceY + targetY) / 2 };
+      }
+      const [path, labelX, labelY] = getSmoothStepPath({
+        sourceX, sourceY, sourcePosition,
+        targetX, targetY, targetPosition,
+        borderRadius: 50,
+      });
+      return { path, labelX, labelY };
+    }
+    
     case 'bezier': {
       if (distance < minCurveDistance) {
         const [path] = getStraightPath({ sourceX, sourceY, targetX, targetY });
@@ -105,26 +139,12 @@ function getPath(
       return { path, labelX, labelY };
     }
     
-    case 'step': {
-      return getStepPath(sourceX, sourceY, targetX, targetY);
-    }
-    
     case 'straight':
     default: {
-      if (Math.abs(dx) < minCurveDistance && Math.abs(dy) < minCurveDistance) {
-        const [path] = getStraightPath({ sourceX, sourceY, targetX, targetY });
-        return { path, labelX: (sourceX + targetX) / 2, labelY: (sourceY + targetY) / 2 };
-      }
-      const midX = sourceX + dx * 0.5;
-      const midY = sourceY + dy * 0.5;
-      const path = `M ${sourceX} ${sourceY} L ${midX} ${sourceY} L ${midX} ${midY} L ${midX} ${targetY} L ${targetX} ${targetY}`;
-      return { path, labelX: midX, labelY: (sourceY + targetY) / 2 };
+      const [path] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+      return { path, labelX: (sourceX + targetX) / 2, labelY: (sourceY + targetY) / 2 };
     }
   }
-}
-
-function getCommunicationStyle(communicationType: string | undefined): { color: string; dash: string; animated: boolean; strokeWidth: number } {
-  return COMM_COLORS[communicationType || 'sync'] || COMM_COLORS.sync;
 }
 
 export function FlowEdge({
@@ -137,12 +157,12 @@ export function FlowEdge({
   const edgeType: EdgeType | undefined = data?.edgeType;
   const customPathType: PathType | undefined = data?.pathType;
   const edgeVariant: 'solid' | 'dashed' | 'dotted' | 'feedback' | undefined = data?.edgeVariant;
-  const communicationType: string | undefined = data?.communicationType;
+  const communicationType: string | undefined = (data as { connectionType?: string; communicationType?: string })?.connectionType ?? data?.communicationType;
   const pathType = getEffectivePathType(edgeType, customPathType);
   const config = getEdgeConfig(edgeType);
   
-  const commStyle = getCommunicationStyle(communicationType);
-  const isDark = useTheme().isDark;
+  const { isDark } = useCanvasTheme();
+  const commStyle = getEdgeStyle(communicationType, data?.label as string | undefined, isDark);
 
   const { path: edgePath, labelX, labelY } = useMemo(() => {
     const result = getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition);
@@ -164,13 +184,15 @@ export function FlowEdge({
     return `flow-${id}`;
   }, [commStyle.animated, config.animated, id]);
 
-  const strokeColor = commStyle.color || config.color;
+  const colors = isDark ? EDGE_COLORS.dark : EDGE_COLORS.light;
+  const strokeColor = selected 
+    ? colors.selected 
+    : commStyle.color || config.color || colors.default;
   
   const strokeStyle: React.CSSProperties = useMemo(() => {
     let dashArray = commStyle.dash || config.dash;
-    let strokeWidth = commStyle.strokeWidth;
+    let strokeWidth = selected ? commStyle.strokeWidth + 0.5 : commStyle.strokeWidth;
     
-    // Edge variant takes precedence over communication type
     if (edgeVariant === 'dashed') {
       dashArray = '8,4';
     } else if (edgeVariant === 'dotted') {
@@ -178,16 +200,14 @@ export function FlowEdge({
     } else if (edgeVariant === 'feedback') {
       dashArray = '12,4,4,4';
       strokeWidth = 2;
-    } else if (edgeVariant === 'solid' || !edgeVariant) {
-      dashArray = '';
     }
     
     return {
       stroke: strokeColor,
-      strokeWidth: selected ? strokeWidth + 0.5 : strokeWidth,
+      strokeWidth,
       strokeDasharray: dashArray || undefined,
       transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s',
-      opacity: selected ? 1 : 0.9,
+      opacity: selected ? 1 : 0.85,
     };
   }, [commStyle, config.dash, edgeVariant, selected, strokeColor]);
 
@@ -206,38 +226,41 @@ export function FlowEdge({
       <defs>
         <marker
           id={`arrow-${id}`}
-          markerWidth="10"
-          markerHeight="10"
-          refX="8"
-          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          refX="5"
+          refY="3"
           orient="auto"
           markerUnits="strokeWidth"
         >
-          <path d="M 0 0 L 0 10 L 10 5 z" fill={strokeColor} />
+          <path d="M 0 0 L 0 6 L 6 3 z" fill={strokeColor} />
         </marker>
         {config.markerStart && (
           <marker
             id={`arrow-start-${id}`}
-            markerWidth="10"
-            markerHeight="10"
-            refX="2"
-            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            refX="1"
+            refY="3"
             orient="auto-start-reverse"
             markerUnits="strokeWidth"
           >
-            <path d="M 10 0 L 10 10 L 0 5 z" fill={strokeColor} />
+            <path d="M 6 0 L 6 6 L 0 3 z" fill={strokeColor} />
           </marker>
         )}
       </defs>
       
+      {/* Hit area */}
       <path
         d={edgePath}
         stroke="transparent"
-        strokeWidth={24}
+        strokeWidth={20}
         fill="none"
         onContextMenu={handleContextMenu}
         style={{ cursor: 'pointer' }}
       />
+      
+      {/* Visible edge path */}
       <path
         d={edgePath}
         fill="none"
@@ -247,6 +270,7 @@ export function FlowEdge({
         style={strokeStyle}
         className={animationClass}
       />
+      
       <EdgeLabelRenderer>
         {!data?.hideLabel && (
           <div
@@ -267,6 +291,7 @@ export function FlowEdge({
           </div>
         )}
       </EdgeLabelRenderer>
+      
       {selected && (
         <EdgeToolbar
           edgeId={id}
@@ -277,6 +302,7 @@ export function FlowEdge({
           labelY={labelY}
         />
       )}
+      
       {contextMenu && ReactDOM.createPortal(
         <EdgeContextMenu
           edgeId={id}
