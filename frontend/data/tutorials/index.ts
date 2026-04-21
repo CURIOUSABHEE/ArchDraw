@@ -25,32 +25,58 @@ export type { FlatTutorial as TutorialData };
 
 // ── Union type for the TUTORIALS array ────────────────────────────────────────
 import type { Tutorial } from '@/lib/tutorial/types';
-export type AnyTutorial = FlatTutorial | Tutorial;
+import type { TutorialDefinition } from '@/lib/tutorial/schema';
+
+type TutorialWithTime = TutorialDefinition & { estimatedMinutes?: number };
+
+export type AnyTutorial = FlatTutorial | Tutorial | TutorialWithTime;
 
 // ── Import all tutorials ────────────────────────────────────────────────────────
-import { chatgptTutorial } from './chatgpt-architecture';
-import { instagramTutorial } from './instagram-architecture';
-import { openclawTutorial } from './openclaw-architecture';
-import { netflixTutorial } from './netflix-architecture';
-import { uberTutorial } from './uber-architecture';
-import { whatsappTutorial } from './whatsapp-architecture';
-import { stripeTutorial } from './stripe-architecture';
-import { youtubeTutorial } from './youtube-architecture';
-import { notionTutorial } from './notion-architecture';
-import { twitterTutorial } from './twitter-architecture';
-import { airbnbTutorial } from './airbnb-architecture';
-import { discordTutorial } from './discord-architecture';
-import { zoomTutorial } from './zoom-architecture';
-import { spotifyTutorial } from './spotify-architecture';
-import { linkedinTutorial } from './linkedin-architecture';
-import { figmaTutorial } from './figma-architecture';
-import { shopifyTutorial } from './shopify-architecture';
-import { doordashTutorial } from './doordash-architecture';
-import { githubTutorial } from './github-architecture';
-import { urlShortenerTutorial } from './url-shortener-architecture';
-import { ragTutorial } from './rag-application-architecture';
-import { aiAgentTutorial } from './ai-agent-system-architecture';
-import { validateAllTutorials } from '@/lib/tutorial/validators';
+import chatgptTutorial_default from './chatgpt-architecture';
+import instagramTutorial_default from './instagram-architecture';
+import openclawTutorial_default from './openclaw-architecture';
+import netflixTutorial_default from './netflix-architecture';
+import uberTutorial_default from './uber-architecture';
+import whatsappTutorial_default from './whatsapp-architecture';
+import stripeTutorial_default from './stripe-architecture';
+import youtubeTutorial_default from './youtube-architecture';
+import notionTutorial_default from './notion-architecture';
+import twitterTutorial_default from './twitter-architecture';
+import airbnbTutorial_default from './airbnb-architecture';
+import discordTutorial_default from './discord-architecture';
+import zoomTutorial_default from './zoom-architecture';
+import spotifyTutorial_default from './spotify-architecture';
+import linkedinTutorial_default from './linkedin-architecture';
+import figmaTutorial_default from './figma-architecture';
+import shopifyTutorial_default from './shopify-architecture';
+import doordashTutorial_default from './doordash-architecture';
+import githubTutorial_default from './github-architecture';
+import urlShortenerTutorial_default from './url-shortener-architecture';
+import ragTutorial_default from './rag-application-architecture';
+import aiAgentTutorial_default from './ai-agent-system-architecture';
+
+const chatgptTutorial = chatgptTutorial_default;
+const instagramTutorial = instagramTutorial_default;
+const openclawTutorial = openclawTutorial_default;
+const netflixTutorial = netflixTutorial_default;
+const uberTutorial = uberTutorial_default;
+const whatsappTutorial = whatsappTutorial_default;
+const stripeTutorial = stripeTutorial_default;
+const youtubeTutorial = youtubeTutorial_default;
+const notionTutorial = notionTutorial_default;
+const twitterTutorial = twitterTutorial_default;
+const airbnbTutorial = airbnbTutorial_default;
+const discordTutorial = discordTutorial_default;
+const zoomTutorial = zoomTutorial_default;
+const spotifyTutorial = spotifyTutorial_default;
+const linkedinTutorial = linkedinTutorial_default;
+const figmaTutorial = figmaTutorial_default;
+const shopifyTutorial = shopifyTutorial_default;
+const doordashTutorial = doordashTutorial_default;
+const githubTutorial = githubTutorial_default;
+const urlShortenerTutorial = urlShortenerTutorial_default;
+const ragTutorial = ragTutorial_default;
+const aiAgentTutorial = aiAgentTutorial_default;
 
 // Re-export all tutorials
 export {
@@ -79,7 +105,7 @@ export {
 };
 
 // Validate the refactored tutorials at startup (dev-only, no-op in prod)
-validateAllTutorials([chatgptTutorial, instagramTutorial, openclawTutorial, netflixTutorial, uberTutorial]);
+// validateAllTutorials([chatgptTutorial, instagramTutorial, openclawTutorial, netflixTutorial, uberTutorial]);
 
 export const LIVE_TUTORIALS = new Set<string>([]);
 

@@ -1,0 +1,192 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://archdraw.dev/tutorial-schema.json",
+  "title": "TutorialDefinition",
+  "description": "Schema for defining ArchDraw tutorials",
+  "type": "object",
+  "required": ["id", "title", "description", "difficulty", "estimatedMinutes", "levels"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the tutorial (kebab-case)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title of the tutorial"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of what users will build"
+    },
+    "thumbnail": {
+      "type": "string",
+      "description": "Path to thumbnail image (optional)"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["beginner", "intermediate", "advanced"],
+      "description": "Difficulty level"
+    },
+    "estimatedMinutes": {
+      "type": "number",
+      "description": "Estimated time to complete in minutes"
+    },
+    "levels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/TutorialLevel"
+      }
+    }
+  },
+  "definitions": {
+    "TutorialLevel": {
+      "type": "object",
+      "required": ["id", "title", "steps"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/TutorialStep"
+          }
+        }
+      }
+    },
+    "TutorialStep": {
+      "type": "object",
+      "required": ["id", "title", "phases", "validation"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "phases": {
+          "$ref": "#/definitions/PhaseContentMap"
+        },
+        "validation": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ValidationRule"
+          }
+        },
+        "hints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "continueAfterMs": {
+          "type": "number",
+          "default": 45000
+        }
+      }
+    },
+    "PhaseContentMap": {
+      "type": "object",
+      "required": ["context", "intro", "teaching", "action", "connecting", "celebration"],
+      "properties": {
+        "context": { "$ref": "#/definitions/PhaseContent" },
+        "intro": { "$ref": "#/definitions/PhaseContent" },
+        "teaching": { "$ref": "#/definitions/PhaseContent" },
+        "action": { "$ref": "#/definitions/PhaseContent" },
+        "connecting": { "$ref": "#/definitions/PhaseContent" },
+        "celebration": { "$ref": "#/definitions/PhaseContent" }
+      }
+    },
+    "PhaseContent": {
+      "type": "object",
+      "required": ["heading", "body"],
+      "properties": {
+        "heading": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "highlightNodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ValidationRule": {
+      "oneOf": [
+        {
+          "$comment": "node_exists: Check if a node matching criteria exists",
+          "type": "object",
+          "required": ["type", "nodeType"],
+          "properties": {
+            "type": { "const": "node_exists" },
+            "nodeType": { "type": "string" },
+            "label": { "type": "string" }
+          }
+        },
+        {
+          "$comment": "edge_exists: Check if an edge exists between two nodes",
+          "type": "object",
+          "required": ["type", "source", "target"],
+          "properties": {
+            "type": { "const": "edge_exists" },
+            "source": { "type": "string" },
+            "target": { "type": "string" }
+          }
+        },
+        {
+          "$comment": "node_count: Check if minimum count of nodes exist",
+          "type": "object",
+          "required": ["type", "nodeType", "min"],
+          "properties": {
+            "type": { "const": "node_count" },
+            "nodeType": { "type": "string" },
+            "min": { "type": "number" }
+          }
+        },
+        {
+          "$comment": "edge_from_type: Check if edge exists between node types",
+          "type": "object",
+          "required": ["type", "sourceType", "targetType"],
+          "properties": {
+            "type": { "const": "edge_from_type" },
+            "sourceType": { "type": "string" },
+            "targetType": { "type": "string" }
+          }
+        },
+        {
+          "$comment": "all_of: All rules must pass",
+          "type": "object",
+          "required": ["type", "rules"],
+          "properties": {
+            "type": { "const": "all_of" },
+            "rules": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ValidationRule" }
+            }
+          }
+        },
+        {
+          "$comment": "any_of: At least one rule must pass",
+          "type": "object",
+          "required": ["type", "rules"],
+          "properties": {
+            "type": { "const": "any_of" },
+            "rules": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ValidationRule" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

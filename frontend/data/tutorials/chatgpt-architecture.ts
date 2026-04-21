@@ -1,589 +1,1044 @@
-import { step, level, tutorial, component, edge, msg } from '@/lib/tutorial/factories';
-import { buildAction, buildFirstStepAction, buildCelebration, buildOpeningL1, buildOpeningL2, buildOpeningL3 } from '@/lib/tutorial/defaults';
-import type { Tutorial, TutorialLevel, TutorialMessage, StepValidation } from '@/lib/tutorial/types';
+import type { TutorialDefinition, ValidationRule } from '@/lib/tutorial/schema';
 
-export type { TutorialLevel };
-export type { Tutorial as TutorialData };
+function nodeRule(nodeType: string, label?: string): ValidationRule {
+  return { type: 'node_exists', nodeType, label };
+}
 
-const l1 = level({
-  level: 1,
-  title: 'The Foundation',
-  subtitle: 'Build a working AI chat in 8 steps',
-  description: 'The minimum viable ChatGPT — a system that can receive a message, route it through an LLM, and return a response. Both clients, CDN, gateway, load balancer, chat service, LLM API, and a database.',
-  estimatedTime: '~15 mins',
-  unlocks: 'Production Layer',
-  contextMessage: "Let's build ChatGPT from scratch. Level 1 is the minimum viable system — 8 components that receive a message, process it through an LLM, and return a response. Simple but functional.",
-  steps: [
-    step({
-      id: 1,
-      title: 'Add the Mobile Clien t',
-      explanation: 'The Mobile Client is the iOS or Android app where users type messages and read AI responses. Over 60% of ChatGPT usage comes from mobile — it is the primary client for most users.',
-      action: buildFirstStepAction('Mobile'),
-      why: "Every architecture starts from the user. Mobile is the primary client for most ChatGPT users — the web client came second, mobile came first in adoption.",
-      component: component('client_mobile', 'Mobile'),
-      openingMessage: buildOpeningL1('ChatGPT', 'Mobile Client', 'capture messages and display AI responses on iOS and Android', "This is the conversation window on your phone — everything you type and read happens here.", 'Mobile'),
-      celebrationMessage: buildCelebration('Mobile Client', 'nothing yet', 'Over 60% of ChatGPT usage comes from mobile. The iOS and Android apps are separate codebases connecting to the same backend.', 'Web Client'),
-      connectingMessage: '',
-      messages: [
-        msg("ChatGPT's mobile app was one of the fastest-growing apps in history, reaching 1 million users in 5 days after launch."),
-        msg("Press ⌘K and search for 'Mobile' to add the primary client to the canvas."),
-      ],
-      requiredNodes: ['client_mobile'],
-      requiredEdges: [],
-      successMessage: 'Mobile Client added. Now the Web Client.',
-      errorMessage: 'Add a Mobile client node using ⌘K → search "Mobile".',
-    }),
-    step({
-      id: 2,
-      title: 'Add the Web Client',
-      explanation: "The Web Client is the browser interface where users type messages and read AI responses. It is the second client entry point — architecturally identical to mobile in what it sends and receives.",
-      action: buildFirstStepAction('Web'),
-      why: "Both clients send the same API requests and receive the same responses. Supporting both means the architecture must be client-agnostic — the backend never knows or cares which device the request came from.",
-      component: component('client_web', 'Web'),
-      openingMessage: buildOpeningL1('ChatGPT', 'Web Client', 'send messages and display AI responses in a browser-based interface', "The web version serves users on desktop who prefer a larger screen — same API calls, same responses.", 'Web'),
-      celebrationMessage: buildCelebration('Web Client', 'nothing yet', "ChatGPT's web client handles the majority of developer API traffic — developers building on the API use the web interface to test prompts before writing code.", 'CDN'),
-      connectingMessage: '',
-      messages: [
-        msg("Both clients are architecturally identical from the backend's perspective — they send the same GraphQL/REST requests and receive the same JSON responses."),
-        msg("Press ⌘K and search for 'Web' to add the secondary client."),
-      ],
-      requiredNodes: ['client_web'],
-      requiredEdges: [],
-      successMessage: 'Web Client added. Now the CDN.',
-      errorMessage: 'Add a Web client node using ⌘K → search "Web".',
-    }),
-    step({
-      id: 3,
-      title: 'Add CDN',
-      explanation: 'The CDN serves static assets — CSS, JavaScript, fonts — from edge servers close to each user. It also serves cached AI responses and any uploaded files like images or PDFs from DALL-E.',
-      action: buildAction('CDN', 'Mobile', 'CDN', 'static assets being served from the nearest edge server instead of a central origin'),
-      why: "Without a CDN, every ChatGPT user in Tokyo loads JavaScript from US servers — 300ms of extra latency on every page load. The CDN puts copies of static files in every city.",
-      component: component('cdn', 'CDN'),
-      openingMessage: buildOpeningL1('ChatGPT', 'CDN', 'serve static assets and cached AI responses from edge servers close to each user worldwide', "Without the CDN, every ChatGPT user in Tokyo loads JavaScript from US servers — 300ms of extra latency on every page load.", 'CDN'),
-      celebrationMessage: buildCelebration('CDN', 'both clients', "OpenAI's CDN serves static UI assets and cached model responses. A cached response for a common prompt never hits the LLM API — the CDN delivers it in under 10ms from a nearby edge server.", 'API Gateway'),
-      connectingMessage: "CDN is on the canvas. Connect Mobile Client → CDN first. Then connect Web Client → CDN. Both clients load static assets — the HTML, CSS, and JavaScript that render the chat interface — from the nearest CDN edge node. Cached AI responses are also served from here, bypassing the LLM API entirely for repeated queries.",
-      messages: [
-        msg("The CDN serves static UI assets (HTML, CSS, JS) and cached AI responses. A repeated prompt can be served from the CDN in 10ms instead of hitting the LLM API."),
-        msg("Press ⌘K, search for 'CDN', add it, then connect both Mobile and Web clients to it."),
-      ],
-      requiredNodes: ['cdn'],
-      requiredEdges: [edge('client_mobile', 'cdn'), edge('client_web', 'cdn')],
-      successMessage: 'CDN added and connected to both clients. Now the API Gateway.',
-      errorMessage: 'Add a CDN connected from both Mobile and Web clients.',
-    }),
-    step({
-      id: 4,
-      title: 'Add API Gateway',
-      explanation: 'The API Gateway receives every chat message sent by every user and routes it to the correct backend service. It enforces rate limits — free users get fewer requests per hour than Plus subscribers.',
-      action: buildAction('API Gateway', 'Mobile', 'API Gateway', 'all dynamic requests being routed through a single controlled entry point'),
-      why: "The CDN handles static assets. The API Gateway handles everything else — every message, every response. Without it, every client would need to know every backend service address.",
-      component: component('api_gateway', 'API Gateway'),
-      openingMessage: buildOpeningL1('ChatGPT', 'API Gateway', 'receive every message sent by every user and route it to the correct backend service', "It is the front door for dynamic requests — every single message enters through here before going anywhere.", 'API Gateway'),
-      celebrationMessage: buildCelebration('API Gateway', 'both clients', "OpenAI's API Gateway handles over 10 million API requests per day from developers alone, separate from ChatGPT's own web traffic. It enforces rate limits that determine whether free users get GPT-3.5 or Plus users get GPT-4.", 'Load Balancer'),
-      connectingMessage: "API Gateway is on the canvas. Connect Mobile Client → API Gateway first. Then connect Web Client → API Gateway. Connect CDN → API Gateway too — cached responses that miss the CDN are fetched from the origin through the gateway. Both clients send chat messages, auth tokens, and file uploads through here.",
-      messages: [
-        msg("The CDN handles static files. The API Gateway handles everything else — messages, auth tokens, file uploads. Every dynamic request goes through this single entry point."),
-        msg("Press ⌘K, search for 'API Gateway', add it, then connect both clients and the CDN to it."),
-      ],
-      requiredNodes: ['api_gateway'],
-      requiredEdges: [edge('client_mobile', 'api_gateway'), edge('client_web', 'api_gateway'), edge('cdn', 'api_gateway')],
-      successMessage: 'API Gateway added and connected to both clients and CDN. Now the Load Balancer.',
-      errorMessage: 'Add an API Gateway connected from both clients and the CDN.',
-    }),
-    step({
-      id: 5,
-      title: 'Add Load Balancer',
-      explanation: 'The Load Balancer distributes incoming requests across multiple chat servers so no single server is overwhelmed. During ChatGPT launch week in November 2022 it hit 1 million users in 5 days.',
-      action: buildAction('Load Balancer', 'API Gateway', 'Load Balancer', 'all API traffic being distributed across multiple servers before reaching the chat logic'),
-      why: "Like a traffic controller directing cars across multiple lanes — each server gets a fair share. Without it, one server would collapse under the load of millions of simultaneous users.",
-      component: component('load_balancer', 'Load Balancer'),
-      openingMessage: buildOpeningL1('ChatGPT', 'Load Balancer', 'distribute incoming requests across multiple chat servers so no single server is overwhelmed', "Like a traffic controller directing cars across multiple lanes — each server gets a fair share.", 'Load Balancer'),
-      celebrationMessage: buildCelebration('Load Balancer', 'API Gateway', "During ChatGPT's launch week in November 2022 it hit 1 million users in 5 days — the load balancer was the only thing preventing total collapse.", 'Chat Service'),
-      connectingMessage: "Load Balancer is on the canvas. Connect API Gateway → Load Balancer. All API traffic is now distributed across ChatGPT's server fleet before reaching any specific service.",
-      messages: [
-        msg("OpenAI's load balancer routes requests to different server regions based on latency — European users get routed to European servers."),
-        msg("Press ⌘K, search for 'Load Balancer', add it, then connect API Gateway → Load Balancer."),
-      ],
-      requiredNodes: ['load_balancer'],
-      requiredEdges: [edge('api_gateway', 'load_balancer')],
-      successMessage: 'Load Balancer added and connected. Now the Chat Service.',
-      errorMessage: 'Add a Load Balancer and connect API Gateway → Load Balancer.',
-    }),
-    step({
-      id: 6,
-      title: 'Add Chat Service',
-      explanation: 'The Chat Service orchestrates the entire conversation flow — it receives messages, manages context, calls the LLM, and streams the response back. It is the brain of the operation.',
-      action: buildAction('Microservice', 'Load Balancer', 'Chat Service', 'distributed traffic reaching the service that actually processes your conversation'),
-      why: "The Chat Service decides which GPT model to use based on your subscription tier before even calling the LLM API. It can be scaled independently from auth and storage.",
-      component: component('microservice', 'Microservice'),
-      openingMessage: buildOpeningL1('ChatGPT', 'Chat Service', 'orchestrate the entire conversation flow — receive messages, manage context, call the LLM, and stream the response back', "The Chat Service is the brain of the operation — it decides what to send to the LLM and how to format the response.", 'Microservice'),
-      celebrationMessage: buildCelebration('Chat Service', 'Load Balancer', "OpenAI's Chat Service manages conversation context windows of up to 128,000 tokens for GPT-4 — roughly 96,000 words of conversation history.", 'LLM API'),
-      connectingMessage: "Chat Service is on the canvas. Connect Load Balancer → Chat Service. This is where your message is received, context is assembled, the LLM is called, and the response is assembled.",
-      messages: [
-        msg("The Chat Service decides which GPT model to use based on your subscription tier before even calling the LLM API."),
-        msg("Press ⌘K, search for 'Microservice', add it, then connect Load Balancer → Chat Service."),
-      ],
-      requiredNodes: ['microservice'],
-      requiredEdges: [edge('load_balancer', 'microservice')],
-      successMessage: 'Chat Service added and connected. Now the LLM API.',
-      errorMessage: 'Add a Microservice (Chat Service) and connect Load Balancer → Chat Service.',
-    }),
-    step({
-      id: 7,
-      title: 'Add LLM API',
-      explanation: 'The LLM API receives the formatted prompt and generates a response token by token using GPT. Everything else in the architecture exists to get the right prompt here and return the response.',
-      action: buildAction('LLM API', 'Microservice', 'LLM API', 'the prompt traveling this path to get a response'),
-      why: "GPT-4 inference costs OpenAI approximately $0.03 per 1000 tokens. A single long conversation can cost $0.50 in compute — which is why rate limiting is critical to their business model.",
-      component: component('llm_api', 'LLM API', 'LLM API (GPT / Claude)'),
-      openingMessage: buildOpeningL1('ChatGPT', 'LLM API', 'receive the formatted prompt and generate a response token by token using GPT', "The LLM API is the actual brain — everything else in the architecture exists to get the right prompt here and return the response.", 'LLM API (GPT / Claude)'),
-      celebrationMessage: buildCelebration('LLM API', 'Chat Service', "GPT-4 inference costs OpenAI approximately $0.03 per 1000 tokens. A single long conversation can cost $0.50 in compute — which is why rate limiting is critical to their business model.", 'NoSQL Database'),
-      connectingMessage: "LLM API is on the canvas. Connect Chat Service → LLM API. This is the most important connection in the diagram — the prompt travels this path to get a response.",
-      messages: [
-        msg("OpenAI runs GPT-4 on thousands of A100 GPUs. Each inference call is massively expensive compared to a normal database query."),
-        msg("Press ⌘K, search for 'LLM API', add it, then connect Chat Service → LLM API."),
-      ],
-      requiredNodes: ['llm_api'],
-      requiredEdges: [edge('microservice', 'llm_api')],
-      successMessage: 'LLM API added and connected. Now the NoSQL Database.',
-      errorMessage: 'Add an LLM API and connect Chat Service → LLM API.',
-    }),
-    step({
-      id: 8,
-      title: 'Add NoSQL Database',
-      explanation: 'The NoSQL Database stores every conversation — all messages, all responses, all conversation metadata per user. Every chat you have ever had with ChatGPT lives here.',
-      action: buildAction('NoSQL Database', 'Microservice', 'NoSQL Database', 'conversations being persisted so you can return to them later across different sessions'),
-      why: "Conversation data is unstructured — each message can have different metadata and formats. NoSQL handles this because SQL would require a rigid schema that breaks every time the message format evolves.",
-      component: component('nosql_db', 'NoSQL Database'),
-      openingMessage: buildOpeningL1('ChatGPT', 'NoSQL Database', 'store every conversation — all messages, all responses, all conversation metadata per user', "The conversation archive — every chat you have ever had with ChatGPT lives here.", 'NoSQL Database'),
-      celebrationMessage: buildCelebration('NoSQL Database', 'Chat Service', "ChatGPT stores billions of conversation turns. A NoSQL database handles this because conversation data is unstructured — each message can have different metadata and formats.", 'Auth Service in Level 2'),
-      connectingMessage: "NoSQL Database is on the canvas. Connect Chat Service → NoSQL Database. When you send a message and receive a response, both are stored here — your entire conversation history is preserved across sessions.",
-      messages: [
-        msg("OpenAI uses a document database so each conversation is stored as a self-contained document with all its messages and metadata."),
-        msg("Press ⌘K, search for 'NoSQL Database', add it, then connect Chat Service → NoSQL Database."),
-      ],
-      requiredNodes: ['nosql_db'],
-      requiredEdges: [edge('microservice', 'nosql_db')],
-      successMessage: 'Level 1 complete! You have a working AI chat foundation.',
-      errorMessage: 'Add a NoSQL Database and connect Chat Service → NoSQL Database.',
-    }),
-  ],
-});
+function edgeRule(source: string, target: string): ValidationRule {
+  return { type: 'edge_exists', source, target };
+}
 
-const l2 = level({
-  level: 2,
-  title: 'Production Ready',
-  subtitle: 'Add auth, memory, RAG, and observability',
-  description: 'Your ChatGPT foundation works. Now add what OpenAI actually runs in production — auth with subscription tiers, vector memory for long conversations, RAG pipeline, streaming, and full observability. 10 more components on your existing diagram.',
-  estimatedTime: '~20 mins',
-  unlocks: 'Expert Architecture',
-  prerequisite: 'Builds on your Level 1 diagram',
-  contextMessage: "Your ChatGPT foundation works. Now add what OpenAI actually runs — auth with subscription tiers, vector memory for long conversations, RAG pipeline, and full observability. 10 more components on your diagram.",
-  steps: [
-    step({
-      id: 9,
-      title: 'Add Auth Service',
-      explanation: 'The Auth Service validates JWT tokens AND checks subscription tier — free vs Plus vs Enterprise — in every request. It is what enforces who gets GPT-4 access and who gets GPT-3.5.',
-      action: buildAction('Auth Service (JWT)', 'Load Balancer', 'Auth Service', 'every request being authenticated and subscription-checked before reaching the Chat Service'),
-      why: "Without it, anyone could use GPT-4 without paying and OpenAI would have no way to enforce rate limits. The Auth Service returns the user's model tier with every token validation.",
-      component: component('auth_service', 'Auth Service (JWT)', 'Auth Service'),
-      openingMessage: buildOpeningL2('ChatGPT', 'Auth Service', "validates JWT tokens AND checks subscription tier — free vs Plus vs Enterprise — in every request", "anyone could use GPT-4 without paying and OpenAI would have no way to enforce rate limits", 'Auth Service'),
-      celebrationMessage: buildCelebration('Auth Service', 'Load Balancer', "ChatGPT Plus subscribers pay $20/month for GPT-4 access. The Auth Service is what enforces this — it returns the user's model tier with every token validation.", 'SQL Database'),
-      connectingMessage: "Auth Service is on the canvas. Connect Load Balancer → Auth Service. Every request is authenticated and subscription-checked here before reaching the Chat Service.",
-      messages: [
-        msg("The Auth Service verifies identity and checks plan. Free users get GPT-3.5. Plus users get GPT-4 priority. Enterprise users get higher rate limits. All enforced here."),
-        msg("Press ⌘K, search for 'Auth Service', add it, then connect Load Balancer → Auth Service."),
-      ],
-      requiredNodes: ['auth_service'],
-      requiredEdges: [edge('load_balancer', 'auth_service')],
-      successMessage: 'Auth Service added and connected. Now the SQL Database.',
-      errorMessage: 'Add an Auth Service and connect Load Balancer → Auth Service.',
-    }),
-    step({
-      id: 10,
-      title: 'Add SQL Database',
-      explanation: 'The SQL Database stores user accounts, subscription status, billing records, and API usage quotas. This is separate from the NoSQL chat history because account data requires ACID transaction guarantees.',
-      action: buildAction('SQL Database', 'Auth Service', 'SQL Database', 'user accounts and subscription data being stored with ACID transaction guarantees — critical when real money is involved'),
-      why: "OpenAI could not track who is a paid subscriber and the entire billing system collapses without it. SQL's strong consistency ensures a subscription cancellation is never double-charged.",
-      component: component('sql_db', 'SQL Database'),
-      openingMessage: buildOpeningL2('ChatGPT', 'SQL Database', 'stores user accounts, subscription status, billing records, and API usage quotas', "OpenAI could not track who is a paid subscriber and the entire billing system collapses", 'SQL Database'),
-      celebrationMessage: buildCelebration('SQL Database', 'Auth Service', "OpenAI manages millions of paying subscribers across free, Plus, Team, and Enterprise tiers. SQL's strong consistency ensures a subscription cancellation is never double-charged.", 'In-Memory Cache'),
-      connectingMessage: "SQL Database is on the canvas. Connect Auth Service → SQL Database. This means user accounts and subscription data are stored with ACID transaction guarantees — critical when real money is involved.",
-      messages: [
-        msg("Account data needs ACID guarantees. NoSQL is eventually consistent — fine for chat. Not fine for 'you paid for Plus but still see the free tier.'"),
-        msg("Press ⌘K, search for 'SQL Database', add it, then connect Auth Service → SQL Database."),
-      ],
-      requiredNodes: ['sql_db'],
-      requiredEdges: [edge('auth_service', 'sql_db')],
-      successMessage: 'SQL Database added and connected. Now the In-Memory Cache.',
-      errorMessage: 'Add a SQL Database and connect Auth Service → SQL Database.',
-    }),
-    step({
-      id: 11,
-      title: 'Add In-Memory Cache',
-      explanation: 'The In-Memory Cache stores active conversation context so the Chat Service does not re-fetch conversation history from the database on every message. Redis can serve 100,000+ requests per second at sub-millisecond latency.',
-      action: buildAction('In-Memory Cache', 'Microservice', 'In-Memory Cache', 'active conversations being kept in fast memory so responses feel instant'),
-      why: "Every message in a long conversation would require a full database read adding 50-100ms of latency per response without it.",
-      component: component('in_memory_cache', 'In-Memory Cache'),
-      openingMessage: buildOpeningL2('ChatGPT', 'In-Memory Cache', 'caches active conversation context so the Chat Service does not re-fetch conversation history from the database on every message', "every message in a long conversation would require a full database read adding 50-100ms of latency per response", 'In-Memory Cache'),
-      celebrationMessage: buildCelebration('In-Memory Cache', 'Chat Service', "Redis can serve 100,000+ requests per second at sub-millisecond latency. ChatGPT uses this to keep the most recent 10 messages of active conversations in memory for instant access.", 'Embedding Service'),
-      connectingMessage: "In-Memory Cache is on the canvas. Connect Chat Service → In-Memory Cache. This means active conversations are kept in fast memory so responses feel instant.",
-      messages: [
-        msg("Redis returns data in under 1ms. A database returns in 5-50ms. At ChatGPT's scale that difference compounds across millions of messages per hour."),
-        msg("Press ⌘K, search for 'In-Memory Cache', add it, then connect Chat Service → In-Memory Cache."),
-      ],
-      requiredNodes: ['in_memory_cache'],
-      requiredEdges: [edge('microservice', 'in_memory_cache')],
-      successMessage: 'In-Memory Cache added and connected. Now the Embedding Service.',
-      errorMessage: 'Add an In-Memory Cache and connect Chat Service → In-Memory Cache.',
-    }),
-    step({
-      id: 12,
-      title: 'Add Embedding Service',
-      explanation: "The Embedding Service converts every message into a vector representation so similar past conversations can be retrieved for context injection. OpenAI's text-embedding-ada-002 model converts text into 1536-dimensional vectors.",
-      action: buildAction('Embedding Service', 'Microservice', 'Embedding Service', 'messages being converted to vectors for semantic search — not keyword matching'),
-      why: "ChatGPT would have no memory of past conversations without it — every chat would start completely fresh with no awareness of what you discussed before.",
-      component: component('embedding_service', 'Embedding Service'),
-      openingMessage: buildOpeningL2('ChatGPT', 'Embedding Service', 'converts every message into a vector representation so similar past conversations can be retrieved for context injection', "ChatGPT would have no memory of past conversations — every chat would start completely fresh", 'Embedding Service'),
-      celebrationMessage: buildCelebration('Embedding Service', 'Chat Service', "OpenAI's text-embedding-ada-002 model converts text into 1536-dimensional vectors. Two semantically similar sentences have vectors that are mathematically close regardless of the exact words used.", 'Vector Database'),
-      connectingMessage: "Embedding Service is on the canvas. Connect Chat Service → Embedding Service. This means messages are converted to vectors for semantic search — not keyword matching.",
-      messages: [
-        msg("The Embedding Service converts text into dense numerical vectors. 'What is the capital of France?' and 'Name the capital city of France' produce nearly identical vectors."),
-        msg("Press ⌘K, search for 'Embedding Service', add it, then connect Chat Service → Embedding Service."),
-      ],
-      requiredNodes: ['embedding_service'],
-      requiredEdges: [edge('microservice', 'embedding_service')],
-      successMessage: 'Embedding Service added and connected. Now the Vector Database.',
-      errorMessage: 'Add an Embedding Service and connect Chat Service → Embedding Service.',
-    }),
-    step({
-      id: 13,
-      title: 'Add Vector Database',
-      explanation: "The Vector Database stores billions of message embeddings and retrieves the most semantically relevant past context for any new user message in milliseconds. This is what makes long-term memory possible.",
-      action: buildAction('Vector Database', 'Embedding Service', 'Vector Database', 'message vectors being stored and searched by semantic similarity — not by exact text'),
-      why: "Long-term memory is impossible without it — GPT-4's 128K context window would fill up within a long conversation with no way to recall earlier topics.",
-      component: component('vector_db', 'Vector Database'),
-      openingMessage: buildOpeningL2('ChatGPT', 'Vector Database', 'stores billions of message embeddings and retrieves the most semantically relevant past context for any new user message in milliseconds', "long-term memory is impossible — GPT-4's 128K context window would fill up within a long conversation", 'Vector Database'),
-      celebrationMessage: buildCelebration('Vector Database', 'Embedding Service', "Pinecone and Weaviate can perform nearest neighbor search across 1 billion vectors in under 100ms. This is what makes retrieving relevant conversation history from months ago possible.", 'RAG Pipeline'),
-      connectingMessage: "Vector Database is on the canvas. Connect Embedding Service → Vector Database. This means message vectors are stored and can be searched by semantic similarity — not by exact text.",
-      messages: [
-        msg("The Vector Database stores your conversation embeddings. When you send a new message, it finds the semantically closest past messages and includes them as context for the LLM."),
-        msg("Press ⌘K, search for 'Vector Database', add it, then connect Embedding Service → Vector Database."),
-      ],
-      requiredNodes: ['vector_db'],
-      requiredEdges: [edge('embedding_service', 'vector_db')],
-      successMessage: 'Vector Database added and connected. Now the RAG Pipeline.',
-      errorMessage: 'Add a Vector Database and connect Embedding Service → Vector Database.',
-    }),
-    step({
-      id: 14,
-      title: 'Add RAG Pipeline',
-      explanation: "The RAG Pipeline retrieves relevant past conversation chunks from the vector database and injects them into the prompt before sending to the LLM. This is what makes ChatGPT appear to remember things you said months ago.",
-      action: buildAction('RAG Pipeline', 'Vector Database', 'RAG Pipeline', 'past context being retrieved and injected into every new prompt before the LLM generates a response'),
-      why: "The LLM only sees the current conversation window and cannot reference anything you discussed in previous sessions without it.",
-      component: component('rag_pipeline', 'RAG Pipeline'),
-      openingMessage: buildOpeningL2('ChatGPT', 'RAG Pipeline', 'retrieves relevant past conversation chunks from the vector database and injects them into the prompt before sending to the LLM', "the LLM only sees the current conversation window and cannot reference anything you discussed in previous sessions", 'RAG Pipeline'),
-      celebrationMessage: buildCelebration('RAG Pipeline', 'Vector Database and LLM API', "RAG reduces LLM hallucination by 40% by grounding responses in retrieved facts rather than relying purely on model weights. This is why ChatGPT can reference things you said months ago.", 'Message Queue'),
-      connectingMessage: "RAG Pipeline is on the canvas. First connect Vector Database → RAG Pipeline. Then connect RAG Pipeline → LLM API. This creates the memory loop: past context is retrieved and injected into every new prompt before the LLM generates a response.",
-      messages: [
-        msg("The RAG Pipeline ties it all together: it retrieves relevant context from the vector DB and injects it into the LLM prompt before generating a response."),
-        msg("Press ⌘K, search for 'RAG Pipeline', add it, then connect Vector Database → RAG Pipeline, then RAG Pipeline → LLM API."),
-      ],
-      requiredNodes: ['rag_pipeline'],
-      requiredEdges: [edge('vector_db', 'rag_pipeline'), edge('rag_pipeline', 'llm_api')],
-      successMessage: 'RAG Pipeline added and connected. Now the Message Queue.',
-      errorMessage: 'Add a RAG Pipeline and connect Vector Database → RAG Pipeline → LLM API.',
-    }),
-    step({
-      id: 15,
-      title: 'Add Message Queue',
-      explanation: 'The Message Queue queues async tasks like usage tracking, conversation indexing, and billing updates so they do not slow down the response generation. Every token usage calculation runs asynchronously here.',
-      action: buildAction('Message Queue', 'Microservice', 'Message Queue', 'billing, analytics, and indexing happening asynchronously without slowing down the response'),
-      why: "Every token usage calculation and billing update would run synchronously adding 50-100ms to every single response without it.",
-      component: component('message_queue', 'Message Queue'),
-      openingMessage: buildOpeningL2('ChatGPT', 'Message Queue', 'queues async tasks like usage tracking, conversation indexing, and billing updates so they do not slow down the response generation', "every token usage calculation and billing update would run synchronously adding 50-100ms to every single response", 'Message Queue'),
-      celebrationMessage: buildCelebration('Message Queue', 'Chat Service', "OpenAI tracks every token generated per user for billing purposes. With 100M+ daily messages that is billions of usage records processed async through the message queue every day.", 'Logger'),
-      connectingMessage: "Message Queue is on the canvas. Connect Chat Service → Message Queue. This means billing, analytics, and indexing happen asynchronously without slowing down the response.",
-      messages: [
-        msg("When you get a response, 5 things happen async: save conversation, generate embeddings, log request, track usage, update metrics. The queue handles them after the response is delivered."),
-        msg("Press ⌘K, search for 'Message Queue', add it, then connect Chat Service → Message Queue."),
-      ],
-      requiredNodes: ['message_queue'],
-      requiredEdges: [edge('microservice', 'message_queue')],
-      successMessage: 'Message Queue added and connected. Now the Logger.',
-      errorMessage: 'Add a Message Queue and connect Chat Service → Message Queue.',
-    }),
-    step({
-      id: 16,
-      title: 'Add Logger',
-      explanation: 'The Logger captures structured logs of every request including model used, tokens consumed, latency, and any errors for debugging and compliance. OpenAI must retain conversation logs for safety and policy enforcement.',
-      action: buildAction('Logger', 'Microservice', 'Logger', 'every conversation request being logged for debugging, safety review, and compliance'),
-      why: "When something goes wrong OpenAI engineers have no visibility into what happened without it — debugging production issues becomes impossible.",
-      component: component('logger', 'Logger'),
-      openingMessage: buildOpeningL2('ChatGPT', 'Logger', 'captures structured logs of every request including model used, tokens consumed, latency, and any errors for debugging and compliance', "when something goes wrong OpenAI engineers have no visibility into what happened — debugging production issues becomes impossible", 'Logger'),
-      celebrationMessage: buildCelebration('Logger', 'Chat Service', "OpenAI must retain conversation logs for safety and policy enforcement. Their logging infrastructure processes petabytes of conversation data monthly across all products.", 'Metrics Collector'),
-      connectingMessage: "Logger is on the canvas. Connect Chat Service → Logger. This means every conversation request is logged for debugging, safety review, and compliance.",
-      messages: [
-        msg("Something is always breaking in production. The Logger captures what happened for every single request so engineers can debug it."),
-        msg("Press ⌘K, search for 'Logger', add it, then connect Chat Service → Logger."),
-      ],
-      requiredNodes: ['logger'],
-      requiredEdges: [edge('microservice', 'logger')],
-      successMessage: 'Logger added and connected. Now the Metrics Collector.',
-      errorMessage: 'Add a Logger and connect Chat Service → Logger.',
-    }),
-    step({
-      id: 17,
-      title: 'Add Metrics Collector',
-      explanation: 'The Metrics Collector aggregates real-time metrics on response latency, error rates, token throughput, and GPU utilization across the entire inference cluster. A 10% drop in GPU utilization triggers an alert within 30 seconds.',
-      action: buildAction('Metrics Collector', 'Logger', 'Metrics Collector', 'raw events becoming actionable numbers on a dashboard'),
-      why: "OpenAI would not know if GPT-4 response times were degrading until users started complaining on Twitter — by then thousands are already affected.",
-      component: component('metrics_collector', 'Metrics Collector'),
-      openingMessage: buildOpeningL2('ChatGPT', 'Metrics Collector', 'aggregates real-time metrics on response latency, error rates, token throughput, and GPU utilization across the entire inference cluster', "OpenAI would not know if GPT-4 response times were degrading until users started complaining on Twitter", 'Metrics Collector'),
-      celebrationMessage: buildCelebration('Metrics Collector', 'Logger', "OpenAI monitors GPU utilization, inference latency, and queue depth in real-time. A 10% drop in GPU utilization triggers an alert within 30 seconds indicating a potential cluster failure.", 'Dashboard in Level 3'),
-      connectingMessage: "Metrics Collector is on the canvas. Connect Logger → Metrics Collector. Logs feed into metrics aggregation — raw events become actionable numbers on a dashboard.",
-      messages: [
-        msg("Logs are for debugging individual issues. Metrics spot trends — a 10% error rate increase in the last 5 minutes triggers an alert before users notice."),
-        msg("Press ⌘K, search for 'Metrics Collector', add it, then connect Logger → Metrics Collector."),
-      ],
-      requiredNodes: ['metrics_collector'],
-      requiredEdges: [edge('logger', 'metrics_collector')],
-      successMessage: 'Level 2 complete! Your ChatGPT architecture is production-ready.',
-      errorMessage: 'Add a Metrics Collector and connect Logger → Metrics Collector.',
-    }),
-    step({
-      id: 18,
-      title: 'Add CDN',
-      explanation: 'The CDN sits at the edge serving static UI assets and cached AI responses for common prompts. Responses served from CDN bypass the LLM API entirely — a cached response delivers in under 10ms.',
-      action: buildAction('CDN', 'Microservice', 'CDN', 'static assets and cached AI responses being served from edge nodes without hitting the LLM API'),
-      why: "The same question gets asked millions of times. Caching common responses at the CDN edge means those requests never reach the LLM API — saving compute cost and reducing latency to under 10ms.",
-      component: component('cdn', 'CDN'),
-      openingMessage: buildOpeningL2('ChatGPT', 'CDN', 'serve static UI assets and cached AI responses from edge nodes close to each user', "A cached response delivers in under 10ms — no LLM API call needed, no GPU compute cost.", 'CDN'),
-      celebrationMessage: buildCelebration('CDN', 'Chat Service', "OpenAI's CDN serves repeated prompts from cache. 'Explain quantum computing' asked by 10,000 users in an hour is served from CDN edge — only the first request hits the LLM API.", 'Streaming Service in Level 3'),
-      connectingMessage: "CDN is on the canvas. Connect Chat Service → CDN. When a response is cacheable — a common question or a standard explanation — it is stored at the CDN edge. The next user asking the same question gets the cached response in under 10ms without touching the LLM API.",
-      messages: [
-        msg("The CDN serves cached AI responses and static assets. A repeated prompt can be served from the CDN in 10ms instead of calling the LLM API, saving GPU compute for unique requests."),
-        msg("Press ⌘K, search for 'CDN', add it, then connect Chat Service → CDN."),
-      ],
-      requiredNodes: ['cdn'],
-      requiredEdges: [edge('microservice', 'cdn')],
-      successMessage: 'CDN added and connected. Level 2 complete — production-ready architecture!',
-      errorMessage: 'Add a CDN and connect Chat Service → CDN.',
-    }),
-  ],
-});
+function allOf(...rules: ValidationRule[]): ValidationRule {
+  return { type: 'all_of', rules };
+}
 
-const l3 = level({
-  level: 3,
-  title: 'Expert Architecture',
-  subtitle: 'Design like an OpenAI senior engineer',
-  description: 'You have production ChatGPT. Level 3 adds the systems that make it truly OpenAI-grade — streaming token delivery, model routing by subscription tier, prompt injection protection, usage billing, and the data infrastructure that powers safety research. 10 more components.',
-  estimatedTime: '~25 mins',
-  prerequisite: 'Builds on your Level 2 diagram',
-  contextMessage: "You have production ChatGPT. Level 3 adds streaming token delivery, model routing, prompt injection protection, billing infrastructure, and the data systems that power safety research. 10 more components. This is OpenAI-grade.",
-  steps: [
-    step({
-      id: 19,
-      title: 'Add Dashboard',
-      explanation: 'The Dashboard visualizes all metrics from the Metrics Collector in real-time panels. OpenAI engineers watch dashboards showing GPU temps, request queues, and error rates simultaneously during incidents.',
-      action: buildAction('Dashboard (Grafana)', 'Metrics Collector', 'Dashboard', 'metrics flowing from services through the collector to a human-readable dashboard that engineers watch 24/7'),
-      why: "Without a unified dashboard correlating GPU temps, request queues, and error rates it is impossible to diagnose incidents in real-time.",
-      component: component('dashboard', 'Dashboard (Grafana)', 'Dashboard'),
-      openingMessage: buildOpeningL3('ChatGPT', 'Dashboard', 'observability-driven operations where every metric has an alert threshold and every alert has a runbook', "OpenAI's on-call engineers monitor 200+ metrics simultaneously. Without a unified dashboard correlating GPU temps, request queues, and error rates it is impossible to diagnose incidents in real-time.", 'Dashboard'),
-      celebrationMessage: buildCelebration('Dashboard', 'Metrics Collector', "During ChatGPT outages OpenAI's status page updates within minutes because their Grafana dashboards detect anomalies before users notice them.", 'BFF Gateway'),
-      connectingMessage: "Dashboard is on the canvas. Connect Metrics Collector → Dashboard. This closes the observability loop — metrics flow from services through the collector to a human-readable dashboard that engineers watch 24/7.",
-      messages: [
-        msg("The Dashboard closes the observability loop. Metrics flow from services → Logger → Metrics Collector → Dashboard — engineers see the system health at a glance."),
-        msg("Press ⌘K, search for 'Dashboard', add it, then connect Metrics Collector → Dashboard."),
-      ],
-      requiredNodes: ['dashboard'],
-      requiredEdges: [edge('metrics_collector', 'dashboard')],
-      successMessage: 'Dashboard added and connected. Now the BFF Gateway.',
-      errorMessage: 'Add a Dashboard and connect Metrics Collector → Dashboard.',
-    }),
-    step({
-      id: 20,
-      title: 'Add BFF Gateway',
-      explanation: "The BFF (Backend for Frontend) Gateway is a client-specific API aggregator that tailors responses for mobile vs web clients. Mobile might need compressed responses with fewer tokens while web needs full context — the BFF adapts the API contract per client.",
-      action: buildAction('BFF Gateway', 'Microservice', 'BFF Gateway', 'the API being tailored per client type — mobile gets streamlined responses, web gets full context, all from the same Chat Service'),
-      why: "Mobile and web have different rendering capabilities, network conditions, and UX requirements. The BFF prevents the Chat Service from becoming a god service with client-specific logic — it stays clean while the BFF handles client adaptation.",
-      component: component('bff_gateway', 'BFF Gateway'),
-      openingMessage: buildOpeningL3('ChatGPT', 'BFF Gateway', 'client-specific API aggregation that adapts LLM responses per platform — mobile gets compressed tokens, web gets full streaming context', "Mobile and web have different rendering capabilities, network conditions, and UX requirements. The BFF prevents the Chat Service from becoming a god service with client-specific logic — it stays clean while the BFF handles client adaptation.", 'BFF Gateway'),
-      celebrationMessage: buildCelebration('BFF Gateway', 'Chat Service', "OpenAI's mobile app uses a BFF that compresses token streams for cellular bandwidth, handles reconnection logic, and batches acknowledgments. The Chat Service never knows it is talking to mobile vs web.", 'Token Streaming Service'),
-      connectingMessage: "BFF Gateway is on the canvas. Connect Chat Service → BFF Gateway. Then connect BFF Gateway → Web Client and BFF Gateway → Mobile Client. The BFF adapts API responses per client type — mobile gets compressed streaming, web gets full context.",
-      messages: [
-        msg("The BFF Gateway is the adapter layer between the Chat Service API and client-specific needs. Mobile might need shorter context windows; web might need full conversation history. The BFF handles this translation."),
-        msg("Press ⌘K, search for 'BFF Gateway', add it, then connect Chat Service → BFF Gateway, then BFF Gateway → Web Client and BFF Gateway → Mobile Client."),
-      ],
-      requiredNodes: ['bff_gateway'],
-      requiredEdges: [edge('microservice', 'bff_gateway'), edge('bff_gateway', 'client_web'), edge('bff_gateway', 'client_mobile')],
-      successMessage: 'BFF Gateway added and connected. Now the Token Streaming Service.',
-      errorMessage: 'Add a BFF Gateway and connect Chat Service → BFF Gateway → both clients.',
-    }),
-    step({
-      id: 21,
-      title: 'Add Token Streaming Service',
-      explanation: 'The Token Streaming Service delivers tokens to the browser one by one using Server-Sent Events (SSE) with Server-Sent Events. Without streaming the user would wait 10-30 seconds for a complete GPT-4 response before seeing anything.',
-      action: buildAction('Serverless Function', 'Microservice', 'Token Streaming Service', 'tokens appearing one by one in real-time instead of all at once after a long wait'),
-      why: "GPT-4 generates roughly 30-50 tokens per second. Without streaming the user waits 6-10 seconds in silence before seeing anything. With streaming the first token appears in under 1 second.",
-      component: component('serverless_fn', 'Serverless Function'),
-      openingMessage: buildOpeningL3('ChatGPT', 'Token Streaming Service', 'Server-Sent Events (SSE) for real-time token streaming between the LLM inference engine and the client browser', "Without streaming the user would wait 10-30 seconds for a complete GPT-4 response before seeing anything. With streaming the first token appears in under 1 second — dramatically better UX with no change to the underlying model.", 'Serverless Function'),
-      celebrationMessage: buildCelebration('Token Streaming Service', 'Chat Service', "GPT-4 generates roughly 30-50 tokens per second. Streaming delivers each token to the browser as it is generated. Without this the user waits 6-10 seconds in silence before seeing anything.", 'Token Bucket Rate Limiter'),
-      connectingMessage: "Token Streaming Service is on the canvas. Connect Chat Service → Token Streaming Service. This is the component that makes tokens appear one by one in real-time instead of all at once after a long wait.",
-      messages: [
-        msg("ChatGPT streams responses using Server-Sent Events. The Token Streaming Service maintains millions of open connections and writes tokens as they are generated by the LLM."),
-        msg("Press ⌘K, search for 'Serverless Function', add it, then connect Chat Service → Token Streaming Service."),
-      ],
-      requiredNodes: ['serverless_fn'],
-      requiredEdges: [edge('microservice', 'serverless_fn')],
-      successMessage: 'Token Streaming Service added and connected. Now the Token Bucket Rate Limiter.',
-      errorMessage: 'Add a Serverless Function (Token Streaming Service) and connect Chat Service → Token Streaming Service.',
-    }),
-    step({
-      id: 22,
-      title: 'Add Token Bucket Rate Limiter',
-      explanation: "The Token Bucket Rate Limiter enforces API usage quotas using a token bucket algorithm — users get a bucket of tokens refilled at a fixed rate. Plus users get 60 tokens/minute; free users get 20. When the bucket is empty, requests are queued or rejected.",
-      action: buildAction('Token Bucket Rate Limiter', 'API Gateway', 'Token Bucket Rate Limiter', 'API requests being rate-limited using a token bucket algorithm — each user has a bucket that refills at a fixed rate'),
-      why: "Simple counters allow burst attacks — a user could make 100 requests in 1 second then nothing for 59 seconds. Token bucket allows controlled bursting while enforcing average rate limits across time windows.",
-      component: component('token_bucket_rate_limiter', 'Token Bucket Rate Limiter'),
-      openingMessage: buildOpeningL3('ChatGPT', 'Token Bucket Rate Limiter', 'token bucket algorithm for API rate limiting where users have a bucket of tokens refilled at a fixed rate per subscription tier', "Simple counters allow burst attacks — a user could make 100 requests in 1 second then nothing for 59 seconds. Token bucket allows controlled bursting while enforcing average rate limits across time windows.", 'Token Bucket Rate Limiter'),
-      celebrationMessage: buildCelebration('Token Bucket Rate Limiter', 'API Gateway', "OpenAI's rate limiter uses Redis-backed token buckets — 60 tokens/minute for Plus, 20 for free users. When the bucket empties, requests are queued with exponential backoff rather than hard-rejected.", 'OpenTelemetry Collector'),
-      connectingMessage: "Token Bucket Rate Limiter is on the canvas. Connect API Gateway → Token Bucket Rate Limiter. This enforces rate limits per user based on their subscription tier — Plus users get more tokens per minute than free users.",
-      messages: [
-        msg("The Token Bucket algorithm allows OpenAI to enforce per-user rate limits with controlled bursting. A Plus user making 60 rapid requests gets throttled gracefully with a retry-after header."),
-        msg("Press ⌘K, search for 'Token Bucket Rate Limiter', add it, then connect API Gateway → Token Bucket Rate Limiter."),
-      ],
-      requiredNodes: ['token_bucket_rate_limiter'],
-      requiredEdges: [edge('api_gateway', 'token_bucket_rate_limiter')],
-      successMessage: 'Token Bucket Rate Limiter added and connected. Now the OpenTelemetry Collector.',
-      errorMessage: 'Add a Token Bucket Rate Limiter and connect API Gateway → Token Bucket Rate Limiter.',
-    }),
-    step({
-      id: 23,
-      title: 'Add OpenTelemetry Collector',
-      explanation: "The OpenTelemetry Collector is a vendor-neutral telemetry pipeline that ingests logs, metrics, and traces from all services. It replaces point-to-point logging integrations and provides a single ingestion point for observability data before routing to backends like Jaeger, Prometheus, or cloud providers.",
-      action: buildAction('OpenTelemetry Collector', 'Logger', 'OpenTelemetry Collector', 'all observability data — logs, metrics, traces — flowing through a single vendor-neutral pipeline'),
-      why: "Without OTel Collector, each service has a direct integration with Jaeger, Prometheus, Datadog, etc. When you switch vendors, you touch every service. OTel Collector means changing only the collector config.",
-      component: component('otel_collector', 'OpenTelemetry Collector'),
-      openingMessage: buildOpeningL3('ChatGPT', 'OpenTelemetry Collector', 'vendor-neutral telemetry pipeline that ingests logs, metrics, and traces from all services and routes to backends like Jaeger, Prometheus, or cloud providers', "Without OTel Collector, each service has a direct integration with Jaeger, Prometheus, Datadog, etc. When you switch vendors, you touch every service. OTel Collector means changing only the collector config.", 'OpenTelemetry Collector'),
-      celebrationMessage: buildCelebration('OpenTelemetry Collector', 'Logger', "OpenAI's OTel Collector receives 50GB+ of telemetry data hourly from 1000+ service instances. It batches, compresses, and routes to Jaeger for traces, Prometheus for metrics, and S3 for long-term log archival.", 'Correlation ID Handler'),
-      connectingMessage: "OpenTelemetry Collector is on the canvas. Connect Logger → OpenTelemetry Collector. All observability data flows through this single pipeline — logs, metrics, and traces are correlated and routed to their respective backends.",
-      messages: [
-        msg("The OTel Collector is the central hub for all observability. Services emit data once; the collector handles routing to Jaeger (traces), Prometheus (metrics), and S3 (logs)."),
-        msg("Press ⌘K, search for 'OpenTelemetry Collector', add it, then connect Logger → OpenTelemetry Collector."),
-      ],
-      requiredNodes: ['otel_collector'],
-      requiredEdges: [edge('logger', 'otel_collector')],
-      successMessage: 'OpenTelemetry Collector added and connected. Now the Correlation ID Handler.',
-      errorMessage: 'Add an OpenTelemetry Collector and connect Logger → OpenTelemetry Collector.',
-    }),
-    step({
-      id: 24,
-      title: 'Add Correlation ID Handler',
-      explanation: "The Correlation ID Handler injects and propagates trace IDs across all service boundaries. When a request enters at the API Gateway, a unique correlation ID is generated and injected into every subsequent service call, message queue message, and database query.",
-      action: buildAction('Correlation ID Handler', 'Load Balancer', 'Correlation ID Handler', 'a unique trace ID being generated at the API Gateway and propagated through every service call, queue message, and database query'),
-      why: "Without correlation IDs, tracing a request across 15 microservices requires manual correlation using timestamps. With correlation IDs, all logs and spans for a single user request are instantly queryable.",
-      component: component('correlation_id_handler', 'Correlation ID Handler'),
-      openingMessage: buildOpeningL3('ChatGPT', 'Correlation ID Handler', 'automatic trace ID injection and propagation across all service boundaries, message queues, and database queries', "Without correlation IDs, tracing a request across 15 microservices requires manual correlation using timestamps. With correlation IDs, all logs and spans for a single user request are instantly queryable.", 'Correlation ID Handler'),
-      celebrationMessage: buildCelebration('Correlation ID Handler', 'Load Balancer', "OpenAI's inference requests cross 8+ services — API Gateway, Auth, Chat Service, Embedding Service, Vector DB, LLM API, Streaming Service, CDN. A single correlation ID traces the entire path in under 1ms overhead.", 'Zero Trust Proxy'),
-      connectingMessage: "Correlation ID Handler is on the canvas. Connect Load Balancer → Correlation ID Handler. A unique trace ID is generated here at request entry and propagated through every service call, queue message, and database query.",
-      messages: [
-        msg("The Correlation ID Handler ensures every log entry, trace span, and metric for a single user request shares the same trace ID. Query by trace ID to see the entire request journey."),
-        msg("Press ⌘K, search for 'Correlation ID Handler', add it, then connect Load Balancer → Correlation ID Handler."),
-      ],
-      requiredNodes: ['correlation_id_handler'],
-      requiredEdges: [edge('load_balancer', 'correlation_id_handler')],
-      successMessage: 'Correlation ID Handler added and connected. Now the Zero Trust Proxy.',
-      errorMessage: 'Add a Correlation ID Handler and connect Load Balancer → Correlation ID Handler.',
-    }),
-    step({
-      id: 25,
-      title: 'Add Zero Trust Proxy',
-      explanation: "The Zero Trust Proxy replaces the traditional WAF with a 'never trust, always verify' perimeter. Every request — even from internal services — is authenticated, authorized, and encrypted. mTLS ensures both client and server verify each other's certificates on every connection.",
-      action: buildAction('Zero Trust Proxy', 'Web', 'Zero Trust Proxy', 'every internal and external request being authenticated and encrypted with mutual TLS — no implicit trust between services'),
-      why: "In traditional perimeter security, attackers who breach the firewall have free reign inside. Zero Trust means a compromised service cannot call other services without presenting valid credentials.",
-      component: component('zero_trust_proxy', 'Zero Trust Proxy'),
-      openingMessage: buildOpeningL3('ChatGPT', 'Zero Trust Proxy', 'mutual TLS enforcement between all services — every internal call verifies certificates, not just external traffic', "In traditional perimeter security, attackers who breach the firewall have free reign inside. Zero Trust means a compromised service cannot call other services without presenting valid credentials.", 'Zero Trust Proxy'),
-      celebrationMessage: buildCelebration('Zero Trust Proxy', 'Web Client', "OpenAI's service mesh enforces mTLS between every pod. Even if an attacker compromises one service, they cannot pivot to others without valid mTLS certificates — lateral movement is blocked.", 'Model Server'),
-      connectingMessage: "Zero Trust Proxy is on the canvas. Connect Web Client → Zero Trust Proxy. This replaces the traditional WAF — every request is verified, authenticated, and encrypted regardless of whether it comes from outside or inside the network.",
-      messages: [
-        msg("Zero Trust means every service must prove its identity to every other service. OpenAI's Zero Trust Proxy enforces mTLS between all services — even internal traffic is encrypted and authenticated."),
-        msg("Press ⌘K, search for 'Zero Trust Proxy', add it, then connect Web Client → Zero Trust Proxy."),
-      ],
-      requiredNodes: ['zero_trust_proxy'],
-      requiredEdges: [edge('client_web', 'zero_trust_proxy')],
-      successMessage: 'Zero Trust Proxy added and connected. Now the Model Server.',
-      errorMessage: 'Add a Zero Trust Proxy and connect Web Client → Zero Trust Proxy.',
-    }),
-    step({
-      id: 26,
-      title: 'Add Model Server',
-      explanation: "The Model Server is the actual compute layer where GPT weights are loaded on GPU clusters. The LLM API is the interface — the Model Server handles continuous batching, KV-cache management, and speculative decoding.",
-      action: buildAction('Model Server', 'LLM API (GPT / Claude)', 'Model Server', 'the LLM API being the interface — the Model Server being the actual compute layer where GPT weights are loaded on GPU clusters'),
-      why: "Running GPT-4 for every request would cost 20x more than GPT-3.5. OpenAI's model router analyzes request complexity and subscription tier to decide which model to invoke.",
-      component: component('model_server', 'Model Server'),
-      openingMessage: buildOpeningL3('ChatGPT', 'Model Server', 'model serving infrastructure with A/B routing between GPT-3.5 and GPT-4 based on request complexity and user subscription tier', "Running GPT-4 for every request would cost 20x more than GPT-3.5. OpenAI's model router analyzes request complexity and subscription tier to decide which model to invoke — simple queries from free users might get GPT-3.5 even during Plus capacity crunches.", 'Model Server'),
-      celebrationMessage: buildCelebration('Model Server', 'LLM API', "GPT-4 runs on clusters of thousands of NVIDIA A100 GPUs. Each inference call loads model weights from high-bandwidth memory and runs a forward pass — OpenAI's model servers are among the largest GPU deployments ever built.", 'Cache Stampede Prevention'),
-      connectingMessage: "Model Server is on the canvas. Connect LLM API → Model Server. The LLM API is the interface — the Model Server is the actual compute layer where GPT weights are loaded on GPU clusters.",
-      messages: [
-        msg("The Model Server handles continuous batching (combining multiple requests into one GPU pass), KV-cache (avoiding redundant computation), and speculative decoding (predicting multiple tokens at once)."),
-        msg("Press ⌘K, search for 'Model Server', add it, then connect LLM API → Model Server."),
-      ],
-      requiredNodes: ['model_server'],
-      requiredEdges: [edge('llm_api', 'model_server')],
-      successMessage: 'Model Server added and connected. Now the Cache Stampede Prevention.',
-      errorMessage: 'Add a Model Server and connect LLM API → Model Server.',
-    }),
-    step({
-      id: 27,
-      title: 'Add Cache Stampede Prevention',
-      explanation: "Cache Stampede Prevention prevents thundering herd problems when a popular cache entry expires. When 10,000 users simultaneously ask the same question and the cache expires, traditional caches send all 10,000 requests to the LLM simultaneously. Probabilistic early expiration and request coalescing prevent this.",
-      action: buildAction('Cache Stampede Prevention', 'In-Memory Cache', 'Cache Stampede Prevention', 'the cache being protected from thundering herd scenarios when popular entries expire'),
-      why: "At OpenAI's scale, popular prompts like 'Explain quantum computing' expire simultaneously for millions of users. Without stampede prevention, a cache miss triggers thousands of simultaneous LLM calls — GPU overload and exponential latency growth.",
-      component: component('cache_stampede_prevention', 'Cache Stampede Prevention'),
-      openingMessage: buildOpeningL3('ChatGPT', 'Cache Stampede Prevention', 'probabilistic early expiration and request coalescing to prevent thundering herd when cache entries expire at scale', "At OpenAI's scale, popular prompts like 'Explain quantum computing' expire simultaneously for millions of users. Without stampede prevention, a cache miss triggers thousands of simultaneous LLM calls — GPU overload and exponential latency growth.", 'Cache Stampede Prevention'),
-      celebrationMessage: buildCelebration('Cache Stampede Prevention', 'In-Memory Cache', "OpenAI's cache uses probabilistic early expiration — popular entries are refreshed 30 seconds before they actually expire. Request coalescing means 10,000 identical requests wait for 1 LLM call instead of triggering 10,000.", 'Data Warehouse'),
-      connectingMessage: "Cache Stampede Prevention is on the canvas. Connect In-Memory Cache → Cache Stampede Prevention. This protects the cache from thundering herd scenarios when popular responses expire — instead of 10,000 simultaneous LLM calls, only 1 call happens.",
-      messages: [
-        msg("Cache stampede prevention uses probabilistic early expiration — popular entries are refreshed proactively before they actually expire. Request coalescing means concurrent identical requests wait for one result."),
-        msg("Press ⌘K, search for 'Cache Stampede Prevention', add it, then connect In-Memory Cache → Cache Stampede Prevention."),
-      ],
-      requiredNodes: ['cache_stampede_prevention'],
-      requiredEdges: [edge('in_memory_cache', 'cache_stampede_prevention')],
-      successMessage: 'Cache Stampede Prevention added and connected. Now the Data Warehouse.',
-      errorMessage: 'Add Cache Stampede Prevention and connect In-Memory Cache → Cache Stampede Prevention.',
-    }),
-    step({
-      id: 28,
-      title: 'Add Data Warehouse',
-      explanation: "The Data Warehouse is an append-only analytical store fed by the message queue that powers safety research, model evaluation, and product analytics. OpenAI uses conversation data to evaluate model safety and fine-tune future models.",
-      action: buildAction('Data Warehouse', 'Message Queue', 'Data Warehouse', 'conversation events flowing from the queue into the warehouse where safety researchers and data scientists can run complex analytical queries'),
-      why: "The NoSQL database optimizes for write throughput on individual conversations. The data warehouse optimizes for analytical queries across billions of conversations — different access patterns require different storage systems.",
-      component: component('data_warehouse', 'Data Warehouse'),
-      openingMessage: buildOpeningL3('ChatGPT', 'Data Warehouse', 'append-only analytical store fed by the message queue that powers safety research, model evaluation, and product analytics', "The NoSQL database optimizes for write throughput on individual conversations. The data warehouse optimizes for analytical queries across billions of conversations — different access patterns require different storage systems.", 'Data Warehouse'),
-      celebrationMessage: buildCelebration('Data Warehouse', 'Message Queue', "OpenAI uses conversation data to evaluate model safety, fine-tune future models, and identify policy violations. Their data warehouse processes trillions of tokens of conversation data for research. You have completed the full ChatGPT expert architecture.", ''),
-      connectingMessage: "Data Warehouse is on the canvas. Connect Message Queue → Data Warehouse. Conversation events flow from the queue into the warehouse where safety researchers and data scientists can run complex analytical queries.",
-      messages: [
-        msg("Every conversation at OpenAI is potential training data. The Data Warehouse stores it all for offline analysis, model improvement, and safety evaluations."),
-        msg("Press ⌘K, search for 'Data Warehouse', add it, then connect Message Queue → Data Warehouse."),
-      ],
-      requiredNodes: ['data_warehouse'],
-      requiredEdges: [edge('message_queue', 'data_warehouse')],
-      successMessage: "Expert architecture complete! You've designed ChatGPT at the senior engineer level.",
-      errorMessage: 'Add a Data Warehouse and connect Message Queue → Data Warehouse.',
-    }),
-  ],
-});
+function anyOf(...rules: ValidationRule[]): ValidationRule {
+  return { type: 'any_of', rules };
+}
 
-export const chatgptTutorial: Tutorial = tutorial({
+const chatgptTutorial: TutorialDefinition = {
   id: 'chatgpt-architecture',
   title: 'How to Design ChatGPT Architecture',
   description: 'Build a production-ready AI inference system from scratch. Learn how LLMs, vector databases, RAG pipelines, and streaming services work together at OpenAI scale.',
-  difficulty: 'Intermediate',
-  category: 'AI Systems',
-  isLive: false,
-  estimatedTime: '~60 mins',
+  difficulty: 'intermediate',
+  estimatedMinutes: 60,
+  tags: ['LLM', 'Vector DB', 'RAG', 'AI', 'GPT'],
   icon: 'Brain',
   color: '#ec4899',
-  tags: ['LLM', 'Vector DB', 'RAG', 'Streaming', 'AI'],
-  levels: [l1, l2, l3],
-});
+
+  levels: [
+    {
+      id: 'level-1',
+      title: 'The Foundation',
+      steps: [
+        {
+          id: 'step-1',
+          title: 'Add the Mobile Client',
+          phases: {
+            context: {
+              heading: 'Welcome to ChatGPT Architecture',
+              body: "Let's build ChatGPT from scratch. Level 1 is the minimum viable system — 8 components that receive a message, process it through an LLM, and return a response.",
+            },
+            intro: {
+              heading: 'Do you know about Mobile Clients?',
+              body: 'The Mobile Client is the iOS or Android app where users type messages and read AI responses.',
+            },
+            teaching: {
+              heading: 'Deep dive: Mobile Client',
+              body: 'The Mobile Client is the iOS or Android app where users type messages and read AI responses. Over 60% of ChatGPT usage comes from mobile — it is the primary client for most users.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K and search for 'Mobile' to add the primary client to the canvas.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'This is the first step, so no connections needed yet.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Mobile Client added. Now the Web Client.',
+            },
+          },
+          validation: [nodeRule('client_mobile', 'Mobile')],
+          hints: ['Press ⌘K to open component search', 'Search for "Mobile"'],
+        },
+        {
+          id: 'step-2',
+          title: 'Add the Web Client',
+          phases: {
+            context: {
+              heading: 'Level 1: Step 2',
+              body: 'Now adding the Web Client — the browser interface.',
+            },
+            intro: {
+              heading: 'Do you know about Web Clients?',
+              body: 'The Web Client is the browser interface where users type messages.',
+            },
+            teaching: {
+              heading: 'Deep dive: Web Client',
+              body: "The Web Client is the browser interface where users type messages and read AI responses. It is the second client entry point — architecturally identical to mobile in what it sends and receives.",
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K and search for 'Web' to add the secondary client.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'This is the second client, so no connections needed yet.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Web Client added. Now the CDN.',
+            },
+          },
+          validation: [nodeRule('client_web', 'Web')],
+          hints: ['Press ⌘K to open component search', 'Search for "Web"'],
+        },
+        {
+          id: 'step-3',
+          title: 'Add CDN',
+          phases: {
+            context: {
+              heading: 'Level 1: Step 3',
+              body: 'Adding the CDN — Content Delivery Network.',
+            },
+            intro: {
+              heading: 'Do you know about CDNs?',
+              body: 'CDNs serve static assets from edge servers close to users.',
+            },
+            teaching: {
+              heading: 'Deep dive: CDN',
+              body: 'The CDN serves static assets — CSS, JavaScript, fonts — from edge servers close to each user. It also serves cached AI responses.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'CDN', and add it to the canvas.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Mobile Client → CDN and Web Client → CDN.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'CDN added and connected. Now the API Gateway.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('cdn', 'CDN'),
+              edgeRule('client_mobile', 'cdn'),
+              edgeRule('client_web', 'cdn')
+            ),
+          ],
+          hints: ['Search for "CDN"', 'Connect both clients to CDN'],
+        },
+        {
+          id: 'step-4',
+          title: 'Add API Gateway',
+          phases: {
+            context: {
+              heading: 'Level 1: Step 4',
+              body: 'Adding the API Gateway — the front door for all dynamic requests.',
+            },
+            intro: {
+              heading: 'Do you know about API Gateways?',
+              body: 'API Gateways route requests and enforce rate limits.',
+            },
+            teaching: {
+              heading: 'Deep dive: API Gateway',
+              body: 'The API Gateway receives every chat message sent by every user and routes it to the correct backend service. It enforces rate limits.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'API Gateway', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Mobile Client → API Gateway, Web Client → API Gateway, and CDN → API Gateway.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'API Gateway added and connected. Now the Load Balancer.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('api_gateway', 'API Gateway'),
+              edgeRule('client_mobile', 'api_gateway'),
+              edgeRule('client_web', 'api_gateway'),
+              edgeRule('cdn', 'api_gateway')
+            ),
+          ],
+          hints: ['Search for "API Gateway"', 'Connect both clients and CDN to it'],
+        },
+        {
+          id: 'step-5',
+          title: 'Add Load Balancer',
+          phases: {
+            context: {
+              heading: 'Level 1: Step 5',
+              body: 'Adding the Load Balancer — distributes traffic across servers.',
+            },
+            intro: {
+              heading: 'Do you know about Load Balancers?',
+              body: 'Load Balancers distribute incoming requests across multiple servers.',
+            },
+            teaching: {
+              heading: 'Deep dive: Load Balancer',
+              body: 'The Load Balancer distributes incoming requests across multiple chat servers so no single server is overwhelmed.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Load Balancer', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect API Gateway → Load Balancer.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Load Balancer added and connected. Now the Chat Service.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('load_balancer', 'Load Balancer'),
+              edgeRule('api_gateway', 'load_balancer')
+            ),
+          ],
+          hints: ['Search for "Load Balancer"', 'Connect API Gateway to it'],
+        },
+        {
+          id: 'step-6',
+          title: 'Add Chat Service',
+          phases: {
+            context: {
+              heading: 'Level 1: Step 6',
+              body: 'Adding the Chat Service — the brain of the operation.',
+            },
+            intro: {
+              heading: 'Do you know about Microservices?',
+              body: 'Microservices handle specific business logic.',
+            },
+            teaching: {
+              heading: 'Deep dive: Chat Service',
+              body: 'The Chat Service orchestrates the entire conversation flow — it receives messages, manages context, calls the LLM, and streams the response back.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Microservice', and add the Chat Service.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Load Balancer → Chat Service.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Chat Service added and connected. Now the LLM API.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('microservice', 'Microservice'),
+              edgeRule('load_balancer', 'microservice')
+            ),
+          ],
+          hints: ['Search for "Microservice"', 'Connect Load Balancer to it'],
+        },
+        {
+          id: 'step-7',
+          title: 'Add LLM API',
+          phases: {
+            context: {
+              heading: 'Level 1: Step 7',
+              body: 'Adding the LLM API — where GPT generates responses.',
+            },
+            intro: {
+              heading: 'Do you know about LLMs?',
+              body: 'LLMs (Large Language Models) generate human-like text.',
+            },
+            teaching: {
+              heading: 'Deep dive: LLM API',
+              body: 'The LLM API receives the formatted prompt and generates a response token by token using GPT. Everything else in the architecture exists to get the right prompt here and return the response.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'LLM API', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Chat Service → LLM API.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'LLM API added and connected. Now the NoSQL Database.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('llm_api', 'LLM API'),
+              edgeRule('microservice', 'llm_api')
+            ),
+          ],
+          hints: ['Search for "LLM API"', 'Connect Chat Service to it'],
+        },
+        {
+          id: 'step-8',
+          title: 'Add NoSQL Database',
+          phases: {
+            context: {
+              heading: 'Level 1: Step 8',
+              body: 'Adding the NoSQL Database — stores conversation history.',
+            },
+            intro: {
+              heading: 'Do you know about NoSQL Databases?',
+              body: 'NoSQL databases handle unstructured data like conversation logs.',
+            },
+            teaching: {
+              heading: 'Deep dive: NoSQL Database',
+              body: 'The NoSQL Database stores every conversation — all messages, all responses, all conversation metadata per user.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'NoSQL Database', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Chat Service → NoSQL Database.',
+            },
+            celebration: {
+              heading: 'Level 1 Complete!',
+              body: 'You have a working AI chat foundation!',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('nosql_db', 'NoSQL Database'),
+              edgeRule('microservice', 'nosql_db')
+            ),
+          ],
+          hints: ['Search for "NoSQL Database"', 'Connect Chat Service to it'],
+        },
+      ],
+    },
+    {
+      id: 'level-2',
+      title: 'Production Ready',
+      steps: [
+        {
+          id: 'step-9',
+          title: 'Add Auth Service',
+          phases: {
+            context: {
+              heading: 'Level 2: Step 1',
+              body: 'Now adding what OpenAI actually runs in production — auth with subscription tiers.',
+            },
+            intro: {
+              heading: 'Do you know about Auth Services?',
+              body: 'Auth Services validate tokens and check permissions.',
+            },
+            teaching: {
+              heading: 'Deep dive: Auth Service',
+              body: 'The Auth Service validates JWT tokens AND checks subscription tier — free vs Plus vs Enterprise — in every request.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Auth Service', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Load Balancer → Auth Service.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Auth Service added. Now the SQL Database.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('auth_service', 'Auth Service'),
+              edgeRule('load_balancer', 'auth_service')
+            ),
+          ],
+          hints: ['Search for "Auth Service"', 'Connect Load Balancer to it'],
+        },
+        {
+          id: 'step-10',
+          title: 'Add SQL Database',
+          phases: {
+            context: {
+              heading: 'Level 2: Step 2',
+              body: 'Adding the SQL Database — stores user accounts and billing.',
+            },
+            intro: {
+              heading: 'Do you know about SQL Databases?',
+              body: 'SQL databases provide ACID transaction guarantees.',
+            },
+            teaching: {
+              heading: 'Deep dive: SQL Database',
+              body: 'The SQL Database stores user accounts, subscription status, billing records, and API usage quotas.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'SQL Database', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Auth Service → SQL Database.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'SQL Database added. Now the In-Memory Cache.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('sql_db', 'SQL Database'),
+              edgeRule('auth_service', 'sql_db')
+            ),
+          ],
+          hints: ['Search for "SQL Database"', 'Connect Auth Service to it'],
+        },
+        {
+          id: 'step-11',
+          title: 'Add In-Memory Cache',
+          phases: {
+            context: {
+              heading: 'Level 2: Step 3',
+              body: 'Adding the In-Memory Cache — Redis for fast responses.',
+            },
+            intro: {
+              heading: 'Do you know about In-Memory Caches?',
+              body: 'In-memory caches store data in RAM for instant access.',
+            },
+            teaching: {
+              heading: 'Deep dive: In-Memory Cache',
+              body: 'The In-Memory Cache stores active conversation context so the Chat Service does not re-fetch conversation history from the database on every message.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'In-Memory Cache', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Chat Service → In-Memory Cache.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'In-Memory Cache added. Now the Embedding Service.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('in_memory_cache', 'In-Memory Cache'),
+              edgeRule('microservice', 'in_memory_cache')
+            ),
+          ],
+          hints: ['Search for "In-Memory Cache"', 'Connect Chat Service to it'],
+        },
+        {
+          id: 'step-12',
+          title: 'Add Embedding Service',
+          phases: {
+            context: {
+              heading: 'Level 2: Step 4',
+              body: 'Adding the Embedding Service — converts text to vectors.',
+            },
+            intro: {
+              heading: 'Do you know about Embeddings?',
+              body: 'Embeddings convert text to numerical vectors for semantic search.',
+            },
+            teaching: {
+              heading: 'Deep dive: Embedding Service',
+              body: 'The Embedding Service converts every message into a vector representation so similar past conversations can be retrieved for context injection.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Embedding Service', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Chat Service → Embedding Service.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Embedding Service added. Now the Vector Database.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('embedding_service', 'Embedding Service'),
+              edgeRule('microservice', 'embedding_service')
+            ),
+          ],
+          hints: ['Search for "Embedding Service"', 'Connect Chat Service to it'],
+        },
+        {
+          id: 'step-13',
+          title: 'Add Vector Database',
+          phases: {
+            context: {
+              heading: 'Level 2: Step 5',
+              body: 'Adding the Vector Database — stores embeddings for semantic search.',
+            },
+            intro: {
+              heading: 'Do you know about Vector Databases?',
+              body: 'Vector databases store numerical embeddings for similarity search.',
+            },
+            teaching: {
+              heading: 'Deep dive: Vector Database',
+              body: 'The Vector Database stores billions of message embeddings and retrieves the most semantically relevant past context for any new user message.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Vector Database', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Embedding Service → Vector Database.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Vector Database added. Now the RAG Pipeline.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('vector_db', 'Vector Database'),
+              edgeRule('embedding_service', 'vector_db')
+            ),
+          ],
+          hints: ['Search for "Vector Database"', 'Connect Embedding Service to it'],
+        },
+        {
+          id: 'step-14',
+          title: 'Add RAG Pipeline',
+          phases: {
+            context: {
+              heading: 'Level 2: Step 6',
+              body: 'Adding the RAG Pipeline — retrieves context for the LLM.',
+            },
+            intro: {
+              heading: 'Do you know about RAG?',
+              body: 'RAG (Retrieval Augmented Generation) adds context to LLM prompts.',
+            },
+            teaching: {
+              heading: 'Deep dive: RAG Pipeline',
+              body: 'The RAG Pipeline retrieves relevant past conversation chunks from the vector database and injects them into the prompt before sending to the LLM.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'RAG Pipeline', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Vector Database → RAG Pipeline, then RAG Pipeline → LLM API.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'RAG Pipeline added. Now the Message Queue.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('rag_pipeline', 'RAG Pipeline'),
+              edgeRule('vector_db', 'rag_pipeline'),
+              edgeRule('rag_pipeline', 'llm_api')
+            ),
+          ],
+          hints: ['Search for "RAG Pipeline"', 'Connect Vector DB to RAG, then RAG to LLM API'],
+        },
+        {
+          id: 'step-15',
+          title: 'Add Message Queue',
+          phases: {
+            context: {
+              heading: 'Level 2: Step 7',
+              body: 'Adding the Message Queue — handles async tasks.',
+            },
+            intro: {
+              heading: 'Do you know about Message Queues?',
+              body: 'Message queues handle asynchronous task processing.',
+            },
+            teaching: {
+              heading: 'Deep dive: Message Queue',
+              body: 'The Message Queue queues async tasks like usage tracking, conversation indexing, and billing updates so they do not slow down the response.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Message Queue', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Chat Service → Message Queue.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Message Queue added. Now the Logger.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('message_queue', 'Message Queue'),
+              edgeRule('microservice', 'message_queue')
+            ),
+          ],
+          hints: ['Search for "Message Queue"', 'Connect Chat Service to it'],
+        },
+        {
+          id: 'step-16',
+          title: 'Add Logger',
+          phases: {
+            context: {
+              heading: 'Level 2: Step 8',
+              body: 'Adding the Logger — captures logs for debugging.',
+            },
+            intro: {
+              heading: 'Do you know about Loggers?',
+              body: 'Loggers capture structured logs for debugging and compliance.',
+            },
+            teaching: {
+              heading: 'Deep dive: Logger',
+              body: 'The Logger captures structured logs of every request including model used, tokens consumed, latency, and any errors.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Logger', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Chat Service → Logger.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Logger added. Now the Metrics Collector.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('logger', 'Logger'),
+              edgeRule('microservice', 'logger')
+            ),
+          ],
+          hints: ['Search for "Logger"', 'Connect Chat Service to it'],
+        },
+        {
+          id: 'step-17',
+          title: 'Add Metrics Collector',
+          phases: {
+            context: {
+              heading: 'Level 2: Step 9',
+              body: 'Adding the Metrics Collector — aggregates real-time metrics.',
+            },
+            intro: {
+              heading: 'Do you know about Metrics Collectors?',
+              body: 'Metrics collectors aggregate performance data.',
+            },
+            teaching: {
+              heading: 'Deep dive: Metrics Collector',
+              body: 'The Metrics Collector aggregates real-time metrics on response latency, error rates, token throughput, and GPU utilization.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Metrics Collector', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Logger → Metrics Collector.',
+            },
+            celebration: {
+              heading: 'Level 2 Complete!',
+              body: 'You have a production-ready ChatGPT architecture!',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('metrics_collector', 'Metrics Collector'),
+              edgeRule('logger', 'metrics_collector')
+            ),
+          ],
+          hints: ['Search for "Metrics Collector"', 'Connect Logger to it'],
+        },
+      ],
+    },
+    {
+      id: 'level-3',
+      title: 'Expert Architecture',
+      steps: [
+        {
+          id: 'step-18',
+          title: 'Add Rate Limiter',
+          phases: {
+            context: {
+              heading: 'Level 3: Step 1',
+              body: 'Adding the Rate Limiter — enforces API rate limits.',
+            },
+            intro: {
+              heading: 'Do you know about Rate Limiters?',
+              body: 'Rate limiters prevent abuse by limiting requests per user.',
+            },
+            teaching: {
+              heading: 'Deep dive: Rate Limiter',
+              body: 'The Rate Limiter enforces API rate limits per user — free users get fewer requests than Plus subscribers.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Rate Limiter', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Auth Service → Rate Limiter.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Rate Limiter added. Now the API Docs.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('rate_limiter', 'Rate Limiter'),
+              edgeRule('auth_service', 'rate_limiter')
+            ),
+          ],
+          hints: ['Search for "Rate Limiter"', 'Connect Auth Service to it'],
+        },
+        {
+          id: 'step-19',
+          title: 'Add API Docs',
+          phases: {
+            context: {
+              heading: 'Level 3: Step 2',
+              body: 'Adding API Docs — developer documentation.',
+            },
+            intro: {
+              heading: 'Do you know about API Docs?',
+              body: 'API documentation helps developers integrate with your API.',
+            },
+            teaching: {
+              heading: 'Deep dive: API Docs',
+              body: 'The API Docs provide interactive documentation for developers building on the ChatGPT API.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'API Docs', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Rate Limiter → API Docs.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'API Docs added. Now the CDN Cache Invalidation.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('api_docs', 'API Docs'),
+              edgeRule('rate_limiter', 'api_docs')
+            ),
+          ],
+          hints: ['Search for "API Docs"', 'Connect Rate Limiter to it'],
+        },
+        {
+          id: 'step-20',
+          title: 'Add CDN Cache Invalidation',
+          phases: {
+            context: {
+              heading: 'Level 3: Step 3',
+              body: 'Adding CDN Cache Invalidation — manages cached responses.',
+            },
+            intro: {
+              heading: 'Do you know about Cache Invalidation?',
+              body: 'Cache invalidation removes stale cached data.',
+            },
+            teaching: {
+              heading: 'Deep dive: CDN Cache Invalidation',
+              body: 'The CDN Cache Invalidation triggers when cached responses become stale and need refresh.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'CDN Cache Invalidation', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect CDN → CDN Cache Invalidation.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'CDN Cache Invalidation added. Now the Streaming Service.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('cdn_cache_invalidation', 'CDN Cache Invalidation'),
+              edgeRule('cdn', 'cdn_cache_invalidation')
+            ),
+          ],
+          hints: ['Search for "CDN Cache Invalidation"', 'Connect CDN to it'],
+        },
+        {
+          id: 'step-21',
+          title: 'Add Streaming Service',
+          phases: {
+            context: {
+              heading: 'Level 3: Step 4',
+              body: 'Adding the Streaming Service — streams LLM tokens in real-time.',
+            },
+            intro: {
+              heading: 'Do you know about Streaming?',
+              body: 'Streaming delivers tokens as they are generated, not all at once.',
+            },
+            teaching: {
+              heading: 'Deep dive: Streaming Service',
+              body: 'The Streaming Service streams LLM tokens back to clients in real-time using Server-Sent Events (SSE).',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Streaming Service', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect LLM API → Streaming Service.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Streaming Service added. Now the WebSocket Server.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('streaming_service', 'Streaming Service'),
+              edgeRule('llm_api', 'streaming_service')
+            ),
+          ],
+          hints: ['Search for "Streaming Service"', 'Connect LLM API to it'],
+        },
+        {
+          id: 'step-22',
+          title: 'Add WebSocket Server',
+          phases: {
+            context: {
+              heading: 'Level 3: Step 5',
+              body: 'Adding the WebSocket Server — real-time bidirectional communication.',
+            },
+            intro: {
+              heading: 'Do you know about WebSockets?',
+              body: 'WebSockets enable real-time bidirectional communication.',
+            },
+            teaching: {
+              heading: 'Deep dive: WebSocket Server',
+              body: 'The WebSocket Server maintains persistent connections for real-time updates to clients.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'WebSocket Server', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Streaming Service → WebSocket Server.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'WebSocket Server added. Now the Tracing Collector.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('websocket_server', 'WebSocket Server'),
+              edgeRule('streaming_service', 'websocket_server')
+            ),
+          ],
+          hints: ['Search for "WebSocket Server"', 'Connect Streaming Service to it'],
+        },
+        {
+          id: 'step-23',
+          title: 'Add Tracing Collector',
+          phases: {
+            context: {
+              heading: 'Level 3: Step 6',
+              body: 'Adding the Tracing Collector — distributed tracing.',
+            },
+            intro: {
+              heading: 'Do you know about Distributed Tracing?',
+              body: 'Distributed tracing tracks requests across multiple services.',
+            },
+            teaching: {
+              heading: 'Deep dive: Tracing Collector',
+              body: 'The Tracing Collector captures distributed traces to debug issues across the entire system.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Tracing Collector', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Chat Service → Tracing Collector.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Tracing Collector added. Now the Alerting System.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('tracing_collector', 'Tracing Collector'),
+              edgeRule('microservice', 'tracing_collector')
+            ),
+          ],
+          hints: ['Search for "Tracing Collector"', 'Connect Chat Service to it'],
+        },
+        {
+          id: 'step-24',
+          title: 'Add Alerting System',
+          phases: {
+            context: {
+              heading: 'Level 3: Step 7',
+              body: 'Adding the Alerting System — notifies on incidents.',
+            },
+            intro: {
+              heading: 'Do you know about Alerting Systems?',
+              body: 'Alerting systems notify teams when issues occur.',
+            },
+            teaching: {
+              heading: 'Deep dive: Alerting System',
+              body: 'The Alerting System monitors metrics and sends alerts when thresholds are exceeded.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Alerting System', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Metrics Collector → Alerting System.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Alerting System added. Now the Model Server.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('alerting_system', 'Alerting System'),
+              edgeRule('metrics_collector', 'alerting_system')
+            ),
+          ],
+          hints: ['Search for "Alerting System"', 'Connect Metrics Collector to it'],
+        },
+        {
+          id: 'step-25',
+          title: 'Add Model Server',
+          phases: {
+            context: {
+              heading: 'Level 3: Step 8',
+              body: 'Adding the Model Server — runs the LLM inference.',
+            },
+            intro: {
+              heading: 'Do you know about Model Servers?',
+              body: 'Model servers run ML model inference.',
+            },
+            teaching: {
+              heading: 'Deep dive: Model Server',
+              body: 'The Model Server runs the actual LLM inference on GPUs, processing prompts and generating tokens.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Model Server', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect LLM API → Model Server.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Model Server added. Now the Cache Stampede Prevention.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('model_server', 'Model Server'),
+              edgeRule('llm_api', 'model_server')
+            ),
+          ],
+          hints: ['Search for "Model Server"', 'Connect LLM API to it'],
+        },
+        {
+          id: 'step-26',
+          title: 'Add Cache Stampede Prevention',
+          phases: {
+            context: {
+              heading: 'Level 3: Step 9',
+              body: 'Adding Cache Stampede Prevention — prevents thundering herd.',
+            },
+            intro: {
+              heading: 'Do you know about Cache Stampede?',
+              body: 'Cache stampede happens when many requests hit expired cache simultaneously.',
+            },
+            teaching: {
+              heading: 'Deep dive: Cache Stampede Prevention',
+              body: 'Cache Stampede Prevention prevents thundering herd problems when a popular cache entry expires.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Cache Stampede Prevention', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect In-Memory Cache → Cache Stampede Prevention.',
+            },
+            celebration: {
+              heading: 'Great job!',
+              body: 'Cache Stampede Prevention added. Now the Data Warehouse.',
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('cache_stampede_prevention', 'Cache Stampede Prevention'),
+              edgeRule('in_memory_cache', 'cache_stampede_prevention')
+            ),
+          ],
+          hints: ['Search for "Cache Stampede Prevention"', 'Connect In-Memory Cache to it'],
+        },
+        {
+          id: 'step-27',
+          title: 'Add Data Warehouse',
+          phases: {
+            context: {
+              heading: 'Level 3: Step 10',
+              body: 'Adding the Data Warehouse — analytical store for research.',
+            },
+            intro: {
+              heading: 'Do you know about Data Warehouses?',
+              body: 'Data warehouses store historical data for analytics.',
+            },
+            teaching: {
+              heading: 'Deep dive: Data Warehouse',
+              body: 'The Data Warehouse is an append-only analytical store that powers safety research and model evaluation.',
+            },
+            action: {
+              heading: 'Your turn!',
+              body: "Press ⌘K, search for 'Data Warehouse', and add it.",
+            },
+            connecting: {
+              heading: 'Connect it up',
+              body: 'Connect Message Queue → Data Warehouse.',
+            },
+            celebration: {
+              heading: 'Expert Architecture Complete!',
+              body: "You've designed ChatGPT at the senior engineer level!",
+            },
+          },
+          validation: [
+            allOf(
+              nodeRule('data_warehouse', 'Data Warehouse'),
+              edgeRule('message_queue', 'data_warehouse')
+            ),
+          ],
+          hints: ['Search for "Data Warehouse"', 'Connect Message Queue to it'],
+        },
+      ],
+    },
+  ],
+};
+
+export default chatgptTutorial;
