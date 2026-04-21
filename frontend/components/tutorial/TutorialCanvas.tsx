@@ -25,10 +25,16 @@ import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
 import { MessageBrokerNode } from '@/components/MessageBrokerNode';
 import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
+import { FlowEdge } from '@/components/edges/FlowEdge';
 import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
+
+const EDGE_TYPES = {
+  custom: FlowEdge,
+};
 import { ComponentPalette } from '@/components/tutorial/ComponentPalette';
 import { NodeTooltip } from '@/components/tutorial/NodeTooltip';
 import components from '@/data/components.json';
+import { COMPONENT_TOOLTIPS } from '@/data/componentTooltips';
 import { TUTORIALS } from '@/data/tutorials';
 
 type ComponentEntry = { id: string; label: string; category: string; color: string; description?: string };
@@ -50,15 +56,18 @@ function TutorialSystemNodeWrapper(props: NodeProps<NodeData>) {
   const meta = findComponentMeta(props.data.label ?? '');
   const [isHighlighted, setIsHighlighted] = useState<'source' | 'target' | null>(null);
   
+  const nodeLabel = props.data.label ?? '';
+  const richTooltip = COMPONENT_TOOLTIPS[nodeLabel];
+  
   useEffect(() => {
     const checkHighlight = () => {
       const requiredFrom = (window as Window & { __tutorialRequiredFrom?: string }).__tutorialRequiredFrom;
       const requiredTo = (window as Window & { __tutorialRequiredTo?: string }).__tutorialRequiredTo;
-      const nodeLabel = (props.data.label ?? '').toLowerCase().trim();
+      const nodeLabelLower = (props.data.label ?? '').toLowerCase().trim();
       
-      if (requiredFrom && nodeLabel.includes(requiredFrom.toLowerCase())) {
+      if (requiredFrom && nodeLabelLower.includes(requiredFrom.toLowerCase())) {
         setIsHighlighted('source');
-      } else if (requiredTo && nodeLabel.includes(requiredTo.toLowerCase())) {
+      } else if (requiredTo && nodeLabelLower.includes(requiredTo.toLowerCase())) {
         setIsHighlighted('target');
       } else {
         setIsHighlighted(null);
@@ -72,13 +81,19 @@ function TutorialSystemNodeWrapper(props: NodeProps<NodeData>) {
 
   return (
     <NodeTooltip
-      label={props.data.label ?? ''}
+      label={nodeLabel}
       description={meta?.description}
       category={props.data.category}
       color={props.data.color ?? meta?.color}
+      role={richTooltip?.role}
+      whyItMatters={richTooltip?.whyItMatters}
+      realWorldFact={richTooltip?.realWorldFact}
+      tradeoff={richTooltip?.tradeoff}
+      interviewTip={richTooltip?.interviewTip}
+      concepts={richTooltip?.concepts}
     >
       <div 
-        className={`${isHighlighted === 'source' ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-[#0f172a]' : ''} ${isHighlighted === 'target' ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-[#0f172a]' : ''} rounded-lg transition-all duration-300`}
+        className={`${isHighlighted === 'source' ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white' : ''} ${isHighlighted === 'target' ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-white' : ''} rounded-lg transition-all duration-300`}
         style={{
           boxShadow: isHighlighted === 'source' ? '0 0 20px rgba(99,102,241,0.4), inset 0 0 15px rgba(99,102,241,0.1)' : 
                      isHighlighted === 'target' ? '0 0 20px rgba(16,185,129,0.4), inset 0 0 15px rgba(16,185,129,0.1)' : 'none',
@@ -321,6 +336,7 @@ function TutorialCanvasInner({
           onDragOver={onDragOver}
           onDrop={onDrop}
           nodeTypes={NODE_TYPES}
+          edgeTypes={EDGE_TYPES}
           snapToGrid
           snapGrid={[20, 20]}
           minZoom={0.1}
@@ -334,7 +350,7 @@ function TutorialCanvasInner({
           defaultEdgeOptions={{
             type: 'custom',
             animated: true,
-            data: { connectionType: 'smooth', edgeType: 'sync' },
+            data: { connectionType: 'smooth', edgeType: 'sync', pathType: 'Smoothstep' },
             style: { stroke: '#94a3b8', strokeWidth: '1.5px' },
           }}
           deleteKeyCode={['Backspace', 'Delete', 'Meta+Backspace']}
@@ -375,12 +391,12 @@ function TutorialCanvasInner({
 
         <div 
           className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg text-xs z-10"
-          style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b' }}
+          style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(0,0,0,0.08)', color: '#64748b' }}
         >
           <span>Press</span>
-          <kbd className="mx-1 px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ background: 'rgba(255,255,255,0.06)' }}>Delete</kbd>
+          <kbd className="mx-1 px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ background: 'rgba(0,0,0,0.06)' }}>Delete</kbd>
           <span>or</span>
-          <kbd className="mx-1 px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ background: 'rgba(255,255,255,0.06)' }}>Backspace</kbd>
+          <kbd className="mx-1 px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ background: 'rgba(0,0,0,0.06)' }}>Backspace</kbd>
           <span>to remove nodes</span>
         </div>
       </div>

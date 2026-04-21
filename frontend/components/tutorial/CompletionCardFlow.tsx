@@ -181,12 +181,12 @@ export function CompletionCardFlow({
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ background: 'rgba(8,12,20,0.92)', backdropFilter: 'blur(12px)' }}
+      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)' }}
     >
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(ellipse 80% 50% at 50% 50%, ${tutorialColor}12 0%, transparent 50%)`,
+          background: `radial-gradient(ellipse 80% 50% at 50% 50%, ${tutorialColor}10 0%, transparent 50%)`,
         }}
       />
 
@@ -194,20 +194,20 @@ export function CompletionCardFlow({
         <div
           className="rounded-2xl p-8 transition-all duration-500"
           style={{
-            background: 'linear-gradient(135deg, rgba(20,24,35,0.95) 0%, rgba(13,17,23,0.98) 100%)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+            background: 'white',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)',
           }}
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)' }}
+                style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
               >
-                <Trophy className="w-4 h-4 text-indigo-400" />
+                <Trophy className="w-4 h-4 text-indigo-500" />
               </div>
-              <span className="text-sm font-medium text-white">Tutorial Complete</span>
+              <span className="text-sm font-medium text-[#1A1A1A]">Tutorial Complete</span>
             </div>
             <div className="flex items-center gap-1.5">
               {cards.map((_, i) => (
@@ -215,7 +215,7 @@ export function CompletionCardFlow({
                   key={i}
                   className="w-1.5 h-1.5 rounded-full transition-all duration-300"
                   style={{
-                    background: i === currentIndex ? tutorialColor : 'rgba(255,255,255,0.2)',
+                    background: i === currentIndex ? tutorialColor : 'rgba(0,0,0,0.1)',
                     transform: i === currentIndex ? 'scale(1.3)' : 'scale(1)',
                   }}
                 />
@@ -227,15 +227,15 @@ export function CompletionCardFlow({
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center mb-5"
               style={{
-                background: `${tutorialColor}15`,
-                border: `1px solid ${tutorialColor}25`,
+                background: `${tutorialColor}10`,
+                border: `1px solid ${tutorialColor}20`,
               }}
             >
               <div style={{ color: tutorialColor }}>{card.icon}</div>
             </div>
 
             <h2
-              className="text-xl font-bold text-white mb-4"
+              className="text-xl font-bold text-[#1A1A1A] mb-4"
               style={{ letterSpacing: '-0.02em' }}
             >
               {card.title}
@@ -247,15 +247,15 @@ export function CompletionCardFlow({
           </div>
 
           {!isLastCard && (
-            <div className="flex items-center justify-between mt-6 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center justify-between mt-6 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
               <div className="flex items-center gap-2">
                 {currentIndex > 0 && (
                   <button
                     onClick={goPrev}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition-colors"
-                    style={{ background: 'rgba(255,255,255,0.04)' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                    style={{ background: 'rgba(0,0,0,0.04)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.08)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
                   >
                     <ChevronLeft className="w-4 h-4" />
                     Back
@@ -277,10 +277,10 @@ export function CompletionCardFlow({
           )}
 
           {isLastCard && (
-            <div className="mt-6 pt-6 flex items-center justify-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="mt-6 pt-6 flex items-center justify-center" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
               <button
                 onClick={onRetry}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 Retry tutorial

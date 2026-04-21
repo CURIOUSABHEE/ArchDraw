@@ -139,7 +139,7 @@ export function IntroCardFlow({
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ background: 'rgba(8,12,20,0.92)', backdropFilter: 'blur(12px)' }}
+      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)' }}
     >
       <div 
         className="absolute inset-0 pointer-events-none"
@@ -152,9 +152,9 @@ export function IntroCardFlow({
         <div
           className="rounded-2xl p-8 transition-all duration-500"
           style={{
-            background: 'linear-gradient(135deg, rgba(20,24,35,0.95) 0%, rgba(13,17,23,0.98) 100%)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+            background: 'white',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)',
             transform: `translateX(${currentIndex === 0 ? 0 : currentIndex > 0 ? -10 : 10}px)`,
             opacity: 1,
           }}
@@ -163,11 +163,11 @@ export function IntroCardFlow({
             <div className="flex items-center gap-2">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: `${tutorialColor}20`, border: `1px solid ${tutorialColor}30` }}
+                style={{ background: `${tutorialColor}15`, border: `1px solid ${tutorialColor}25` }}
               >
                 <BookOpen className="w-4 h-4" style={{ color: tutorialColor }} />
               </div>
-              <span className="text-sm font-medium text-white">{tutorialTitle.replace('How to Design ', '')}</span>
+              <span className="text-sm font-medium text-[#1A1A1A]">{tutorialTitle.replace('How to Design ', '')}</span>
             </div>
             <div className="flex items-center gap-1.5">
               {cards.map((_, i) => (
@@ -175,7 +175,7 @@ export function IntroCardFlow({
                   key={i}
                   className="w-1.5 h-1.5 rounded-full transition-all duration-300"
                   style={{
-                    background: i === currentIndex ? tutorialColor : 'rgba(255,255,255,0.2)',
+                    background: i === currentIndex ? tutorialColor : 'rgba(0,0,0,0.15)',
                     transform: i === currentIndex ? 'scale(1.3)' : 'scale(1)',
                   }}
                 />
@@ -187,8 +187,8 @@ export function IntroCardFlow({
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-all duration-300"
               style={{
-                background: `${tutorialColor}15`,
-                border: `1px solid ${tutorialColor}25`,
+                background: `${tutorialColor}10`,
+                border: `1px solid ${tutorialColor}20`,
                 transform: 'scale(1)',
               }}
             >
@@ -196,14 +196,14 @@ export function IntroCardFlow({
             </div>
 
             <h2
-              className="text-2xl font-bold text-white mb-4 transition-all duration-300"
+              className="text-2xl font-bold text-[#1A1A1A] mb-4 transition-all duration-300"
               style={{ letterSpacing: '-0.03em', lineHeight: 1.2 }}
             >
               {card.title}
             </h2>
 
             <p
-              className="text-base text-slate-400 leading-relaxed flex-1"
+              className="text-base text-slate-500 leading-relaxed flex-1"
               style={{ lineHeight: 1.7 }}
             >
               {card.description}
@@ -213,7 +213,7 @@ export function IntroCardFlow({
               <div className="mt-6">
                 <span
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium"
-                  style={{ background: `${tutorialColor}12`, color: tutorialColor, border: `1px solid ${tutorialColor}20` }}
+                  style={{ background: `${tutorialColor}10`, color: tutorialColor, border: `1px solid ${tutorialColor}20` }}
                 >
                   <Zap className="w-3.5 h-3.5" />
                   {card.highlight}
@@ -222,15 +222,15 @@ export function IntroCardFlow({
             )}
           </div>
 
-          <div className="flex items-center justify-between mt-8 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
             <div className="flex items-center gap-2">
               {currentIndex > 0 && (
                 <button
                   onClick={goPrev}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.04)' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                  style={{ background: 'rgba(0,0,0,0.04)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.08)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Back
@@ -242,7 +242,7 @@ export function IntroCardFlow({
               {onSkip && !isLastCard && (
                 <button
                   onClick={onSkip}
-                  className="px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                  className="px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   Skip intro
                 </button>
@@ -280,9 +280,9 @@ export function IntroCardFlow({
           </div>
         </div>
 
-        <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 text-xs text-slate-600">
-          <kbd className="px-2 py-1 rounded" style={{ background: 'rgba(255,255,255,0.05)' }}>←</kbd>
-          <kbd className="px-2 py-1 rounded" style={{ background: 'rgba(255,255,255,0.05)' }}>→</kbd>
+        <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 text-xs text-slate-400">
+          <kbd className="px-2 py-1 rounded" style={{ background: 'rgba(0,0,0,0.06)' }}>←</kbd>
+          <kbd className="px-2 py-1 rounded" style={{ background: 'rgba(0,0,0,0.06)' }}>→</kbd>
           <span className="ml-1">to navigate</span>
         </div>
       </div>
