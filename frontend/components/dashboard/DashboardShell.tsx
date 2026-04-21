@@ -174,7 +174,7 @@ export function DashboardShell({ children, activePage }: DashboardShellProps) {
             />
             <SidebarItem
               icon={GraduationCap}
-              label="Learn"
+              label="Tutorials"
               active={activePage === 'Learn'}
               onClick={() => router.push('/dashboard/learn')}
             />
@@ -191,7 +191,7 @@ export function DashboardShell({ children, activePage }: DashboardShellProps) {
             <h1 className="text-xl font-bold text-[#1A1A1A]">
               {activePage === 'Dashboard' && 'Dashboard'}
               {activePage === 'Templates' && 'Architecture Templates'}
-              {activePage === 'Learn' && 'Learn System Design'}
+              {activePage === 'Learn' && 'System Design Tutorials'}
               {activePage === 'Canvases-All' && 'All Canvases'}
             </h1>
             <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto overflow-x-auto">
