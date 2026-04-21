@@ -12,7 +12,7 @@ export async function generateMetadata({
   if (!tutorial) return { title: 'Tutorial Not Found | ArchFlow' };
 
   const keywords = [
-    ...tutorial.tags,
+    ...(tutorial.tags ?? []),
     'system design',
     'architecture diagram',
     'ArchFlow',

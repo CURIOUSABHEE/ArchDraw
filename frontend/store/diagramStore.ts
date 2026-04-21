@@ -213,6 +213,18 @@ function syncActiveCanvas(
   );
 }
 
+function migrateEdgesToSmoothstep(edges: Edge[]): Edge[] {
+  return edges.map((edge) => {
+    if (edge.data?.pathType === 'smooth') {
+      return {
+        ...edge,
+        data: { ...edge.data, pathType: 'Smoothstep' },
+      };
+    }
+    return edge;
+  });
+}
+
 function mergeCanvases(localCanvases: CanvasTab[], dbCanvases: CanvasTab[]): CanvasTab[] {
   const merged = new Map<string, CanvasTab>();
   
@@ -568,7 +580,7 @@ export const useDiagramStore = create<DiagramState>()(
               id: d.id,
               name: d.name,
               nodes: d.nodes ?? [],
-              edges: d.edges ?? [],
+              edges: migrateEdgesToSmoothstep(d.edges ?? []),
               updatedAt: new Date(d.updated_at).getTime(),
               isOpen: true,
               lastAccessedAt: new Date(d.updated_at).getTime(),

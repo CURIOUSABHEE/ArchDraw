@@ -223,16 +223,27 @@ export const MAX_ITERATIONS = 3;
 export const SCORE_THRESHOLD = 75;
 
 export const COMMUNICATION_STYLES: Record<string, { color: string; dash: string; animated: boolean; pathType?: string; strokeDasharray?: string; markerEnd?: string }> = {
-  sync: { color: '#6366f1', dash: '', animated: false, pathType: 'smooth', strokeDasharray: '', markerEnd: 'arrowclosed' },
-  async: { color: '#f59e0b', dash: '8,4', animated: true, pathType: 'smooth', strokeDasharray: '8,4', markerEnd: 'arrowclosed' },
-  stream: { color: '#10b981', dash: '4,2', animated: true, pathType: 'smooth', strokeDasharray: '4,2', markerEnd: 'arrowclosed' },
-  event: { color: '#ec4899', dash: '2,3', animated: true, pathType: 'smooth', strokeDasharray: '2,3', markerEnd: 'arrowclosed' },
+  sync: { color: '#6366f1', dash: '', animated: false, pathType: 'Smoothstep', strokeDasharray: '', markerEnd: 'arrowclosed' },
+  async: { color: '#f59e0b', dash: '8,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '8,4', markerEnd: 'arrowclosed' },
+  stream: { color: '#10b981', dash: '4,2', animated: true, pathType: 'Smoothstep', strokeDasharray: '4,2', markerEnd: 'arrowclosed' },
+  event: { color: '#ec4899', dash: '2,3', animated: true, pathType: 'Smoothstep', strokeDasharray: '2,3', markerEnd: 'arrowclosed' },
 };
 
-export const DEFAULT_ELK_OPTIONS = {
+export const DEFAULT_ELK_OPTIONS: Record<string, string> = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
+  'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
   'elk.spacing.nodeNode': '120',
+  'elk.spacing.edgeNode': '80',
+  'elk.spacing.edgeEdge': '60',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '250',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '150',
+  'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+  'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+  'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
+  'elk.edgeRouting': 'ORTHOGONAL',
+  'elk.portConstraints': 'FIXED_SIDE',
+  'elk.padding': '[top=60, left=40, bottom=60, right=40]',
 };
 
 // ============================================================================

@@ -8,15 +8,22 @@ const elk = new ELK();
 const LAYOUT_CACHE = new Map<string, { nodes: ReactFlowNode[]; timestamp: number }>();
 const LAYOUT_CACHE_TTL = 5 * 60 * 1000;
 
-const FAST_ELK_OPTIONS = {
+const FAST_ELK_OPTIONS: Record<string, string> = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
-  'elk.spacing.nodeNode': '80',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '180',
-  'elk.layered.compaction.onlyImprovePositions': 'true',
-  'elk.layered.crossingMinimization.strategy': 'NONE',
+  'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+  'elk.spacing.nodeNode': '100',
+  'elk.spacing.edgeNode': '80',
+  'elk.spacing.edgeEdge': '60',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '200',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '120',
   'elk.layered.nodePlacement.strategy': 'SIMPLE',
+  'elk.layered.crossingMinimization.strategy': 'NONE',
+  'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
+  'elk.edgeRouting': 'ORTHOGONAL',
+  'elk.portConstraints': 'FIXED_SIDE',
   'elk.separateConnectedComponents': 'false',
+  'elk.padding': '[top=50, left=30, bottom=50, right=30]',
 };
 
 function getTopologySignature(nodes: ArchitectureNode[]): string {
@@ -30,10 +37,11 @@ function getTopologySignature(nodes: ArchitectureNode[]): string {
 
 async function runELKLayoutAsync(
   graph: unknown,
-  options?: Record<string, string>
+  options?: Record<string, string>,
+  timeoutMs: number = 10000
 ): Promise<unknown> {
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('ELK timeout')), 500);
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('ELK timeout after ' + timeoutMs + 'ms')), timeoutMs);
   });
 
   const elkPromise = elk.layout(graph as Parameters<typeof elk.layout>[0]);
