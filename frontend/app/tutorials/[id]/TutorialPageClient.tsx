@@ -22,7 +22,7 @@ const TutorialCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex-1 flex items-center justify-center" style={{ background: '#080c14' }}>
+      <div className="flex-1 flex items-center justify-center" style={{ background: '#F4F4F4' }}>
         <div className="flex flex-col items-center gap-3">
           <div className="w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
           <span className="text-xs text-slate-600">Loading canvas…</span>
@@ -53,39 +53,39 @@ function LevelCompleteScreen({
   const nextLevelNum = nextLevel.level ?? nextLevel.order ?? (levelNum + 1);
   
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(8,12,20,0.85)', backdropFilter: 'blur(4px)' }}>
-      <div className="w-full max-w-sm mx-4 rounded-2xl p-6 flex flex-col gap-5" style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.1)' }}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+      <div className="w-full max-w-sm mx-4 rounded-2xl p-6 flex flex-col gap-5" style={{ background: 'white', border: '1px solid rgba(0,0,0,0.1)' }}>
         <div className="flex items-center gap-2">
-          <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.2)' }}>
             Level {levelNum} Complete
           </span>
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-white leading-snug">
+          <h2 className="text-lg font-semibold text-[#1A1A1A] leading-snug">
             You built the {level.title.toLowerCase()} of this architecture.
           </h2>
-          <p className="text-sm text-slate-400 mt-1">{nodeCount} components · {edgeCount} connections</p>
+          <p className="text-sm text-slate-500 mt-1">{nodeCount} components · {edgeCount} connections</p>
         </div>
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+        <div style={{ height: 1, background: 'rgba(0,0,0,0.1)' }} />
         <div>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Ready for Level {nextLevelNum}?</p>
-          <p className="text-sm text-slate-300">{nextLevel.description}</p>
-          <p className="text-xs text-slate-500 mt-2">You&apos;ll add {nextLevel.steps.length} more components on top of what you built.</p>
+          <p className="text-sm text-slate-600">{nextLevel.description}</p>
+          <p className="text-xs text-slate-400 mt-2">You&apos;ll add {nextLevel.steps.length} more components on top of what you built.</p>
         </div>
         <div className="flex flex-col gap-2">
           <button
             onClick={onContinue}
             className="w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors"
-            style={{ background: '#4f46e5' }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#6366f1')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#4f46e5')}
+            style={{ background: '#6366f1' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#4f46e5')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#6366f1')}
           >
             Continue to Level {nextLevelNum} →
           </button>
           <button
             onClick={onSave}
-            className="w-full py-2.5 rounded-xl text-sm text-slate-400 hover:text-white transition-colors"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="w-full py-2.5 rounded-xl text-sm text-slate-600 hover:text-[#1A1A1A] transition-colors"
+            style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.1)' }}
           >
             Save &amp; come back later
           </button>
@@ -107,7 +107,7 @@ export default function TutorialPage() {
     messages, isTyping, validationStatus, validationError,
     isComplete, isLevelComplete,
     currentLevel, completedLevels,
-    startTutorial, setValidationStatus,
+    startTutorialByDef, startTutorialFresh, setValidationStatus,
     addMessage, advanceStep, skipStep, resetTutorial,
     completeTutorial, advanceLevel, dismissLevelComplete,
     activeTutorialId, clearTutorialCanvas,
@@ -122,7 +122,7 @@ export default function TutorialPage() {
   const [headerRestartConfirm, setHeaderRestartConfirm] = useState(false);
   const headerRestartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [panelRatio, setPanelRatio] = useState<'3:7' | '4:6'>('3:7');
-  const [canvasTheme, setCanvasTheme] = useState<'dark' | 'light'>('dark');
+  const [canvasTheme, setCanvasTheme] = useState<'dark' | 'light'>('light');
   const [showIntro, setShowIntro] = useState(false);
   const [introSkipped, setIntroSkipped] = useState(false);
   const [completionCardIndex, setCompletionCardIndex] = useState(0);
@@ -175,72 +175,35 @@ export default function TutorialPage() {
   const currentLevelData = levels[currentLevel - 1] ?? null;
   const currentLevelSteps = currentLevelData?.steps ?? allSteps;
 
-  // Start tutorial on mount
+  // FIX: Start tutorial - always from DB first to avoid stale cache
   useEffect(() => {
     if (!tutorial || hasStarted.current) return;
     hasStarted.current = true;
-    if (isLeveled && levels.length > 0) {
-      const levelSteps = levels[currentLevel - 1]?.steps ?? [];
-      startTutorial(tutorial.id, levelSteps.length);
-    } else {
-      startTutorial(tutorial.id, allSteps.length);
-    }
+
+    const start = async () => {
+      // Show intro immediately while we fetch
+      setShowIntro(true);
+      
+      // Always start fresh from DB - this ensures no stale data
+      const result = await startTutorialFresh(tutorial);
+      
+      if (!result.success) {
+        console.error('[tutorial] Failed to start fresh:', result.error);
+        toast.error('Failed to load tutorial progress');
+        return;
+      }
+      
+      // Successfully started fresh - skip intro since we reset to step 1
+      setIntroSkipped(true);
+    };
+
+    start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorial]);
 
-  // Restore rich progress on mount (Supabase first, then localStorage)
-  useEffect(() => {
-    if (!tutorial) return;
-    const tutorialId = tutorial.id;
-
-    const restore = async () => {
-      // Try Supabase first (authenticated users)
-      const supabaseProgress = await loadFromSupabase(tutorialId);
-      const progress = supabaseProgress ?? getProgress(tutorialId);
-      if (!progress || progress.currentStep <= 1) {
-        // No progress yet - show intro
-        setShowIntro(true);
-        return;
-      }
-
-      // Has progress - skip intro, restore state
-      setIntroSkipped(true);
-
-      // Restore level/step state
-      useTutorialStore.setState({
-        currentLevel: progress.currentLevel,
-        currentStep: progress.currentStep,
-        completedLevels: progress.completedLevels,
-      });
-
-      // Update legacy tutorialProgress map too
-      useTutorialStore.setState((s) => ({
-        tutorialProgress: {
-          ...s.tutorialProgress,
-          [tutorialId]: progress.currentStep,
-        },
-      }));
-
-      // Restore canvas state from current level if available
-      const levelCanvasState = getLevelCanvasState(progress.currentLevel);
-      if (levelCanvasState && levelCanvasState.nodes.length > 0) {
-        setNodes(levelCanvasState.nodes);
-        setEdges(levelCanvasState.edges);
-      }
-
-      toast.success(
-        `Resumed from Level ${progress.currentLevel} · Step ${progress.currentStep}`,
-        { duration: 3000 }
-      );
-    };
-
-    restore().catch(() => { });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorial?.id]);
-
   const handleValidate = useCallback(() => {
     if (!tutorial) return;
-    const step = currentLevelSteps[currentStep - 1];
+  const step = currentLevelSteps?.[currentStep - 1] ?? null;
     if (!step) return;
 
     const result = validateStep(step, nodes, edges);
@@ -274,35 +237,31 @@ export default function TutorialPage() {
     skipStep();
   }, [setValidationStatus, skipStep]);
 
-  const handleRetry = useCallback(() => {
+  // FIX: Retry - use fresh start to ensure DB is source of truth
+  const handleRetry = useCallback(async () => {
     if (!tutorial) return;
-    resetTutorial(tutorial.id);
+    const result = await startTutorialFresh(tutorial);
+    if (!result.success) {
+      toast.error('Failed to reset: ' + result.error);
+      return;
+    }
     hasStarted.current = false;
-  }, [tutorial, resetTutorial]);
+  }, [tutorial, startTutorialFresh]);
 
-  const handleRestart = useCallback(() => {
+  // FIX: Restart - use fresh start to ensure atomic reset
+  const handleRestart = useCallback(async () => {
     if (!tutorial) return;
-    resetTutorial(tutorial.id);
+    const result = await startTutorialFresh(tutorial);
+    if (!result.success) {
+      toast.error('Failed to restart: ' + result.error);
+      return;
+    }
     hasStarted.current = false;
     setHeaderRestartConfirm(false);
     if (headerRestartTimer.current) clearTimeout(headerRestartTimer.current);
 
-    // Fire-and-forget: delete Supabase row for authenticated users
-    import('@/lib/supabase').then(({ isSupabaseConfigured, getSupabaseClient }) => {
-      if (!isSupabaseConfigured) return;
-      import('@/store/authStore').then(({ useAuthStore }) => {
-        const { user } = useAuthStore.getState();
-        if (!user) return;
-        void getSupabaseClient()
-          .from('tutorial_progress')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('tutorial_id', tutorial.id);
-      });
-    });
-
     toast.success('Tutorial restarted');
-  }, [tutorial, resetTutorial]);
+  }, [tutorial, startTutorialFresh]);
 
   const showHeaderConfirm = useCallback(() => {
     setHeaderRestartConfirm(true);
@@ -330,10 +289,22 @@ export default function TutorialPage() {
     router.push('/tutorials');
   }, [dismissLevelComplete, router]);
 
-  const handleStartFromIntro = useCallback(() => {
+  // FIX: Start building - always from DB fresh to ensure atomic reset
+  const handleStartFromIntro = useCallback(async () => {
+    if (!tutorial) return;
+    
     setShowIntro(false);
+    
+    // Start fresh from DB - this does the atomic reset sequence
+    const result = await startTutorialFresh(tutorial);
+    
+    if (!result.success) {
+      toast.error('Failed to start tutorial: ' + result.error);
+      return;
+    }
+    
     setIntroSkipped(true);
-  }, []);
+  }, [tutorial, startTutorialFresh]);
 
   const handleIntroSkip = useCallback(() => {
     setShowIntro(false);
@@ -346,10 +317,10 @@ export default function TutorialPage() {
 
   if (!tutorial) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#080c14', color: '#f1f5f9' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F4F4F4', color: '#1A1A1A' }}>
         <div className="text-center">
-          <p className="text-slate-400 mb-4">Tutorial not found.</p>
-          <Link href="/tutorials" className="text-indigo-400 hover:text-indigo-300 text-sm">← Back to tutorials</Link>
+          <p className="text-slate-500 mb-4">Tutorial not found.</p>
+          <Link href="/tutorials" className="text-indigo-500 hover:text-indigo-600 text-sm">← Back to tutorials</Link>
         </div>
       </div>
     );
@@ -357,54 +328,56 @@ export default function TutorialPage() {
 
   const step = currentLevelSteps[currentStep - 1];
   const nextLevelData = isLeveled ? (levels[currentLevel] ?? null) : null;
-  const stepLabel = isLeveled && currentLevelData
-    ? `Level ${currentLevel} · Step ${currentStep}/${totalSteps || '?'}`
-    : `Step ${currentStep} of ${totalSteps || '?'}`;
+  const stepLabel = step 
+    ? (isLeveled && currentLevelData
+      ? `Level ${currentLevel} · Step ${currentStep}/${totalSteps || '?'}`
+      : `Step ${currentStep} of ${totalSteps || '?'}`)
+    : 'Loading...';
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: '#080c14' }}>
+    <div className="flex flex-col h-screen w-screen overflow-hidden" style={{ background: '#F4F4F4' }}>
       {/* Header */}
-      <header className="h-12 flex items-center justify-between px-4 shrink-0 z-20" style={{ background: '#0d1117', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <Link href="/tutorials" className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors shrink-0">
+      <header className="h-12 flex items-center justify-between px-4 shrink-0 z-20" style={{ background: 'white', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+        <Link href="/tutorials" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#1A1A1A] transition-colors shrink-0">
           <ArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Tutorials</span>
         </Link>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-white hidden md:block">{tutorial.title}</span>
-          <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <span className="text-sm font-medium text-[#1A1A1A] hidden md:block">{tutorial.title}</span>
+          <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.2)' }}>
             {stepLabel}
           </span>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <div className="hidden sm:flex items-center gap-2">
             <span className="text-xs text-slate-500">{totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0}%</span>
-            <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
               <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0}%` }} />
             </div>
           </div>
           <button
             onClick={() => setCanvasTheme((t) => t === 'dark' ? 'light' : 'dark')}
-            className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-white transition-colors flex-shrink-0"
-            style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-[#1A1A1A] transition-colors flex-shrink-0"
+            style={{ border: '1px solid rgba(0,0,0,0.1)' }}
             title={canvasTheme === 'dark' ? 'Switch to light canvas' : 'Switch to dark canvas'}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)')}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(0,0,0,0.1)')}
           >
             {canvasTheme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
           </button>
           {headerRestartConfirm ? (
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-400">Are you sure?</span>
+              <span className="text-xs text-slate-500">Are you sure?</span>
               <button onClick={handleRestart} className="px-2.5 py-1 rounded-lg text-xs font-medium text-white transition-colors" style={{ background: '#ef4444' }} onMouseEnter={(e) => (e.currentTarget.style.background = '#f87171')} onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}>Yes, restart</button>
-              <button onClick={() => { setHeaderRestartConfirm(false); if (headerRestartTimer.current) clearTimeout(headerRestartTimer.current); }} className="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-colors" style={{ background: 'rgba(255,255,255,0.06)' }}>Cancel</button>
+              <button onClick={() => { setHeaderRestartConfirm(false); if (headerRestartTimer.current) clearTimeout(headerRestartTimer.current); }} className="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 hover:text-[#1A1A1A] transition-colors" style={{ background: 'rgba(0,0,0,0.04)' }}>Cancel</button>
             </div>
           ) : (
-            <button onClick={showHeaderConfirm} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 hover:text-white text-xs font-medium transition-colors flex-shrink-0" style={{ border: '1px solid rgba(255,255,255,0.12)' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}>
+            <button onClick={showHeaderConfirm} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-500 hover:text-[#1A1A1A] text-xs font-medium transition-colors flex-shrink-0" style={{ border: '1px solid rgba(0,0,0,0.1)' }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)')} onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(0,0,0,0.1)')}>
               <RotateCcw className="w-3.5 h-3.5" />
               Restart
             </button>
           )}
-          <a href="/editor" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-colors flex-shrink-0" style={{ background: '#4f46e5' }} onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#6366f1')} onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#4f46e5')}>
+          <a href="/editor" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-colors flex-shrink-0" style={{ background: '#6366f1' }} onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#4f46e5')} onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#6366f1')}>
             <PenSquare className="w-3.5 h-3.5" />
             Create your own
           </a>
@@ -414,28 +387,9 @@ export default function TutorialPage() {
       {/* Body */}
       <div className="flex flex-1 overflow-hidden relative">
         <div className="shrink-0 overflow-hidden flex flex-col h-full transition-all duration-300" style={{ width: panelRatio === '3:7' ? '30%' : '40%' }}>
-          {step && (
-            <GuidePanel
-              step={step}
-              currentStep={currentStep}
-              totalSteps={totalSteps}
-              tutorial={tutorial as TutorialData}
-              isLive={isLiveTutorial(tutorial.id)}
-              messages={messages}
-              isTyping={isTyping}
-              validationStatus={validationStatus}
-              validationError={validationError}
-              onValidate={handleValidate}
-              onSkip={handleSkip}
-              onRestart={handleRestart}
-              currentLevel={isLeveled ? currentLevel : undefined}
-              totalLevels={isLeveled ? levels.length : undefined}
-              completedLevels={isLeveled ? completedLevels : undefined}
-              onNextLevel={isLeveled && levels[currentLevel] ? handleContinueToNextLevel : undefined}
-            />
-          )}
+          <GuidePanel />
         </div>
-        <div className="shrink-0 flex items-center justify-center cursor-pointer group z-10" style={{ width: 20, background: '#0d1117', borderLeft: '1px solid rgba(255,255,255,0.06)', borderRight: '1px solid rgba(255,255,255,0.06)' }} onClick={() => setPanelRatio((r) => r === '3:7' ? '4:6' : '3:7')} title={panelRatio === '3:7' ? 'Expand chat (4:6)' : 'Shrink chat (3:7)'}>
+        <div className="shrink-0 flex items-center justify-center cursor-pointer group z-10" style={{ width: 20, background: 'white', borderLeft: '1px solid rgba(0,0,0,0.06)', borderRight: '1px solid rgba(0,0,0,0.06)' }} onClick={() => setPanelRatio((r) => r === '3:7' ? '4:6' : '3:7')} title={panelRatio === '3:7' ? 'Expand chat (4:6)' : 'Shrink chat (3:7)'}>
           <div className="flex flex-col gap-1 opacity-30 group-hover:opacity-80 transition-opacity">
             <div className="w-0.5 h-3 rounded-full bg-slate-400" />
             <div className="w-0.5 h-3 rounded-full bg-slate-400" />
@@ -492,7 +446,7 @@ export default function TutorialPage() {
           levelTitle={currentLevelData?.title}
           levelDescription={currentLevelData?.description}
           stepCount={totalSteps}
-          estimatedTime={tutorial.estimatedTime || '15-30 mins'}
+          estimatedTime={'estimatedMinutes' in tutorial ? String(tutorial.estimatedMinutes) + ' mins' : String(tutorial.estimatedTime)}
           componentCount={componentCount}
           onStart={handleStartFromIntro}
           onSkip={handleIntroSkip}

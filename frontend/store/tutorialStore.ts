@@ -2,6 +2,18 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { serializedStorage } from './storage';
 import type { Node, Edge } from 'reactflow';
+import type { TutorialDefinition, TutorialSession, PhaseName } from '@/lib/tutorial/schema';
+import * as engine from '@/lib/tutorial/engine';
+import { isSupabaseConfigured } from '@/lib/supabase';
+
+function migrateEdgesToSmoothstep(edges: Edge[]): SanitizedEdge[] {
+  return edges.map((edge) => {
+    if (edge.data?.pathType === 'smooth') {
+      return { ...edge, data: { ...edge.data, pathType: 'Smoothstep' } } as SanitizedEdge;
+    }
+    return edge as unknown as SanitizedEdge;
+  });
+}
 
 export interface TutorialMessage {
   type: 'guide' | 'user' | 'success' | 'error';
@@ -9,31 +21,25 @@ export interface TutorialMessage {
   timestamp: number;
 }
 
-// ── Sanitized types for persistence ─────────────────────────────────────────
 export type SanitizedNode = {
   id: string;
   type: string;
   position: { x: number; y: number };
-  data: {
-    label: string;
-    componentId: string;
-    category?: string;
-    color?: string;
-    icon?: string;
-  };
+  data: { label: string; componentId: string; category?: string; color?: string; icon?: string };
 };
 
 export type SanitizedEdge = {
   id: string;
   source: string;
   target: string;
-  type: string;
+  type?: string;
   animated: boolean;
   style?: object;
   label?: string;
+  data?: { pathType?: string };
 };
 
-export type TutorialProgressEntry = {
+export interface TutorialProgressEntry {
   tutorialId: string;
   currentLevel: number;
   currentStep: number;
@@ -43,9 +49,10 @@ export type TutorialProgressEntry = {
   canvasEdges: SanitizedEdge[];
   explainCount: number;
   updatedAt: string;
-};
+}
 
-type SupabaseProgressRow = {
+export type TutorialProgressRow = {
+  user_id: string;
   tutorial_id: string;
   current_level: number;
   current_step: number;
@@ -57,7 +64,6 @@ type SupabaseProgressRow = {
   updated_at: string;
 };
 
-// ── Sanitizers ───────────────────────────────────────────────────────────────
 export function sanitizeNode(node: Node): SanitizedNode {
   return {
     id: node.id,
@@ -85,53 +91,46 @@ export function sanitizeEdge(edge: Edge): SanitizedEdge {
   };
 }
 
-// ── Debounce map for Supabase syncs ──────────────────────────────────────────
-const syncDebounceMap: Record<string, ReturnType<typeof setTimeout>> = {};
+const STORAGE_KEY = 'archdraw_tutorial_v2';
 
-interface TutorialState {
-  // Hydration flag
+interface TutorialStoreState {
   hasHydrated: boolean;
   setHasHydrated: (v: boolean) => void;
 
-  // Tutorial switch guard — prevents canvas save effect from firing during transition
-  isSwitchingTutorial: boolean;
-  setSwitchingTutorial: (v: boolean) => void;
-
-  // Current session (not persisted)
-  tutorialId: string | null;
-  currentStep: number;
-  totalSteps: number;
+  activeTutorial: TutorialDefinition | null;
+  session: TutorialSession | null;
   nodes: Node[];
   edges: Edge[];
   messages: TutorialMessage[];
-  validationStatus: 'idle' | 'success' | 'error';
-  validationError: string;
   isTyping: boolean;
-  isComplete: boolean;
-
-  // Level progression (leveled tutorials only)
-  currentLevel: number;
-  completedLevels: number[];
-  levelNodes: Record<number, Node[]>;
-  levelEdges: Record<number, Edge[]>;
-  isLevelComplete: boolean;
-
-  // Legacy persisted progress (kept for backward compat)
-  completedTutorials: string[];
-  tutorialProgress: Record<string, number>;
-  tutorialPhase: Record<string, string>;
-
-  // Legacy persisted canvas state
-  activeTutorialId: string | null;
-  tutorialNodes: Node[];
-  tutorialEdges: Edge[];
-
-  // ── New: rich per-tutorial progress map ─────────────────────────────────
+  isLoading: boolean;
+  error: string | null;
+  
   richProgress: Record<string, TutorialProgressEntry>;
   isSyncing: boolean;
 
+  // Legacy props
+  currentStep: number;
+  totalSteps: number;
+  currentLevel: number;
+  completedLevels: number[];
+  validationStatus: 'idle' | 'success' | 'error';
+  validationError: string;
+  isComplete: boolean;
+  isLevelComplete: boolean;
+  activeTutorialId: string | null;
+  tutorialProgress: Record<string, number>;
+  tutorialPhase: Record<string, string>;
+  tutorialNodes: Node[];
+  tutorialEdges: Edge[];
+  isSwitchingTutorial: boolean;
+  completedTutorials: string[];
+
   // Actions
   startTutorial: (id: string, totalSteps: number) => void;
+  startTutorialByDef: (tutorial: TutorialDefinition) => void;
+  advancePhase: () => void;
+  advanceManually: () => void;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
   setTutorialNodes: (nodes: Node[]) => void;
@@ -145,13 +144,12 @@ interface TutorialState {
   skipStep: () => void;
   completeTutorial: () => void;
   resetTutorial: (id: string) => void;
+  startTutorialFresh: (tutorial: TutorialDefinition) => Promise<{ success: boolean; error?: string }>;
+  exitTutorial: () => void;
   savePhase: (tutorialId: string, step: number, phase: string) => void;
   getPersistedPhase: (tutorialId: string, step: number) => string | null;
-  // Level actions
   advanceLevel: (nextLevelStepCount: number) => void;
   dismissLevelComplete: () => void;
-
-  // ── New persistence actions ──────────────────────────────────────────────
   saveProgress: (tutorialId: string, progress: Partial<TutorialProgressEntry>) => void;
   getProgress: (tutorialId: string) => TutorialProgressEntry | null;
   getLevelCanvasState: (level: number) => { nodes: Node[]; edges: Edge[] } | null;
@@ -159,61 +157,105 @@ interface TutorialState {
   clearAllProgress: () => void;
   syncToSupabase: (tutorialId: string) => Promise<void>;
   loadFromSupabase: (tutorialId: string) => Promise<TutorialProgressEntry | null>;
+  setSwitchingTutorial: (v: boolean) => void;
 }
 
-export const useTutorialStore = create<TutorialState>()(
-    persist(
+export const useTutorialStore = create<TutorialStoreState>()(
+  persist(
     (set, get) => ({
       hasHydrated: false,
       setHasHydrated: (v) => set({ hasHydrated: v }),
 
-      isSwitchingTutorial: false,
-      setSwitchingTutorial: (v) => set({ isSwitchingTutorial: v }),
-
-      tutorialId: null,
-      currentStep: 1,
-      totalSteps: 0,
+      activeTutorial: null,
+      session: null,
       nodes: [],
       edges: [],
       messages: [],
-      validationStatus: 'idle',
-      validationError: '',
       isTyping: false,
-      isComplete: false,
-
-      currentLevel: 1,
-      completedLevels: [],
-      levelNodes: {},
-      levelEdges: {},
-      isLevelComplete: false,
-
-      completedTutorials: [],
-      tutorialProgress: {},
-      tutorialPhase: {},
-
-      activeTutorialId: null,
-      tutorialNodes: [],
-      tutorialEdges: [],
+      isLoading: false,
+      error: null,
 
       richProgress: {},
       isSyncing: false,
 
-      startTutorial: (id, totalSteps) => {
-        const { tutorialProgress } = get();
-        const savedStep = tutorialProgress[id] ?? 1;
+      currentStep: 1,
+      totalSteps: 0,
+      currentLevel: 1,
+      completedLevels: [],
+      validationStatus: 'idle',
+      validationError: '',
+      isComplete: false,
+      isLevelComplete: false,
+      activeTutorialId: null,
+      tutorialProgress: {},
+      tutorialPhase: {},
+      tutorialNodes: [],
+      tutorialEdges: [],
+      isSwitchingTutorial: false,
+      completedTutorials: [],
+
+      startTutorialByDef: (tutorial) => {
+        const saved = get().richProgress[tutorial.id];
+        let session: TutorialSession;
+        
+        const totalSteps = tutorial.levels.reduce((acc, l) => acc + l.steps.length, 0);
+        
+        if (saved) {
+          session = engine.restoreSession(tutorial, {
+            levelIndex: saved.currentLevel,
+            stepIndex: saved.currentStep,
+            phase: saved.currentPhase as PhaseName,
+            completedLevelIds: saved.completedLevels.map(String),
+            canvasSnapshot: {
+              nodes: saved.canvasNodes as unknown as Node[],
+              edges: migrateEdgesToSmoothstep(saved.canvasEdges as unknown as Edge[]),
+            },
+          });
+        } else {
+          session = engine.initSession(tutorial);
+        }
+
         set({
-          tutorialId: id,
-          currentStep: savedStep,
-          totalSteps,
+          activeTutorial: tutorial,
+          session,
           nodes: [],
           edges: [],
           messages: [],
-          validationStatus: 'idle',
-          validationError: '',
-          isTyping: false,
+          isLoading: false,
+          error: null,
+          currentStep: saved?.currentStep ?? 1,
+          totalSteps,
+          currentLevel: saved?.currentLevel ?? 1,
+          completedLevels: saved?.completedLevels ?? [],
+          activeTutorialId: tutorial.id,
           isComplete: false,
           isLevelComplete: false,
         });
+      },
+
+      startTutorial: (id, totalSteps) => {
+        set({ 
+          currentStep: 1, 
+          totalSteps,
+          activeTutorialId: id,
+          currentLevel: 1,
+        });
+      },
+
+      advancePhase: () => {
+        const { session, activeTutorial } = get();
+        if (session && activeTutorial) {
+          const newSession = engine.advancePhase(session, activeTutorial);
+          set({ session: newSession });
+        }
+      },
+
+      advanceManually: () => {
+        const { session, activeTutorial } = get();
+        if (session && activeTutorial) {
+          const newSession = engine.forceAdvance(session, activeTutorial);
+          set({ session: newSession });
+        }
       },
 
       setNodes: (nodes) => set({ nodes }),
@@ -225,11 +267,12 @@ export const useTutorialStore = create<TutorialState>()(
       setTutorialEdges: (edges) =>
         set({ tutorialEdges: edges.map(sanitizeEdge) as unknown as Edge[] }),
 
-      clearTutorialCanvas: () =>
-        set({ tutorialNodes: [], tutorialEdges: [] }),
+      clearTutorialCanvas: () => set({ nodes: [], edges: [] }),
 
-      setValidationStatus: (status, error = '') =>
-        set({ validationStatus: status, validationError: error }),
+      setValidationStatus: (status, error) => set({ 
+        validationStatus: status,
+        validationError: error ?? '',
+      }),
 
       setIsTyping: (v) => set({ isTyping: v }),
 
@@ -241,126 +284,190 @@ export const useTutorialStore = create<TutorialState>()(
       clearMessages: () => set({ messages: [] }),
 
       advanceStep: () => {
-        const { currentStep, totalSteps, tutorialId, tutorialProgress } = get();
-        const next = currentStep + 1;
-        if (next > totalSteps) {
-          get().completeTutorial();
-          return;
+        const { currentStep, totalSteps, session, activeTutorial } = get();
+        if (session && activeTutorial) {
+          const newSession = engine.advancePhase(session, activeTutorial);
+          set({ 
+            session: newSession,
+            currentStep: newSession.stepIndex + 1,
+            isLevelComplete: newSession.stepIndex >= totalSteps - 1,
+          });
+        } else {
+          set({ currentStep: Math.min(currentStep + 1, totalSteps) });
         }
-        const newProgress = { ...tutorialProgress };
-        if (tutorialId) newProgress[tutorialId] = Math.max(newProgress[tutorialId] ?? 1, next);
-        set({
-          currentStep: next,
-          validationStatus: 'idle',
-          validationError: '',
-          tutorialProgress: newProgress,
-        });
       },
 
       skipStep: () => {
-        get().advanceStep();
+        const { currentStep, totalSteps } = get();
+        set({ currentStep: Math.min(currentStep + 1, totalSteps) });
       },
 
-      completeTutorial: () => {
-        const { tutorialId, completedTutorials, tutorialProgress, totalSteps } = get();
-        if (!tutorialId) return;
-        const newCompleted = completedTutorials.includes(tutorialId)
-          ? completedTutorials
-          : [...completedTutorials, tutorialId];
-        const newProgress = { ...tutorialProgress, [tutorialId]: totalSteps };
-        set({
-          isComplete: true,
-          completedTutorials: newCompleted,
-          tutorialProgress: newProgress,
-        });
+      completeTutorial: () => set({ isComplete: true }),
+
+      resetTutorial: () => { 
+        const { activeTutorial } = get();
+        if (activeTutorial) {
+          const { clearProgress } = get();
+          clearProgress(activeTutorial.id);
+          
+          const session = engine.initSession(activeTutorial);
+          set({ 
+            currentStep: 1, 
+            currentLevel: 1,
+            completedLevels: [],
+            nodes: [], 
+            edges: [],
+            messages: [],
+            session,
+            isComplete: false,
+            isLevelComplete: false,
+          });
+          
+          // Delete from Supabase
+          if (isSupabaseConfigured) {
+            import('@/lib/supabase').then(({ getSupabaseClient }) => {
+              import('@/store/authStore').then(({ useAuthStore }) => {
+                const { user } = useAuthStore.getState();
+                if (user) {
+                  getSupabaseClient()
+                    .from('tutorial_progress')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .eq('tutorial_id', activeTutorial.id);
+                }
+              });
+            });
+          }
+        }
       },
 
-      resetTutorial: (id) => {
-        const { tutorialProgress, completedTutorials, tutorialPhase } = get();
-        const newProgress = { ...tutorialProgress };
-        delete newProgress[id];
-        const newPhase = Object.fromEntries(
-          Object.entries(tutorialPhase).filter(([k]) => !k.startsWith(`${id}:`))
-        );
-        // Also clear rich progress
-        get().clearProgress(id);
+      // FIX: Start tutorial fresh - always from DB, never cache
+      startTutorialFresh: async (tutorial: TutorialDefinition): Promise<{ success: boolean; error?: string }> => {
+        const totalSteps = tutorial.levels.reduce((acc, l) => acc + l.steps.length, 0);
+        
+        // Step 1: Clear local state
+        const { clearProgress } = get();
+        clearProgress(tutorial.id);
+        
+        // Step 2: Clear tutorial-specific state
         set({
-          tutorialId: id,
           currentStep: 1,
+          currentLevel: 1,
+          completedLevels: [],
           nodes: [],
           edges: [],
           messages: [],
-          validationStatus: 'idle',
-          validationError: '',
           isComplete: false,
           isLevelComplete: false,
+        });
+
+        // Step 3: Upsert DB with fresh state
+        if (isSupabaseConfigured) {
+          try {
+            const { user } = (await import('@/store/authStore')).useAuthStore.getState();
+            
+            if (user) {
+              const { getSupabaseClient } = await import('@/lib/supabase');
+              const supabase = getSupabaseClient();
+              
+              const { data, error } = await supabase
+                .from('tutorial_progress')
+                .upsert({
+                  user_id: user.id,
+                  tutorial_id: tutorial.id,
+                  current_level: 1,
+                  current_step: 1,
+                  current_phase: 'context',
+                  completed_levels: [],
+                  canvas_nodes: [],
+                  canvas_edges: [],
+                  explain_count: 0,
+                }, { onConflict: 'user_id,tutorial_id' })
+                .select()
+                .single();
+
+              if (error) {
+                return { success: false, error: error.message };
+              }
+
+              // Step 4: Set Zustand state from DB response (now level 1, step 1)
+              const session = engine.initSession(tutorial);
+              set({
+                activeTutorial: tutorial,
+                session,
+                currentStep: 1,
+                currentLevel: 1,
+                completedLevels: [],
+                totalSteps,
+                activeTutorialId: tutorial.id,
+                isComplete: false,
+                isLevelComplete: false,
+              });
+
+              return { success: true };
+            }
+          } catch (e) {
+            return { success: false, error: String(e) };
+          }
+        }
+
+        // If no Supabase, just start fresh locally
+        const session = engine.initSession(tutorial);
+        set({
+          activeTutorial: tutorial,
+          session,
+          currentStep: 1,
           currentLevel: 1,
           completedLevels: [],
-          levelNodes: {},
-          levelEdges: {},
-          tutorialProgress: newProgress,
-          tutorialPhase: newPhase,
-          completedTutorials: completedTutorials.filter((t) => t !== id),
-          tutorialNodes: [],
-          tutorialEdges: [],
+          totalSteps,
+          activeTutorialId: tutorial.id,
+          isComplete: false,
+          isLevelComplete: false,
         });
+
+        return { success: true };
       },
 
       savePhase: (tutorialId, step, phase) => {
         set((s) => ({
-          tutorialPhase: { ...s.tutorialPhase, [`${tutorialId}:${step}`]: phase },
+          tutorialPhase: { ...s.tutorialPhase, [`${tutorialId}-${step}`]: phase },
         }));
       },
 
       getPersistedPhase: (tutorialId, step) => {
-        return get().tutorialPhase[`${tutorialId}:${step}`] ?? null;
+        return get().tutorialPhase[`${tutorialId}-${step}`] ?? null;
       },
 
       advanceLevel: (nextLevelStepCount) => {
-        const { currentLevel, tutorialNodes, tutorialEdges, completedLevels } = get();
-        const newCompletedLevels = completedLevels.includes(currentLevel)
-          ? completedLevels
-          : [...completedLevels, currentLevel];
+        const { currentLevel, completedLevels } = get();
         set({
           currentLevel: currentLevel + 1,
-          completedLevels: newCompletedLevels,
-          levelNodes: { ...get().levelNodes, [currentLevel]: tutorialNodes.map(sanitizeNode) as unknown as Node[] },
-          levelEdges: { ...get().levelEdges, [currentLevel]: tutorialEdges.map(sanitizeEdge) as unknown as Edge[] },
           currentStep: 1,
-          totalSteps: nextLevelStepCount,
-          validationStatus: 'idle',
-          validationError: '',
+          completedLevels: [...completedLevels, currentLevel],
           isLevelComplete: false,
+          totalSteps: nextLevelStepCount,
         });
       },
 
-      dismissLevelComplete: () => {
-        set({ isLevelComplete: false });
-      },
-
-      // ── Rich persistence ─────────────────────────────────────────────────
+      dismissLevelComplete: () => set({ isLevelComplete: false }),
 
       saveProgress: (tutorialId, progress) => {
-        const existing = get().richProgress[tutorialId];
-        const updated: TutorialProgressEntry = {
-          ...existing,
-          ...progress,
-          tutorialId,
-          updatedAt: new Date().toISOString(),
-        };
-
         set((state) => ({
           richProgress: {
             ...state.richProgress,
-            [tutorialId]: updated,
+            [tutorialId]: {
+              tutorialId,
+              currentLevel: progress.currentLevel ?? state.currentLevel,
+              currentStep: progress.currentStep ?? state.currentStep,
+              currentPhase: progress.currentPhase ?? 'context',
+              completedLevels: progress.completedLevels ?? state.completedLevels,
+              canvasNodes: progress.canvasNodes ?? state.tutorialNodes as unknown as SanitizedNode[],
+              canvasEdges: progress.canvasEdges ?? state.tutorialEdges as unknown as SanitizedEdge[],
+              explainCount: progress.explainCount ?? 0,
+              updatedAt: progress.updatedAt ?? new Date().toISOString(),
+            },
           },
         }));
-
-        // Debounced Supabase sync — fire and forget, never await
-        if (syncDebounceMap[tutorialId]) clearTimeout(syncDebounceMap[tutorialId]);
-        syncDebounceMap[tutorialId] = setTimeout(() => {
-          get().syncToSupabase(tutorialId).catch(() => {});
-        }, 3000);
       },
 
       getProgress: (tutorialId) => {
@@ -368,158 +475,166 @@ export const useTutorialStore = create<TutorialState>()(
       },
 
       getLevelCanvasState: (level) => {
-        const { levelNodes, levelEdges } = get();
-        const nodes = levelNodes[level];
-        const edges = levelEdges[level];
-        if (!nodes || nodes.length === 0) return null;
-        return { nodes, edges: edges ?? [] };
+        const progress = get().richProgress[get().activeTutorialId ?? ''];
+        if (progress?.currentLevel === level) {
+          return {
+            nodes: progress.canvasNodes as unknown as Node[],
+            edges: progress.canvasEdges as unknown as Edge[],
+          };
+        }
+        return null;
       },
 
       clearProgress: (tutorialId) => {
         set((state) => {
-          const next = { ...state.richProgress };
-          delete next[tutorialId];
-          return { richProgress: next };
+          const newRichProgress = { ...state.richProgress };
+          delete newRichProgress[tutorialId];
+          return { richProgress: newRichProgress };
         });
       },
 
-      clearAllProgress: () => {
+      clearAllProgress: () => set({ richProgress: {} }),
+
+      syncToSupabase: async (tutorialId) => {
+        const progress = get().richProgress[tutorialId];
+        if (!progress) return;
+        
+        try {
+          if (!isSupabaseConfigured) return;
+
+          set({ isSyncing: true });
+          const { user } = (await import('@/store/authStore')).useAuthStore.getState();
+          if (!user) return;
+
+          const { getSupabaseClient } = await import('@/lib/supabase');
+          const supabase = getSupabaseClient();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase.from('tutorial_progress') as any).upsert({
+            user_id: user.id,
+            tutorial_id: tutorialId,
+            current_level: progress.currentLevel,
+            current_step: progress.currentStep,
+            current_phase: progress.currentPhase,
+            completed_levels: progress.completedLevels,
+            canvas_nodes: progress.canvasNodes,
+            canvas_edges: progress.canvasEdges,
+            explain_count: progress.explainCount,
+            updated_at: progress.updatedAt,
+          }, { onConflict: 'user_id,tutorial_id' });
+        } catch (e) {
+          console.error('[tutorialStore] Sync to Supabase failed:', e);
+          return;
+        }
+      },
+
+      loadFromSupabase: async (tutorialId) => {
+        try {
+          if (!isSupabaseConfigured) return null;
+
+          const { user } = (await import('@/store/authStore')).useAuthStore.getState();
+          if (!user) return null;
+
+          const { getSupabaseClient } = await import('@/lib/supabase');
+          const supabase = getSupabaseClient();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data, error } = await (supabase.from('tutorial_progress') as any)
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('tutorial_id', tutorialId)
+            .maybeSingle();
+
+          if (error) {
+            console.error('[tutorialStore] Supabase error:', error.message);
+            return null;
+          }
+
+          if (!data || Array.isArray(data)) return null;
+
+          const progress: TutorialProgressEntry = {
+            tutorialId: data.tutorial_id,
+            currentLevel: data.current_level,
+            currentStep: data.current_step,
+            currentPhase: data.current_phase,
+            completedLevels: data.completed_levels,
+            canvasNodes: data.canvas_nodes,
+            canvasEdges: migrateEdgesToSmoothstep(data.canvas_edges),
+            explainCount: data.explain_count,
+            updatedAt: data.updated_at,
+          };
+
+          get().saveProgress(tutorialId, progress);
+          return progress;
+        } catch (e) {
+          console.error('[tutorialStore] Load from Supabase failed:', e);
+          return null;
+        }
+      },
+
+      setSwitchingTutorial: (v) => set({ isSwitchingTutorial: v }),
+
+      exitTutorial: () => {
+        const { activeTutorial, session, nodes, edges } = get();
+        if (activeTutorial && session) {
+          get().saveProgress(activeTutorial.id, {
+            currentLevel: session.levelIndex,
+            currentStep: session.stepIndex,
+            currentPhase: session.phase,
+            completedLevels: session.completedLevelIds.map(Number),
+            canvasNodes: nodes.map(sanitizeNode),
+            canvasEdges: edges.map(sanitizeEdge),
+            explainCount: 0,
+            updatedAt: new Date().toISOString(),
+          });
+        }
         set({
-          tutorialProgress: {},
-          tutorialPhase: {},
-          completedTutorials: [],
-          richProgress: {},
-          activeTutorialId: null,
-          tutorialNodes: [],
-          tutorialEdges: [],
-          currentLevel: 1,
-          completedLevels: [],
-          levelNodes: {},
-          levelEdges: {},
-          currentStep: 1,
+          activeTutorial: null,
+          session: null,
           nodes: [],
           edges: [],
           messages: [],
           isComplete: false,
           isLevelComplete: false,
-          tutorialId: null,
+          currentStep: 1,
+          totalSteps: 0,
+          currentLevel: 1,
+          completedLevels: [],
         });
-      },
-
-      syncToSupabase: async (tutorialId) => {
-        // Lazy import to avoid circular deps and SSR issues
-        const { useAuthStore } = await import('./authStore');
-        const { isSupabaseConfigured, getSupabaseClient } = await import('@/lib/supabase');
-        if (!isSupabaseConfigured) return;
-
-        const { user } = useAuthStore.getState();
-        if (!user) return; // guests: localStorage only
-
-        const progress = get().richProgress[tutorialId];
-        if (!progress) return;
-
-        set({ isSyncing: true });
-        try {
-          const supabase = getSupabaseClient();
-          await supabase.from('tutorial_progress').upsert(
-            {
-              user_id: user.id,
-              tutorial_id: tutorialId,
-              current_level: progress.currentLevel,
-              current_step: progress.currentStep,
-              current_phase: progress.currentPhase,
-              completed_levels: progress.completedLevels,
-              canvas_nodes: progress.canvasNodes,
-              canvas_edges: progress.canvasEdges,
-              explain_count: progress.explainCount,
-            } as unknown as never,
-            { onConflict: 'user_id,tutorial_id' }
-          );
-        } catch (error) {
-          // Never throw — Supabase failure must not break the tutorial
-          console.error('[tutorialStore] Supabase sync failed:', error);
-        } finally {
-          set({ isSyncing: false });
-        }
-      },
-
-      loadFromSupabase: async (tutorialId) => {
-        const { useAuthStore } = await import('./authStore');
-        const { isSupabaseConfigured, getSupabaseClient } = await import('@/lib/supabase');
-        if (!isSupabaseConfigured) return null;
-
-        const { user } = useAuthStore.getState();
-        if (!user) return null;
-
-        try {
-          const supabase = getSupabaseClient();
-          const { data, error } = await supabase
-            .from('tutorial_progress')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('tutorial_id', tutorialId)
-            .single();
-
-          if (error || !data) return null;
-
-          const row = data as SupabaseProgressRow;
-          const progress: TutorialProgressEntry = {
-            tutorialId: row.tutorial_id,
-            currentLevel: row.current_level,
-            currentStep: row.current_step,
-            currentPhase: row.current_phase,
-            completedLevels: row.completed_levels,
-            canvasNodes: row.canvas_nodes,
-            canvasEdges: row.canvas_edges,
-            explainCount: row.explain_count,
-            updatedAt: row.updated_at,
-          };
-
-          // Merge: take whichever is more recent
-          const localProgress = get().richProgress[tutorialId];
-          const useSupabase =
-            !localProgress ||
-            new Date(row.updated_at) > new Date(localProgress.updatedAt);
-
-          if (useSupabase) {
-            set((state) => ({
-              richProgress: {
-                ...state.richProgress,
-                [tutorialId]: progress,
-              },
-            }));
-          }
-
-          return useSupabase ? progress : localProgress;
-        } catch (error) {
-          console.error('[tutorialStore] Supabase load failed:', error);
-          return null;
-        }
       },
     }),
     {
-      name: 'archdraw-tutorials',
+      name: STORAGE_KEY,
       storage: createJSONStorage(() => serializedStorage),
-      partialize: (s) => ({
-        completedTutorials: s.completedTutorials,
-        tutorialProgress: s.tutorialProgress,
-        tutorialPhase: s.tutorialPhase,
-        activeTutorialId: s.activeTutorialId,
-        tutorialNodes: s.tutorialNodes,
-        tutorialEdges: s.tutorialEdges,
-        currentLevel: s.currentLevel,
-        completedLevels: s.completedLevels,
-        levelNodes: s.levelNodes,
-        levelEdges: s.levelEdges,
-        richProgress: s.richProgress,
+      partialize: (state) => ({
+        richProgress: state.richProgress,
+        tutorialProgress: state.tutorialProgress,
+        tutorialPhase: state.tutorialPhase,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.setHasHydrated(true);
-        } else {
-          useTutorialStore.getState().setHasHydrated(true);
-        }
+        state?.setHasHydrated(true);
       },
     }
   )
 );
+
+export const useTutorialHelpers = () => {
+  const activeTutorial = useTutorialStore((s) => s.activeTutorial);
+  const session = useTutorialStore((s) => s.session);
+  const nodes = useTutorialStore((s) => s.nodes);
+  const edges = useTutorialStore((s) => s.edges);
+
+  if (!activeTutorial || !session) {
+    return {
+      currentStep: null,
+      currentPhase: null,
+      progress: { percent: 0, stepLabel: '', levelLabel: '' },
+      isComplete: false,
+    };
+  }
+
+  const currentStep = engine.getCurrentStep(session, activeTutorial);
+  const currentPhase = engine.getCurrentPhase(session, activeTutorial);
+  const progress = engine.getProgress(session, activeTutorial);
+  const isComplete = engine.isTutorialComplete(session, activeTutorial);
+
+  return { currentStep, currentPhase, progress, isComplete };
+};
