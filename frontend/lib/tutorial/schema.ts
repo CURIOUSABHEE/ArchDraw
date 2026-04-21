@@ -52,6 +52,18 @@ export interface TutorialDefinition {
   color?: string;
 }
 
+/**
+ * Minimal shape shared by TutorialDefinition and the legacy Tutorial type.
+ * Use this whenever only `id` and `levels` are needed so both variants
+ * can be passed without unsafe casts.
+ * The levels array is intentionally loose to accept both schema and types TutorialLevel.
+ */
+export interface TutorialLike {
+  id: string;
+  levels: ReadonlyArray<{ id: string; title: string; steps: ReadonlyArray<{ id: string }> }>;
+  [key: string]: unknown;
+}
+
 export interface TutorialSession {
   tutorialId: string;
   levelIndex: number;

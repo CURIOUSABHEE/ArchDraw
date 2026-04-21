@@ -60,9 +60,10 @@ function getTutorialMeta(tutorial: TutorialData): { nodeCount: number; stepCount
 
 function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
   const router = useRouter();
-  const { tutorialProgress, completedTutorials } = useTutorialStore();
+  const { tutorialProgress, completedTutorials, clearProgress } = useTutorialStore();
   const [copied, setCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const progress = tutorialProgress[tutorial.id] ?? 0;
   const { nodeCount, stepCount } = getTutorialMeta(tutorial);
@@ -70,7 +71,34 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
   const isInProgress = progress > 0 && !isCompleted;
   const diffConfig = DIFFICULTY_CONFIG[tutorial.difficulty] ?? DIFFICULTY_CONFIG.Intermediate;
   const IconComp = ICON_MAP[tutorial.icon];
-  const completionPercent = stepCount > 0 ? (progress / stepCount) * 100 : 0;
+  const completionPercent = stepCount > 0 ? Math.round((progress / stepCount) * 100) : 0;
+
+  // Get richProgress for more accurate progress tracking
+  const richProgress = useTutorialStore((s) => s.richProgress);
+  const savedProgress = richProgress[tutorial.id];
+  const hasRichProgress = savedProgress && (savedProgress.currentStep > 0 || savedProgress.currentLevel > 1);
+  
+  // Calculate accurate progress from richProgress if available
+  let accuratePercent = completionPercent;
+  let accurateStep = progress;
+  if (savedProgress) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const levels = (tutorial as any).levels as Array<{ steps: unknown[] }> | undefined;
+    if (levels) {
+      const totalSteps = levels.reduce((acc: number, l: { steps: unknown[] }) => acc + l.steps.length, 0);
+      const currentOverallStep = savedProgress.currentLevel * (levels[0]?.steps.length ?? 0) + savedProgress.currentStep;
+      accuratePercent = totalSteps > 0 ? Math.round((currentOverallStep / totalSteps) * 100) : 0;
+      accurateStep = currentOverallStep;
+    }
+  }
+
+  function handleReset(e: React.MouseEvent) {
+    e.stopPropagation();
+    clearProgress(tutorial.id);
+    setShowResetConfirm(false);
+    toast.success('Progress reset');
+    router.refresh();
+  }
 
   function handleShare(e: React.MouseEvent) {
     e.stopPropagation();
@@ -88,15 +116,27 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => router.push(`/tutorials/${tutorial.id}`)}
     >
+      {(isInProgress || hasRichProgress) && (
+        <div
+          className="absolute inset-0 rounded-2xl pointer-events-none"
+          style={{
+            padding: '2px',
+            background: `conic-gradient(#4338ca ${accuratePercent * 3.6}deg, #1e1b4b 0deg)`,
+            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude',
+          }}
+        />
+      )}
       <div
-        className="relative overflow-hidden rounded-2xl p-6 transition-all duration-300"
+        className="relative overflow-hidden rounded-2xl p-6 transition-all duration-300 h-full"
         style={{
           background: isHovered 
             ? 'linear-gradient(135deg, rgba(30,35,50,0.95) 0%, rgba(20,25,40,0.98) 100%)'
             : 'linear-gradient(135deg, rgba(25,30,45,0.6) 0%, rgba(15,20,35,0.8) 100%)',
-          border: isHovered 
+          border: (isInProgress || hasRichProgress) ? '2px solid transparent' : (isHovered 
             ? '1px solid rgba(99,102,241,0.3)' 
-            : '1px solid rgba(255,255,255,0.06)',
+            : '1px solid rgba(255,255,255,0.06)'),
           transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
           boxShadow: isHovered 
             ? '0 20px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(99,102,241,0.1)' 
@@ -155,18 +195,48 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
                   <CheckCircle className="w-4 h-4 text-green-400" />
                 </div>
               )}
-              <button
-                onClick={handleShare}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
-                style={{ 
-                  background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
-                  color: copied ? '#4ade80' : '#64748b',
-                }}
-                onMouseEnter={(e) => { if (!copied) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-                onMouseLeave={(e) => { if (!copied) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-              >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-              </button>
+              {(isInProgress || hasRichProgress) && !isCompleted && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowResetConfirm(true); }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
+                  style={{ background: 'rgba(239,68,68,0.15)' }}
+                  title="Reset progress"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-red-400" />
+                </button>
+              )}
+              {showResetConfirm ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-slate-400">Reset?</span>
+                  <button
+                    onClick={handleReset}
+                    className="px-2 py-1 rounded text-xs font-medium text-white"
+                    style={{ background: '#ef4444' }}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowResetConfirm(false); }}
+                    className="px-2 py-1 rounded text-xs text-slate-400"
+                    style={{ background: 'rgba(255,255,255,0.04)' }}
+                  >
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleShare}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
+                  style={{ 
+                    background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
+                    color: copied ? '#4ade80' : '#64748b',
+                  }}
+                  onMouseEnter={(e) => { if (!copied) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                  onMouseLeave={(e) => { if (!copied) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                >
+                  {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+                </button>
+              )}
             </div>
           </div>
 
@@ -202,17 +272,6 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
             </span>
             <span>{stepCount} steps</span>
           </div>
-
-          {isInProgress && (
-            <div className="mb-3 flex items-center justify-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ background: '#6366f1' }} />
-                <div className="w-2 h-2 rounded-full" style={{ background: progress >= stepCount * 0.33 ? '#6366f1' : 'rgba(255,255,255,0.2)' }} />
-                <div className="w-2 h-2 rounded-full" style={{ background: progress >= stepCount * 0.66 ? '#6366f1' : 'rgba(255,255,255,0.2)' }} />
-              </div>
-              <span className="text-xs text-slate-500">{Math.round(completionPercent)}%</span>
-            </div>
-          )}
 
           <button
             className="w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 group/btn"

@@ -80,6 +80,9 @@ export function advancePhase(session: TutorialSession, tutorial: TutorialDefinit
   const nextPhase = getNextPhase(session.phase);
   
   if (nextPhase === null) {
+    if (session.phase === 'celebration') {
+      return moveToNextStep(session, tutorial);
+    }
     return session;
   }
 

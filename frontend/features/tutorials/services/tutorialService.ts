@@ -1,5 +1,6 @@
 import { isSupabaseConfigured } from '@/lib/supabase';
 import type { TutorialProgressEntry, SanitizedNode, SanitizedEdge } from '@/store/tutorialStore';
+import type { TutorialLike } from '@/lib/tutorial/schema';
 
 export interface ProgressData {
   tutorialId: string;
@@ -92,7 +93,7 @@ export async function deleteTutorialProgress(
 }
 
 export async function startTutorialFresh(
-  tutorial: TutorialDefinition
+  tutorial: TutorialLike
 ): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured) {
     return { success: true };
@@ -105,8 +106,8 @@ export async function startTutorialFresh(
     const { getSupabaseClient } = await import('@/lib/supabase');
     const supabase = getSupabaseClient();
 
-    const { error } = await supabase
-      .from('tutorial_progress')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('tutorial_progress') as any)
       .upsert({
         user_id: user.id,
         tutorial_id: tutorial.id,

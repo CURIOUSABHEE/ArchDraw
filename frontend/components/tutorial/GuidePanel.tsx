@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTutorialStore, useTutorialHelpers } from '@/store/tutorialStore';
 import type { PhaseName, PhaseContent } from '@/lib/tutorial/schema';
+import { validateStep } from '@/lib/tutorialValidation';
 
 const PHASE_BUTTONS: Record<PhaseName, { label: string; action: PhaseName | 'next_step' }> = {
   context: { label: 'Got it', action: 'intro' },
@@ -18,11 +19,13 @@ function PhaseRenderer({
   content,
   onContinue,
   continueAfterMs = 45000,
+  validationError,
 }: {
   phase: PhaseName;
   content: PhaseContent;
   onContinue: () => void;
   continueAfterMs?: number;
+  validationError?: string | null;
 }) {
   const [showContinueAnyway, setShowContinueAnyway] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -67,6 +70,13 @@ function PhaseRenderer({
         </div>
       )}
 
+      {validationError && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm">
+          <span className="font-medium text-red-700 dark:text-red-400">Not ready:</span>{' '}
+          <span className="text-red-600 dark:text-red-300">{validationError}</span>
+        </div>
+      )}
+
       <button
         onClick={onContinue}
         className="self-end px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
@@ -87,16 +97,26 @@ function PhaseRenderer({
 }
 
 export function GuidePanel() {
-  const { activeTutorial, session, advancePhase, advanceManually, isLoading, exitTutorial } = useTutorialStore();
+  const { activeTutorial, session, advancePhase, advanceManually, isLoading, exitTutorial, nodes, edges } = useTutorialStore();
   const { currentStep, currentPhase, progress, isComplete } = useTutorialHelpers();
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleContinue = useCallback(() => {
+    setValidationError(null);
+    
     if (session?.phase === 'action' || session?.phase === 'connecting') {
+      if (currentStep) {
+        const result = validateStep(currentStep as any, nodes, edges);
+        if (!result.valid) {
+          setValidationError(result.message);
+          return;
+        }
+      }
       advanceManually();
     } else {
       advancePhase();
     }
-  }, [session, advancePhase, advanceManually]);
+  }, [session, advancePhase, advanceManually, currentStep, nodes, edges]);
 
   if (isLoading || !activeTutorial || !session) {
     return (
@@ -158,6 +178,7 @@ export function GuidePanel() {
           content={currentPhase}
           onContinue={handleContinue}
           continueAfterMs={currentStep.continueAfterMs ?? 45000}
+          validationError={validationError}
         />
 
         {currentStep.hints.length > 0 && (

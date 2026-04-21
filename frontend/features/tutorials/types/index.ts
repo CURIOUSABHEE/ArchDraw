@@ -3,7 +3,8 @@
 
 export type { TutorialMessage } from '@/store/tutorialStore';
 export type { SanitizedNode, SanitizedEdge, TutorialProgressEntry } from '@/store/tutorialStore';
-export type { TutorialPhase } from './constants/tutorialConfig';
+import type { SanitizedNode, SanitizedEdge } from '@/store/tutorialStore';
+export type { TutorialPhase } from '../constants/tutorialConfig';
 
 // Local utility types
 export interface ProgressData {

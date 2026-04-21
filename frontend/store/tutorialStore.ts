@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { serializedStorage } from './storage';
 import type { Node, Edge } from 'reactflow';
 import type { TutorialDefinition, TutorialSession, PhaseName } from '@/lib/tutorial/schema';
+import type { AnyTutorial } from '@/data/tutorials';
 import * as engine from '@/lib/tutorial/engine';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
@@ -128,7 +129,7 @@ interface TutorialStoreState {
 
   // Actions
   startTutorial: (id: string, totalSteps: number) => void;
-  startTutorialByDef: (tutorial: TutorialDefinition) => void;
+  startTutorialByDef: (tutorial: AnyTutorial) => void;
   advancePhase: () => void;
   advanceManually: () => void;
   setNodes: (nodes: Node[]) => void;
@@ -144,7 +145,7 @@ interface TutorialStoreState {
   skipStep: () => void;
   completeTutorial: () => void;
   resetTutorial: (id: string) => void;
-  startTutorialFresh: (tutorial: TutorialDefinition) => Promise<{ success: boolean; error?: string }>;
+  startTutorialFresh: (tutorial: AnyTutorial) => Promise<{ success: boolean; error?: string }>;
   exitTutorial: () => void;
   savePhase: (tutorialId: string, step: number, phase: string) => void;
   getPersistedPhase: (tutorialId: string, step: number) => string | null;
@@ -194,21 +195,28 @@ export const useTutorialStore = create<TutorialStoreState>()(
       isSwitchingTutorial: false,
       completedTutorials: [],
 
-      startTutorialByDef: (tutorial) => {
+      startTutorialByDef: (tutorialInput) => {
+        // All tutorials in the TUTORIALS array are TutorialDefinition instances
+        const tutorial = tutorialInput as unknown as TutorialDefinition;
         const saved = get().richProgress[tutorial.id];
         let session: TutorialSession;
+        let restoredNodes: Node[] = [];
+        let restoredEdges: Edge[] = [];
         
         const totalSteps = tutorial.levels.reduce((acc, l) => acc + l.steps.length, 0);
         
         if (saved) {
+          restoredNodes = saved.canvasNodes as unknown as Node[];
+          restoredEdges = migrateEdgesToSmoothstep(saved.canvasEdges as unknown as Edge[]);
+          
           session = engine.restoreSession(tutorial, {
             levelIndex: saved.currentLevel,
             stepIndex: saved.currentStep,
             phase: saved.currentPhase as PhaseName,
             completedLevelIds: saved.completedLevels.map(String),
             canvasSnapshot: {
-              nodes: saved.canvasNodes as unknown as Node[],
-              edges: migrateEdgesToSmoothstep(saved.canvasEdges as unknown as Edge[]),
+              nodes: restoredNodes,
+              edges: restoredEdges,
             },
           });
         } else {
@@ -218,8 +226,8 @@ export const useTutorialStore = create<TutorialStoreState>()(
         set({
           activeTutorial: tutorial,
           session,
-          nodes: [],
-          edges: [],
+          nodes: restoredNodes,
+          edges: restoredEdges,
           messages: [],
           isLoading: false,
           error: null,
@@ -243,10 +251,13 @@ export const useTutorialStore = create<TutorialStoreState>()(
       },
 
       advancePhase: () => {
-        const { session, activeTutorial } = get();
+        const { session, activeTutorial, totalSteps } = get();
         if (session && activeTutorial) {
           const newSession = engine.advancePhase(session, activeTutorial);
-          set({ session: newSession });
+          set({ 
+            session: newSession,
+            currentStep: newSession.stepIndex + 1,
+          });
         }
       },
 
@@ -254,7 +265,10 @@ export const useTutorialStore = create<TutorialStoreState>()(
         const { session, activeTutorial } = get();
         if (session && activeTutorial) {
           const newSession = engine.forceAdvance(session, activeTutorial);
-          set({ session: newSession });
+          set({ 
+            session: newSession,
+            currentStep: newSession.stepIndex + 1,
+          });
         }
       },
 
@@ -341,8 +355,10 @@ export const useTutorialStore = create<TutorialStoreState>()(
         }
       },
 
-      // FIX: Start tutorial fresh - always from DB, never cache
-      startTutorialFresh: async (tutorial: TutorialDefinition): Promise<{ success: boolean; error?: string }> => {
+      // FIX: Start tutorial fresh - with timeout handling
+      startTutorialFresh: async (tutorialInput): Promise<{ success: boolean; error?: string }> => {
+        // All tutorials in the TUTORIALS array are TutorialDefinition instances
+        const tutorial = tutorialInput as unknown as TutorialDefinition;
         const totalSteps = tutorial.levels.reduce((acc, l) => acc + l.steps.length, 0);
         
         // Step 1: Clear local state
@@ -361,19 +377,30 @@ export const useTutorialStore = create<TutorialStoreState>()(
           isLevelComplete: false,
         });
 
-        // Step 3: Upsert DB with fresh state
+        // Step 3: Try to upsert DB with fresh state (with timeout)
         if (isSupabaseConfigured) {
           try {
-            const { user } = (await import('@/store/authStore')).useAuthStore.getState();
+            // Create a timeout promise that rejects after 5 seconds
+            const timeoutPromise = new Promise<never>((_, reject) => 
+              setTimeout(() => reject(new Error('Auth timeout')), 5000)
+            );
             
-            if (user) {
+            // Race between auth check and timeout
+            const authPromise = (async () => {
+              const { useAuthStore } = await import('@/store/authStore');
+              return useAuthStore.getState();
+            })();
+            
+            const { user } = await Promise.race([authPromise, timeoutPromise]) as { user: unknown };
+            
+            if (user && typeof user === 'object' && 'id' in user) {
               const { getSupabaseClient } = await import('@/lib/supabase');
               const supabase = getSupabaseClient();
               
-              const { data, error } = await supabase
-                .from('tutorial_progress')
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const { error } = await (supabase.from('tutorial_progress') as any)
                 .upsert({
-                  user_id: user.id,
+                  user_id: (user as { id: string }).id,
                   tutorial_id: tutorial.id,
                   current_level: 1,
                   current_step: 1,
@@ -387,31 +414,16 @@ export const useTutorialStore = create<TutorialStoreState>()(
                 .single();
 
               if (error) {
-                return { success: false, error: error.message };
+                console.warn('[tutorialStore] Supabase upsert failed, continuing locally:', error.message);
               }
-
-              // Step 4: Set Zustand state from DB response (now level 1, step 1)
-              const session = engine.initSession(tutorial);
-              set({
-                activeTutorial: tutorial,
-                session,
-                currentStep: 1,
-                currentLevel: 1,
-                completedLevels: [],
-                totalSteps,
-                activeTutorialId: tutorial.id,
-                isComplete: false,
-                isLevelComplete: false,
-              });
-
-              return { success: true };
             }
           } catch (e) {
-            return { success: false, error: String(e) };
+            // Timeout or auth error - continue with local-only mode
+            console.warn('[tutorialStore] Auth check timed out or failed, starting locally:', e instanceof Error ? e.message : String(e));
           }
         }
 
-        // If no Supabase, just start fresh locally
+        // Start fresh locally (either Supabase not configured, auth timed out, or no user)
         const session = engine.initSession(tutorial);
         set({
           activeTutorial: tutorial,

@@ -167,9 +167,28 @@ function TutorialCanvasInner({
 
   // Restore canvas from richProgress on mount and when tutorialId changes.
   // tutorialId comes from the URL — always correct, never stale.
+  // Skip if nodes are already populated (restored by startTutorialByDef in store)
+  const initialNodesLoadedRef = useRef(false);
+  const nodesLengthRef = useRef(nodes.length);
+  nodesLengthRef.current = nodes.length;
+  
+  // Reset the ref when tutorialId changes
+  useEffect(() => {
+    initialNodesLoadedRef.current = false;
+  }, [tutorialId]);
+  
   useEffect(() => {
     if (!hasHydrated) return;
     if (!tutorialId) return;
+    if (initialNodesLoadedRef.current) return;
+    
+    // Nodes were already restored from store via startTutorialByDef
+    if (nodesLengthRef.current > 0) {
+      restoredRef.current = true;
+      initialNodesLoadedRef.current = true;
+      setTimeout(() => reactFlowInstance.fitView({ maxZoom: 0.7 }), 100);
+      return;
+    }
     restoredRef.current = false;
 
     const progress = getProgress(tutorialId);
@@ -185,6 +204,7 @@ function TutorialCanvasInner({
       setTimeout(() => reactFlowInstance.fitView({ maxZoom: 0.7 }), 100);
     }
     restoredRef.current = true;
+    initialNodesLoadedRef.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasHydrated, tutorialId, getProgress]);
 
