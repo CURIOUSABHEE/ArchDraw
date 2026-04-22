@@ -94,6 +94,8 @@ FLOW RULES:
 
 RULES:
 - One JSON object per line. No arrays, no wrappers, no prose.
+- NEVER output [array] brackets - always use {"key": "value"} format
+- NEVER wrap objects in [...] arrays
 - NAME BY RESPONSIBILITY: "Cache" not "Redis"
 
 EXAMPLE (e-commerce with 3 nodes, 2 flows):
