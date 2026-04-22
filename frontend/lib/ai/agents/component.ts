@@ -358,6 +358,21 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
   });
 
   components.push({
+    id: 'compute-group',
+    type: 'group',
+    label: 'Compute Services',
+    layer: 'compute',
+    tier: 'compute',
+    tierColor: '#14b8a6',
+    width: 400,
+    height: 300,
+    icon: 'server',
+    isGroup: true,
+    groupColor: '#14b8a6',
+    metadata: {},
+  });
+
+  components.push({
     id: 'cdn',
     type: 'architectureNode',
     label: 'CDN',
@@ -414,6 +429,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     height: 70,
     icon: 'lock',
     serviceType: 'auth',
+    parentId: 'compute-group',
     metadata: { technology: 'generic-auth' },
   });
 
@@ -429,6 +445,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     height: 70,
     icon: 'users',
     serviceType: 'api',
+    parentId: 'compute-group',
     metadata: { technology: 'generic-service' },
   });
 
@@ -444,6 +461,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     height: 70,
     icon: 'package',
     serviceType: 'api',
+    parentId: 'compute-group',
     metadata: { technology: 'generic-service' },
   });
 
@@ -459,6 +477,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     height: 70,
     icon: 'bell',
     serviceType: 'api',
+    parentId: 'compute-group',
     metadata: { technology: 'generic-service' },
   });
 
@@ -493,6 +512,21 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
   });
 
   components.push({
+    id: 'data-group',
+    type: 'group',
+    label: 'Data Layer',
+    layer: 'data',
+    tier: 'data',
+    tierColor: '#3b82f6',
+    width: 400,
+    height: 300,
+    icon: 'database',
+    isGroup: true,
+    groupColor: '#3b82f6',
+    metadata: {},
+  });
+
+  components.push({
     id: 'primary-db',
     type: 'architectureNode',
     label: 'Primary Database',
@@ -504,6 +538,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     height: 70,
     icon: 'database',
     serviceType: 'database',
+    parentId: 'data-group',
     metadata: { technology: 'generic-sql' },
   });
 
@@ -519,6 +554,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     height: 70,
     icon: 'gauge',
     serviceType: 'cache',
+    parentId: 'data-group',
     metadata: { technology: 'generic-cache' },
   });
 
@@ -534,6 +570,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     height: 70,
     icon: 'hard-drive',
     serviceType: 'storage',
+    parentId: 'data-group',
     metadata: { technology: 'generic-storage' },
   });
 

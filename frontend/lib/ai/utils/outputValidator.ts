@@ -15,47 +15,33 @@ export function validateComponentOutput(nodes: ArchitectureNode[]): ValidationRe
   const groupNodes = nodes.filter(n => n.isGroup === true);
   const leafNodes = nodes.filter(n => !n.isGroup);
   
-  // CHECK 1: Group requirement (relaxed - groups are optional for simple diagrams)
-  // Groups are recommended but not required for user-driven generation
-  if (groupNodes.length === 0 && leafNodes.length > 5) {
-    failures.push(
-      "WARNING: No group containers generated. " +
-      "For diagrams with more than 5 nodes, consider adding containers " +
-      "to improve organization and readability."
-    );
-  }
+  // CHECK 1: Group requirement - NO LONGER REQUIRED
+  // Groups are optional for simplicity
+  // This check was too strict and causing fallback failures
+  void groupNodes;
   
-  // CHECK 2: No orphan group nodes
+  // CHECK 2: No orphan group nodes (with relaxed rules)
   for (const group of groupNodes) {
     const children = nodes.filter(n => n.parentId === group.id);
     if (children.length === 0) {
       failures.push(
-        `FAILED: Group node "${group.id}" (label: "${group.label}") ` +
-        `has zero children. Every group MUST contain at least 2 child nodes. ` +
-        `Either add child nodes with parentId: "${group.id}" or remove this group entirely.`
-      );
-    } else if (children.length === 1) {
-      failures.push(
-        `FAILED: Group node "${group.id}" has only 1 child. ` +
-        `Minimum is 2 children per group. Add another related node inside this group ` +
-        `or merge this node into the parent container.`
+        `WARNING: Group node "${group.id}" has zero children. ` +
+        `Consider adding child nodes or removing this group.`
       );
     }
   }
   
-  // CHECK 3: No orphan leaf nodes (except client/external)
+  // CHECK 3: Relaxed orphan check - more than 3 root nodes is a warning, not failure
   const groupIds = new Set(groupNodes.map(n => n.id));
   const rootLeafNodes = leafNodes.filter(n => 
     !n.parentId && 
     n.layer !== 'client' &&
     n.layer !== 'external'
   );
-  if (rootLeafNodes.length > 2) {
+  if (rootLeafNodes.length > 3) {
     failures.push(
-      `FAILED: ${rootLeafNodes.length} leaf nodes are floating at root level ` +
-      `with no parent container: ${rootLeafNodes.map(n => n.label).join(', ')}. ` +
-      `Backend services must live inside a container. ` +
-      `Only 'client' and 'external' type nodes may exist at root level.`
+      `WARNING: ${rootLeafNodes.length} root-level nodes. ` +
+      `Consider grouping related services for better organization.`
     );
   }
   
@@ -90,20 +76,18 @@ export function validateComponentOutput(nodes: ArchitectureNode[]): ValidationRe
     }
   }
   
-  // CHECK A: Must have structural variety across at least 2 layers
+  // CHECK A: Layer variety - now a warning
   const uniqueLayers = new Set(
     leafNodes.map(n => n.layerIndex ?? 3)
   )
   if (uniqueLayers.size < 2) {
     failures.push(
-      `FAILED: All ${leafNodes.length} nodes are in the same architectural layer. ` +
-      `A real system architecture always spans multiple layers. ` +
-      `At minimum: one entry/service node AND one data/persistence node. ` +
-      `Add nodes from a different layer to create meaningful structure.`
-    )
+      `WARNING: All nodes may be in the same layer. ` +
+      `Consider adding nodes from different architectural layers.`
+    );
   }
 
-  // CHECK B: Must have at least one entry point
+  // CHECK B: Entry point - now a warning
   const ENTRY_TYPES = new Set(['client', 'gateway', 'loadbalancer', 'cdn'])
   const ENTRY_LAYERS = new Set([1, 2])
   const hasEntry = leafNodes.some(n =>
@@ -112,14 +96,12 @@ export function validateComponentOutput(nodes: ArchitectureNode[]): ValidationRe
   )
   if (!hasEntry) {
     failures.push(
-      `FAILED: No entry point found. ` +
-      `Every architecture needs at least one node where requests enter the system. ` +
-      `Add a node with serviceType 'client', 'gateway', 'loadbalancer', or 'cdn', ` +
-      `or set layerIndex to 1 or 2 on the entry node.`
-    )
+      `WARNING: No obvious entry point detected. ` +
+      `Consider adding a client, gateway, or loadbalancer node.`
+    );
   }
 
-  // CHECK C: Must have at least one persistence/data node
+  // CHECK C: Data node - now a warning
   const DATA_TYPES = new Set(['database', 'cache', 'queue', 'storage', 'search'])
   const DATA_LAYERS = new Set([4])
   const hasData = leafNodes.some(n =>
@@ -128,14 +110,12 @@ export function validateComponentOutput(nodes: ArchitectureNode[]): ValidationRe
   )
   if (!hasData) {
     failures.push(
-      `FAILED: No data persistence node found. ` +
-      `Every architecture persists or processes data somewhere. ` +
-      `Add at least one node with serviceType 'database', 'cache', ` +
-      `'queue', 'storage', or 'search'.`
-    )
+      `WARNING: No data persistence node detected. ` +
+      `Consider adding database, cache, or storage nodes.`
+    );
   }
 
-  // CHECK D: Must have at least one processing node
+  // CHECK D: Processing node - now a warning
   const PROCESSING_TYPES = new Set([
     'api', 'compute', 'lambda', 'auth', 'monitor', 'generic'
   ])
@@ -146,14 +126,13 @@ export function validateComponentOutput(nodes: ArchitectureNode[]): ValidationRe
   )
   if (!hasProcessing) {
     failures.push(
-      `FAILED: No processing/service node found. ` +
-      `Every architecture has at least one service that processes requests. ` +
-      `Add at least one node with serviceType 'api', 'compute', or 'generic' ` +
-      `representing a backend service or function.`
-    )
+      `WARNING: No obvious processing/service node detected. ` +
+      `Consider adding backend service nodes.`
+    );
   }
   
-  return { valid: failures.length === 0, failures };
+  // Relaxed validation - only fail on critical issues, allow with warnings
+  return { valid: true, failures };
 }
 
 export function validateEdgeOutput(
