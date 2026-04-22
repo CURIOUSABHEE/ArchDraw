@@ -16,8 +16,8 @@ export type ProgressCallback = (progress: GenerationProgress) => void;
 
 const GROQ_TIMEOUT_MS = 2500;
 const OPENROUTER_TIMEOUT_MS = 8000;
-const MAX_NODES = 20;
-const MAX_EDGES_PER_NODE = 3;
+const MAX_NODES = 25;
+const MAX_EDGES_PER_NODE = 5;
 
 const LAYER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
 const LAYER_X: Record<string, number> = { client: 50, edge: 320, compute: 650, async: 1000, data: 1350, observe: 1700, external: 2050 };
@@ -1085,7 +1085,17 @@ function getFallbackResponse(): LLMResponse {
 
 function flowsToEdges(nodes: ArchitectureNode[], flows: string[][]): ArchitectureEdge[] {
   const edges: ArchitectureEdge[] = [];
-  const nodeMap = new Map(nodes.map(n => [n.label.toLowerCase(), n.id]));
+  const nodeMap = new Map<string, string>();
+  
+  // Build comprehensive node map (match by label, id, or partial)
+  for (const node of nodes) {
+    nodeMap.set(node.label.toLowerCase(), node.id);
+    nodeMap.set(node.id, node.id);
+    // Also map kebab-case versions
+    const kebab = node.label.toLowerCase().replace(/\s+/g, '-');
+    nodeMap.set(kebab, node.id);
+  }
+  
   const nodeTierMap = new Map(nodes.map(n => [n.id, n.tier || n.layer || 'compute']));
   
   const TIER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
@@ -1094,37 +1104,59 @@ function flowsToEdges(nodes: ArchitectureNode[], flows: string[][]): Architectur
   function isForwardFlow(srcTier: string, tgtTier: string): boolean {
     const srcIdx = TIER_ORDER.indexOf(srcTier);
     const tgtIdx = TIER_ORDER.indexOf(tgtTier);
-    return tgtIdx > srcIdx;
+    // Allow forward flows OR flows within adjacent tiers (allow more connections)
+    return tgtIdx >= srcIdx || (tgtIdx === srcIdx - 1);
+  }
+
+  function findNodeId(key: string): string | undefined {
+    const k = key.toLowerCase().trim();
+    // Try exact match
+    if (nodeMap.has(k)) return nodeMap.get(k);
+    // Try partial match
+    for (const [mapKey, nodeId] of nodeMap.entries()) {
+      if (mapKey.includes(k) || k.includes(mapKey)) {
+        return nodeId;
+      }
+    }
+    return undefined;
   }
 
   for (const flow of flows) {
+    if (flow.length < 2) continue;
+    
     for (let i = 0; i < flow.length - 1; i++) {
-      const srcKey = flow[i].toLowerCase();
-      const tgtKey = flow[i + 1].toLowerCase();
-      const srcId = nodeMap.get(srcKey);
-      const tgtId = nodeMap.get(tgtKey);
+      const srcId = findNodeId(flow[i]);
+      const tgtId = findNodeId(flow[i + 1]);
 
-      if (!srcId || !tgtId) continue;
+      if (!srcId || !tgtId) {
+        logger.log(`[Flows] Node not found: ${flow[i]} -> ${flow[i + 1]}`);
+        continue;
+      }
       if (srcId === tgtId) continue;
 
       const srcTier = nodeTierMap.get(srcId) || 'compute';
       const tgtTier = nodeTierMap.get(tgtId) || 'compute';
 
-      if (!isForwardFlow(srcTier, tgtTier)) {
+      // Only skip clearly wrong directions (e.g., data → client)
+      const srcIdx = TIER_ORDER.indexOf(srcTier);
+      const tgtIdx = TIER_ORDER.indexOf(tgtTier);
+      if (tgtIdx < srcIdx - 1) {
         logger.log(`[Flows] Skipping backward edge: ${flow[i]} (${srcTier}) → ${flow[i + 1]} (${tgtTier})`);
         continue;
       }
 
       const edgeKey = `${srcId}→${tgtId}`;
       if (addedEdges.has(edgeKey)) continue;
-      if (addedEdges.has(`${tgtId}→${srcId}`)) {
-        logger.log(`[Flows] Skipping bidirectional: ${tgtId} already connects to ${srcId}`);
-        continue;
-      }
 
       addedEdges.add(edgeKey);
 
-      const commType = (tgtTier === 'async' || srcTier === 'async') ? 'async' : 'sync';
+      // Determine communication type
+      let commType = 'sync';
+      if (tgtTier === 'async' || srcTier === 'async') {
+        commType = 'async';
+      } else if (tgtTier === 'data' || srcTier === 'data') {
+        commType = 'stream';
+      }
       const style = COMM_STYLES[commType];
 
       edges.push({

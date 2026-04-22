@@ -294,12 +294,13 @@ INPUT: {reasoning}
 
 RULES:
 - One JSON object per line. No arrays, no wrappers, no prose.
-- Nodes first (MAX 8), then flows.
+- Generate MINIMUM 12 nodes representing all key components.
+- Generate MINIMUM 10 flow paths showing data movement.
 - NAME BY RESPONSIBILITY: "Rate Limiter" not "nginx"
 - LAYER→COLOR: Presentation→#a855f7|Gateway→#8b5cf6|Application→#14b8a6|Data→#3b82f6|Observability→#f59e0b
 
 NODE LINE:
-{"id":"kebab-id","label":"Name","subtitle":"max 6 words","layer":"Layer","icon":"server"}
+{"id":"kebab-id","label":"Name","subtitle":"max 6 words","layer":"Layer","icon":"server","serviceType":"api"}
 
 FLOW LINE:
 {"type":"flow","path":["id1","id2","id3"],"label":"what moves","async":bool}
