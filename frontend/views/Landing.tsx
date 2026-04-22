@@ -10,6 +10,8 @@ import ReactFlow, {
   type Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { useAuthStore } from '@/store/authStore';
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 
 const ICON: Record<string, string> = {
   Client: '🖥️',
@@ -128,11 +130,16 @@ const buttonSecondaryStyle = {
 export default function LandingPage() {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
+  const { user } = useAuthStore();
 
   useEffect(() => {
+    if (isSupabaseConfigured && user) {
+      router.replace('/dashboard');
+      return;
+    }
     const t = setTimeout(() => setVisible(true), 100);
     return () => clearTimeout(t);
-  }, []);
+  }, [user, router]);
 
   return (
     <div style={{

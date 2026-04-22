@@ -3,23 +3,19 @@
 import { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Handle, Position, NodeProps, NodeResizer, useReactFlow } from 'reactflow';
 import type { Node } from 'reactflow';
-import { ChevronRight, ChevronDown } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 
 export interface GroupNodeData {
   label: string;
   color?: string;
-  collapsed?: boolean;
 }
 
 function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
   const { setNodes } = useReactFlow();
   const nodes = useDiagramStore((s: { nodes: Node[] }) => s.nodes);
-  const moveToGroup = useDiagramStore((s: { moveToGroup: (nodeId: string, groupId: string | null) => void }) => s.moveToGroup);
   const color = data.color ?? '#6366f1';
   const [label, setLabel] = useState(data.label);
   const [editing, setEditing] = useState(false);
-  const [collapsed, setCollapsed] = useState(data.collapsed ?? false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const depth = useMemo(() => {
@@ -30,12 +26,6 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
     };
     return findDepth(id, 0);
   }, [id, nodes]);
-
-  const childCount = useMemo(() => {
-    return nodes.filter((n: Node) => n.parentId === id).length;
-  }, [id, nodes]);
-
-  const hasChildren = childCount > 0;
 
   useEffect(() => {
     setLabel(data.label);
@@ -51,21 +41,6 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
     setEditing(false);
     setNodes((nds: Node[]) => nds.map((n: Node) => n.id === id ? { ...n, data: { ...n.data, label } } : n));
   }, [id, label, setNodes]);
-
-  const toggleCollapse = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCollapsed(!collapsed);
-    setNodes((nds: Node[]) => nds.map((n: Node) => n.id === id ? { ...n, data: { ...n.data, collapsed: !collapsed } } : n));
-    if (!collapsed && hasChildren) {
-      const children = nodes.filter((n: Node) => n.parentId === id);
-      const parent = nodes.find((n: Node) => n.id === id);
-      if (parent) {
-        children.forEach((child: Node) => {
-          moveToGroup(child.id, null);
-        });
-      }
-    }
-  }, [collapsed, hasChildren, id, nodes, setNodes, moveToGroup]);
 
   const borderOpacity = selected ? 1 : depth > 0 ? 0.6 : 0.4;
   const bgOpacity = depth > 0 ? 0.08 : 0.06;
@@ -113,7 +88,7 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
           />
         )}
 
-        {/* Label row with collapse toggle */}
+        {/* Label */}
         <div
           style={{
             position: 'absolute',
@@ -121,30 +96,9 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
             left: depth > 0 ? 16 : 14,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
           }}
           onDoubleClick={startEdit}
         >
-          {hasChildren ? (
-            <button
-              onClick={toggleCollapse}
-              onMouseDown={(e) => e.stopPropagation()}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                color: color,
-              }}
-            >
-              {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-            </button>
-          ) : (
-            <span style={{ width: 14, display: 'inline-block' }} />
-          )}
-          
           {editing ? (
             <input
               ref={inputRef}
@@ -186,18 +140,6 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
               }}
             >
               {label}
-            </span>
-          )}
-          
-          {hasChildren && !editing && (
-            <span
-              style={{
-                fontSize: 10,
-                color: `${color}80`,
-                fontWeight: 500,
-              }}
-            >
-              {collapsed ? `${childCount} hidden` : childCount}
             </span>
           )}
         </div>

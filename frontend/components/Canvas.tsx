@@ -29,13 +29,12 @@ import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import { useCanvasTheme } from '@/lib/theme';
 import { TemplateModal } from '@/components/TemplateModal';
-import { AutoLayoutButton } from '@/components/canvas/toolbar/AutoLayoutButton';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
+import { useGrouping } from '@/hooks/useGrouping';
 import { toast } from 'sonner';
 import type { Node, Edge } from 'reactflow';
 import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
-import { useAutoLayout } from '@/src/hooks/useAutoLayout';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -73,8 +72,9 @@ function CanvasInner() {
 
   const reactFlowInstance = useReactFlow();
   const { onNodeDrag, onNodeDragStop: onNodeDragStopSnap } = useSnapping();
-  const { triggerLayout, isLayouting } = useAutoLayout();
   useMiddleMousePan();
+  const { selectionRect } = useGrouping();
+
   const [labelDraft, setLabelDraft] = useState('');
   const labelInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -303,22 +303,17 @@ function CanvasInner() {
     const currentNodes = reactFlowInstance.getNodes();
     setNodes(resolveNodeCollisions(currentNodes));
     
-    triggerLayout();
-    
     useDiagramStore.getState().pushHistory();
     dismissOnboarding();
-  }, [onNodeDragStopSnap, reactFlowInstance, setNodes, dismissOnboarding, triggerLayout]);
+  }, [onNodeDragStopSnap, reactFlowInstance, setNodes, dismissOnboarding]);
 
   const handleOnConnect = useCallback((connection: any) => {
     onConnect(connection);
-    triggerLayout();
-  }, [onConnect, triggerLayout]);
+  }, [onConnect]);
 
   const handleOnNodesChange = useCallback((changes: any[]) => {
     onNodesChange(changes);
-    const hasAddition = changes.some((c) => c.type === 'add');
-    if (hasAddition) triggerLayout();
-  }, [onNodesChange, triggerLayout]);
+  }, [onNodesChange]);
 
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -415,7 +410,7 @@ function CanvasInner() {
           }}
         />
       )}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0" style={{ width: '100%', height: '100%', top: 48 }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -458,12 +453,6 @@ function CanvasInner() {
             data: { connectionType: 'smooth', pathType: 'Smoothstep' },
           }}
         >
-          <AutoLayoutButton />
-          {isLayouting && (
-            <Panel position="bottom-center">
-              <span style={{ fontSize: 11, color: '#666', background: 'rgba(255,255,255,0.9)', padding: '4px 12px', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>Arranging…</span>
-            </Panel>
-          )}
           <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
           <defs>
             <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
@@ -568,6 +557,22 @@ function CanvasInner() {
         })()}
       </ReactFlow>
       </div>
+
+      {selectionRect && (
+        <div
+          style={{
+            position: 'absolute',
+            left: !isNaN(selectionRect.x) ? selectionRect.x : 0,
+            top: !isNaN(selectionRect.y) ? selectionRect.y : 0,
+            width: !isNaN(selectionRect.width) && selectionRect.width > 0 ? selectionRect.width : 0,
+            height: !isNaN(selectionRect.height) && selectionRect.height > 0 ? selectionRect.height : 0,
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            border: '1px dashed rgba(59, 130, 246, 0.5)',
+            pointerEvents: 'none',
+            zIndex: 9999,
+          }}
+        />
+      )}
       
       <GuideLines />
 

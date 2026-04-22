@@ -820,11 +820,29 @@ export const useDiagramStore = create<DiagramState>()(
         
         pushHistory();
         
-        const newNodes = currentNodes.filter((n) => !idsToDelete.includes(n.id));
-        const newEdges = currentEdges.filter((e) => !idsToDelete.includes(e.source) && !idsToDelete.includes(e.target));
-        const canvases = syncActiveCanvas(currentCanvases, activeCanvasId, newNodes, newEdges);
+        const groupIdsToDelete = idsToDelete.filter((id) => {
+          const node = currentNodes.find((n) => n.id === id);
+          return node?.type === 'groupNode';
+        });
         
-        set({ nodes: newNodes, edges: newEdges, canvases, selectedNodeIds: [], selectedNodeId: null });
+        const childIdsOfGroups = new Set(
+          groupIdsToDelete.flatMap((gid) =>
+            currentNodes.filter((n) => n.parentId === gid).map((n) => n.id)
+          )
+        );
+        
+        const allIdsToDelete = new Set([...idsToDelete, ...Array.from(childIdsOfGroups)]);
+        
+        const finalNodes = currentNodes.filter((n) => !allIdsToDelete.has(n.id));
+        
+        const newEdges = currentEdges.filter((e) => {
+          if (allIdsToDelete.has(e.source) || allIdsToDelete.has(e.target)) return false;
+          return true;
+        });
+        
+        const syncedCanvases = syncActiveCanvas(currentCanvases, activeCanvasId, finalNodes, newEdges);
+        
+        set({ nodes: finalNodes, edges: newEdges, canvases: syncedCanvases, selectedNodeIds: [], selectedNodeId: null });
         get().saveCanvasToDB(activeCanvasId);
       },
 

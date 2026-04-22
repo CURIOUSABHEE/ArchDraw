@@ -625,16 +625,41 @@ export function Toolbar() {
           {/* Current Canvas Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                className="flex items-center gap-2 px-3 py-1.5 rounded-[14px] text-xs font-medium transition-all"
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-[14px] text-xs font-medium transition-all cursor-pointer"
                 style={{ background: '#EDEDED', color: '#1A1A1A' }}
+                onDoubleClick={(e) => {
+                  if (activeCanvas) {
+                    e.stopPropagation();
+                    startRename(activeCanvasId, activeCanvas.name, e);
+                  }
+                }}
               >
-                <div className="w-5 h-5 rounded-[8px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                  <LayoutGrid className="w-3 h-3 text-white" />
-                </div>
-                <span>{activeCanvas?.name || 'Select Canvas'}</span>
-                <ChevronDown className="w-3 h-3" style={{ color: '#6B6B6B' }} />
-              </button>
+                {editingId === activeCanvasId ? (
+                  <input
+                    ref={editInputRef}
+                    value={editDraft}
+                    onChange={(e) => setEditDraft(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === 'Enter') commitRename();
+                      if (e.key === 'Escape') setEditingId(null);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-transparent outline-none border-none text-xs font-medium w-full min-w-0"
+                    style={{ color: 'inherit', background: 'transparent', maxWidth: 120 }}
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    <div className="w-5 h-5 rounded-[8px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                      <LayoutGrid className="w-3 h-3 text-white" />
+                    </div>
+                    <span className="truncate max-w-[120px]">{activeCanvas?.name || 'Select Canvas'}</span>
+                    <ChevronDown className="w-3 h-3 shrink-0" style={{ color: '#6B6B6B' }} />
+                  </>
+                )}
+              </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="start"
