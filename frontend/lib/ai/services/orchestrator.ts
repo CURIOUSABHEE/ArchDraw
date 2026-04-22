@@ -1520,6 +1520,13 @@ function resolveCollisionsOptimized(nodes: ReactFlowNode[], edges: ReactFlowEdge
   }));
 }
 
+/**
+ * Generate an architecture diagram from a user intent.
+ * @param userIntent - The user's description and intent parameters
+ * @param onProgress - Optional callback for progress updates
+ * @param onStreaming - Optional callback for streaming token events
+ * @returns A GenerationResult containing nodes, edges, and metadata
+ */
 export async function generateDiagram(
   userIntent: UserIntent,
   onProgress?: ProgressCallback,
