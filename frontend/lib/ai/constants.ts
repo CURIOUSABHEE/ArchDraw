@@ -120,15 +120,15 @@ First token must be {`;
 export const MODEL_CONFIG = {
   reasoning: {
     primary: 'llama-3.3-70b-versatile',
-    timeout: 2000,
-    maxTokens: 500,
+    timeout: 2500,
+    maxTokens: 800,
     temperature: 0.1,
   },
   diagram: {
     primary: 'llama-3.3-70b-versatile',
     timeout: 6000,
-    maxTokens: 2000,
-    temperature: 0.2,
+    maxTokens: 2500,
+    temperature: 0.15,
   },
 };
 
