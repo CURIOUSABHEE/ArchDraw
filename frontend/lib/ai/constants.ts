@@ -136,13 +136,18 @@ export function getComposedPrompt(
   description: string,
   intent: string = 'generic-web-app'
 ): { systemPrompt: string; userPrompt: string } {
+  const MAX_DESCRIPTION_LENGTH = 2000;
+  const truncated = description.length > MAX_DESCRIPTION_LENGTH 
+    ? description.slice(0, MAX_DESCRIPTION_LENGTH) + '...'
+    : description;
+  
   const systemPrompt = REASONING_PROMPT
-    .replace('{description}', description)
+    .replace('{description}', truncated)
     .replace('{intent}', intent);
 
   return {
     systemPrompt,
-    userPrompt: description,
+    userPrompt: truncated,
   };
 }
 
