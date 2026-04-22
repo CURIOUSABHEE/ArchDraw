@@ -30,7 +30,7 @@ const COMM_STYLES: Record<string, { color: string; dash: string; animated: boole
   dep: { color: '#6b7280', dash: '6,3', animated: false, marker: 'none' },
 };
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes - diagrams don't change often
 
 interface CacheEntry { nodes: ArchitectureNode[]; flows: string[][]; ts: number }
 
@@ -77,7 +77,7 @@ class SemanticCache {
 
   set(key: string, data: LLMResponse): void {
     this.memory.set(key, { nodes: data.nodes, flows: data.flows, ts: Date.now() });
-    if (this.memory.size > 100) {
+    if (this.memory.size > 200) {
       this.prune();
     }
   }
