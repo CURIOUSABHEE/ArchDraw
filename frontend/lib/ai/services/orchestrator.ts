@@ -282,32 +282,36 @@ async function parseStreamingResponse(
 
     if (nodes.length === 0 && flows.length === 0) {
       const cleaned = accumulatedTokens.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-      const parsed = JSON.parse(cleaned);
-      
-      if (parsed.layerAssignment && Object.keys(parsed.layerAssignment).length > 0) {
-        Object.assign(reasoning, {
-          problemFraming: parsed.systemType,
-          boundaries: parsed.boundaries,
-          patternSelections: parsed.patterns,
-          stressTestResults: parsed.stressTests,
-        });
-
-        for (const [label, layer] of Object.entries(parsed.layerAssignment)) {
-          nodes.push({
-            id: label.toLowerCase().replace(/\s+/g, '-'),
-            type: 'architectureNode',
-            label,
-            layer: (layer as LayerType) || 'compute',
-            width: 180,
-            height: 70,
-            icon: 'server',
-            metadata: {},
+      try {
+        const parsed = JSON.parse(cleaned);
+        
+        if (parsed.layerAssignment && Object.keys(parsed.layerAssignment).length > 0) {
+          Object.assign(reasoning, {
+            problemFraming: parsed.systemType,
+            boundaries: parsed.boundaries,
+            patternSelections: parsed.patterns,
+            stressTestResults: parsed.stressTests,
           });
-        }
-      }
 
-      if (parsed.flows) {
-        flows.push(...parsed.flows);
+          for (const [label, layer] of Object.entries(parsed.layerAssignment)) {
+            nodes.push({
+              id: label.toLowerCase().replace(/\s+/g, '-'),
+              type: 'architectureNode',
+              label,
+              layer: (layer as LayerType) || 'compute',
+              width: 180,
+              height: 70,
+              icon: 'server',
+              metadata: {},
+            });
+          }
+        }
+
+        if (parsed.flows) {
+          flows.push(...parsed.flows);
+        }
+      } catch (parseError) {
+        logger.warn('[Pipeline] Fallback JSON parse failed:', parseError);
       }
     }
 
