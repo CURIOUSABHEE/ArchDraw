@@ -1583,7 +1583,7 @@ export async function generateDiagram(
         const validation = validateReasoningOutput(reasoningResult);
 
         if (!validation.valid) {
-          logger.warn('[Pipeline] Reasoning validation failed:', validation.errors);
+          logger.warn('[Pipeline] REASONING_VALIDATION_FAILED - errors:', validation.errors.join('; '));
           const fallback = getFallbackResponse();
           return { nodes: fallback.nodes, flows: fallback.flows };
         }
@@ -1603,18 +1603,19 @@ export async function generateDiagram(
         result = await callOpenRouterDiagram(reasoningResult);
         
         if (!result || result.nodes.length === 0) {
-          logger.log('[Pipeline] OpenRouter failed/empty, trying Groq fallback...');
+          logger.warn('[Pipeline] OpenRouter returned empty/zero nodes');
+          logger.log('[Pipeline] Trying Groq fallback...');
           try {
             result = await callDiagramLLM(reasoningResult, onStreaming);
           } catch (groqError) {
-            logger.log('[Pipeline] Groq also failed:', groqError);
+            logger.error('[Pipeline] Groq failed with error:', groqError);
           }
         } else {
           logger.log('[Pipeline] OpenRouter succeeded with', result.nodes.length, 'nodes');
         }
         
         if (!result || result.nodes.length === 0) {
-          logger.log('[Pipeline] All providers failed, using fallback');
+          logger.warn('[Pipeline] ALL_PROVIDERS_FAILED - using fallback architecture');
           result = getFallbackResponse();
         }
         
