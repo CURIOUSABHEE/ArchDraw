@@ -544,24 +544,36 @@ export async function computeELKLayout(
 
   const edgeSourceIndex = new Map<string, number>();
   const edgeTargetIndex = new Map<string, number>();
+  const nodeIds = new Set(nodesWithGroupDims.map(n => n.id));
 
-  const elkEdges = validatedEdges.map((edge, edgeIdx) => {
-    const sourceIdx = edgeSourceIndex.get(edge.source) || 0;
-    const targetIdx = edgeTargetIndex.get(edge.target) || 0;
-    edgeSourceIndex.set(edge.source, sourceIdx + 1);
-    edgeTargetIndex.set(edge.target, targetIdx + 1);
+  const elkEdges = validatedEdges
+    .filter(edge => {
+      const sourceIsGroup = groupNodes.some(g => g.id === edge.source);
+      const targetIsGroup = groupNodes.some(g => g.id === edge.target);
+      if (sourceIsGroup || targetIsGroup) {
+        logger.log(`[ELK] Filtering edge ${edge.id}: group node not in edge (sourceGroup=${sourceIsGroup}, targetGroup=${targetIsGroup})`);
+        return false;
+      }
+      return true;
+    })
+    .map((edge) => {
+      if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
+        return null;
+      }
+      
+      const sourceIdx = edgeSourceIndex.get(edge.source) || 0;
+      const targetIdx = edgeTargetIndex.get(edge.target) || 0;
+      edgeSourceIndex.set(edge.source, sourceIdx + 1);
+      edgeTargetIndex.set(edge.target, targetIdx + 1);
 
-    const outCount = outgoingEdgeCount.get(edge.source) || 1;
-    const inCount = incomingEdgeCount.get(edge.target) || 1;
-
-    return {
-      id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target],
-      sourcePort: `${edge.source}-port-east-${sourceIdx}`,
-      targetPort: `${edge.target}-port-west-${targetIdx}`,
-    };
-  });
+      return {
+        id: edge.id,
+        sources: [edge.source],
+        targets: [edge.target],
+        sourcePort: `${edge.source}-port-east-${sourceIdx}`,
+        targetPort: `${edge.target}-port-west-${targetIdx}`,
+      };
+    }).filter(Boolean) as ELKEdge[];
 
   try {
     const layoutStartTime = Date.now();
@@ -607,17 +619,29 @@ export async function computeELKLayout(
       const isGroup = originalNode.isGroup === true;
       const isChild = originalNode.parentId !== undefined;
       const tier = originalNode.tier || originalNode.layer || 'compute';
-      const x = TIER_X[tier] ?? elkNode.x ?? 500;
+      
+      let x: number;
+      if (isChild && isGroup === false) {
+        x = elkNode.x ?? 0;
+      } else if (isGroup) {
+        x = TIER_X[tier] ?? elkNode.x ?? 500;
+      } else {
+        x = TIER_X[tier] ?? elkNode.x ?? 500;
+      }
+      
+      const y = isChild ? (elkNode.y ?? 0) : (elkNode.y ?? 0);
 
       reactFlowNodes.push({
         id: elkNode.id,
         type: isGroup ? 'group' : 'systemNode',
-        position: { x, y: elkNode.y ?? 0 },
+        position: { x, y },
         data: {
           label: originalNode.label,
           icon: originalNode.icon ?? 'box',
           layer: originalNode.layer,
           layerIndex: originalNode.layerIndex,
+          isGroup: originalNode.isGroup,
+          parentId: originalNode.parentId,
           groupLabel: originalNode.groupLabel,
           groupColor: originalNode.groupColor,
           serviceType: originalNode.serviceType,

@@ -9,7 +9,7 @@ import { resolveCollisions as fixCollisions } from './edgeCollisionDetector';
 import { optimizeEdgePaths } from './edgePathOptimizer';
 import { computeOptimalLabelPositions } from './edgeLabelPositioner';
 import { filterBidirectionalEdges } from './edgeLayout';
-import { COMPONENT_AGENT_PROMPT, getComposedPrompt, REASONING_PROMPT, DIAGRAM_PROMPT, MODEL_CONFIG } from '../constants';
+import { getComposedPrompt, REASONING_PROMPT, DIAGRAM_PROMPT, MODEL_CONFIG } from '../constants';
 import logger from '@/lib/logger';
 
 export type ProgressCallback = (progress: GenerationProgress) => void;
@@ -424,22 +424,31 @@ function computeDiagramQualityScore(
     reasoningDepth: 0,
   };
 
+  const nonGroupNodes = nodes.filter(n => n.type !== 'group');
   const hasEntryPoint = nodes.some(n => n.data?.layer === 'client' || n.data?.layer === 'edge');
   const hasDataLayer = nodes.some(n => n.data?.layer === 'data');
   const hasCompute = nodes.some(n => n.data?.layer === 'compute');
+  const hasGroupsWithChildren = nodes.some(n => n.type === 'group' && nodes.some(c => c.data?.parentId === n.id));
 
   breakdown.structuralCompleteness =
-    (hasEntryPoint ? 15 : 0) +
-    (hasDataLayer ? 15 : 0) +
-    (hasCompute ? 10 : 0);
+    (hasEntryPoint ? 10 : 0) +
+    (hasDataLayer ? 10 : 0) +
+    (hasCompute ? 10 : 0) +
+    (hasGroupsWithChildren ? 10 : 0);
 
   const reachable = getReachableNodes(nodes, edges);
-  const orphanRatio = nodes.length > 0 ? 1 - (reachable.size / nodes.length) : 0;
+  const orphanNodes = nonGroupNodes.filter(n => !reachable.has(n.id));
+  const orphanRatio = nonGroupNodes.length > 0 ? orphanNodes.length / nonGroupNodes.length : 0;
   breakdown.flowCoverage = Math.round(30 * (1 - orphanRatio));
+  
+  if (orphanNodes.length > 0) {
+    logger.log('[Grade] Orphaned nodes:', orphanNodes.map(n => n.id));
+  }
 
   const hasAsyncEdges = edges.some(e => e.data?.communicationType === 'async');
   const edgeCount = edges.length;
-  breakdown.edgeQuality = Math.round(15 * (edgeCount > 0 ? Math.min(edgeCount / 10, 1) : 0)) +
+  const connectedRatio = edgeCount > 0 ? Math.min(edgeCount / nonGroupNodes.length, 1) : 0;
+  breakdown.edgeQuality = Math.round(20 * connectedRatio) +
     (hasAsyncEdges ? 5 : 0);
 
   const hasStressTest = (reasoning?.stressTestResults?.length ?? 0) >= 3;
@@ -450,12 +459,23 @@ function computeDiagramQualityScore(
 
   const score = Object.values(breakdown).reduce((a, b) => a + b, 0);
 
+  let grade: 'A' | 'B' | 'C' | 'D' = 'D';
+  if (nonGroupNodes.length >= 15 && orphanRatio === 0 && hasGroupsWithChildren) {
+    grade = 'A';
+  } else if (nonGroupNodes.length >= 12 && orphanRatio <= 0.1) {
+    grade = 'B';
+  } else if (nonGroupNodes.length >= 8 || orphanRatio <= 0.2) {
+    grade = 'C';
+  } else {
+    grade = 'D';
+  }
+
   const warnings: string[] = [];
   if (breakdown.structuralCompleteness < 30) warnings.push('Missing key architectural layers.');
-  if (breakdown.flowCoverage < 20) warnings.push('Orphaned nodes detected — some components are unreachable.');
+  if (orphanRatio > 0) warnings.push(`${orphanNodes.length} orphaned node(s) detected — some components are unreachable.`);
   if (breakdown.edgeQuality < 10) warnings.push('Edges lack labels — data flows are ambiguous.');
 
-  return { score, grade: scoreToGrade(score), breakdown, warnings };
+  return { score, grade, breakdown, warnings };
 }
 
 // ============================================================================
@@ -753,63 +773,40 @@ async function callOpenRouter(prompt: string): Promise<LLMResponse> {
   return JSON.parse(cleaned);
 }
 
-async function callOpenRouterDiagram(prompt: string): Promise<{ nodes: ArchitectureNode[]; flows: string[][] } | null> {
+async function callOpenRouterDiagram(
+  reasoning: ArchitectureAnalysis
+): Promise<{ nodes: ArchitectureNode[]; flows: string[][] } | null> {
   const OR_KEY = process.env.OPENROUTER_API_KEY;
   if (!OR_KEY) {
     logger.log('[Diagram] No OpenRouter key configured');
     return null;
   }
 
-  const systemPrompt = `You are an expert software architect that generates architecture diagrams.
-
-Your job is to output ONLY raw nodes and flows in NDJSON format (newline-delimited JSON).
-One JSON object per line. No explanations, no markdown, no code fences, no preamble.
-
-OUTPUT FORMAT — STRICT RULES:
-Output two sections in this exact order:
-1. Node lines — one node object per line
-2. Flow lines — one flow object per line
-
-NODE format:
-{"id": "unique_id", "label": "Display Name", "subtitle": "short description", "layer": "LAYER_NAME", "icon": "icon_name"}
-
-FLOW format:
-{"type": "flow", "path": ["node_id_1", "node_id_2", "node_id_3"]}
-
-LAYER VALUES: "client", "edge", "compute", "async", "data", "observe", "external"
-
-FLOW RULES:
-1. Every node MUST appear in at least one flow path.
-2. Flows represent the request/data journey from client → edge → compute → data.
-3. You MUST output at least 2–4 flow objects.
-4. Each flow path array must contain ONLY node IDs that exist in your node list.
-5. Flows can branch — use separate flow lines for separate paths.
-6. IDs must be snake_case, short, unique. Good: "api_gateway", "postgres_db", "redis_cache"
-
-VALIDATION:
-- No markdown code fences (no \`\`\`)
-- No prose or explanation — only JSON lines
-- Every line is valid parseable JSON
-- All node IDs are unique snake_case strings
-- All IDs used in flow paths exist as defined nodes
-- At least 1 flow per 3 nodes
-- No node is orphaned (every node in at least 1 flow)
-- Nodes come BEFORE flows in output`;
+  const prompt = DIAGRAM_PROMPT.replace('{reasoning}', JSON.stringify(reasoning));
 
   try {
+    logger.log('[Diagram] OpenRouter request:', { model: 'meta-llama/llama-3.3-70b-instruct', promptLength: prompt.length });
+    
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${OR_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 
+        'Authorization': `Bearer ${OR_KEY}`, 
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://archdraw.ai',
+        'X-Title': 'ArchDraw',
+      },
       body: JSON.stringify({
         model: 'meta-llama/llama-3.3-70b-instruct',
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: 'Output line-delimited JSON only. No prose. No markdown.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.2,
-        max_tokens: 1024,
+        max_tokens: 2000,
       }),
     });
+    
+    logger.log('[Diagram] OpenRouter response status:', res.status);
 
     if (!res.ok) {
       logger.log('[Diagram] OpenRouter error:', res.status);
@@ -818,6 +815,8 @@ VALIDATION:
 
     const data = await res.json();
     const content = data.choices?.[0]?.message?.content ?? '';
+    logger.log('[Diagram] OpenRouter response content length:', content.length);
+    logger.log('[Diagram] OpenRouter response preview:', content.slice(0, 500));
     return parseDiagramResponse(content);
   } catch (error) {
     logger.log('[Diagram] OpenRouter exception:', error);
@@ -940,24 +939,38 @@ async function callDiagramLLM(
               for (const obj of objs) {
                 const objWithId = obj as Record<string, unknown>;
                 if (objWithId.id && objWithId.label) {
+                  const isGroup = Boolean(objWithId.isGroup);
                   const node: ArchitectureNode = {
                     id: String(objWithId.id),
                     type: 'architectureNode',
                     label: String(objWithId.label),
                     layer: (objWithId.layer as LayerType) || 'compute',
-                    width: 180,
-                    height: 70,
+                    width: isGroup ? 400 : 180,
+                    height: isGroup ? 300 : 70,
                     icon: (objWithId.icon as string) || 'server',
                     metadata: {},
-                    subtitle: objWithId.subtitle ? String(objWithId.subtitle) : String(objWithId.label),
+                    subtitle: objWithId.subtitle 
+                      ? String(objWithId.subtitle) 
+                      : String(objWithId.label),
+                    ...(isGroup && {
+                      isGroup: true,
+                      groupLabel: String(objWithId.groupLabel || objWithId.label),
+                      groupColor: String(objWithId.groupColor || '#14b8a6'),
+                    }),
+                    ...(objWithId.parentId ? {
+                      parentId: String(objWithId.parentId),
+                    } : {}),
                   };
                   nodes.push(node);
                   onStreaming({ type: 'node', data: node });
-                } else if (obj.type === 'flow' || (obj as Record<string, unknown>).path) {
-                  const flow = obj as { path: string[]; label?: string };
+                } else if (obj.type === 'flow' || objWithId.path) {
+                  const flow = objWithId as { path: string[]; label?: string; async?: boolean };
                   if (Array.isArray(flow.path) && flow.path.length >= 2) {
                     flows.push(flow.path);
-                    onStreaming({ type: 'flow', data: flow });
+                    onStreaming({ 
+                      type: 'flow', 
+                      data: { path: flow.path, label: flow.label }
+                    });
                   }
                 }
               }
@@ -975,7 +988,6 @@ async function callDiagramLLM(
             messages: [{ role: 'user', content: systemPrompt }],
             temperature: MODEL_CONFIG.diagram.temperature,
             max_tokens: MODEL_CONFIG.diagram.maxTokens,
-            response_format: { type: 'json_object' },
           }),
           MODEL_CONFIG.diagram.timeout
         );
@@ -991,10 +1003,10 @@ async function callDiagramLLM(
     }
   }
 
-  // All Groq keys failed - try OpenRouter as fallback
-  logger.log('[Diagram] All Groq keys exhausted, trying OpenRouter...');
+  // OpenRouter first (primary)
+  logger.log('[Diagram] Trying OpenRouter first...');
   try {
-    const orResult = await callOpenRouterDiagram(systemPrompt);
+    const orResult = await callOpenRouterDiagram(reasoning);
     if (orResult && orResult.nodes.length > 0) {
       logger.log('[Diagram] OpenRouter succeeded');
       return orResult;
@@ -1003,8 +1015,22 @@ async function callDiagramLLM(
     logger.log('[Diagram] OpenRouter failed:', orError);
   }
 
-  // Both failed - use fallback
-  logger.log('[Diagram] All providers exhausted, using fallback response');
+  // Fallback to Groq if OpenRouter failed
+  logger.log('[Diagram] OpenRouter failed, trying Groq as fallback...');
+  try {
+    const groqResult = await callDiagramLLM(
+      reasoning,
+      onStreaming
+    );
+    if (groqResult && groqResult.nodes.length > 0) {
+      logger.log('[Diagram] Groq fallback succeeded');
+      return groqResult;
+    }
+  } catch (groqError) {
+    logger.log('[Diagram] Groq fallback failed:', groqError);
+  }
+
+  // All providers failed - use fallback
   return { nodes: getFallbackResponse().nodes, flows: getFallbackResponse().flows };
 }
 
@@ -1021,14 +1047,19 @@ function parseDiagramResponse(content: string): { nodes: ArchitectureNode[]; flo
       if (obj.id && obj.label) {
         nodes.push({
           id: obj.id,
-          type: 'architectureNode',
+          type: obj.isGroup ? 'group' : 'architectureNode',
           label: obj.label,
           layer: (obj.layer as LayerType) || 'compute',
           width: 180,
-          height: 70,
+          height: obj.isGroup ? 300 : 70,
           icon: obj.icon || 'server',
           metadata: {},
           subtitle: obj.subtitle || obj.label,
+          isGroup: obj.isGroup,
+          groupLabel: obj.groupLabel,
+          groupColor: obj.groupColor,
+          parentId: obj.parentId,
+          serviceType: obj.serviceType,
         });
       } else if (obj.type === 'flow' || obj.path) {
         if (Array.isArray(obj.path) && obj.path.length >= 2) {
@@ -1059,7 +1090,71 @@ function parseDiagramResponse(content: string): { nodes: ArchitectureNode[]; flo
     }
   }
   
-  return { nodes, flows };
+  const originalCount = nodes.length;
+  
+  function stringsSimilar(a: string, b: string): boolean {
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const na = normalize(a);
+    const nb = normalize(b);
+    if (na === nb) return true;
+    if (na.length < 3 || nb.length < 3) return false;
+    let match = 0;
+    for (let i = 0; i < Math.min(na.length, nb.length); i++) {
+      if (na[i] === nb[i]) match++;
+    }
+    return match / Math.max(na.length, nb.length) >= 0.8;
+  }
+  
+  const groupIds = new Set(nodes.filter(n => n.isGroup === true).map(n => n.id));
+  const childParentMap = new Map<string, string>();
+  nodes.forEach(n => {
+    if (n.parentId) childParentMap.set(n.id, n.parentId);
+  });
+  
+  nodes.forEach(n => {
+    if (n.parentId && !groupIds.has(n.parentId)) {
+      logger.log(`[Parser] Orphaned child ${n.id}: parentId ${n.parentId} not found, removing parentId`);
+      n.parentId = undefined;
+    }
+  });
+  
+  const toRemove = new Set<string>();
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      if (stringsSimilar(nodes[i].label, nodes[j].label)) {
+        const aHasParent = nodes[i].parentId && groupIds.has(nodes[i].parentId!);
+        const bHasParent = nodes[j].parentId && groupIds.has(nodes[j].parentId!);
+        if (aHasParent && !bHasParent) {
+          toRemove.add(nodes[j].id);
+          logger.log(`[Parser] Removed duplicate node: ${nodes[j].id} (duplicate of ${nodes[i].id})`);
+        } else if (bHasParent && !aHasParent) {
+          toRemove.add(nodes[i].id);
+          logger.log(`[Parser] Removed duplicate node: ${nodes[i].id} (duplicate of ${nodes[j].id})`);
+        }
+      }
+    }
+  }
+  
+  const groupsWithChildren = new Set<string>();
+  nodes.forEach(n => {
+    if (n.isGroup === true) {
+      const hasChildren = nodes.some(c => c.parentId === n.id);
+      if (hasChildren) {
+        groupsWithChildren.add(n.id);
+      } else {
+        toRemove.add(n.id);
+        logger.log(`[Parser] Removed empty group: ${n.id} (no children)`);
+      }
+    }
+  });
+  
+  const deduped = nodes.filter(n => !toRemove.has(n.id));
+  
+  if (deduped.length !== originalCount) {
+    logger.log(`[Parser] Deduplication: ${originalCount} -> ${deduped.length} nodes`);
+  }
+  
+  return { nodes: deduped, flows };
 }
 
 function getFallbackResponse(): LLMResponse {
@@ -1087,11 +1182,13 @@ function flowsToEdges(nodes: ArchitectureNode[], flows: string[][]): Architectur
   const edges: ArchitectureEdge[] = [];
   const nodeMap = new Map<string, string>();
   
-  // Build comprehensive node map (match by label, id, or partial)
-  for (const node of nodes) {
-    nodeMap.set(node.label.toLowerCase(), node.id);
+  const groupIds = new Set(nodes.filter(n => n.isGroup === true).map(n => n.id));
+  const leafNodes = nodes.filter(n => n.isGroup !== true);
+  
+  for (const node of leafNodes) {
     nodeMap.set(node.id, node.id);
-    // Also map kebab-case versions
+    nodeMap.set(node.id.toLowerCase(), node.id);
+    nodeMap.set(node.label.toLowerCase(), node.id);
     const kebab = node.label.toLowerCase().replace(/\s+/g, '-');
     nodeMap.set(kebab, node.id);
   }
@@ -1101,23 +1198,27 @@ function flowsToEdges(nodes: ArchitectureNode[], flows: string[][]): Architectur
   const TIER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
   const addedEdges = new Set<string>();
 
-  function isForwardFlow(srcTier: string, tgtTier: string): boolean {
-    const srcIdx = TIER_ORDER.indexOf(srcTier);
-    const tgtIdx = TIER_ORDER.indexOf(tgtTier);
-    // Allow forward flows OR flows within adjacent tiers (allow more connections)
-    return tgtIdx >= srcIdx || (tgtIdx === srcIdx - 1);
-  }
-
   function findNodeId(key: string): string | undefined {
     const k = key.toLowerCase().trim();
-    // Try exact match
+    
+    if (groupIds.has(k)) {
+      logger.log(`[Edges] WARNING: Flow references group node "${key}" - skipping`);
+      return undefined;
+    }
+    
     if (nodeMap.has(k)) return nodeMap.get(k);
-    // Try partial match
+    
+    for (const [mapKey, nodeId] of nodeMap.entries()) {
+      if (mapKey === k) return nodeId;
+    }
+    
     for (const [mapKey, nodeId] of nodeMap.entries()) {
       if (mapKey.includes(k) || k.includes(mapKey)) {
         return nodeId;
       }
     }
+    
+    logger.log(`[Edges] WARNING: No node found for flow token "${key}" - skipping`);
     return undefined;
   }
 
@@ -1125,23 +1226,30 @@ function flowsToEdges(nodes: ArchitectureNode[], flows: string[][]): Architectur
     if (flow.length < 2) continue;
     
     for (let i = 0; i < flow.length - 1; i++) {
-      const srcId = findNodeId(flow[i]);
-      const tgtId = findNodeId(flow[i + 1]);
+      const rawSrc = flow[i];
+      const rawTgt = flow[i + 1];
+      
+      if (groupIds.has(rawSrc) || groupIds.has(rawTgt)) {
+        logger.log(`[Edges] Skipping flow with group node: ${rawSrc} -> ${rawTgt}`);
+        continue;
+      }
+      
+      const srcId = findNodeId(rawSrc);
+      const tgtId = findNodeId(rawTgt);
 
       if (!srcId || !tgtId) {
-        logger.log(`[Flows] Node not found: ${flow[i]} -> ${flow[i + 1]}`);
         continue;
       }
       if (srcId === tgtId) continue;
 
-      const srcTier = nodeTierMap.get(srcId) || 'compute';
-      const tgtTier = nodeTierMap.get(tgtId) || 'compute';
+      const srcTier = nodeTierMap.get(srcId);
+      const tgtTier = nodeTierMap.get(tgtId);
+      if (!srcTier || !tgtTier) continue;
 
-      // Only skip clearly wrong directions (e.g., data → client)
       const srcIdx = TIER_ORDER.indexOf(srcTier);
       const tgtIdx = TIER_ORDER.indexOf(tgtTier);
       if (tgtIdx < srcIdx - 1) {
-        logger.log(`[Flows] Skipping backward edge: ${flow[i]} (${srcTier}) → ${flow[i + 1]} (${tgtTier})`);
+        logger.log(`[Flows] Skipping backward edge: ${rawSrc} (${srcTier}) → ${rawTgt} (${tgtTier})`);
         continue;
       }
 
@@ -1486,7 +1594,30 @@ export async function generateDiagram(
 
         emit('components', 'Generating diagram...', 35);
         
-        const result = await callDiagramLLM(reasoningResult, onStreaming);
+        logger.log('[Pipeline] Calling diagram LLM (OpenRouter primary)...');
+        
+        // Try OpenRouter first (primary)
+        let result: { nodes: ArchitectureNode[]; flows: string[][] } | null = null;
+        
+        logger.log('[Pipeline] Trying OpenRouter...');
+        result = await callOpenRouterDiagram(reasoningResult);
+        
+        if (!result || result.nodes.length === 0) {
+          logger.log('[Pipeline] OpenRouter failed/empty, trying Groq fallback...');
+          try {
+            result = await callDiagramLLM(reasoningResult, onStreaming);
+          } catch (groqError) {
+            logger.log('[Pipeline] Groq also failed:', groqError);
+          }
+        } else {
+          logger.log('[Pipeline] OpenRouter succeeded with', result.nodes.length, 'nodes');
+        }
+        
+        if (!result || result.nodes.length === 0) {
+          logger.log('[Pipeline] All providers failed, using fallback');
+          result = getFallbackResponse();
+        }
+        
         onStreaming?.({ type: 'complete' });
         
         return result;
