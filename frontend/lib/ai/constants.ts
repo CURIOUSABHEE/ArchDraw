@@ -49,17 +49,17 @@ ANALYZE (5 steps, be concise — output feeds a diagram generator):
    - job fails halfway → mitigation
 5. CAP: CP or AP
 
-OUTPUT (strict JSON, first token must be {):
+OUTPUT (strict JSON). Example for "e-commerce platform":
 {
-  "systemType": "string",
-  "nfrs": {"scale":"str","latency":"str","consistency":"strong|eventual","availability":"str","faultTolerance":"str"},
-  "capPosition": "CP|AP",
-  "actors": ["str"],
-  "boundaries": {"entryPoints":["str"],"exitPoints":["str"],"trustZones":["str"]},
-  "layerAssignment": {"ComponentName":"LayerName"},
-  "patterns": [{"pattern":"slug","justification":"1-line"}],
-  "stressTests": [{"scenario":"str","outcome":"str","safe":bool,"mitigation":"str"}],
-  "keyDecisions": ["str"]
+  "systemType": "E-commerce Platform",
+  "nfrs": {"scale":"100k req/day","latency":"200ms","consistency":"eventual","availability":"99.9%","faultTolerance":"high"},
+  "capPosition": "AP",
+  "actors": ["shopper","admin","3rd-party"],
+  "boundaries": {"entryPoints":["Web App"],"exitPoints":["Payment Gateway","Shipping API"],"trustZones":["user-zone"]},
+  "layerAssignment": {"Web App":"presentation","API Gateway":"gateway","Product Service":"application","Cache":"data"},
+  "patterns": [{"pattern":"microservices","justification":"independent scaling"},{"pattern":"cache-aside","justification":"reduce DB load"}],
+  "stressTests": [{"scenario":"DB down","outcome":"fallback to cache","safe":false,"mitigation":"cqrs pattern"},{"scenario":"10x traffic","outcome":"auto-scale","safe":false,"mitigation":"queue with backpressure"}],
+  "keyDecisions": ["Use CDN for static assets","Async processing for orders"]
 }`;
 
 export const DIAGRAM_PROMPT = `ROLE: Diagram generator. Line-delimited JSON only.
@@ -95,6 +95,14 @@ FLOW RULES:
 RULES:
 - One JSON object per line. No arrays, no wrappers, no prose.
 - NAME BY RESPONSIBILITY: "Cache" not "Redis"
+
+EXAMPLE (e-commerce with 3 nodes, 2 flows):
+{"id":"web-app","label":"Web Application","layer":"presentation"}
+{"id":"api-gateway","label":"API Gateway","layer":"gateway"}
+{"id":"product-db","label":"Product Database","layer":"data","parentId":"data-group"}
+{"id":"data-group","label":"Data Layer","layer":"data","isGroup":true,"groupColor":"#3b82f6"}
+{"type":"flow","path":["web-app","api-gateway","product-db"],"label":"fetch products","async":false}
+{"type":"flow","path":["web-app","api-gateway"],"label":"submit order","async":true}
 
 GROUP NODE (one per line - acts as container):
 {"id":"kebab-id","label":"Name","layer":"Layer","isGroup":true,"groupLabel":"Display Name","groupColor":"#HEX"}
