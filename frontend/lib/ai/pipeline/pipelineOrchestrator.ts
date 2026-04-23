@@ -127,6 +127,27 @@ export async function runArchitecturePipeline(
       output: state.edges.length,
     });
 
+    // CRITICAL: If no edges generated, force retry or use fallback
+    if (state.edges.length === 0) {
+      console.error('[Pipeline] CRITICAL: Zero edges generated, forcing fallback');
+      state.edges = generateDeterministicEdges(state.enrichedNodes);
+    }
+
+    // CRITICAL: Require minimum edges relative to node count
+    const minRequiredEdges = Math.floor(state.enrichedNodes.length * 0.5);
+    if (state.edges.length < minRequiredEdges) {
+      console.warn(`[Pipeline] Low edge count (${state.edges.length} < ${minRequiredEdges}), adding missing edges`);
+      const missingEdges = generateMissingEdges(state.enrichedNodes, state.edges);
+      if (missingEdges.length > 0) {
+        state.edges = [...state.edges, ...missingEdges];
+      }
+      // Final fallback if still insufficient
+      if (state.edges.length < minRequiredEdges) {
+        const fallbackEdges = generateDeterministicEdges(state.enrichedNodes);
+        state.edges = [...state.edges, ...fallbackEdges];
+      }
+    }
+
     // Step B: Ensure connectivity for orphaned nodes
     const connectivityResult = ensureConnectivity(state.enrichedNodes, state.edges);
     state.edges = connectivityResult.edges;
@@ -482,7 +503,7 @@ function generateFallbackFromIntent(
 
 function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge[] {
   const edges: ArchitectureEdge[] = [];
-  const tierOrder: TierType[] = ['client', 'edge', 'compute', 'data'];
+  const tierOrder: TierType[] = ['client', 'edge', 'compute', 'async', 'data', 'observe'];
 
   for (let i = 0; i < tierOrder.length - 1; i++) {
     const sourceTier = tierOrder[i];
@@ -492,22 +513,23 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
     const targets = nodes.filter(n => (n.tier || n.layer) === targetTier && !n.isGroup);
 
     if (sources.length > 0 && targets.length > 0) {
-      for (const source of sources.slice(0, 2)) {
-        for (const target of targets.slice(0, 2)) {
+      // Connect EVERY source to EVERY target (was: limit to 2×2)
+      for (const source of sources) {
+        for (const target of targets) {
           edges.push({
             id: `auto-${source.id}-${target.id}`,
             source: source.id,
             target: target.id,
             sourceHandle: 'right',
             targetHandle: 'left',
-            communicationType: 'sync',
+            communicationType: targetTier === 'async' ? 'async' : 'sync',
             pathType: 'smooth',
             label: '',
             labelPosition: 'center',
-            animated: false,
+            animated: targetTier === 'async',
             style: {
               stroke: '#6366f1',
-              strokeDasharray: '',
+              strokeDasharray: targetTier === 'async' ? '5,5' : '',
               strokeWidth: 2,
             },
             markerEnd: 'arrowclosed',
@@ -515,6 +537,35 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
           });
         }
       }
+    }
+  }
+
+  // Also connect async to compute/observe for consumers
+  const asyncNodes = nodes.filter(n => (n.tier || n.layer) === 'async' && !n.isGroup);
+  const computeNodes = nodes.filter(n => (n.tier || n.layer) === 'compute' && !n.isGroup);
+  const observeNodes = nodes.filter(n => (n.tier || n.layer) === 'observe' && !n.isGroup);
+  
+  for (const asyncNode of asyncNodes) {
+    for (const computeNode of computeNodes) {
+      edges.push({
+        id: `auto-${asyncNode.id}-${computeNode.id}`,
+        source: asyncNode.id,
+        target: computeNode.id,
+        sourceHandle: 'right',
+        targetHandle: 'left',
+        communicationType: 'async',
+        pathType: 'smooth',
+        label: '',
+        labelPosition: 'center',
+        animated: true,
+        style: {
+          stroke: '#6366f1',
+          strokeDasharray: '5,5',
+          strokeWidth: 2,
+        },
+        markerEnd: 'arrowclosed',
+        markerStart: 'none',
+      });
     }
   }
 

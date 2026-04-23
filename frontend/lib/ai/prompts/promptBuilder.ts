@@ -169,10 +169,17 @@ export function buildEdgePrompt(
   context: Partial<PromptContext> = {}
 ): string {
   const ctx = { ...DEFAULT_CONTEXT, ...context };
+  const nodeCount = nodes.length;
+  const minRequiredEdges = Math.max(8, Math.floor(nodeCount * 0.8));
   
   return `Create edges for this architecture based on the user's description.
 
 ${BASE_RULES.content}
+
+CRITICAL MINIMUM EDGE REQUIREMENT:
+- You MUST generate AT LEAST ${minRequiredEdges} edges
+- Every node must have at least 1 connection (incoming OR outgoing)
+- Missing edges are a CRITICAL FAILURE
 
 EDGES MUST:
 - Connect tiers in correct order: client → edge → compute → async → data
@@ -180,7 +187,7 @@ EDGES MUST:
 - Observe tier only receives connections, never initiates
 - Use communication types: sync, async, stream, event, dep
 
-AVAILABLE NODES:
+AVAILABLE NODES (${nodeCount} nodes):
 ${nodes.map(n => `- ${n.id} (${n.tier}): ${n.label}`).join('\n')}
 
 USER FLOW DESCRIPTION:
@@ -196,7 +203,9 @@ OUTPUT FORMAT (JSON only):
       "communicationType": "sync|async|stream|event|dep"
     }
   ]
-}`;
+}
+
+REMEMBER: At least ${minRequiredEdges} edges required!`;
 }
 
 export function buildLayoutPrompt(

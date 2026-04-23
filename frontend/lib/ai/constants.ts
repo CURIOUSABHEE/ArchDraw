@@ -82,9 +82,24 @@ ID RULES:
 - Child node IDs must NOT include their group's name
 
 EDGE STYLE RULES:
-- async: true ONLY for queue/event bus connections
-- async: false for ALL synchronous calls (HTTP, gRPC, DB queries, cache reads)
-- Default is async: false — only set async: true when the connection goes through a message queue
+"async" field rules — follow exactly:
+- Queue node connections: async: true
+- Message broker connections: async: true  
+- ALL OTHER connections: async: false
+  This includes: HTTP, REST, gRPC, DB reads, DB writes, 
+  cache reads, cache writes, auth calls, API calls.
+  When in doubt: async: false
+
+LAYER ORDER (left to right in diagram):
+1. presentation — Web/Mobile clients (entry points, leftmost)
+2. gateway — API Gateway, Load Balancer
+3. application — Business logic services  
+4. data — Databases, Cache, Storage (rightmost)
+5. observability — Monitoring (optional)
+
+The presentation layer MUST contain the user-facing clients.
+The data layer MUST be the final destination of flows.
+Never put a client node in the application or data layer.
 
 FLOW RULES:
 - Each flow path must use exact node IDs that exist in the nodes array

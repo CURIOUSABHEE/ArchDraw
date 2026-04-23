@@ -58,7 +58,7 @@ const EDGE_TYPES = {
 
 function CanvasInner() {
   const {
-    nodes, edges, onNodesChange, onEdgesChange, onConnect,
+    nodes, edges, onNodesChange, onEdgesChange, onConnect, onReconnect,
     selectedNodeIds, selectedEdgeId,
     setSelectedNodeId, setSelectedNodeIds, setSelectedEdgeId,
     showGrid,
@@ -410,13 +410,14 @@ function CanvasInner() {
           }}
         />
       )}
-      <div className="absolute inset-0" style={{ width: '100%', height: '100%', top: 48 }}>
+      <div className="absolute inset-0" style={{ width: '100%', height: '100%', top: 0 }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={handleOnNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={handleOnConnect}
+          onReconnect={onReconnect}
           nodeTypes={NODE_TYPES}
           edgeTypes={EDGE_TYPES}
           onDragOver={onDragOver}
@@ -477,30 +478,31 @@ function CanvasInner() {
           }}
         />
         <MiniMap
-          nodeStrokeWidth={3}
+          nodeStrokeWidth={2}
           zoomable
           pannable
           style={{
-            background: '#111111',
-            border: '1px solid #2a2a2a',
+            background: '#171717',
             borderRadius: '8px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
           }}
           nodeColor={(node) => {
             const serviceType = (node.data as { serviceType?: string })?.serviceType;
             const colors: Record<string, string> = {
-              client: '#60a5fa',
+              client: '#818cf8',
               gateway: '#a78bfa',
               service: '#34d399',
-              queue: '#f59e0b',
+              queue: '#fbbf24',
               database: '#f87171',
               cache: '#fb923c',
-              auth: '#e879f9',
+              auth: '#c084fc',
               monitoring: '#94a3b8',
             };
-            return colors[serviceType ?? ''] ?? '#6ee7b7';
+            return colors[serviceType ?? ''] ?? '#4ade80';
           }}
-          maskColor="rgba(0,0,0,0.6)"
+          maskColor="rgba(0,0,0,0.3)"
+          maskStrokeColor="#333333"
+          maskStrokeWidth={1}
         />
 
         {/* Floating label prompt after double-clicking an edge */}
@@ -605,18 +607,7 @@ function CanvasInner() {
         </div>
       )}
 
-      {/* Status bar with selection info - soft floating pill */}
-      {(selectedNodeIds.length > 0 || selectedEdgeId) && (
-        <div className="absolute top-4 right-4 z-[5] flex items-center gap-3 px-4 py-2 rounded-full floating-panel">
-          <span className="text-[11px] text-foreground/70">
-            {selectedNodeIds.length > 0 && `${selectedNodeIds.length} node${selectedNodeIds.length > 1 ? 's' : ''} selected`}
-            {selectedNodeIds.length > 0 && selectedEdgeId && ' · '}
-            {selectedEdgeId && '1 edge selected'}
-          </span>
-          <span className="w-px h-3 bg-border/50" />
-          <span className="text-[11px] text-muted-foreground">⌘C copy · Del delete</span>
-        </div>
-      )}
+      
 
       {showShortcuts && <KeyboardShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />}
       {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}

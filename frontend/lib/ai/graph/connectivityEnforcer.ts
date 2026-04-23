@@ -53,12 +53,29 @@ export function ensureConnectivity(
 ): { nodes: ArchitectureNode[]; edges: ArchitectureEdge[] } {
   const currentEdges = [...edges];
   const nodeIds = new Set(nodes.map((n) => n.id));
+  
+  const groupChildren = new Map<string, string[]>();
+  for (const node of nodes) {
+    if (node.parentId) {
+      if (!groupChildren.has(node.parentId)) {
+        groupChildren.set(node.parentId, []);
+      }
+      groupChildren.get(node.parentId)!.push(node.id);
+    }
+  }
 
+  const connectedGroups = new Set<string>();
+  
   for (const node of nodes) {
     if (node.isGroup) continue;
 
     const degree = getNodeDegree(node.id, currentEdges);
-    if (degree.incoming > 0 || degree.outgoing > 0) continue;
+    if (degree.incoming > 0 || degree.outgoing > 0) {
+      if (node.parentId) {
+        connectedGroups.add(node.parentId);
+      }
+      continue;
+    }
 
     const nodeTier = (node.tier || node.layer) as TierType;
     const tierIndex = TIER_ORDER.indexOf(nodeTier);
@@ -108,6 +125,18 @@ export function ensureConnectivity(
       console.warn(
         `[ConnectivityEnforcer] Cannot connect orphaned node "${node.label}" (id: ${node.id}) - no suitable target found`
       );
+    }
+  }
+
+  for (const [groupId, childIds] of groupChildren) {
+    if (connectedGroups.has(groupId)) continue;
+    
+    const hasChildConnection = childIds.some(childId => 
+      currentEdges.some(e => e.source === childId || e.target === childId)
+    );
+    
+    if (!hasChildConnection) {
+      console.warn(`[ConnectivityEnforcer] Group "${groupId}" has no connected children`);
     }
   }
 

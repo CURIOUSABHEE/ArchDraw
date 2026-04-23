@@ -159,6 +159,7 @@ interface DiagramState {
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
   updateEdgeData: (id: string, data: Record<string, unknown>) => void;
   deleteEdge: (edgeId: string) => void;
+  onReconnect: (oldEdge: Edge, newConnection: Connection) => void;
   importDiagram: (nodes: Node[], edges: Edge[]) => void;
   clearDiagram: () => void;
   deleteSelected: () => void;
@@ -281,6 +282,20 @@ const _debouncedSave = debounce(async (canvasId: string, get: () => DiagramState
   }
 }, 1500);
 
+// Delete canvas from Supabase
+async function deleteCanvasFromDB(canvasId: string, get: () => DiagramState): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  const state = get();
+  if (!state.userProfile) return;
+  try {
+    const supabase = getSupabaseClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('user_canvases').delete().eq('id', canvasId);
+  } catch {
+    // Silently fail - canvas is already removed from local state
+  }
+}
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useDiagramStore = create<DiagramState>()(
@@ -363,6 +378,9 @@ export const useDiagramStore = create<DiagramState>()(
           past: [], 
           future: [] 
         });
+        
+        // Delete from Supabase
+        deleteCanvasFromDB(id, get);
       },
 
       switchCanvas: (id) => {
@@ -712,6 +730,25 @@ export const useDiagramStore = create<DiagramState>()(
           },
           get().edges
         );
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
+        set({ edges, canvases });
+        get().saveCanvasToDB(get().activeCanvasId);
+      },
+
+      onReconnect: (oldEdge, newConnection) => {
+        get().pushHistory();
+        const edges = get().edges.map(e => {
+          if (e.id === oldEdge.id) {
+            return {
+              ...e,
+              source: newConnection.source || e.source,
+              target: newConnection.target || e.target,
+              sourceHandle: newConnection.sourceHandle || e.sourceHandle,
+              targetHandle: newConnection.targetHandle || e.targetHandle,
+            };
+          }
+          return e;
+        });
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
         get().saveCanvasToDB(get().activeCanvasId);

@@ -185,36 +185,6 @@ export function generateMissingEdges(
 
   const tierOrder = ['client', 'edge', 'compute', 'data'] as TierType[];
   
-  for (let i = 0; i < tierOrder.length - 1; i++) {
-    const currentTier = tierOrder[i];
-    const nextTier = tierOrder[i + 1];
-
-    if (tiersPresent.has(currentTier) && tiersPresent.has(nextTier)) {
-      const currentNodes = nodes.filter(
-        n => (n.tier || n.layer) === currentTier && !n.isGroup
-      );
-      const nextNodes = nodes.filter(
-        n => (n.tier || n.layer) === nextTier && !n.isGroup
-      );
-
-      const hasConnection = edges.some(e => {
-        const sourceTier = nodeTierMapLocal.get(e.source);
-        const targetTier = nodeTierMapLocal.get(e.target);
-        return sourceTier === currentTier && targetTier === nextTier;
-      });
-
-      if (!hasConnection && currentNodes.length > 0 && nextNodes.length > 0) {
-        const newEdge: ArchitectureEdge = {
-          id: `auto-${currentNodes[0].id}-to-${nextNodes[0].id}`,
-          source: currentNodes[0].id,
-          target: nextNodes[0].id,
-          ...DEFAULT_EDGE_PROPS,
-        };
-        newEdges.push(newEdge);
-      }
-    }
-  }
-
   const nodeTierMapLocal = new Map(nodes.map(n => [n.id, (n.tier || n.layer) as TierType]));
 
   const asyncNodes = nodes.filter(n => (n.tier || n.layer) === 'async' && !n.isGroup);
