@@ -713,10 +713,16 @@ export function Toolbar() {
         </div>
 
         {/* CENTER: Context info */}
-        <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-          <span>{nodes.length} nodes</span>
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <span>{nodes.length}</span>
+            <span>nodes</span>
+          </span>
           <span className="w-px h-3 bg-border/50" />
-          <span>{edges.length} edges</span>
+          <span className="flex items-center gap-1">
+            <span>{edges.length}</span>
+            <span>edges</span>
+          </span>
           <span className="w-px h-3 bg-border/50" />
           <Select value={selectedEdgeType} onValueChange={(v) => updateAllEdgesPathType(v as PathType)}>
             <SelectTrigger className="h-7 w-32 text-[11px] gap-1">

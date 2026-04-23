@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import type { Node, Edge } from 'reactflow';
+import { DiagramPreview } from '@/components/dashboard/DiagramPreview';
 
 function formatRelativeTime(timestamp: number): string {
   const now = Date.now();
@@ -42,7 +43,10 @@ function CanvasPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
   const PADDING = 16;
   const CARD_WIDTH = 160;
   const CARD_HEIGHT = 70;
-  
+  const CONTAINER_WIDTH = 280;
+  const CONTAINER_HEIGHT = 160;
+
+  // Calculate bounding box
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   nodes.forEach((node) => {
     if (node.width && node.height) {
@@ -59,17 +63,17 @@ function CanvasPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
     minX = 0; minY = 0; maxX = 400; maxY = 300;
   }
 
-  const diagramWidth = Math.max(maxX - minX, 200);
-  const diagramHeight = Math.max(maxY - minY, 150);
+  const diagramWidth = maxX - minX;
+  const diagramHeight = maxY - minY;
   
-  const containerWidth = 280;
-  const containerHeight = 160;
-  const scaleX = (containerWidth - PADDING * 2) / diagramWidth;
-  const scaleY = (containerHeight - PADDING * 2) / diagramHeight;
-  const scale = Math.min(scaleX, scaleY, 0.4);
+  // Calculate scale to fit container
+  const scaleX = (CONTAINER_WIDTH - PADDING * 2) / diagramWidth;
+  const scaleY = (CONTAINER_HEIGHT - PADDING * 2) / diagramHeight;
+  const scale = Math.min(scaleX, scaleY, 0.5);
   
-  const offsetX = (containerWidth - diagramWidth * scale) / 2 - minX * scale;
-  const offsetY = (containerHeight - diagramHeight * scale) / 2 - minY * scale;
+  // Center the diagram in container
+  const offsetX = (CONTAINER_WIDTH - diagramWidth * scale) / 2 - minX * scale;
+  const offsetY = (CONTAINER_HEIGHT - diagramHeight * scale) / 2 - minY * scale;
 
   const getNodeColor = (node: Node): string => {
     if (node.data?.color) return node.data.color;
@@ -89,12 +93,51 @@ function CanvasPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
     return '#3B82F6';
   };
 
+  // Generate edge path based on type
+  const generateEdgePath = (
+    x1: number, y1: number, 
+    x2: number, y2: number, 
+    pathType?: string
+  ): string => {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    
+    switch (pathType) {
+      case 'straight':
+        return `M ${x1} ${y1} L ${x2} ${y2}`;
+      case 'smoothstep': {
+        const midX = x1 + dx * 0.5;
+        return `M ${x1} ${y1} H ${midX} V ${y2} H ${x2}`;
+      }
+      case 'bezier':
+      default: {
+        const midX = (x1 + x2) / 2;
+        return `M ${x1} ${y1} C ${midX} ${y1} ${midX} ${y2} ${x2} ${y2}`;
+      }
+    }
+  };
+
+  const getEdgeColor = (edge: Edge): string => {
+    const edgeType = edge.data?.edgeType as string;
+    return edgeType === 'async' ? '#F59E0B' 
+      : edgeType === 'stream' ? '#10B981'
+      : edgeType === 'event' ? '#EC4899'
+      : '#6366F1';
+  };
+
+  const getDashArray = (edge: Edge): string => {
+    const edgeType = edge.data?.edgeType as string;
+    return edgeType === 'async' ? '4,2'
+      : edgeType === 'event' ? '2,2'
+      : '';
+  };
+
   return (
     <div className="absolute inset-0 overflow-hidden" style={{ background: '#FAFAFA' }}>
       <svg
         width="100%"
         height="100%"
-        viewBox={`0 0 ${containerWidth} ${containerHeight}`}
+        viewBox={`0 0 ${CONTAINER_WIDTH} ${CONTAINER_HEIGHT}`}
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
@@ -110,63 +153,58 @@ function CanvasPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
           </marker>
         </defs>
         
-        {edges?.map((edge, idx) => {
+        {/* Render edges first (behind nodes) */}
+        {edges?.map((edge) => {
           const source = nodes.find((n) => n.id === edge.source);
           const target = nodes.find((n) => n.id === edge.target);
-          if (!source || !target) return null;
+          if (!source || !target || !source.width || !target.width) return null;
           
+          // Calculate edge endpoints (center of nodes)
           const sx = (source.position?.x || 0) + (source.width || CARD_WIDTH) / 2;
           const sy = (source.position?.y || 0) + (source.height || CARD_HEIGHT) / 2;
           const tx = (target.position?.x || 0) + (target.width || CARD_WIDTH) / 2;
           const ty = (target.position?.y || 0) + (target.height || CARD_HEIGHT) / 2;
           
+          // Scale positions
           const x1 = sx * scale + offsetX;
           const y1 = sy * scale + offsetY;
           const x2 = tx * scale + offsetX;
           const y2 = ty * scale + offsetY;
           
-          const edgeColor = edge.data?.edgeType === 'async' ? '#F59E0B' 
-            : edge.data?.edgeType === 'stream' ? '#10B981'
-            : edge.data?.edgeType === 'event' ? '#EC4899'
-            : '#6366F1';
-          
-          const dashArray = edge.data?.edgeType === 'async' ? '4,2'
-            : edge.data?.edgeType === 'event' ? '2,2'
-            : '';
-          
-          const midX = (x1 + x2) / 2;
-          const path = `M ${x1} ${y1} C ${midX} ${y1} ${midX} ${y2} ${x2} ${y2}`;
+          const pathType = (edge.data?.pathType as string) || 'bezier';
           
           return (
             <path
-              key={edge.id || idx}
-              d={path}
+              key={edge.id}
+              d={generateEdgePath(x1, y1, x2, y2, pathType)}
               fill="none"
-              stroke={edgeColor}
+              stroke={getEdgeColor(edge)}
               strokeWidth="1"
-              strokeDasharray={dashArray}
+              strokeDasharray={getDashArray(edge)}
               markerEnd="url(#arrowhead)"
               opacity="0.6"
             />
           );
         })}
         
-        {nodes.map((node, idx) => {
+        {/* Render nodes */}
+        {nodes.map((node) => {
           if (!node.width || !node.height) return null;
           
-          const x = node.position?.x * scale + offsetX;
-          const y = node.position?.y * scale + offsetY;
+          const x = (node.position?.x || 0) * scale + offsetX;
+          const y = (node.position?.y || 0) * scale + offsetY;
           const w = node.width * scale;
           const h = node.height * scale;
           
-          if (x + w < 0 || x > containerWidth || y + h < 0 || y > containerHeight) return null;
+          // Skip nodes outside visible area
+          if (x + w < -10 || x > CONTAINER_WIDTH + 10 || y + h < -10 || y > CONTAINER_HEIGHT + 10) return null;
           
           const nodeColor = getNodeColor(node);
           const isGroup = node.type === 'group' || node.data?.isGroup;
           
           if (isGroup) {
             return (
-              <g key={node.id || idx}>
+              <g key={node.id}>
                 <rect
                   x={x}
                   y={y}
@@ -184,7 +222,7 @@ function CanvasPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
           }
           
           return (
-            <g key={node.id || idx}>
+            <g key={node.id}>
               <rect
                 x={x}
                 y={y}
@@ -194,30 +232,30 @@ function CanvasPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
                 fill={nodeColor}
                 opacity="0.9"
               />
-              {node.data?.label && w > 30 && h > 20 && (
+              {node.data?.label && w > 25 && h > 15 && (
                 <>
                   <text
                     x={x + w / 2}
                     y={y + h / 2}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fontSize={Math.min(8, w * 0.2)}
+                    fontSize={Math.min(7, w * 0.18)}
                     fontWeight="600"
                     fill="white"
                   >
-                    {node.data.label.length > 10 ? node.data.label.slice(0, 10) + '...' : node.data.label}
+                    {node.data.label.length > 8 ? node.data.label.slice(0, 8) + '..' : node.data.label}
                   </text>
-                  {w > 50 && h > 40 && (
+                  {w > 40 && h > 30 && (
                     <text
                       x={x + w / 2}
-                      y={y + h / 2 + 10}
+                      y={y + h / 2 + 9}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      fontSize={Math.min(6, w * 0.15)}
+                      fontSize={Math.min(5, w * 0.12)}
                       fill="white"
                       opacity="0.7"
                     >
-                      {node.data.layer || 'service'}
+                      {node.data.layer || ''}
                     </text>
                   )}
                 </>
@@ -264,7 +302,7 @@ function CanvasCard({ name, nodes, edges, updatedAt, onClick, onDelete, onRename
       onMouseLeave={() => setShowActions(false)}
     >
       <div className="h-40 relative overflow-hidden rounded-t-[20px]" style={{ background: '#FAFAFA' }}>
-        <CanvasPreview nodes={nodes} edges={edges} />
+        <DiagramPreview nodes={nodes} edges={edges} width={280} height={160} />
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
