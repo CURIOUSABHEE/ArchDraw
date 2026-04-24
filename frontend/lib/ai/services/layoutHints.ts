@@ -259,11 +259,15 @@ export function generateLayoutHints(
   
   const layerPositions: Record<LayerType, { x: number; y: number }> = {
     client: { x: 0, y: 200 },
+    presentation: { x: 0, y: 200 },
     edge: { x: 200, y: 200 },
+    gateway: { x: 200, y: 200 },
     compute: { x: 400, y: 200 },
+    application: { x: 400, y: 200 },
     async: { x: 600, y: 200 },
     data: { x: 800, y: 200 },
     observe: { x: 600, y: 400 },
+    observability: { x: 600, y: 400 },
     external: { x: 1000, y: 200 },
     group: { x: 100, y: 100 },
   };
