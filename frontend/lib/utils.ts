@@ -6,17 +6,24 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getViewportCenter(): { x: number; y: number } {
-  const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
-  const bounds = document.querySelector('.react-flow__renderer')?.getBoundingClientRect();
-  if (!el || !bounds) return { x: 400 + Math.random() * 40 - 20, y: 300 + Math.random() * 40 - 20 };
+  const flow = document.querySelector('.react-flow');
+  const bounds = flow?.getBoundingClientRect();
+  const viewport = document.querySelector('.react-flow__viewport') as HTMLElement | null;
   
-  const style = el.style.transform;
+  if (!flow || !bounds || !viewport) return { x: 400, y: 300 };
+  
+  const style = viewport.style.transform;
   const match = style.match(/translate\(([^,]+)px,\s*([^)]+)px\)\s*scale\(([^)]+)\)/);
-  if (!match) return { x: 400 + Math.random() * 40 - 20, y: 300 + Math.random() * 40 - 20 };
   
-  const vx = parseFloat(match[1]), vy = parseFloat(match[2]), zoom = parseFloat(match[3]);
-  return {
-    x: (bounds.width / 2 - vx) / zoom + Math.random() * 40 - 20,
-    y: (bounds.height / 2 - vy) / zoom + Math.random() * 40 - 20,
-  };
+  let vx = 0, vy = 0, zoom = 1;
+  if (match) {
+    vx = parseFloat(match[1]);
+    vy = parseFloat(match[2]);
+    zoom = parseFloat(match[3]);
+  }
+  
+  const x = (bounds.width / 2 - vx) / zoom;
+  const y = (bounds.height / 2 - vy) / zoom;
+  
+  return { x, y };
 }

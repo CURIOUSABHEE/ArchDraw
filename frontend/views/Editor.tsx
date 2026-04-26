@@ -51,6 +51,7 @@ export default function EditorPage() {
   // Initialize onboarding (auto-open + drag detection)
   useOnboarding();
 
+
   // Auth init + canvas restore
   useEffect(() => {
     if (!isSupabaseConfigured) return;

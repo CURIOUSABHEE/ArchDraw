@@ -11,10 +11,10 @@ export const videoStreamingNodes: Node[] = [
 
 const E = (id: string, source: string, target: string, label: string, animated = false): Edge => ({
   id, source, target,
-  type: 'custom',
+  type: 'simpleFloating',
   animated,
   data: { edgeType: 'sync', connectionType: 'smooth', label },
-  style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+  style: { stroke: '#94a3b8', strokeWidth: 2 },
   label,
 });
 

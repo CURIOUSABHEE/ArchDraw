@@ -31,14 +31,14 @@ function loadStore(): Map<string, DiagramData> {
   return new Map();
 }
 
-const diagramStore = loadStore();
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   const { sessionId } = await params;
 
+  // Reload from disk on every request to pick up new MCP-generated sessions
+  const diagramStore = loadStore();
   const diagram = diagramStore.get(sessionId);
 
   if (!diagram) {

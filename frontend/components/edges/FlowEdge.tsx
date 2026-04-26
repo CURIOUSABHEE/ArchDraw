@@ -165,17 +165,7 @@ export function FlowEdge({
   const commStyle = getEdgeStyle(communicationType, data?.label as string | undefined, isDark);
 
   const { path: edgePath, labelX, labelY } = useMemo(() => {
-    const result = getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition);
-    const dx = targetX - sourceX;
-    const dy = targetY - sourceY;
-    const perpendicularOffset = Math.min(Math.sqrt(dx * dx + dy * dy) * 0.1, 15);
-    const perpX = dy === 0 ? 0 : (dy / Math.abs(dy || 1)) * perpendicularOffset;
-    const perpY = dx === 0 ? 0 : -(dx / Math.abs(dx || 1)) * perpendicularOffset;
-    return {
-      ...result,
-      labelX: result.labelX + perpX,
-      labelY: result.labelY + perpY,
-    };
+    return getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition);
   }, [pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
 
   const animationClass = useMemo(() => {
@@ -276,7 +266,7 @@ export function FlowEdge({
           <div
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY - 12}px)`,
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: 'all',
               zIndex: 10,
             }}
@@ -287,6 +277,7 @@ export function FlowEdge({
               label={data?.label as string | undefined}
               labelX={labelX}
               labelY={labelY}
+              edgeColor={strokeColor}
             />
           </div>
         )}

@@ -117,10 +117,10 @@ function FrameNodeComponent({ id, data, selected }: NodeProps<FrameNodeData>) {
           )}
         </div>
 
-        <Handle type="target" position={Position.Left} style={{ opacity: 0, width: 8, height: 8 }} />
-        <Handle type="source" position={Position.Right} style={{ opacity: 0, width: 8, height: 8 }} />
-        <Handle type="target" position={Position.Top} style={{ opacity: 0, width: 8, height: 8 }} />
-        <Handle type="source" position={Position.Bottom} style={{ opacity: 0, width: 8, height: 8 }} />
+        <Handle type="target" position={Position.Left} style={{ width: 12, height: 12 }} />
+        <Handle type="source" position={Position.Right} style={{ width: 12, height: 12 }} />
+        <Handle type="target" position={Position.Top} style={{ width: 12, height: 12 }} />
+        <Handle type="source" position={Position.Bottom} style={{ width: 12, height: 12 }} />
       </div>
     </>
   );

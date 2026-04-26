@@ -49,24 +49,39 @@ export async function generateDiagramPipeline(
       console.log('[Pipeline] Diagram LLM failed, using fallback');
     }
     
-    // If no parsed diagram, use fallback
+    // If no parsed diagram, use comprehensive fallback
     if (!parsed || parsed.nodes.length === 0) {
       console.log('[Pipeline] Using fallback diagram');
       parsed = {
         nodes: [
-          { id: 'web-app', label: 'Web Application', layer: 'presentation' as const, subtitle: 'React SPA' },
-          { id: 'websocket-server', label: 'WebSocket Server', layer: 'application' as const, subtitle: 'Socket.io' },
-          { id: 'auth-service', label: 'Auth Service', layer: 'application' as const, subtitle: 'JWT auth' },
-          { id: 'message-handler', label: 'Message Handler', layer: 'application' as const, subtitle: 'Process messages' },
-          { id: 'user-db', label: 'User Database', layer: 'data' as const, subtitle: 'PostgreSQL' },
-          { id: 'message-db', label: 'Message Database', layer: 'data' as const, subtitle: 'MongoDB' },
-          { id: 'redis-cache', label: 'Redis Cache', layer: 'data' as const, subtitle: 'Session cache' },
+          // Groups with ALL CAPS short zone names
+          { id: 'clients-group', label: 'Clients', layer: 'presentation' as const, isGroup: true, groupLabel: 'CLIENTS', groupColor: '#dbeafe' },
+          { id: 'gateway-group', label: 'Gateway', layer: 'gateway' as const, isGroup: true, groupLabel: 'GATEWAY', groupColor: '#dcfce7' },
+          { id: 'services-group', label: 'Services', layer: 'application' as const, isGroup: true, groupLabel: 'SERVICES', groupColor: '#fef3c7' },
+          { id: 'storage-group', label: 'Storage', layer: 'data' as const, isGroup: true, groupLabel: 'STORAGE', groupColor: '#fce7f3' },
+          // Children (2-4 per group, 11 total)
+          { id: 'web-app', label: 'Web App', layer: 'presentation' as const, parentId: 'clients-group', subtitle: 'React SPA' },
+          { id: 'mobile-app', label: 'Mobile App', layer: 'presentation' as const, parentId: 'clients-group', subtitle: 'iOS/Android' },
+          { id: 'api-gateway', label: 'API Gateway', layer: 'gateway' as const, parentId: 'gateway-group', subtitle: 'REST/GraphQL' },
+          { id: 'load-balancer', label: 'Load Balancer', layer: 'gateway' as const, parentId: 'gateway-group', subtitle: 'Traffic distribution' },
+          { id: 'auth-service', label: 'Auth Service', layer: 'application' as const, parentId: 'services-group', subtitle: 'JWT/OAuth' },
+          { id: 'user-service', label: 'User Service', layer: 'application' as const, parentId: 'services-group', subtitle: 'CRUD operations' },
+          { id: 'payment-service', label: 'Payment Service', layer: 'application' as const, parentId: 'services-group', subtitle: 'Payment processing' },
+          { id: 'notification-service', label: 'Notification Service', layer: 'application' as const, parentId: 'services-group', subtitle: 'Push/SMS/Email' },
+          { id: 'user-db', label: 'User Database', layer: 'data' as const, parentId: 'storage-group', subtitle: 'PostgreSQL' },
+          { id: 'cache', label: 'Redis Cache', layer: 'data' as const, parentId: 'storage-group', subtitle: 'Session cache' },
+          { id: 'queue', label: 'Message Queue', layer: 'async' as const, subtitle: 'RabbitMQ' },
         ],
         flows: [
-          { path: ['web-app', 'websocket-server', 'message-handler'], label: 'real-time messages', async: true },
-          { path: ['web-app', 'auth-service', 'user-db'], label: 'login flow', async: false },
-          { path: ['message-handler', 'message-db'], label: 'persist', async: true },
-          { path: ['message-handler', 'redis-cache'], label: 'cache', async: false },
+          // Paths with 3-5 nodes, never referencing group IDs
+          { path: ['web-app', 'api-gateway', 'auth-service', 'user-db'], label: 'authentication', async: false },
+          { path: ['mobile-app', 'load-balancer', 'user-service', 'user-db'], label: 'user CRUD', async: false },
+          { path: ['web-app', 'api-gateway', 'payment-service', 'user-db'], label: 'payment', async: false },
+          { path: ['payment-service', 'queue', 'notification-service'], label: 'async notification', async: true },
+          { path: ['user-service', 'cache'], label: 'cache lookup', async: false },
+          { path: ['web-app', 'load-balancer', 'user-service', 'cache'], label: 'cached user data', async: false },
+          { path: ['mobile-app', 'api-gateway', 'auth-service'], label: 'mobile auth', async: false },
+          { path: ['api-gateway', 'user-service', 'user-db'], label: 'user API', async: false },
         ]
       };
     }

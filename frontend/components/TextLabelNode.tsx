@@ -149,7 +149,7 @@ function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
     };
   }, [editing, commitEdit]);
 
-  const handleStyle = { opacity: 0, width: 6, height: 6, pointerEvents: 'none' as const };
+  const handleStyle = { width: 12, height: 12, pointerEvents: 'none' as const };
 
   return (
     <div

@@ -186,15 +186,14 @@ body {
   height: 12px !important;
   background: hsl(var(--card)) !important;
   border: none !important;
-  opacity: 0;
-  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-              background 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.12);
+  opacity: 0.6 !important;
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  pointer-events: all !important;
 }
 
 .react-flow__node:hover .react-flow__handle,
 .react-flow__node.selected .react-flow__handle {
-  opacity: 1;
+  opacity: 1 !important;
 }
 
 .react-flow__handle:hover {

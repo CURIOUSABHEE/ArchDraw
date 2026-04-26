@@ -24,6 +24,7 @@ import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
 
 const NODE_TYPES = {
   systemNode:        SystemNode,
+  architectureNode:  SystemNode,
   baseNode:          BaseNode,
   databaseNode:     DatabaseNode,
   cacheNode:         CacheNode,
@@ -92,7 +93,7 @@ function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls
         defaultEdgeOptions={{
           type: 'custom',
           style: pathTypeConfig[pathType],
-          data: { edgeType: 'sync', pathType: 'Smoothstep' },
+          data: { edgeType: 'sync', pathType: 'smooth' },
         }}
       >
         <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>

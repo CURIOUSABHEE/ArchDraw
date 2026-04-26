@@ -1,12 +1,12 @@
 'use client';
 
-import { memo, useState, useMemo } from 'react';
+import { memo, useState, useMemo, useCallback } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { NodeIcon, resolveNodeColor } from '@/components/NodeIcon';
 import { useTheme } from '@/lib/theme';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, Activity, Radio, Database, Shield, Zap, Cpu, Server, Box, Globe, Cloud, Cpu as CpuIcon } from 'lucide-react';
+import { Layers, Activity, Radio, Database, Shield, Zap, Cpu, Server, Box, Globe, Cloud, Cpu as CpuIcon, Pencil, Copy, Trash2, Activity as StatusIcon, Palette } from 'lucide-react';
 import { getShapeConfig, getNodeShape, type NodeShape, type ShapeConfig } from '@/lib/nodeShapes';
 import { getStrictPortConfig } from '@/lib/componentPorts';
 
@@ -24,6 +24,57 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
   const hasError = data.hasError;
   const shape = data.shape || getNodeShape(data.category);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Toolbar handlers
+  const handleDuplicate = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nodes = useDiagramStore.getState().nodes;
+    const node = nodes.find(n => n.id === id);
+    if (node) {
+      const newId = `${id}-copy-${Date.now()}`;
+      useDiagramStore.getState().addNode({
+        ...node,
+        id: newId,
+        position: { x: node.position.x + 30, y: node.position.y + 30 },
+        data: { ...node.data, label: `${node.data.label} (copy)` },
+      });
+      useDiagramStore.getState().setSelectedNodeIds([newId]);
+    }
+  }, [id]);
+
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    useDiagramStore.getState().removeNode(id);
+  }, [id]);
+
+  const handleStatusChange = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const statuses: Array<'healthy' | 'warning' | 'error' | 'unknown'> = ['healthy', 'warning', 'error', 'unknown'];
+    const currentIndex = statuses.indexOf(data.status || 'healthy');
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+    useDiagramStore.getState().updateNodeData(id, { status: nextStatus });
+  }, [id, data.status]);
+
+  const handleColorChange = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#22c55e', '#14b8a6', '#0ea5e9', '#3b82f6', '#6b7280'];
+    const currentIndex = colors.indexOf(data.accentColor || data.color || '#6366f1');
+    const nextColor = colors[(currentIndex + 1) % colors.length];
+    useDiagramStore.getState().updateNodeData(id, { accentColor: nextColor });
+  }, [id, data.accentColor, data.color]);
+
+  const handleEdit = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    useDiagramStore.getState().setSidebarOpen(true);
+  }, []);
+
+  const ToolbarButton = ({ onClick, children, title, hoverClass = '' }: { onClick: (e: React.MouseEvent) => void; children: React.ReactNode; title?: string; hoverClass?: string }) => (
+    <button onClick={onClick} title={title} className={`h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center justify-center transition-colors ${hoverClass}`}>
+      {children}
+    </button>
+  );
+
+  const statusColor = data.status === 'warning' ? '#F59E0B' : data.status === 'error' ? '#EF4444' : data.status === 'unknown' ? '#6B7280' : '#10B981';
 
   const shapeConfig = useMemo((): ShapeConfig => {
     if (data.shape) {
@@ -273,12 +324,13 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
         <>
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: getHandleOpacity(false, false) }}
+            animate={{ opacity: selected || isHovered ? 1 : getHandleOpacity(false, false) }}
             style={{ position: 'absolute', left: -5, zIndex: 10 }}
           >
             <Handle
               type="target"
               position={Position.Left}
+              id="input"
               style={{
                 ...baseHandleStyle,
                 background: isDark ? resolvedAccent : '#ffffff',
@@ -288,12 +340,13 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
           </motion.div>
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: getHandleOpacity(false, false) }}
+            animate={{ opacity: selected || isHovered ? 1 : getHandleOpacity(false, false) }}
             style={{ position: 'absolute', right: -5, zIndex: 10 }}
           >
             <Handle
               type="source"
               position={Position.Right}
+              id="output"
               style={{
                 ...baseHandleStyle,
                 background: isDark ? resolvedAccent : '#ffffff',
@@ -308,8 +361,18 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
       <>
         {renderInputHandles()}
         {renderOutputHandles()}
-        <Handle type="target" position={Position.Top} style={{ ...baseHandleStyle, opacity: 0 }} />
-        <Handle type="source" position={Position.Bottom} style={{ ...baseHandleStyle, opacity: 0 }} />
+        <Handle 
+          type="target" 
+          position={Position.Top} 
+          id="input"
+          style={baseHandleStyle} 
+        />
+        <Handle 
+          type="source" 
+          position={Position.Bottom} 
+          id="output"
+          style={baseHandleStyle} 
+        />
       </>
     );
   };
@@ -338,7 +401,31 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
         }
       }}
     >
-      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/8 via-white/[0.02] to-transparent group-hover:from-white/[0.12] group-hover:via-white/[0.04] transition-all duration-300 dark:from-white/8 dark:via-white/[0.02] dark:to-transparent" />
+      {/* Toolbar - appears above when selected */}
+      {selected && (
+        <div 
+          className="absolute -top-14 left-1/2 -translate-x-1/2 z-50 flex items-center gap-0.5 px-1.5 py-1 rounded-lg shadow-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ToolbarButton onClick={handleEdit} title="Edit">
+            <Pencil className="w-3.5 h-3.5" />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleDuplicate} title="Duplicate">
+            <Copy className="w-3.5 h-3.5" />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleDelete} title="Delete" hoverClass="hover:text-red-500">
+            <Trash2 className="w-3.5 h-3.5" />
+          </ToolbarButton>
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1" />
+          <ToolbarButton onClick={handleStatusChange} title="Toggle Status">
+            <StatusIcon className="w-3.5 h-3.5" style={{ color: statusColor }} />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleColorChange} title="Change Color">
+            <Palette className="w-3.5 h-3.5" style={{ color: resolvedAccent }} />
+          </ToolbarButton>
+        </div>
+      )}
+      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/8 via-white/[0.02] to-transparent dark:from-white/8 dark:via-white/[0.02] dark:to-transparent" />
       
       {renderHandles()}
       {renderShapeContent()}

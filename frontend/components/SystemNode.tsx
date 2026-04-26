@@ -4,6 +4,7 @@ import { memo, useCallback } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { useCanvasTheme } from '@/lib/theme';
+import { Activity, Palette, Pencil, Copy, Trash2 } from 'lucide-react';
 
 const NODE_WIDTH = 160;
 const NODE_HEIGHT = 80;
@@ -52,13 +53,6 @@ const STATUS_COLORS = {
   unknown: '#6B7280',
 };
 
-const STATUS_LABELS = {
-  healthy: 'Healthy',
-  warning: 'Warning',
-  error: 'Error',
-  unknown: 'Unknown',
-};
-
 function getTierColorNormalized(layer?: string): string {
   const tier = (layer || 'compute').toLowerCase();
   const colorMap: Record<string, string> = {
@@ -89,13 +83,11 @@ function NodeHandle({
   const isLeft = position === Position.Left;
   const isRight = position === Position.Right;
   const isTop = position === Position.Top;
-  const isBottom = position === Position.Bottom;
   
-  // Calculate position based on node dimensions
-  // Node is 80px tall, so center is at y=40
-  const nodeCenterY = NODE_HEIGHT / 2; // 40px
+  const nodeCenterY = NODE_HEIGHT / 2;
   
   const getHandleStyle = (): React.CSSProperties => {
+    const axisOffset = type === 'source' ? 8 : -8;
     const baseStyle: React.CSSProperties = {
       width: 10,
       height: 10,
@@ -111,7 +103,7 @@ function NodeHandle({
         ...baseStyle,
         left: -5,
         top: nodeCenterY,
-        transform: 'translateY(-50%)',
+        transform: `translateY(calc(-50% + ${axisOffset}px))`,
       };
     }
     if (isRight) {
@@ -119,7 +111,7 @@ function NodeHandle({
         ...baseStyle,
         right: -5,
         top: nodeCenterY,
-        transform: 'translateY(-50%)',
+        transform: `translateY(calc(-50% + ${axisOffset}px))`,
       };
     }
     if (isTop) {
@@ -127,15 +119,14 @@ function NodeHandle({
         ...baseStyle,
         top: -5,
         left: '50%',
-        transform: 'translateX(-50%)',
+        transform: `translateX(calc(-50% + ${axisOffset}px))`,
       };
     }
-    // Bottom
     return {
       ...baseStyle,
       bottom: -5,
       left: '50%',
-      transform: 'translateX(-50%)',
+      transform: `translateX(calc(-50% + ${axisOffset}px))`,
     };
   };
   
@@ -144,10 +135,53 @@ function NodeHandle({
       type={type}
       position={position}
       id={id}
-      className={`!opacity-0 group-hover:!opacity-100 transition-opacity duration-150`}
       style={getHandleStyle()}
     />
   );
+}
+
+function ToolbarButton({ 
+  onClick, 
+  children,
+  title,
+  hoverClass = '',
+}: { 
+  onClick: (e: React.MouseEvent) => void; 
+  children: React.ReactNode;
+  title?: string;
+  hoverClass?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center justify-center transition-colors ${hoverClass}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function getHandleStyle(position: Position, type: 'source' | 'target'): React.CSSProperties {
+  const baseStyle: React.CSSProperties = {
+    width: 12,
+    height: 12,
+    background: '#fff',
+    border: '2px solid #6366f1',
+    borderRadius: '50%',
+    zIndex: 10,
+  };
+  
+  if (position === Position.Left) {
+    return { ...baseStyle, left: -6, top: '50%', transform: 'translateY(-50%)' };
+  }
+  if (position === Position.Right) {
+    return { ...baseStyle, right: -6, top: '50%', transform: 'translateY(-50%)' };
+  }
+  if (position === Position.Top) {
+    return { ...baseStyle, top: -6, left: '50%', transform: 'translateX(-50%)' };
+  }
+  return { ...baseStyle, bottom: -6, left: '50%', transform: 'translateX(-50%)' };
 }
 
 function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
@@ -160,11 +194,12 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     status?: 'healthy' | 'warning' | 'error' | 'unknown';
     color?: string;
     nodeWidth?: number;
+    accentColor?: string;
   };
   
   const styles = isDark ? DARK_STYLES : LIGHT_STYLES;
   const tierColor = getTierColorNormalized(nodeData.layer);
-  const accentColor = nodeData.color || tierColor || '#0D9488';
+  const accentColor = nodeData.accentColor || nodeData.color || tierColor || '#0D9488';
   
   const statusColor = STATUS_COLORS[nodeData.status || 'healthy'];
   const showStatus = nodeData.status && nodeData.status !== 'healthy';
@@ -173,7 +208,49 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     setSelectedNodeId(id);
   }, [id, setSelectedNodeId]);
 
-  return (
+  const handleDuplicate = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nodes = useDiagramStore.getState().nodes;
+    const node = nodes.find(n => n.id === id);
+    if (node) {
+      const newId = `${id}-copy-${Date.now()}`;
+      useDiagramStore.getState().addNode({
+        ...node,
+        id: newId,
+        position: { x: node.position.x + 30, y: node.position.y + 30 },
+        data: { ...node.data, label: `${node.data.label} (copy)` },
+      });
+      useDiagramStore.getState().setSelectedNodeIds([newId]);
+    }
+  }, [id]);
+
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    useDiagramStore.getState().removeNode(id);
+  }, [id]);
+
+  const handleStatusChange = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const statuses: Array<'healthy' | 'warning' | 'error' | 'unknown'> = ['healthy', 'warning', 'error', 'unknown'];
+    const currentIndex = statuses.indexOf(nodeData.status || 'healthy');
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+    useDiagramStore.getState().updateNodeData(id, { status: nextStatus });
+  }, [id, nodeData.status]);
+
+  const handleColorChange = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#22c55e', '#14b8a6', '#0ea5e9', '#3b82f6', '#6b7280'];
+    const currentIndex = colors.indexOf(nodeData.accentColor || nodeData.color || '#6366f1');
+    const nextColor = colors[(currentIndex + 1) % colors.length];
+    useDiagramStore.getState().updateNodeData(id, { accentColor: nextColor });
+  }, [id, nodeData.accentColor, nodeData.color]);
+
+  const handleEdit = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    useDiagramStore.getState().setSidebarOpen(true);
+  }, []);
+
+return (
     <div
       className="group"
       style={{
@@ -194,9 +271,7 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         borderRightColor: selected ? accentColor : styles.border,
         borderBottomColor: selected ? accentColor : styles.border,
         borderLeftColor: accentColor,
-        boxShadow: selected 
-          ? styles.shadowSelected 
-          : styles.shadow,
+        boxShadow: selected ? styles.shadowSelected : styles.shadow,
         transition: 'all 150ms ease',
         cursor: 'pointer',
         position: 'relative',
@@ -206,138 +281,61 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
       }}
       onClick={handleClick}
     >
-      <NodeHandle
-        type="target"
-        position={Position.Left}
-        id="left"
-        color={accentColor}
-        styles={styles}
-      />
-      <NodeHandle
-        type="source"
-        position={Position.Right}
-        id="right"
-        color={accentColor}
-        styles={styles}
-      />
-      
-      {/* Hide unused handles */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="top"
-        style={{ opacity: 0, width: 0, height: 0 }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="bottom"
-        style={{ opacity: 0, width: 0, height: 0 }}
-      />
-
-      {/* Header: Icon + Title */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '8px 10px 4px',
-          flex: 1,
-        }}
-      >
-        {/* Type Icon */}
-        <div
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 6,
-            background: `${accentColor}15`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
+      {/* Toolbar - appears above when selected */}
+      {selected && (
+        <div 
+          className="absolute -top-14 left-1/2 -translate-x-1/2 z-50 flex items-center gap-0.5 px-1.5 py-1 rounded-lg shadow-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+          onClick={(e) => e.stopPropagation()}
         >
-          <div
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: 3,
-              background: accentColor,
-            }}
-          />
+          <ToolbarButton onClick={handleEdit} title="Edit">
+            <Pencil className="w-3.5 h-3.5" />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleDuplicate} title="Duplicate">
+            <Copy className="w-3.5 h-3.5" />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleDelete} title="Delete" hoverClass="hover:text-red-500">
+            <Trash2 className="w-3.5 h-3.5" />
+          </ToolbarButton>
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1" />
+          <ToolbarButton onClick={handleStatusChange} title="Toggle Status">
+            <Activity className="w-3.5 h-3.5" style={{ color: statusColor }} />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleColorChange} title="Change Color">
+            <Palette className="w-3.5 h-3.5" style={{ color: accentColor }} />
+          </ToolbarButton>
         </div>
-        
-        {/* Title */}
-        <p
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: styles.titleColor,
-            margin: 0,
-            lineHeight: 1.3,
-            flex: 1,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-          title={data.label}
-        >
+      )}
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px 4px', flex: 1 }}>
+        <div style={{ width: 24, height: 24, borderRadius: 6, background: `${accentColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 12, height: 12, borderRadius: 3, background: accentColor }} />
+        </div>
+        <p style={{ fontSize: 12, fontWeight: 600, color: styles.titleColor, margin: 0, lineHeight: 1.3, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={data.label}>
           {data.label}
         </p>
       </div>
 
-      {/* Footer: Subtitle + Status */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 10px 8px',
-        }}
-      >
-        {/* Subtitle */}
+      {/* Footer */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 10px 8px' }}>
         {nodeData.subtitle && (
-          <p
-            style={{
-              fontSize: 10,
-              color: styles.subtitleColor,
-              margin: 0,
-              lineHeight: 1.2,
-              flex: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-            title={nodeData.subtitle}
-          >
+          <p style={{ fontSize: 10, color: styles.subtitleColor, margin: 0, lineHeight: 1.2, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={nodeData.subtitle}>
             {nodeData.subtitle}
           </p>
         )}
-        
-        {/* Status indicator */}
         {showStatus && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: statusColor,
-              }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor }} />
           </div>
         )}
       </div>
+
+      {/* Connection Handles */}
+      <Handle type="target" position={Position.Left} id="left" style={getHandleStyle(Position.Left, 'target')} />
+      <Handle type="source" position={Position.Right} id="right" style={getHandleStyle(Position.Right, 'source')} />
     </div>
   );
 }
 
 export const SystemNode = memo(SystemNodeComponent);
+export default SystemNode;

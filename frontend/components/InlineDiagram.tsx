@@ -20,6 +20,7 @@ import { useTheme } from '@/lib/theme';
 
 const NODE_TYPES = {
   systemNode: SystemNode,
+  architectureNode: SystemNode,
   baseNode: BaseNode,
   databaseNode: DatabaseNode,
   cacheNode: CacheNode,
@@ -63,7 +64,7 @@ export function InlineDiagram({ data, onOpenFullEditor, height = 400 }: InlineDi
 
   const defaultEdgeOptions = useMemo(() => ({
     type: 'custom',
-    data: { edgeType: 'sync', pathType: 'Smoothstep' },
+    data: { edgeType: 'sync', pathType: 'smooth' },
   }), []);
 
   const handleOpenEditor = useCallback(() => {

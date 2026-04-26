@@ -107,6 +107,7 @@ function TutorialSystemNodeWrapper(props: NodeProps<NodeData>) {
 
 const NODE_TYPES = {
   systemNode:        TutorialSystemNodeWrapper,
+  architectureNode:  TutorialSystemNodeWrapper,
   baseNode:          BaseNode,
   databaseNode:     DatabaseNode,
   cacheNode:         CacheNode,
@@ -370,8 +371,8 @@ function TutorialCanvasInner({
           defaultEdgeOptions={{
             type: 'custom',
             animated: true,
-            data: { connectionType: 'smooth', edgeType: 'sync', pathType: 'Smoothstep' },
-            style: { stroke: '#94a3b8', strokeWidth: '1.5px' },
+            data: { connectionType: 'smooth', edgeType: 'sync', pathType: 'smooth' },
+            style: { stroke: '#94a3b8', strokeWidth: '2px' },
           }}
           deleteKeyCode={['Backspace', 'Delete', 'Meta+Backspace']}
         >

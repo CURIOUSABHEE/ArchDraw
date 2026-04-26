@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
+import { getViewportCenter } from '@/lib/utils';
 import { 
   Copy, Clipboard, Scissors, Trash2, Group, Type, 
   MessageSquare, CheckSquare, Layers, ZoomIn, ZoomOut,
-  Maximize2, ChevronRight
+  Maximize2, ChevronRight, Link2, GitBranch
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
@@ -14,6 +15,7 @@ export interface ContextMenuState {
   x: number;
   y: number;
   nodeId?: string;
+  edgeId?: string;
   flowX?: number;
   flowY?: number;
 }
@@ -29,9 +31,9 @@ export function ContextMenu({ menu, onClose }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { screenToFlowPosition, fitView } = useReactFlow();
   const {
-    nodes, removeNode, setSelectedNodeId,
+    nodes, edges, removeNode, deleteEdge: storeDeleteEdge, setSelectedNodeId,
     selectedNodeIds, createGroup, ungroupNodes, moveToGroup,
-    pushHistory, fitView: storeFitView,
+    pushHistory, fitView: storeFitView, updateEdgeData,
   } = useDiagramStore();
 
   useEffect(() => {
@@ -48,7 +50,7 @@ export function ContextMenu({ menu, onClose }: Props) {
   }, [onClose]);
 
   const addAtPosition = useCallback((type: string, data: Record<string, unknown>) => {
-    const pos = screenToFlowPosition({ x: menu.x, y: menu.y });
+    const pos = getViewportCenter();
     pushHistory();
     useDiagramStore.setState((s) => ({
       nodes: [
@@ -57,7 +59,7 @@ export function ContextMenu({ menu, onClose }: Props) {
       ],
     }));
     onClose();
-  }, [menu.x, menu.y, screenToFlowPosition, pushHistory, onClose]);
+  }, [pushHistory, onClose]);
 
   const addTextLabel = useCallback((fontSize: 'small' | 'medium' | 'large' | 'heading') => {
     addAtPosition('textLabelNode', { text: 'Label', fontSize });
@@ -124,6 +126,29 @@ export function ContextMenu({ menu, onClose }: Props) {
     onClose();
   }, [menu.nodeId, moveToGroup, onClose]);
 
+  const deleteEdge = useCallback(() => {
+    if (menu.edgeId) { setConfirmDelete(true); }
+  }, [menu.edgeId]);
+
+  const handleDeleteEdgeConfirm = useCallback(() => {
+    if (menu.edgeId) { storeDeleteEdge(menu.edgeId); onClose(); }
+    setConfirmDelete(false);
+  }, [menu.edgeId, storeDeleteEdge, onClose]);
+
+  const changeEdgeType = useCallback((connectionType: string) => {
+    if (!menu.edgeId) return;
+    pushHistory();
+    updateEdgeData(menu.edgeId, { connectionType });
+    onClose();
+  }, [menu.edgeId, pushHistory, updateEdgeData, onClose]);
+
+  const changeEdgePath = useCallback((pathType: string) => {
+    if (!menu.edgeId) return;
+    pushHistory();
+    updateEdgeData(menu.edgeId, { pathType });
+    onClose();
+  }, [menu.edgeId, pushHistory, updateEdgeData, onClose]);
+
   const selectAll = useCallback(() => {
     const allIds = nodes.map((n) => n.id);
     useDiagramStore.setState({ selectedNodeIds: allIds });
@@ -166,6 +191,7 @@ export function ContextMenu({ menu, onClose }: Props) {
   }, [onClose]);
 
   const isNodeMenu = !!menu.nodeId;
+  const isEdgeMenu = !!menu.edgeId;
 
   return (
     <div
@@ -179,7 +205,40 @@ export function ContextMenu({ menu, onClose }: Props) {
       }}
       className="bg-card rounded-2xl shadow-soft-4 overflow-hidden py-2 animate-in fade-in-0 zoom-in-95 duration-150"
     >
-      {isNodeMenu ? (
+      {isEdgeMenu ? (
+        <>
+          <MenuItemWithSubmenu 
+            icon={<GitBranch size={14} />} 
+            label="Connection Type"
+            submenuOpen={openSubmenu === 'connectionType'} 
+            onMouseEnter={() => setOpenSubmenu('connectionType')}
+            onMouseLeave={() => setOpenSubmenu(null)}
+          >
+            <SubmenuItem onClick={() => changeEdgeType('sync')}>Sync</SubmenuItem>
+            <SubmenuItem onClick={() => changeEdgeType('async')}>Async</SubmenuItem>
+            <SubmenuItem onClick={() => changeEdgeType('stream')}>Stream</SubmenuItem>
+            <SubmenuItem onClick={() => changeEdgeType('event')}>Event</SubmenuItem>
+            <SubmenuItem onClick={() => changeEdgeType('dep')}>Dependency</SubmenuItem>
+          </MenuItemWithSubmenu>
+          <MenuItemWithSubmenu 
+            icon={<Link2 size={14} />} 
+            label="Path Type"
+            submenuOpen={openSubmenu === 'pathType'} 
+            onMouseEnter={() => setOpenSubmenu('pathType')}
+            onMouseLeave={() => setOpenSubmenu(null)}
+          >
+            <SubmenuItem onClick={() => changeEdgePath('smooth')}>Smooth</SubmenuItem>
+            <SubmenuItem onClick={() => changeEdgePath('step')}>Step</SubmenuItem>
+            <SubmenuItem onClick={() => changeEdgePath('bezier')}>Bezier</SubmenuItem>
+            <SubmenuItem onClick={() => changeEdgePath('straight')}>Straight</SubmenuItem>
+          </MenuItemWithSubmenu>
+          <Separator />
+          <MenuItem icon={<Scissors size={14} />} onClick={deleteEdge} danger>
+            Delete
+            <Shortcut>kbd Del</Shortcut>
+          </MenuItem>
+        </>
+      ) : isNodeMenu ? (
         <>
           <MenuItem icon={<Copy size={14} />} onClick={duplicateNode}>
             Duplicate

@@ -1,157 +1,70 @@
 'use client';
 
-import { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { Handle, Position, NodeProps, NodeResizer, useReactFlow } from 'reactflow';
-import type { Node } from 'reactflow';
-import { useDiagramStore } from '@/store/diagramStore';
+import { NodeProps } from 'reactflow';
 
-export interface GroupNodeData {
-  label: string;
-  color?: string;
-}
+export default function GroupNode({ data }: NodeProps) {
+  const color = (data as { groupColor?: string })?.groupColor || '#e2e8f0';
 
-function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeData>) {
-  const { setNodes } = useReactFlow();
-  const nodes = useDiagramStore((s: { nodes: Node[] }) => s.nodes);
-  const color = data.color ?? '#6366f1';
-  const [label, setLabel] = useState(data.label);
-  const [editing, setEditing] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  };
 
-  const depth = useMemo(() => {
-    const findDepth = (nodeId: string, currentDepth = 0): number => {
-      const node = nodes.find((n: Node) => n.id === nodeId);
-      if (!node?.parentId) return currentDepth;
-      return findDepth(node.parentId, currentDepth + 1);
-    };
-    return findDepth(id, 0);
-  }, [id, nodes]);
+  const bg = hexToRgba(color, 0.04);
+  const borderColor = hexToRgba(color, 0.35);
+  const tagBorder = hexToRgba(color, 0.5);
+  const tagText = hexToRgba(color, 0.9);
+  const tagBg = hexToRgba(color, 0.08);
 
-  useEffect(() => {
-    setLabel(data.label);
-  }, [data.label]);
-
-  const startEdit = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditing(true);
-    setTimeout(() => inputRef.current?.focus(), 0);
-  }, []);
-
-  const commitEdit = useCallback(() => {
-    setEditing(false);
-    setNodes((nds: Node[]) => nds.map((n: Node) => n.id === id ? { ...n, data: { ...n.data, label } } : n));
-  }, [id, label, setNodes]);
-
-  const borderOpacity = selected ? 1 : depth > 0 ? 0.6 : 0.4;
-  const bgOpacity = depth > 0 ? 0.08 : 0.06;
+  const label =
+    (data as { groupLabel?: string; label?: string })?.groupLabel ||
+    (data as { label?: string })?.label ||
+    '';
 
   return (
-    <>
-      {/* Resizer — only visible when selected */}
-      <NodeResizer
-        minWidth={160}
-        minHeight={100}
-        isVisible={!!selected}
-        lineStyle={{ borderColor: color, borderWidth: 2, borderStyle: 'dashed', borderRadius: 16 }}
-        handleStyle={{ width: 12, height: 12, background: color, borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-      />
-
-      {/* Container */}
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: bg,
+        border: `1.5px dashed ${borderColor}`,
+        borderRadius: 16,
+        position: 'relative',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* Text tag with pill outline */}
       <div
         style={{
-          width: '100%',
-          height: '100%',
-          minWidth: 0,
-          border: `2px dashed ${selected ? color : `${color}${Math.round(borderOpacity * 255).toString(16).padStart(2, '0')}`}`,
-          borderRadius: 16,
-          background: `${color}${Math.round(bgOpacity * 255).toString(16).padStart(2, '0')}`,
-          position: 'relative',
-          boxSizing: 'border-box',
-          boxShadow: selected ? `0 0 0 2px ${color}30, inset 0 0 30px ${color}08` : 'none',
-          transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
-          paddingLeft: depth > 0 ? 8 : 0,
+          position: 'absolute',
+          top: -12,
+          left: 16,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '3px 10px',
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: tagText,
+          background: tagBg,
+          border: `1px solid ${tagBorder}`,
+          borderRadius: 6,
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          lineHeight: 1.4,
+          whiteSpace: 'nowrap',
         }}
       >
-        {/* Depth indicator */}
-        {depth > 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 3,
-              backgroundColor: color,
-              borderRadius: '3px 0 0 3px',
-              opacity: 0.6,
-            }}
-          />
-        )}
-
-        {/* Label */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: depth > 0 ? 16 : 14,
-            display: 'flex',
-            alignItems: 'center',
-          }}
-          onDoubleClick={startEdit}
-        >
-          {editing ? (
-            <input
-              ref={inputRef}
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              onBlur={commitEdit}
-              onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') commitEdit(); }}
-              onMouseDown={(e) => e.stopPropagation()}
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color,
-                background: 'hsl(var(--card))',
-                border: 'none',
-                borderRadius: 6,
-                outline: 'none',
-                width: 120,
-                minWidth: 60,
-                maxWidth: 150,
-                padding: '4px 8px',
-                boxSizing: 'border-box',
-                boxShadow: '0 2px 8px hsl(var(--foreground) / 0.1)',
-              }}
-            />
-          ) : (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                cursor: 'text',
-                userSelect: 'none',
-                padding: '4px 8px',
-                background: 'hsl(var(--card))',
-                borderRadius: 6,
-                boxShadow: '0 2px 6px hsl(var(--foreground) / 0.08)',
-              }}
-            >
-              {label}
-            </span>
-          )}
-        </div>
-
-        {/* Invisible handles so groups can be connected */}
-        <Handle type="target" position={Position.Left}   style={{ opacity: 0, width: 8, height: 8 }} />
-        <Handle type="source" position={Position.Right}  style={{ opacity: 0, width: 8, height: 8 }} />
-        <Handle type="target" position={Position.Top}    style={{ opacity: 0, width: 8, height: 8 }} />
-        <Handle type="source" position={Position.Bottom} style={{ opacity: 0, width: 8, height: 8 }} />
+        {label}
       </div>
-    </>
+    </div>
   );
 }
 
-export const GroupNode = memo(GroupNodeComponent);
+export { GroupNode };

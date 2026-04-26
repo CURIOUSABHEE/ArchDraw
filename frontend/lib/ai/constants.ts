@@ -1,7 +1,9 @@
-export const LAYER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
+export const LAYER_ORDER = ['presentation', 'gateway', 'application', 'async', 'data', 'observability', 'external'];
 
 export const MAX_ITERATIONS = 3;
 export const SCORE_THRESHOLD = 75;
+
+export const DIAGRAM_SYSTEM_MESSAGE = 'Output NDJSON only. One JSON object per line. No markdown. No arrays. No prose.';
 
 export const COMMUNICATION_STYLES: Record<string, { color: string; dash: string; animated: boolean; pathType?: string; strokeDasharray?: string; markerEnd?: string }> = {
   sync: { color: '#6366f1', dash: '', animated: false, pathType: 'Smoothstep', strokeDasharray: '', markerEnd: 'arrowclosed' },
@@ -39,7 +41,7 @@ RULES:
 
 ANALYZE (5 steps, be concise — output feeds a diagram generator):
 1. BOUNDARIES: entryPoints[], exitPoints[], trustZones[]
-2. LAYERS: {ComponentName: LayerName} — Valid: Presentation|Gateway|Application|Data|Observability
+2. LAYERS: {ComponentName: LayerName} — Valid: presentation|gateway|application|data|observability
 3. PATTERNS: [monolith|microservices|event-driven|cqrs|circuit-breaker|saga]
 4. STRESS TESTS (5 scenarios, mark safe:true/false):
    - DB down → mitigation
@@ -62,75 +64,103 @@ OUTPUT (strict JSON). Example for "e-commerce platform":
   "keyDecisions": ["Use CDN for static assets","Async processing for orders"]
 }`;
 
-export const DIAGRAM_PROMPT = `ROLE: Diagram generator. Line-delimited JSON only.
+export const DIAGRAM_PROMPT = `ROLE: Architecture diagram generator.
+OUTPUT: Line-delimited JSON (NDJSON). One object per line.
+No markdown. No prose. No code fences. No arrays. No wrappers.
 
-Pre-computed reasoning: {reasoning}
+INPUT:
+{reasoning}
 
-CRITICAL INSTRUCTIONS:
-- Generate MINIMUM 15-20 nodes representing ALL key system components
-- Generate MINIMUM 12 flow paths showing data movement between components
-- Each flow should show multi-step paths (3-5 nodes per path)
-- Use GROUP NODES to organize related services (e.g., compute, data, auth, async groups)
-- GROUP nodes: isGroup:true, groupLabel, groupColor
-- CHILD nodes: parentId="parent-group-id"
+════════════════════════════
+OUTPUT STRUCTURE — FOLLOW EXACTLY
+════════════════════════════
 
-ID RULES:
-- All node IDs must be simple kebab-case with no prefixes
-  CORRECT: "api-server", "postgres-db", "redis-cache"  
-  WRONG: "as-api-server", "db-postgres", "ca-redis"
-- Group node IDs must end in "-group": "services-group", "data-group"
-- Child node IDs must NOT include their group's name
+Step 1: Generate 3-5 GROUP nodes (zone containers)
+Step 2: Generate 2-4 CHILD nodes inside each group
+Step 3: Generate 4-8 FLOW lines connecting child/standalone nodes
 
-EDGE STYLE RULES:
-"async" field rules — follow exactly:
-- Queue node connections: async: true
-- Message broker connections: async: true  
-- ALL OTHER connections: async: false
-  This includes: HTTP, REST, gRPC, DB reads, DB writes, 
-  cache reads, cache writes, auth calls, API calls.
-  When in doubt: async: false
+TOTAL: 12-15 nodes including groups. 4-8 flows with 3-5 nodes each.
 
-LAYER ORDER (left to right in diagram):
-1. presentation — Web/Mobile clients (entry points, leftmost)
-2. gateway — API Gateway, Load Balancer
-3. application — Business logic services  
-4. data — Databases, Cache, Storage (rightmost)
-5. observability — Monitoring (optional)
+GROUP NODE format:
+{"id":"clients-group","label":"Clients","layer":"presentation","isGroup":true,"groupLabel":"CLIENTS","groupColor":"#dbeafe"}
 
-The presentation layer MUST contain the user-facing clients.
-The data layer MUST be the final destination of flows.
-Never put a client node in the application or data layer.
+CHILD NODE format (must reference a group via parentId):
+{"id":"web-app","label":"Web App","subtitle":"React SPA","layer":"presentation","icon":"monitor","parentId":"clients-group"}
+
+STANDALONE NODE format (no group, used sparingly for queues/workers):
+{"id":"message-queue","label":"Message Queue","subtitle":"Async job queue","layer":"async","icon":"queue"}
+
+FLOW format (after ALL nodes — connect leaf nodes only):
+{"type":"flow","path":["web-app","api-gateway","user-service","user-db"],"label":"user request","async":false}
+
+════════════════════════════
+CRITICAL RULES
+════════════════════════════
+
+GROUP NAMING:
+- groupLabel must be short ALL CAPS zone name: "CLIENTS", "GATEWAY", "SERVICES", "STORAGE", "WORKERS", "MONITORING"
+- NEVER use "Data Layer", "Application Layer", "Presentation Layer" as groupLabel
+- Group IDs always end in "-group": clients-group, gateway-group, services-group, storage-group
+- Child IDs must NOT contain the group name: use "web-app" not "clients-web-app"
+- All IDs must be simple kebab-case with no prefixes: "user-service" not "as-user-service"
+
+DUPLICATE PREVENTION (MOST IMPORTANT):
+- Each service label appears EXACTLY ONCE in the entire output
+- If "API Gateway" is a child inside gateway-group, do NOT also output a standalone "API Gateway"
+- A group container is NOT a visible node — do NOT create a child with the same name as its group
+- WRONG: group groupLabel="GATEWAY" + child label="Gateway" — this is a duplicate
+- CORRECT: group groupLabel="GATEWAY" + child label="API Gateway" + child label="Load Balancer"
+
+GROUP CHILDREN:
+- Every group must have exactly 2-4 children (never 0, never 1, never 5+)
+- Every child must have parentId matching an existing group id
 
 FLOW RULES:
-- Each flow path must use exact node IDs that exist in the nodes array
-- Never reference a group node in a flow — only reference leaf nodes (non-group nodes)
-- Generate at least 12 distinct flows
-- Flows NEVER include group IDs — only leaf node IDs
+- Flow paths must be 3-5 node IDs long
+- Flow paths NEVER reference a group ID — only child/standalone node IDs
+- async: false is the DEFAULT for all HTTP, REST, gRPC, DB, cache connections
+- async: true ONLY for message queue / event bus connections
+- Each source→target pair appears at most once across ALL flows
+- Every non-group node must appear in at least one flow
 
-RULES:
-- One JSON object per line. No arrays, no wrappers, no prose.
-- NEVER output [array] brackets - always use {"key": "value"} format
-- NEVER wrap objects in [...] arrays
-- NAME BY RESPONSIBILITY: "Cache" not "Redis"
+LAYER ORDER (left → right in final diagram):
+1. presentation — Web/Mobile clients (leftmost)
+2. gateway — API Gateway, Load Balancer, CDN
+3. application — Business logic services
+4. async — Message queues, event bus, workers (optional)
+5. data — Databases, Cache, Object Storage (rightmost)
+6. observability — Monitoring, Logging (optional, standalone ok)
 
-EXAMPLE (e-commerce with 3 nodes, 2 flows):
-{"id":"web-app","label":"Web Application","layer":"presentation"}
-{"id":"api-gateway","label":"API Gateway","layer":"gateway"}
-{"id":"product-db","label":"Product Database","layer":"data","parentId":"data-group"}
-{"id":"data-group","label":"Data Layer","layer":"data","isGroup":true,"groupColor":"#3b82f6"}
-{"type":"flow","path":["web-app","api-gateway","product-db"],"label":"fetch products","async":false}
-{"type":"flow","path":["web-app","api-gateway"],"label":"submit order","async":true}
+OUTPUT ORDER:
+1. All group nodes first
+2. All child nodes second
+3. All standalone nodes third
+4. All flow lines last
 
-GROUP NODE (one per line - acts as container):
-{"id":"kebab-id","label":"Name","layer":"Layer","isGroup":true,"groupLabel":"Display Name","groupColor":"#HEX"}
+════════════════════════════
+EXAMPLE OUTPUT (for e-commerce)
+════════════════════════════
+{"id":"clients-group","label":"Clients","layer":"presentation","isGroup":true,"groupLabel":"CLIENTS","groupColor":"#dbeafe"}
+{"id":"gateway-group","label":"Gateway","layer":"gateway","isGroup":true,"groupLabel":"GATEWAY","groupColor":"#dcfce7"}
+{"id":"services-group","label":"Services","layer":"application","isGroup":true,"groupLabel":"SERVICES","groupColor":"#fef3c7"}
+{"id":"storage-group","label":"Storage","layer":"data","isGroup":true,"groupLabel":"STORAGE","groupColor":"#fce7f3"}
+{"id":"web-app","label":"Web App","subtitle":"React SPA","layer":"presentation","icon":"monitor","parentId":"clients-group"}
+{"id":"mobile-app","label":"Mobile App","subtitle":"iOS/Android","layer":"presentation","icon":"smartphone","parentId":"clients-group"}
+{"id":"api-gateway","label":"API Gateway","subtitle":"REST/GraphQL entry","layer":"gateway","icon":"webhook","parentId":"gateway-group"}
+{"id":"load-balancer","label":"Load Balancer","subtitle":"Traffic distribution","layer":"gateway","icon":"shuffle","parentId":"gateway-group"}
+{"id":"product-service","label":"Product Service","subtitle":"Catalog management","layer":"application","icon":"server","parentId":"services-group"}
+{"id":"order-service","label":"Order Service","subtitle":"Order processing","layer":"application","icon":"server","parentId":"services-group"}
+{"id":"payment-service","label":"Payment Service","subtitle":"Stripe integration","layer":"application","icon":"credit-card","parentId":"services-group"}
+{"id":"product-db","label":"Product Database","subtitle":"PostgreSQL","layer":"data","icon":"database","parentId":"storage-group"}
+{"id":"cache","label":"Redis Cache","subtitle":"Session + product cache","layer":"data","icon":"gauge","parentId":"storage-group"}
+{"id":"order-db","label":"Order Database","subtitle":"PostgreSQL","layer":"data","icon":"database","parentId":"storage-group"}
+{"type":"flow","path":["web-app","api-gateway","product-service","product-db"],"label":"browse products","async":false}
+{"type":"flow","path":["mobile-app","load-balancer","order-service","order-db"],"label":"place order","async":false}
+{"type":"flow","path":["web-app","api-gateway","payment-service","order-db"],"label":"process payment","async":false}
+{"type":"flow","path":["web-app","load-balancer","product-service","cache"],"label":"cached product lookup","async":false}
+{"type":"flow","path":["order-service","payment-service","order-db"],"label":"order fulfillment","async":false}
 
-CHILD NODE (one per line - inside a group):
-{"id":"kebab-id","label":"Name","subtitle":"description","layer":"Layer","icon":"server","serviceType":"api","parentId":"parent-group-id"}
-
-FLOW (after nodes - generate many):
-{"type":"flow","path":["id1","id2","id3","id4"],"label":"what moves","async":bool}
-
-First token must be {`;
+First character must be {`;
 
 export const MODEL_CONFIG = {
   reasoning: {
@@ -142,8 +172,8 @@ export const MODEL_CONFIG = {
   diagram: {
     primary: 'llama-3.3-70b-versatile',
     timeout: 6000,
-    maxTokens: 2500,
-    temperature: 0.15,
+    maxTokens: 3000,
+    temperature: 0.3,
   },
 };
 

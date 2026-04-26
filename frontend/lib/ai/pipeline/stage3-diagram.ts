@@ -1,5 +1,6 @@
-import type { RawNode, RawFlow, ParsedDiagram, ReasoningResult } from './types';
-import { DIAGRAM_PROMPT, MODEL_CONFIG } from '../constants';
+import type { RawNode, RawFlow, ParsedDiagram, ReasoningResult, PipelineLayer as LayerType } from './types';
+import { DIAGRAM_PROMPT, MODEL_CONFIG, DIAGRAM_SYSTEM_MESSAGE } from '../constants';
+import { parseNDJSON } from './stage4-parse';
 
 const GROQ_KEY_ENV_VARS = [
   'GROQ_API_KEY_FOR_DESC_1', 'GROQ_API_KEY_FOR_DESC_2', 'GROQ_API_KEY_FOR_DESC_3',
@@ -90,7 +91,7 @@ async function tryGroq(prompt: string, onNode?: (n: RawNode) => void, onFlow?: (
         groq.chat.completions.create({
           model: MODEL_CONFIG.diagram.primary,
           messages: [
-            { role: 'system', content: 'Output NDJSON only. One JSON object per line. No markdown.' },
+            { role: 'system', content: DIAGRAM_SYSTEM_MESSAGE },
             { role: 'user', content: prompt }
           ],
           temperature: MODEL_CONFIG.diagram.temperature,
@@ -116,14 +117,18 @@ async function tryGroq(prompt: string, onNode?: (n: RawNode) => void, onFlow?: (
               const node: RawNode = {
                 id: String(obj.id),
                 label: String(obj.label),
-                subtitle: obj.subtitle ? String(obj.subtitle) : undefined,
-                layer: (String(obj.layer) || 'application') as RawNode['layer'],
-                icon: obj.icon ? String(obj.icon) : undefined,
-                serviceType: obj.serviceType ? String(obj.serviceType) : undefined,
-                isGroup: obj.isGroup ? true : undefined,
-                groupLabel: obj.groupLabel ? String(obj.groupLabel) : undefined,
-                groupColor: obj.groupColor ? String(obj.groupColor) : undefined,
-                parentId: obj.parentId ? String(obj.parentId) : undefined,
+                subtitle: obj.subtitle ? String(obj.subtitle) : '',
+                layer: (obj.layer as LayerType) || 'application',
+                icon: obj.icon ? String(obj.icon) : 'box',
+                serviceType: obj.serviceType ? String(obj.serviceType) : '',
+                ...(obj.isGroup ? {
+                  isGroup: true,
+                  groupLabel: String(obj.groupLabel || obj.label),
+                  groupColor: String(obj.groupColor || '#e2e8f0'),
+                } : {}),
+                ...(obj.parentId ? {
+                  parentId: String(obj.parentId),
+                } : {}),
               };
               nodes.push(node);
               onNode?.(node);
@@ -132,8 +137,8 @@ async function tryGroq(prompt: string, onNode?: (n: RawNode) => void, onFlow?: (
               if (Array.isArray(flowObj.path) && flowObj.path.length >= 2) {
                 const flow: RawFlow = {
                   path: flowObj.path,
-                  label: flowObj.label ? String(flowObj.label) : undefined,
-                  async: flowObj.async ?? false,
+                  label: flowObj.label,
+                  async: flowObj.async === true,
                 };
                 flows.push(flow);
                 onFlow?.(flow);
@@ -177,11 +182,11 @@ async function tryOpenRouter(prompt: string, onNode?: (n: RawNode) => void, onFl
       body: JSON.stringify({
         model: 'meta-llama/llama-3.3-70b-instruct',
         messages: [
-          { role: 'system', content: 'Output NDJSON only. One JSON object per line. No markdown.' },
+          { role: 'system', content: DIAGRAM_SYSTEM_MESSAGE },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.3,
-        max_tokens: 3000,
+        temperature: MODEL_CONFIG.diagram.temperature,
+        max_tokens: MODEL_CONFIG.diagram.maxTokens,
       }),
     });
 
@@ -201,48 +206,7 @@ async function tryOpenRouter(prompt: string, onNode?: (n: RawNode) => void, onFl
 }
 
 export function parseLLMOutput(rawText: string): ParsedDiagram {
-  const nodes: RawNode[] = [];
-  const flows: RawFlow[] = [];
-
-  const lines = rawText.split('\n').filter(l => l.trim());
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('```') || trimmed.startsWith('//')) continue;
-
-    try {
-      const obj = JSON.parse(trimmed);
-
-      if (obj.id && obj.label && (obj.layer || obj.isGroup || obj.parentId)) {
-        const node: RawNode = {
-          id: String(obj.id),
-          label: String(obj.label),
-          subtitle: obj.subtitle ? String(obj.subtitle) : undefined,
-          layer: (String(obj.layer) || 'application') as RawNode['layer'],
-          icon: obj.icon ? String(obj.icon) : undefined,
-          serviceType: obj.serviceType ? String(obj.serviceType) : undefined,
-          isGroup: obj.isGroup ? true : undefined,
-          groupLabel: obj.groupLabel ? String(obj.groupLabel) : undefined,
-          groupColor: obj.groupColor ? String(obj.groupColor) : undefined,
-          parentId: obj.parentId ? String(obj.parentId) : undefined,
-        };
-        nodes.push(node);
-      } else if (obj.type === 'flow' || obj.path) {
-        const flowObj = obj as { path: string[]; label?: string; async?: boolean };
-        if (Array.isArray(flowObj.path) && flowObj.path.length >= 2) {
-          flows.push({
-            path: flowObj.path,
-            label: flowObj.label ? String(flowObj.label) : undefined,
-            async: flowObj.async ?? false,
-          });
-        }
-      }
-    } catch (error) {
-      console.log('[Parse] Invalid JSON line:', trimmed.slice(0, 50));
-    }
-  }
-
-  return { nodes, flows };
+  return parseNDJSON(rawText);
 }
 
 export async function callDiagramLLM(

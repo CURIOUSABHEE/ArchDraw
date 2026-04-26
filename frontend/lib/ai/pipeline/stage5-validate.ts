@@ -1,190 +1,297 @@
 import type { RawNode, RawFlow, DiagramEdge, ValidatedDiagram } from './types';
 
-const LAYER_ORDER = ['presentation', 'gateway', 'application', 'data', 'async', 'observability', 'external'];
+const LAYER_ORDER = ['presentation', 'gateway', 'application', 'async', 'data', 'observability', 'external'];
 
 function getLayerIndex(layer: string): number {
-  return LAYER_ORDER.indexOf(layer);
-}
-
-function stringsEqual(a: string, b: string): boolean {
-  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-  return normalize(a) === normalize(b);
+  const idx = LAYER_ORDER.indexOf(layer);
+  return idx >= 0 ? idx : 3; // default to 'application' position
 }
 
 export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }): ValidatedDiagram {
-  const nodes = [...parsed.nodes];
   const flows = [...parsed.flows];
 
-  // CHECK 1: Duplicate IDs
-  const nodeMap = new Map<string, RawNode>();
-  const toRemove = new Set<string>();
-
-  for (const node of nodes) {
-    const existing = nodeMap.get(node.id);
-    if (existing) {
-      // Keep the one with more fields
-      const existingFields = Object.keys(existing).filter(k => existing[k as keyof RawNode]).length;
-      const newFields = Object.keys(node).filter(k => node[k as keyof RawNode]).length;
-      if (newFields > existingFields) {
-        nodeMap.set(node.id, node);
-      }
-      toRemove.add(node.id);
+  // ── CHECK-DEDUP-ID: keep first occurrence ──
+  const seenIds = new Set<string>();
+  let workingNodes: RawNode[] = [];
+  for (const node of parsed.nodes) {
+    if (seenIds.has(node.id)) {
       console.log(`[Validate] Duplicate node ID ${node.id} removed`);
-    } else {
-      nodeMap.set(node.id, node);
+      continue;
     }
+    seenIds.add(node.id);
+    workingNodes.push({ ...node });
   }
 
-  const deduplicated = nodes.filter(n => !toRemove.has(n.id));
+  // ── CHECK-DEDUP-LABEL: keep child over root ──
+  const labelMap = new Map<string, RawNode>();
+  for (const node of workingNodes) {
+    const key = node.label.trim().toLowerCase();
+    if (!key) continue;
 
-  // CHECK 2: Group integrity
-  const groupIds = new Set(deduplicated.filter(n => n.isGroup).map(n => n.id));
-
-  for (const node of deduplicated) {
-    if (node.parentId && !groupIds.has(node.parentId)) {
-      console.log(`[Validate] Node ${node.id} has parentId ${node.parentId} but group not found — removing parentId`);
-      node.parentId = undefined;
+    const existing = labelMap.get(key);
+    if (!existing) {
+      labelMap.set(key, node);
+      continue;
     }
-  }
 
-  // Remove empty groups
-  const groupNodeIds = new Set(deduplicated.filter(n => n.isGroup).map(n => n.id));
-  const validNodes = deduplicated.filter(n => {
-    if (n.isGroup) {
-      const hasChildren = deduplicated.some(c => c.parentId === n.id);
-      if (!hasChildren) {
-        console.log(`[Validate] Empty group ${n.id} removed`);
-        return false;
-      }
+    const existingIsChild = Boolean(existing.parentId);
+    const incomingIsChild = Boolean(node.parentId);
+    const existingIsGroup = existing.isGroup === true;
+    const incomingIsGroup = node.isGroup === true;
+
+    // Keep child over root (child wins)
+    if (!existingIsChild && incomingIsChild) {
+      console.log(`[Validate] Label duplicate "${node.label}" — removed root ${existing.id}, kept child ${node.id}`);
+      labelMap.set(key, node);
+      continue;
+    }
+
+    // Keep first group if both groups
+    if (existingIsGroup && incomingIsGroup) {
+      console.log(`[Validate] Label duplicate "${node.label}" — kept first group ${existing.id}, removed ${node.id}`);
+      continue;
+    }
+
+    console.log(`[Validate] Label duplicate "${node.label}" — kept ${existing.id}, removed ${node.id}`);
+  }
+  workingNodes = Array.from(labelMap.values());
+
+  // ── CHECK-ORPHAN-CHILDREN: strip parentId if parent group does not exist ──
+  const groupIdsAfterDedup = new Set(workingNodes.filter(n => n.isGroup === true).map(n => n.id));
+  workingNodes = workingNodes.map(node => {
+    if (node.parentId && !groupIdsAfterDedup.has(node.parentId)) {
+      console.log(`[Validate] Node ${node.id} has missing parent group ${node.parentId} — removing parentId`);
+      return { ...node, parentId: undefined };
+    }
+    return node;
+  });
+
+  // ── CHECK-EMPTY-GROUPS: remove groups with 0 children ──
+  const nonEmptyNodes = workingNodes.filter(node => {
+    if (node.isGroup !== true) return true;
+    const childCount = workingNodes.filter(n => n.parentId === node.id).length;
+    if (childCount === 0) {
+      console.log(`[Validate] Empty group ${node.id} removed`);
+      return false;
     }
     return true;
   });
 
-  // FIX 1: Remove single-child groups
-  const finalNodes: RawNode[] = [];
-  const groupsToRemove = new Set<string>();
-  
-  for (const node of validNodes) {
-    if (node.isGroup) {
-      const children = validNodes.filter(c => c.parentId === node.id);
-      if (children.length === 1) {
-        console.log(`[Validate] Group ${node.id} has only 1 child — ungrouping`);
-        groupsToRemove.add(node.id);
-        const child = children[0];
-        finalNodes.push({ ...child, parentId: undefined });
-      } else {
-        finalNodes.push(node);
-      }
-    }
-  }
-  
-  // Add non-group nodes that weren't already added (single children were added above)
-  for (const node of validNodes) {
-    if (!node.isGroup && !finalNodes.find(n => n.id === node.id)) {
-      finalNodes.push(node);
+  // ── CHECK-SINGLE-CHILD-GROUPS: remove group and ungroup child ──
+  const groupsWithOneChild = new Set<string>();
+  for (const group of nonEmptyNodes.filter(n => n.isGroup === true)) {
+    const children = nonEmptyNodes.filter(n => n.parentId === group.id);
+    if (children.length === 1) {
+      groupsWithOneChild.add(group.id);
+      console.log(`[Validate] Group ${group.id} has exactly 1 child — removing group and ungrouping ${children[0].id}`);
     }
   }
 
-  // CHECK 3: Flow ID validity
-  const validNodeIds = new Set(finalNodes.map(n => n.id));
-  const validFlows: RawFlow[] = [];
-
-  for (const flow of flows) {
-    // Filter out invalid and group IDs
-    const validPath = flow.path.filter(id => {
-      const isValid = validNodeIds.has(id);
-      const isGroup = groupsToRemove.has(id);
-      if (!isValid) {
-        console.log(`[Validate] Flow path token ${id} not found in nodes — removing`);
+  const finalNodes = nonEmptyNodes
+    .filter(node => !groupsWithOneChild.has(node.id))
+    .map(node => {
+      if (node.parentId && groupsWithOneChild.has(node.parentId)) {
+        return { ...node, parentId: undefined };
       }
-      if (isGroup) {
-        console.log(`[Validate] Flow contains group node ${id} — removing from path`);
-      }
-      return isValid && !isGroup;
+      return node;
     });
 
-    if (validPath.length >= 2) {
-      validFlows.push({ ...flow, path: validPath });
+  // ── CHECK-LAYER-DUPLICATE-CHILD: remove child nodes whose label matches parent group label ──
+  const groupMap = new Map<string, RawNode>();
+  for (const node of finalNodes) {
+    if (node.isGroup === true) {
+      groupMap.set(node.id, node);
     }
   }
 
-  // CHECK 4: Build edges from flows
-  const edgeMap = new Map<string, DiagramEdge>();
-  const addedEdgeIds = new Set<string>();
+  // Build set of all group names (normalized) for broad matching
+  const allGroupNames = new Set<string>();
+  for (const group of groupMap.values()) {
+    for (const raw of [group.label, group.groupLabel || '']) {
+      const norm = (raw || '').toLowerCase().replace(/layer|zone|group/g, '').trim();
+      if (norm) allGroupNames.add(norm);
+    }
+  }
 
+  const cleanedNodes: RawNode[] = [];
+  for (const node of finalNodes) {
+    // Always keep group nodes
+    if (node.isGroup === true) {
+      cleanedNodes.push(node);
+      continue;
+    }
+
+    const nodeLabel = (node.label || '')
+      .toLowerCase()
+      .replace(/layer|zone|group/g, '')
+      .trim();
+
+    if (!nodeLabel) {
+      cleanedNodes.push(node);
+      continue;
+    }
+
+    // Check 1: Child whose label matches its own parent group
+    if (node.parentId) {
+      const parentGroup = groupMap.get(node.parentId);
+      if (parentGroup) {
+        const parentLabel = ((parentGroup.groupLabel || parentGroup.label) || '')
+          .toLowerCase()
+          .replace(/layer|zone|group/g, '')
+          .trim();
+        if (parentLabel && (nodeLabel === parentLabel || nodeLabel.includes(parentLabel) || parentLabel.includes(nodeLabel))) {
+          console.log(`[Validate] Removed label-duplicate child ${node.id} matching group ${parentGroup.id} ("${node.label}" matches "${parentGroup.groupLabel || parentGroup.label}")`);
+          continue;
+        }
+      }
+    }
+
+    // Check 2: ANY non-group node whose label matches any group name
+    if (allGroupNames.has(nodeLabel) || [...allGroupNames].some(gn => nodeLabel.includes(gn) || gn.includes(nodeLabel))) {
+      console.log(`[Validate] Removed node ${node.id} — label "${node.label}" duplicates a group name`);
+      continue;
+    }
+
+    cleanedNodes.push(node);
+  }
+
+  // ── CHECK-FLOW-TOKENS: drop group IDs from paths, drop invalid tokens ──
+  const validNodeIds = new Set(cleanedNodes.map(n => n.id));
+  const finalGroupIds = new Set(cleanedNodes.filter(n => n.isGroup === true).map(n => n.id));
+  const validFlows: RawFlow[] = [];
+  for (const flow of flows) {
+    const filteredPath = flow.path.filter(token => {
+      if (finalGroupIds.has(token)) {
+        console.log(`[Validate] Flow contains group token ${token} — removed token`);
+        return false;
+      }
+      if (!validNodeIds.has(token)) {
+        console.log(`[Validate] Flow token ${token} not found in nodes — removed token`);
+        return false;
+      }
+      return true;
+    });
+
+    if (filteredPath.length >= 2) {
+      validFlows.push({ ...flow, path: filteredPath });
+    } else {
+      console.log('[Validate] Flow dropped after token cleanup (path < 2)');
+    }
+  }
+
+  // ── Build edges from flows ──
+  const builtEdges: DiagramEdge[] = [];
   for (const flow of validFlows) {
     for (let i = 0; i < flow.path.length - 1; i++) {
       const source = flow.path[i];
       const target = flow.path[i + 1];
-
-      // Skip if either is a group
-      if (groupsToRemove.has(source) || groupsToRemove.has(target)) continue;
-
-      const edgeId = `${source}-${target}`;
-      if (!addedEdgeIds.has(edgeId)) {
-        addedEdgeIds.add(edgeId);
-        edgeMap.set(edgeId, {
-          id: edgeId,
-          source,
-          target,
-          label: flow.label,
-          async: flow.async,
-        });
-      }
+      if (!source || !target || source === target) continue;
+      builtEdges.push({
+        id: `${source}-${target}`,
+        source,
+        target,
+        label: flow.label,
+        async: flow.async,
+      });
     }
   }
 
+  // ── CHECK-EDGE-DEDUP: one edge per source→target pair ──
+  const edgeMap = new Map<string, DiagramEdge>();
+  for (const edge of builtEdges) {
+    const key = `${edge.source}->${edge.target}`;
+    if (edgeMap.has(key)) {
+      console.log(`[Validate] Duplicate edge ${edge.source}->${edge.target} removed`);
+      continue;
+    }
+    edgeMap.set(key, edge);
+  }
   const edges = Array.from(edgeMap.values());
 
-  // CHECK 5: Orphan detection
+  // ── CHECK-ORPHANS: every non-group node must be in at least one edge ──
+  // Connect orphans to the nearest CONNECTED node (not to other orphans)
   const connectedNodes = new Set<string>();
   for (const edge of edges) {
     connectedNodes.add(edge.source);
     connectedNodes.add(edge.target);
   }
 
-  for (const node of finalNodes) {
-    if (node.isGroup) continue;
-    if (!connectedNodes.has(node.id)) {
-      // Find nearest node by layer order
-      const nodeLayerIdx = getLayerIndex(node.layer);
-      let nearest: RawNode | null = null;
-      let nearestIdx = Infinity;
+  const leafNodes = cleanedNodes.filter(n => !n.isGroup);
+  for (const node of leafNodes) {
+    if (connectedNodes.has(node.id)) continue;
 
-      for (const other of finalNodes) {
-        if (other.id === node.id || other.isGroup) continue;
-        if (connectedNodes.has(other.id)) continue;
+    // Find nearest already-connected node by layer proximity
+    const nodeLayerIdx = getLayerIndex(node.layer);
+    let nearest: RawNode | null = null;
+    let nearestDist = Infinity;
 
-        const otherLayerIdx = getLayerIndex(other.layer);
-        const dist = Math.abs(otherLayerIdx - nodeLayerIdx);
-        if (dist < nearestIdx) {
-          nearestIdx = dist;
-          nearest = other;
-        }
+    for (const other of leafNodes) {
+      if (other.id === node.id) continue;
+      if (!connectedNodes.has(other.id)) continue; // MUST connect to an already-connected node
+
+      const otherLayerIdx = getLayerIndex(other.layer);
+      const dist = Math.abs(otherLayerIdx - nodeLayerIdx);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearest = other;
       }
+    }
 
-      if (nearest) {
-        const edgeId = `${node.id}-${nearest.id}`;
+    // If no connected node found (all nodes are orphans), connect to any other node
+    if (!nearest) {
+      for (const other of leafNodes) {
+        if (other.id === node.id) continue;
+        nearest = other;
+        break;
+      }
+    }
+
+    if (nearest) {
+      // Determine direction: orphan → nearest if orphan is in an earlier layer
+      const orphanIdx = getLayerIndex(node.layer);
+      const nearIdx = getLayerIndex(nearest.layer);
+      const [src, tgt] = orphanIdx <= nearIdx 
+        ? [node.id, nearest.id] 
+        : [nearest.id, node.id];
+      
+      const edgeKey = `${src}->${tgt}`;
+      if (!edgeMap.has(edgeKey)) {
+        const edgeId = `${src}-${tgt}`;
         edges.push({
           id: edgeId,
-          source: node.id,
-          target: nearest.id,
-          label: 'synthetic',
+          source: src,
+          target: tgt,
+          label: undefined,
           async: false,
         });
+        edgeMap.set(edgeKey, edges[edges.length - 1]);
         connectedNodes.add(node.id);
         console.log(`[Validate] Orphan node ${node.id} connected to ${nearest.id}`);
       }
     }
   }
 
-  // CHECK 6: Minimum counts warning
-  if (finalNodes.length < 12) {
-    console.log(`[Validate] WARNING: only ${finalNodes.length} nodes generated — diagram may be sparse`);
+  // ── Final safety: drop any edges that reference nodes not in cleanedNodes ──
+  const finalEdges = edges.filter(edge => {
+    if (!validNodeIds.has(edge.source) || !validNodeIds.has(edge.target)) {
+      console.log(`[Validate] Dropping dangling edge ${edge.source}->${edge.target}`);
+      return false;
+    }
+    // Never include edges where source or target is a group
+    if (finalGroupIds.has(edge.source) || finalGroupIds.has(edge.target)) {
+      console.log(`[Validate] Dropping group edge ${edge.source}->${edge.target}`);
+      return false;
+    }
+    return true;
+  });
+
+  // ── Warnings ──
+  if (cleanedNodes.length < 12) {
+    console.log(`[Validate] WARNING: only ${cleanedNodes.length} nodes generated — diagram may be sparse`);
   }
-  if (edges.length < 8) {
-    console.log(`[Validate] WARNING: only ${edges.length} edges generated — diagram may be disconnected`);
+  if (finalEdges.length < 8) {
+    console.log(`[Validate] WARNING: only ${finalEdges.length} edges generated — diagram may be disconnected`);
   }
 
-  return { nodes: finalNodes, edges };
+  return { nodes: cleanedNodes, edges: finalEdges };
 }

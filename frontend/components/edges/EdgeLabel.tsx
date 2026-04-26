@@ -10,9 +10,64 @@ interface EdgeLabelProps {
   label?: string;
   labelX: number;
   labelY: number;
+  edgeColor?: string;
 }
 
-export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
+function parseColorToRgb(color: string): { r: number; g: number; b: number } | null {
+  if (color.startsWith('#')) {
+    const hex = color.slice(1);
+    if (hex.length === 3) {
+      const r = parseInt(hex[0] + hex[0], 16);
+      const g = parseInt(hex[1] + hex[1], 16);
+      const b = parseInt(hex[2] + hex[2], 16);
+      return { r, g, b };
+    }
+    if (hex.length === 6) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return { r, g, b };
+    }
+  }
+
+  if (color.startsWith('rgb(')) {
+    const values = color.slice(4, -1).split(',').map((v) => v.trim());
+    if (values.length === 3) {
+      return { r: Number(values[0]), g: Number(values[1]), b: Number(values[2]) };
+    }
+  }
+
+  if (color.startsWith('rgba(')) {
+    const values = color.slice(5, -1).split(',').map((v) => v.trim());
+    if (values.length >= 3) {
+      return { r: Number(values[0]), g: Number(values[1]), b: Number(values[2]) };
+    }
+  }
+
+  return null;
+}
+
+function getReadableTextColor(bgColor: string): string {
+  const rgb = parseColorToRgb(bgColor);
+  if (!rgb) return '#ffffff';
+  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+  return luminance > 0.6 ? '#111827' : '#ffffff';
+}
+
+function blendWithBase(color: string, base: string, baseWeight: number): string {
+  const rgb = parseColorToRgb(color);
+  const baseRgb = parseColorToRgb(base);
+  if (!rgb || !baseRgb) return color;
+
+  const w = Math.max(0, Math.min(1, baseWeight));
+  const r = Math.round(rgb.r * (1 - w) + baseRgb.r * w);
+  const g = Math.round(rgb.g * (1 - w) + baseRgb.g * w);
+  const b = Math.round(rgb.b * (1 - w) + baseRgb.b * w);
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+export function EdgeLabel({ edgeId, label, labelX, labelY, edgeColor }: EdgeLabelProps) {
   const updateEdgeLabel = useDiagramStore((s) => s.updateEdgeLabel);
   const { isDark } = useCanvasTheme();
 
@@ -71,6 +126,13 @@ export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
         placeholder: '#9CA3AF',
       };
 
+  const softenedColor = edgeColor
+    ? blendWithBase(edgeColor, isDark ? '#111827' : '#ffffff', isDark ? 0.55 : 0.72)
+    : undefined;
+  const labelBg = softenedColor || styles.bg;
+  const labelBorder = softenedColor || styles.border;
+  const labelText = edgeColor ? blendWithBase(edgeColor, isDark ? '#cbd5e1' : '#334155', 0.2) : styles.text;
+
   if (!displayText && !editing) {
     return null;
   }
@@ -93,10 +155,10 @@ export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
           transition={{ duration: 0.1 }}
           style={{
             width: inputWidth,
-            background: isDark ? '#1F2937' : '#FFFFFF',
-            border: `1px solid ${styles.border}`,
+            background: labelBg,
+            border: `1px solid ${labelBorder}`,
             borderRadius: 4,
-            color: styles.text,
+            color: labelText,
             fontSize: 10,
             fontFamily: 'Inter, -apple-system, sans-serif',
             padding: '2px 6px',
@@ -121,10 +183,10 @@ export function EdgeLabel({ edgeId, label, labelX, labelY }: EdgeLabelProps) {
           title="Double-click to edit"
           style={{
             display: 'inline-block',
-            background: styles.bg,
-            color: styles.text,
+            background: labelBg,
+            color: labelText,
             borderRadius: 4,
-            border: `1px solid ${styles.border}`,
+            border: `1px solid ${labelBorder}`,
             fontSize: 10,
             fontFamily: 'Inter, -apple-system, sans-serif',
             fontWeight: 500,

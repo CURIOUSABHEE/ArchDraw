@@ -5,6 +5,7 @@ import ReactFlow, {
   useReactFlow, ReactFlowProvider,
   NodeMouseHandler, EdgeMouseHandler, NodeDragHandler,
   SelectionMode, ConnectionLineType,
+  ConnectionMode,
   type OnSelectionChangeParams,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -27,9 +28,11 @@ import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
 import { LayoutGrid, LayoutTemplate, MousePointer2 } from 'lucide-react';
 import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { FlowEdge } from '@/components/edges/FlowEdge';
+import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { useCanvasTheme } from '@/lib/theme';
 import { TemplateModal } from '@/components/TemplateModal';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { isValidConnection, wouldCreateCycle } from '@/lib/config/edgeConfig';
 
 import { useGrouping } from '@/hooks/useGrouping';
 import { toast } from 'sonner';
@@ -41,6 +44,7 @@ export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: 
 
 const NODE_TYPES = {
   systemNode:        SystemNode,
+  architectureNode:  SystemNode,
   baseNode:          BaseNode,
   databaseNode:     DatabaseNode,
   cacheNode:         CacheNode,
@@ -54,6 +58,9 @@ const NODE_TYPES = {
 
 const EDGE_TYPES = {
   custom: FlowEdge,
+  simpleFloating: SimpleFloatingEdge,
+  floating: SimpleFloatingEdge,
+  default: FlowEdge,
 };
 
 function CanvasInner() {
@@ -115,13 +122,15 @@ function CanvasInner() {
       const isMCP = data.source === 'mcp';
       const nodesWithType = (data.nodes as Node[]).map((n) => ({
         ...n,
-        type: n.type || 'systemNode',
+        type: n.type === 'architectureNode' ? 'systemNode' : (n.type || 'systemNode'),
       }));
       const edgesWithType = (data.edges as Edge[]).map((e) => ({
         ...e,
-        type: e.type && e.type !== 'smooth' && e.type !== 'bezier' && e.type !== 'step' && e.type !== 'straight' 
-          ? e.type 
-          : 'custom',
+        // Always use simpleFloating for MCP sessions — SystemNode doesn't mount
+        // named Handle components, so FlowEdge (custom) can't resolve handle positions
+        type: 'simpleFloating',
+        sourceHandle: undefined,
+        targetHandle: undefined,
         data: {
           ...e.data,
           pathType: e.data?.pathType || e.type || 'smooth',
@@ -131,15 +140,12 @@ function CanvasInner() {
       const canvasName = isMCP ? `MCP: ${data.label || 'Diagram'}` : (data.label || 'Session Diagram');
       const canvasId = addCanvas(canvasName, sessionId);
       importDiagram(nodesWithType, edgesWithType);
-      reactFlowInstance.setNodes(nodesWithType);
-      reactFlowInstance.setEdges(edgesWithType);
       router.replace(`/editor?canvas=${canvasId}`);
       toast.success(`Diagram loaded: ${data.label || 'Untitled'}`);
-      setTimeout(() => reactFlowInstance.fitView({ padding: 0.2, duration: 400 }), 100);
     } catch {
       toast.error('Failed to load diagram');
     }
-  }, [importDiagram, reactFlowInstance, addCanvas, router]);
+  }, [importDiagram, addCanvas, router]);
 
   useEffect(() => {
     const sessionId = searchParams.get('session');
@@ -250,20 +256,42 @@ function CanvasInner() {
   }, [setSelectedNodeIds, reactFlowInstance]);
 
   // Auto-fit viewport when nodes change
+  const prevNodeCountRef = useRef(0);
   useEffect(() => {
     if (nodes.length === 0) return;
     
-    const timer = setTimeout(() => {
-      const fitOpts = { padding: 0.12, duration: 500, maxZoom: 1.0, minZoom: 0.3 };
-      if (reactFlowInstance?.fitView) {
-        reactFlowInstance.fitView(fitOpts);
-      }
-      if (reactFlowRef.instance?.fitView) {
-        reactFlowRef.instance.fitView(fitOpts);
-      }
-    }, 150);
+    const isNewDiagram = prevNodeCountRef.current === 0 && nodes.length > 0;
+    prevNodeCountRef.current = nodes.length;
     
-    return () => clearTimeout(timer);
+    const fitOpts = { padding: 0.12, duration: isNewDiagram ? 0 : 500, maxZoom: 1.0, minZoom: 0.1 };
+    // Wait for ReactFlow to MEASURE node dimensions in the DOM (not just stored width/height)
+    let attempts = 0;
+    let rafId: number;
+    const timer = setTimeout(() => {
+      const tryFit = () => {
+        attempts++;
+        const currentNodes = reactFlowInstance?.getNodes?.() ?? [];
+        // Check for `measured` dimensions — these are set by ReactFlow after DOM layout
+        const hasMeasured = currentNodes.length > 0 && currentNodes.some(
+          (n: Node & { measured?: { width?: number; height?: number } }) => (n.measured?.width ?? 0) > 0
+        );
+        if (hasMeasured || attempts > 60) {
+          reactFlowInstance?.fitView?.(fitOpts);
+          // Safety double-tap with animation after initial fit
+          setTimeout(() => {
+            reactFlowInstance?.fitView?.({ ...fitOpts, duration: 400 });
+          }, 50);
+        } else {
+          rafId = requestAnimationFrame(tryFit);
+        }
+      };
+      tryFit();
+    }, 50);
+    
+    return () => {
+      clearTimeout(timer);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [nodes.length, edges.length]);
 
   // Focus label input when a new edge is drawn
@@ -310,6 +338,60 @@ function CanvasInner() {
   const handleOnConnect = useCallback((connection: any) => {
     onConnect(connection);
   }, [onConnect]);
+
+  const validateConnection = useCallback((connection: any) => {
+    if (connection.source === connection.target) {
+      toast.error('Cannot connect a node to itself');
+      return false;
+    }
+
+    const sourceNode = nodes.find(n => n.id === connection.source);
+    const targetNode = nodes.find(n => n.id === connection.target);
+
+    if (!sourceNode || !targetNode) {
+      return false;
+    }
+
+    const connectionType = connection.data?.connectionType || 'sync';
+    const isValid = isValidConnection(
+      sourceNode.data?.category,
+      targetNode.data?.category,
+      connectionType
+    );
+
+    if (!isValid) {
+      toast.error(`Cannot connect ${sourceNode.data?.category} to ${targetNode.data?.category}`);
+      return false;
+    }
+
+    if (wouldCreateCycle(edges, { source: connection.source, target: connection.target })) {
+      toast.error('Cannot create circular dependency');
+      return false;
+    }
+
+    return true;
+  }, [nodes, edges]);
+
+  const handleOnReconnect = useCallback((oldEdge: any, newConnection: any) => {
+    const currentEdges = useDiagramStore.getState().edges;
+    
+    const updatedEdge = {
+      ...newConnection,
+      id: oldEdge.id,
+      type: oldEdge.type || 'custom',
+      data: oldEdge.data,
+      style: oldEdge.style,
+      markerEnd: oldEdge.markerEnd,
+      animated: oldEdge.animated,
+    };
+
+    const newEdges = currentEdges.map((edge: any) => 
+      edge.id === oldEdge.id ? updatedEdge : edge
+    );
+
+    useDiagramStore.getState().setEdges(newEdges);
+    toast.success('Connection updated');
+  }, []);
 
   const handleOnNodesChange = useCallback((changes: any[]) => {
     onNodesChange(changes);
@@ -387,6 +469,11 @@ function CanvasInner() {
     setContextMenu({ x: e.clientX, y: e.clientY, nodeId: node.id });
   }, []);
 
+  const onEdgeContextMenu: EdgeMouseHandler = useCallback((e, edge) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, edgeId: edge.id });
+  }, []);
+
   const handleStartFromScratch = useCallback(() => {
     useDiagramStore.getState().clearDiagram();
     setCanvasMode('editing');
@@ -417,7 +504,8 @@ function CanvasInner() {
           onNodesChange={handleOnNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={handleOnConnect}
-          onReconnect={onReconnect}
+          onReconnect={handleOnReconnect}
+          isValidConnection={validateConnection}
           nodeTypes={NODE_TYPES}
           edgeTypes={EDGE_TYPES}
           onDragOver={onDragOver}
@@ -430,6 +518,7 @@ function CanvasInner() {
           onPaneClick={onPaneClick}
           onPaneContextMenu={onPaneContextMenu}
           onNodeContextMenu={onNodeContextMenu}
+          onEdgeContextMenu={onEdgeContextMenu}
           onSelectionChange={onSelectionChange}
           selectionMode={SelectionMode.Partial}
           multiSelectionKeyCode="Shift"
@@ -447,11 +536,14 @@ function CanvasInner() {
           zoomOnScroll
           zoomOnPinch
           zoomOnDoubleClick={false}
+          nodesDraggable={true}
+          connectionMode={ConnectionMode.Loose}
           proOptions={{ hideAttribution: true }}
           connectionLineType={ConnectionLineType.SmoothStep}
+          connectionLineStyle={{ stroke: '#6366f1', strokeWidth: 2 }}
           defaultEdgeOptions={{
             type: 'custom',
-            data: { connectionType: 'smooth', pathType: 'Smoothstep' },
+            data: { connectionType: 'sync', pathType: 'smooth' },
           }}
         >
           <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>

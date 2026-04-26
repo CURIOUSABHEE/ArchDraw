@@ -14,7 +14,114 @@ import {
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { DEFAULT_EDGE_TYPE, type EdgeType } from '@/data/edgeTypes';
 import { getNodeShape } from '@/lib/nodeShapes';
-import { validateStrictConnection, getStrictPortConfig } from '@/lib/componentPorts';
+import { getStrictPortConfig } from '@/lib/componentPorts';
+
+const NODE_PADDING = 10;
+const MIN_NODE_SPACING = 20;
+
+function resolveNodeCollisions(nodes: Node[]): Node[] {
+  const result = [...nodes];
+  const nodeMap = new Map(result.map(n => [n.id, n] as [string, Node]));
+  
+  const getExtent = (node: Node) => {
+    const w = node.width ?? 180;
+    const h = node.height ?? 70;
+    return {
+      x1: node.position.x - NODE_PADDING,
+      y1: node.position.y - NODE_PADDING,
+      x2: node.position.x + w + NODE_PADDING,
+      y2: node.position.y + h + NODE_PADDING,
+    };
+  };
+
+  for (let iter = 0; iter < 10; iter++) {
+    let moved = false;
+    
+    for (let i = 0; i < result.length; i++) {
+      for (let j = i + 1; j < result.length; j++) {
+        const a = result[i];
+        const b = result[j];
+        
+        if (a.parentId !== b.parentId) continue;
+        
+        const extA = getExtent(a);
+        const extB = getExtent(b);
+        
+        const overlapX = Math.min(extA.x2, extB.x2) - Math.max(extA.x1, extB.x1);
+        const overlapY = Math.min(extA.y2, extB.y2) - Math.max(extA.y1, extB.y1);
+        
+        if (overlapX > 0 && overlapY > 0) {
+          const dx = a.position.x < b.position.x ? -MIN_NODE_SPACING : MIN_NODE_SPACING;
+          a.position.x += dx;
+          b.position.x -= dx;
+          moved = true;
+        }
+        
+        const gapX = Math.min(Math.abs(extA.x2 - extB.x1), Math.abs(extB.x2 - extA.x2));
+        const gapY = Math.min(Math.abs(extA.y2 - extB.y1), Math.abs(extB.y2 - extA.y1));
+        
+        if (gapX < MIN_NODE_SPACING && gapY < MIN_NODE_SPACING) {
+          const shift = (MIN_NODE_SPACING - Math.max(gapX, gapY)) / 2;
+          if (a.position.x < b.position.x) {
+            a.position.x -= shift;
+            b.position.x += shift;
+          } else {
+            a.position.x += shift;
+            b.position.x -= shift;
+          }
+          moved = true;
+        }
+      }
+    }
+    
+    if (!moved) break;
+  }
+  
+  return result;
+}
+
+const RESERVED_LAYER_LABELS = new Set([
+  'presentation', 'presentation layer',
+  'gateway', 'gateway layer',
+  'application', 'application layer',
+  'data', 'data layer',
+  'async', 'async layer',
+  'observability', 'observability layer',
+  'external', 'external layer',
+]);
+
+function stripReservedLayerNodes(nodes: Node[]): Node[] {
+  const result: Node[] = [];
+  const labelMap = new Map<string, Node>();
+  const groupIds = new Set(nodes.filter(n => n.data?.isGroup === true).map(n => n.id));
+  
+  for (const node of nodes) {
+    const data = node.data as Record<string, unknown> | undefined;
+    const label = typeof data?.label === 'string' ? data.label.toLowerCase().trim() : '';
+    const isGroup = data?.isGroup === true;
+    
+    if (isGroup) {
+      result.push(node);
+      continue;
+    }
+    
+    if (RESERVED_LAYER_LABELS.has(label)) {
+      console.log(`[Store] Stripping reserved layer node: "${data?.label}" (${node.id})`);
+      continue;
+    }
+    
+    const existing = labelMap.get(label);
+    if (existing && existing.id !== node.id) {
+      console.log(`[Store] Duplicate label "${data?.label}" — keeping ${node.id}, removing ${existing.id}`);
+      continue;
+    }
+    
+    labelMap.set(label, node);
+    result.push(node);
+  }
+  
+  return result;
+}
 
 // Module-level fitView callback — set by Canvas on mount, avoids circular imports
 type FitViewOptions = { padding?: number; duration?: number; maxZoom?: number };
@@ -157,6 +264,7 @@ interface DiagramState {
   addNode: (node: Node<NodeData> | string, label?: string, category?: string, color?: string, icon?: string, technology?: string, position?: { x: number; y: number }) => void;
   removeNode: (id: string) => void;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
+  updateNodeSize: (id: string, size: { width?: number; height?: number }) => void;
   updateEdgeData: (id: string, data: Record<string, unknown>) => void;
   deleteEdge: (edgeId: string) => void;
   onReconnect: (oldEdge: Edge, newConnection: Connection) => void;
@@ -697,35 +805,36 @@ export const useDiagramStore = create<DiagramState>()(
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
-      onConnect: (connection) => {
-        const sourceNode = get().nodes.find(n => n.id === connection.source);
-        const targetNode = get().nodes.find(n => n.id === connection.target);
-        let connectionValidation = null;
-        
-        if (sourceNode && targetNode) {
-          const sourceType = sourceNode.data.componentType;
-          const targetType = targetNode.data.componentType;
-          
-          if (sourceType && targetType) {
-            connectionValidation = validateStrictConnection(sourceType, targetType);
-            
-            if (!connectionValidation.allowed) {
-              console.warn(`Connection blocked: ${connectionValidation.reason}`);
-              return;
-            }
-          }
-        }
-        
+onConnect: (connection) => {
         get().pushHistory();
         const edgeId = `edge-${Date.now()}`;
+        
+        const sourceNode = get().nodes.find(n => n.id === connection.source);
+        const targetNode = get().nodes.find(n => n.id === connection.target);
+        
+        let sourceHandle = connection.sourceHandle;
+        let targetHandle = connection.targetHandle;
+        
+        if (!sourceHandle && connection.source) {
+          const sourceX = sourceNode?.position?.x ?? 0;
+          const targetX = targetNode?.position?.x ?? 0;
+          sourceHandle = targetX > sourceX ? 'right' : 'left';
+        }
+        if (!targetHandle && connection.target) {
+          const sourceX = sourceNode?.position?.x ?? 0;
+          const targetX = targetNode?.position?.x ?? 0;
+          targetHandle = sourceX > targetX ? 'left' : 'right';
+        }
+        
         const edges = addEdge(
           { 
             ...connection, 
+            sourceHandle,
+            targetHandle,
             id: edgeId, 
             type: 'custom',
             data: { 
               edgeType: DEFAULT_EDGE_TYPE as EdgeType,
-              validation: connectionValidation ?? null,
             },
           },
           get().edges
@@ -813,6 +922,20 @@ export const useDiagramStore = create<DiagramState>()(
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
+      updateNodeSize: (id, size) => {
+        const nodes = get().nodes.map((n) => {
+          if (n.id !== id) return n;
+          return {
+            ...n,
+            ...(size.width !== undefined && { width: size.width }),
+            ...(size.height !== undefined && { height: size.height }),
+          };
+        });
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
+        set({ nodes, canvases });
+        get().saveCanvasToDB(get().activeCanvasId);
+      },
+
       updateEdgeData: (id, data) => {
         const edges = get().edges.map((e) => e.id === id ? { ...e, data: { ...e.data, ...data } } : e);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
@@ -830,8 +953,37 @@ export const useDiagramStore = create<DiagramState>()(
 
       importDiagram: (nodes, edges) => {
         get().pushHistory();
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, edges);
-        set({ nodes, edges, canvases });
+        
+        const cleanedNodes = stripReservedLayerNodes(nodes);
+        const resolvedNodes = resolveNodeCollisions(cleanedNodes);
+        
+        const edgesWithHandles = edges.map(edge => {
+          // simpleFloating edges calculate positions dynamically — no handles needed
+          if (edge.type === 'simpleFloating') return edge;
+          if (edge.sourceHandle && edge.targetHandle) return edge;
+          
+          const srcNode = resolvedNodes.find(n => n.id === edge.source);
+          const tgtNode = resolvedNodes.find(n => n.id === edge.target);
+          
+          let sourceHandle = edge.sourceHandle;
+          let targetHandle = edge.targetHandle;
+          
+          if (!sourceHandle && srcNode && tgtNode) {
+            const srcX = srcNode.position?.x ?? 0;
+            const tgtX = tgtNode?.position?.x ?? 0;
+            sourceHandle = tgtX > srcX ? 'right' : 'left';
+          }
+          if (!targetHandle && srcNode && tgtNode) {
+            const srcX = srcNode?.position?.x ?? 0;
+            const tgtX = tgtNode?.position?.x ?? 0;
+            targetHandle = srcX > tgtX ? 'left' : 'right';
+          }
+          
+          return { ...edge, sourceHandle, targetHandle };
+        });
+        
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, edgesWithHandles);
+        set({ nodes: resolvedNodes, edges: edgesWithHandles, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -987,8 +1139,10 @@ export const useDiagramStore = create<DiagramState>()(
 
       loadTemplate: (nodes, edges) => {
         get().pushHistory();
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, edges);
-        set({ nodes, edges, canvases, selectedNodeId: null, selectedEdgeId: null });
+        const cleanedNodes = stripReservedLayerNodes(nodes);
+        const resolvedNodes = resolveNodeCollisions(cleanedNodes);
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, edges);
+        set({ nodes: resolvedNodes, edges, canvases, selectedNodeId: null, selectedEdgeId: null });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1087,8 +1241,9 @@ export const useDiagramStore = create<DiagramState>()(
           
           const active = state.canvases.find((c: CanvasTab) => c.id === state.activeCanvasId);
           if (active) {
-            // Ensure nodes/edges match the active canvas
-            state.nodes = active.nodes || [];
+            // Strip reserved layer nodes, resolve collisions
+            const cleaned = stripReservedLayerNodes(active.nodes || []);
+            state.nodes = resolveNodeCollisions(cleaned);
             state.edges = (active.edges || []).map((e: Edge) => ({ ...e, type: 'custom' }));
             // Fix edge types in all canvases
             state.canvases = state.canvases.map((c: CanvasTab) => ({

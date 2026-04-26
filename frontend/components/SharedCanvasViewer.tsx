@@ -22,6 +22,7 @@ import { EmailCaptureModal } from '@/components/EmailCaptureModal';
 
 const NODE_TYPES = {
   systemNode:        SystemNode,
+  architectureNode:  SystemNode,
   baseNode:          BaseNode,
   databaseNode:     DatabaseNode,
   cacheNode:         CacheNode,
@@ -151,7 +152,7 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
           type: 'custom',
-          data: { edgeType: 'sync', pathType: 'Smoothstep' },
+          data: { edgeType: 'sync', pathType: 'smooth' },
         }}
       >
         <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>

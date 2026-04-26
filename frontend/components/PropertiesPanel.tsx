@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { X, Type, Database, Server, Zap, Globe, Activity, Shield } from 'lucide-react';
+import { X, Type, Database, Server, Zap, Globe, Activity, Shield, Maximize2, Minimize2, Copy, Circle } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 
 const TIER_ICONS: Record<string, React.ElementType> = {
@@ -105,7 +105,7 @@ function EdgePropertiesPanel() {
 
 export function PropertiesPanel() {
   const {
-    selectedNodeId, nodes, updateNodeData, removeNode, setSelectedNodeId,
+    selectedNodeId, nodes, updateNodeData, updateNodeSize, removeNode, setSelectedNodeId,
     selectedEdgeId,
   } = useDiagramStore();
 
@@ -132,6 +132,34 @@ export function PropertiesPanel() {
     if (localLabel.trim()) updateNodeData(node.id, { label: localLabel.trim() });
   };
 
+  const handleDuplicate = () => {
+    const newId = `${node.id}-copy-${Date.now()}`;
+    useDiagramStore.getState().addNode({
+      ...node,
+      id: newId,
+      position: { x: node.position.x + 30, y: node.position.y + 30 },
+      data: { ...node.data, label: `${node.data.label} (copy)` },
+    });
+    useDiagramStore.getState().setSelectedNodeIds([newId]);
+  };
+
+  const handleStatusChange = () => {
+    const statuses: Array<'healthy' | 'warning' | 'error' | 'unknown'> = ['healthy', 'warning', 'error', 'unknown'];
+    const currentIndex = statuses.indexOf(data.status || 'healthy');
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+    updateNodeData(node.id, { status: nextStatus });
+  };
+
+  const handleColorChange = () => {
+    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#22c55e', '#14b8a6', '#0ea5e9', '#3b82f6', '#6b7280'];
+    const currentIndex = colors.indexOf(data.accentColor || data.color || '#6366f1');
+    const nextColor = colors[(currentIndex + 1) % colors.length];
+    updateNodeData(node.id, { accentColor: nextColor });
+  };
+
+  const statusColor = data.status === 'warning' ? '#F59E0B' : data.status === 'error' ? '#EF4444' : data.status === 'unknown' ? '#6B7280' : '#10B981';
+  const accent = data.accentColor || data.color || '#6366f1';
+
   return (
     <div 
       className="floating-panel p-4 overflow-y-auto"
@@ -147,12 +175,23 @@ export function PropertiesPanel() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm font-medium">Node Info</span>
-        <button
-          onClick={() => setSelectedNodeId(null)}
-          className="floating-icon-btn !w-8 !h-8"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={handleDuplicate} title="Duplicate" className="floating-icon-btn !w-8 !h-8">
+            <Copy className="w-4 h-4" />
+          </button>
+          <button onClick={handleStatusChange} title="Toggle Status" className="floating-icon-btn !w-8 !h-8">
+            <Circle className="w-3 h-3" fill={statusColor} />
+          </button>
+          <button onClick={handleColorChange} title="Change Color" className="floating-icon-btn !w-8 !h-8">
+            <Circle className="w-3 h-3" fill={accent} />
+          </button>
+          <button
+            onClick={() => setSelectedNodeId(null)}
+            className="floating-icon-btn !w-8 !h-8"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4 mt-4">
@@ -217,6 +256,42 @@ export function PropertiesPanel() {
             </label>
             <div className="px-3 py-2 text-xs bg-secondary rounded-xl capitalize">
               {data.componentType}
+            </div>
+          </div>
+        )}
+
+        {/* Dimensions - only for groups */}
+        {data.isGroup && (
+          <div className="space-y-3">
+            <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground block mb-2 flex items-center gap-1.5">
+              <Maximize2 className="w-3 h-3" />
+              Dimensions
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-[10px] text-muted-foreground">Width</span>
+                <input
+                  type="number"
+                  value={node.width || 180}
+                  onChange={(e) => {
+                    const w = parseInt(e.target.value) || 180;
+                    updateNodeSize(node.id, { width: w });
+                  }}
+                  className="w-full px-3 py-2 text-xs bg-secondary rounded-xl outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <div>
+                <span className="text-[10px] text-muted-foreground">Height</span>
+                <input
+                  type="number"
+                  value={node.height || 100}
+                  onChange={(e) => {
+                    const h = parseInt(e.target.value) || 100;
+                    updateNodeSize(node.id, { height: h });
+                  }}
+                  className="w-full px-3 py-2 text-xs bg-secondary rounded-xl outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
             </div>
           </div>
         )}

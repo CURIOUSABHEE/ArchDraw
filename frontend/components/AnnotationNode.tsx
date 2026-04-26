@@ -204,7 +204,7 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
     };
   }, [editingTitle, editingBody, commitTitle, commitBody]);
 
-  const handleStyle = { opacity: 0, width: 6, height: 6, pointerEvents: 'none' as const };
+  const handleStyle = { width: 12, height: 12, pointerEvents: 'none' as const };
 
   const renderSizeToolbar = () => (
     <div 

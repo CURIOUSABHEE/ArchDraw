@@ -158,7 +158,11 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
                   <ChevronDown className="w-3 h-3" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-80 p-0">
+              <DropdownMenuContent
+                align="start"
+                className="w-80 p-0 !bg-white !text-black"
+                style={{ backgroundColor: '#ffffff', opacity: 1, backdropFilter: 'none' }}
+              >
                 <div className="flex border-b border-border">
                   <button
                     onClick={() => setActiveTab('inspiration')}

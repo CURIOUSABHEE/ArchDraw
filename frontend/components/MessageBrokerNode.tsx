@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { Layers, Activity, Radio } from 'lucide-react';
@@ -16,6 +16,7 @@ function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBro
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
   const { isDark } = useTheme();
   const accent = data.accentColor ?? data.color ?? '#f59e0b';
+  const [isHovered, setIsHovered] = useState(false);
   
   const brokerType = data.brokerType || 'pubsub';
   const brokerLabel = {
@@ -63,6 +64,25 @@ function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBro
     transition: 'all 0.15s ease',
   };
 
+  const sideHandleStyle = (side: 'left' | 'right' | 'top' | 'bottom', kind: 'target' | 'source'): React.CSSProperties => {
+    const axisOffset = kind === 'source' ? 8 : -8;
+    const offsetStyle =
+      side === 'left'
+        ? { left: -5, top: '50%', transform: `translateY(calc(-50% + ${axisOffset}px))` }
+        : side === 'right'
+          ? { right: -5, top: '50%', transform: `translateY(calc(-50% + ${axisOffset}px))` }
+          : side === 'top'
+            ? { top: -5, left: '50%', transform: `translateX(calc(-50% + ${axisOffset}px))` }
+            : { bottom: -5, left: '50%', transform: `translateX(calc(-50% + ${axisOffset}px))` };
+
+    return {
+      ...handleStyle,
+      ...offsetStyle,
+      opacity: isHovered ? 1 : 0.7,
+      boxShadow: isHovered ? `0 0 8px ${accent}60` : 'none',
+    };
+  };
+
   const messageVariants = {
     hidden: { opacity: 0, x: -10 },
     visible: (i: number) => ({
@@ -85,6 +105,7 @@ function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBro
       style={nodeStyles}
       onClick={() => setSelectedNodeId(id)}
       onMouseEnter={(e) => {
+        setIsHovered(true);
         if (!selected) {
           e.currentTarget.style.borderColor = `${accent}80`;
           e.currentTarget.style.transform = 'translateY(-1px)';
@@ -94,6 +115,7 @@ function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBro
         }
       }}
       onMouseLeave={(e) => {
+        setIsHovered(false);
         if (!selected) {
           e.currentTarget.style.borderColor = isDark ? `${accent}30` : `${accent}25`;
           e.currentTarget.style.transform = 'translateY(0)';
@@ -103,20 +125,20 @@ function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBro
         }
       }}
     >
-      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/10 via-white/[0.03] to-transparent group-hover:from-white/[0.15] group-hover:via-white/[0.06] transition-all duration-300 dark:from-white/10 dark:via-white/[0.03] dark:to-transparent" />
+      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/10 via-white/[0.03] to-transparent dark:from-white/10 dark:via-white/[0.03] dark:to-transparent" />
       
-      <Handle
-        type="target"
-        position={Position.Left}
-        style={handleStyle}
-        className="!left-[-5px]"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={handleStyle}
-        className="!right-[-5px]"
-      />
+      <Handle type="target" position={Position.Left} id="target-left" style={sideHandleStyle('left', 'target')} />
+      <Handle type="source" position={Position.Left} id="source-left" style={sideHandleStyle('left', 'source')} />
+      <Handle type="target" position={Position.Right} id="target-right" style={sideHandleStyle('right', 'target')} />
+      <Handle type="source" position={Position.Right} id="source-right" style={sideHandleStyle('right', 'source')} />
+      <Handle type="target" position={Position.Top} id="target-top" style={sideHandleStyle('top', 'target')} />
+      <Handle type="source" position={Position.Top} id="source-top" style={sideHandleStyle('top', 'source')} />
+      <Handle type="target" position={Position.Bottom} id="target-bottom" style={sideHandleStyle('bottom', 'target')} />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" style={sideHandleStyle('bottom', 'source')} />
+
+      {/* Back-compat handles for persisted edges */}
+      <Handle type="target" position={Position.Left} id="left" style={sideHandleStyle('left', 'target')} />
+      <Handle type="source" position={Position.Right} id="right" style={sideHandleStyle('right', 'source')} />
 
       <div style={{
         padding: '12px 14px',

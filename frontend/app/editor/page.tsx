@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 
 const EditorPage = dynamic(() => import('@/views/Editor'), {
   ssr: false,
@@ -11,5 +12,9 @@ const EditorPage = dynamic(() => import('@/views/Editor'), {
 
 // Canvas is open to everyone — no auth required
 export default function EditorRoute() {
-  return <EditorPage />;
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0a0a12' }} />}>
+      <EditorPage />
+    </Suspense>
+  );
 }
