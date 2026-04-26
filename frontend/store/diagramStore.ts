@@ -15,6 +15,7 @@ import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { DEFAULT_EDGE_TYPE, type EdgeType } from '@/data/edgeTypes';
 import { getNodeShape } from '@/lib/nodeShapes';
 import { getStrictPortConfig } from '@/lib/componentPorts';
+import { validateAndFixNodes } from '@/lib/utils/nodeValidation';
 
 const NODE_PADDING = 10;
 const MIN_NODE_SPACING = 20;
@@ -163,6 +164,7 @@ export interface NodeData {
   technology?: string;
   nodeWidth?: number;
   shape?: string;
+  groupLabel?: string;
 }
 
 export interface CanvasTab {
@@ -702,15 +704,30 @@ export const useDiagramStore = create<DiagramState>()(
             .select('*')
             .order('updated_at', { ascending: false });
           if (data && data.length > 0) {
-            const dbCanvases: CanvasTab[] = data.map((d: { id: string; name: string; nodes: Node[]; edges: Edge[]; updated_at: string }) => ({
-              id: d.id,
-              name: d.name,
-              nodes: d.nodes ?? [],
-              edges: migrateEdgesToSmoothstep(d.edges ?? []),
-              updatedAt: new Date(d.updated_at).getTime(),
-              isOpen: true,
-              lastAccessedAt: new Date(d.updated_at).getTime(),
-            }));
+            const dbCanvases: CanvasTab[] = data.map((d: { id: string; name: string; nodes: Node[]; edges: Edge[]; updated_at: string }) => {
+              const rawNodes = d.nodes ?? [];
+              // Sort nodes so parent groups come before their children (using parentNode)
+              const sortedNodes = [...rawNodes].sort((a, b) => {
+                const aIsGroup = a.type === 'groupNode' || a.type === 'group';
+                const bIsGroup = b.type === 'groupNode' || b.type === 'group';
+                // Groups first
+                if (aIsGroup && !bIsGroup) return -1;
+                if (!aIsGroup && bIsGroup) return 1;
+                // Children after parents
+                if (a.parentNode && !b.parentNode) return 1;
+                if (!a.parentNode && b.parentNode) return -1;
+                return 0;
+              });
+              return {
+                id: d.id,
+                name: d.name,
+                nodes: sortedNodes,
+                edges: migrateEdgesToSmoothstep(d.edges ?? []),
+                updatedAt: new Date(d.updated_at).getTime(),
+                isOpen: true,
+                lastAccessedAt: new Date(d.updated_at).getTime(),
+              };
+            });
 
             // Merge local and DB canvases, keeping the most recent version of each
             const mergedCanvases = mergeCanvases(localCanvases, dbCanvases);
@@ -908,10 +925,37 @@ onConnect: (connection) => {
 
       removeNode: (id) => {
         get().pushHistory();
-        const nodes = get().nodes.filter((n) => n.id !== id);
+        const nodes = get().nodes;
+        const targetNode = nodes.find((n) => n.id === id);
+        
+        let updatedNodes = nodes.filter((n) => n.id !== id);
+        
+        // If deleting a group node, ungroup its children first
+        if (targetNode?.type === 'groupNode' || targetNode?.type === 'group') {
+          const groupPosition = targetNode.position;
+          updatedNodes = updatedNodes.map((n) => {
+            if ((n as Node & { parentNode?: string }).parentNode === id) {
+              const child: Node & { parentNode?: string } = n;
+              return {
+                ...n,
+                position: {
+                  x: n.position.x + groupPosition.x,
+                  y: n.position.y + groupPosition.y,
+                },
+                parentNode: undefined,
+                extent: undefined,
+              };
+            }
+            return n;
+          });
+        }
+        
+        // Clean orphaned children and validate node order
+        const validatedNodes = validateAndFixNodes(updatedNodes);
+        
         const edges = get().edges.filter((e) => e.source !== id && e.target !== id);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, edges);
-        set({ nodes, edges, canvases, selectedNodeId: get().selectedNodeId === id ? null : get().selectedNodeId });
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, validatedNodes, edges);
+        set({ nodes: validatedNodes, edges, canvases, selectedNodeId: get().selectedNodeId === id ? null : get().selectedNodeId });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1061,21 +1105,29 @@ onConnect: (connection) => {
         
         const groupId = `group-${Date.now()}`;
         const groupNode: Node = {
-          id: groupId, type: 'groupNode',
+          id: groupId, 
+          type: 'groupNode',
           position: { x: minX, y: minY },
           style: { width: maxX - minX, height: maxY - minY },
-          data: { label: 'Group' }, zIndex: -1,
-          parentId: parentId,
-          extent: parentId ? 'parent' as const : undefined,
+          data: { label: 'Group', groupLabel: 'Group' }, 
+          zIndex: -1,
+          draggable: true,
+          selectable: true,
         };
         
-        const newNodes = [groupNode, ...nodes.map((n) =>
-          selectedNodeIds.includes(n.id)
-            ? { ...n, parentId: groupId, extent: 'parent' as const, position: { x: n.position.x - minX, y: n.position.y - minY } }
-            : n
-        )];
+        const newNodes = [
+          groupNode,
+          ...nodes.filter((n) => !selectedNodeIds.includes(n.id)),
+          ...selected.map((n) => ({
+            ...n,
+            parentNode: groupId,
+            extent: 'parent' as const,
+            position: { x: n.position.x - minX, y: n.position.y - minY },
+          }))
+        ];
+        
         const newCanvases = syncActiveCanvas(canvases, activeCanvasId, newNodes, edges);
-        set({ nodes: newNodes, canvases: newCanvases, selectedNodeIds: [] });
+        set({ nodes: newNodes, canvases: newCanvases, selectedNodeIds: [], selectedNodeId: groupId });
         get().saveCanvasToDB(activeCanvasId);
       },
 
@@ -1085,17 +1137,17 @@ onConnect: (connection) => {
         if (!group || group.type !== 'groupNode') return;
         pushHistory();
         
-        const children = nodes.filter((n) => n.parentId === groupId);
+        const children = nodes.filter((n) => n.parentNode === groupId);
         const parentOffset = { x: group.position.x, y: group.position.y };
         
         const newNodes = nodes
           .filter((n) => n.id !== groupId)
           .map((n) => {
-            if (n.parentId === groupId) {
+            if (n.parentNode === groupId) {
               return {
                 ...n,
-                parentId: group.parentId,
-                extent: group.parentId ? 'parent' as const : undefined,
+                parentNode: undefined,
+                extent: undefined,
                 position: { x: n.position.x + parentOffset.x, y: n.position.y + parentOffset.y },
               };
             }
@@ -1170,8 +1222,9 @@ onConnect: (connection) => {
 
       // ── AI Streaming ──────────────────────────────────────────────────────
       setNodes: (nodes) => {
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
-        set({ nodes, canvases });
+        const validatedNodes = validateAndFixNodes(nodes);
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, validatedNodes, get().edges);
+        set({ nodes: validatedNodes, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
       setEdges: (edges) => {

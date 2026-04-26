@@ -192,6 +192,20 @@ function CanvasInner() {
   // Cmd+0 / Ctrl+0 — fit view
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Escape — deselect all
+      if (e.key === 'Escape') {
+        const active = document.activeElement;
+        if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return;
+        e.preventDefault();
+        setSelectedNodeIds([]);
+        setSelectedEdgeId(null);
+        // Clear node and edge selections in store
+        const store = useDiagramStore.getState();
+        store.setNodes(store.nodes.map(n => ({ ...n, selected: false })));
+        store.setEdges(store.edges.map(edge => ({ ...edge, selected: false })));
+        return;
+      }
+      
       // ? key — toggle shortcuts modal
       if (e.key === '?' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
         setShowShortcuts((v) => !v);
@@ -220,6 +234,27 @@ function CanvasInner() {
         }
         if (reactFlowRef.instance?.fitView) {
           reactFlowRef.instance.fitView(fitOpts);
+        }
+        return;
+      }
+      
+      // Cmd+G / Ctrl+G — group selected nodes
+      if ((e.metaKey || e.ctrlKey) && e.key === 'g' && !e.shiftKey) {
+        const active = document.activeElement;
+        if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return;
+        e.preventDefault();
+        useDiagramStore.getState().createGroup();
+        return;
+      }
+      
+      // Cmd+Shift+G / Ctrl+Shift+G — ungroup selected group
+      if ((e.metaKey || e.ctrlKey) && e.key === 'G') {
+        const active = document.activeElement;
+        if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return;
+        e.preventDefault();
+        const selectedNodeId = useDiagramStore.getState().selectedNodeId;
+        if (selectedNodeId) {
+          useDiagramStore.getState().ungroupNodes(selectedNodeId);
         }
         return;
       }
@@ -432,14 +467,16 @@ function CanvasInner() {
   const onNodeClick: NodeMouseHandler = useCallback((_e, node) => {
     setSelectedNodeId(node.id);
     setSelectedEdgeId(null);
-  }, [setSelectedNodeId, setSelectedEdgeId]);
+    setSelectedNodeIds([node.id]);
+  }, [setSelectedNodeId, setSelectedEdgeId, setSelectedNodeIds]);
 
   const onEdgeClick: EdgeMouseHandler = useCallback((_e, edge) => {
     const { editingEdgeId, pendingEditEdgeId } = useDiagramStore.getState();
     if (editingEdgeId === edge.id || pendingEditEdgeId === edge.id) return;
     useDiagramStore.getState().setSelectedEdgeId(edge.id);
     setSelectedNodeId(null);
-  }, [setSelectedNodeId]);
+    setSelectedNodeIds([]);
+  }, [setSelectedNodeId, setSelectedNodeIds]);
 
   const onEdgeDoubleClick: EdgeMouseHandler = useCallback((_e, edge) => {
     setPendingLabelEdgeId(edge.id);
@@ -447,6 +484,7 @@ function CanvasInner() {
 
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
+    setSelectedNodeIds([]);
     setSelectedEdgeId(null);
     useDiagramStore.getState().setEditingEdgeId(null);
     useDiagramStore.getState().setPendingEditEdgeId(null);
@@ -520,6 +558,8 @@ function CanvasInner() {
           onNodeContextMenu={onNodeContextMenu}
           onEdgeContextMenu={onEdgeContextMenu}
           onSelectionChange={onSelectionChange}
+          selectionOnDrag
+          selectionKeyCode={null}
           selectionMode={SelectionMode.Partial}
           multiSelectionKeyCode="Shift"
           snapToGrid
@@ -660,8 +700,9 @@ function CanvasInner() {
             top: !isNaN(selectionRect.y) ? selectionRect.y : 0,
             width: !isNaN(selectionRect.width) && selectionRect.width > 0 ? selectionRect.width : 0,
             height: !isNaN(selectionRect.height) && selectionRect.height > 0 ? selectionRect.height : 0,
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            border: '1px dashed rgba(59, 130, 246, 0.5)',
+            backgroundColor: 'rgba(139, 92, 246, 0.08)',
+            border: '2px dashed rgba(139, 92, 246, 0.6)',
+            borderRadius: '8px',
             pointerEvents: 'none',
             zIndex: 9999,
           }}

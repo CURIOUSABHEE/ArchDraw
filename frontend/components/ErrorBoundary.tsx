@@ -1,6 +1,9 @@
 'use client';
 
 import { Component, type ReactNode } from 'react';
+import type { Node } from 'reactflow';
+import { validateAndFixNodes } from '@/lib/utils/nodeValidation';
+import { useDiagramStore } from '@/store/diagramStore';
 
 interface Props {
   children: ReactNode;
@@ -24,7 +27,50 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: { componentStack: string }) {
     console.error('[Archflow] Uncaught error:', error, info.componentStack);
+    
+    // Auto-recover from parentNode errors
+    if (error.message.includes('Parent node') && error.message.includes('not found')) {
+      this.tryRecoverFromParentNodeError(error.message);
+    }
   }
+
+  tryRecoverFromParentNodeError = (errorMessage: string) => {
+    try {
+      // Extract parent ID from error message
+      const match = errorMessage.match(/Parent node ([^\s]+) not found/);
+      if (match) {
+        const missingParentId = match[1];
+        console.log('[ErrorBoundary] Attempting to recover from missing parent:', missingParentId);
+        
+        // Get current nodes and clean them
+        const currentNodes = useDiagramStore.getState().nodes;
+        const fixedNodes = currentNodes.map(node => {
+          const parentNode = (node as Node & { parentNode?: string }).parentNode;
+          if (parentNode === missingParentId) {
+            const { parentNode: _, extent, ...cleanNode } = node as Node & { parentNode?: string };
+            console.log('[ErrorBoundary] Removed invalid parentNode from:', node.id);
+            return cleanNode as typeof node;
+          }
+          return node;
+        });
+        
+        // Validate and fix all nodes
+        const validatedNodes = validateAndFixNodes(fixedNodes);
+        
+        // Update store
+        useDiagramStore.setState({ nodes: validatedNodes });
+        
+        console.log('[ErrorBoundary] Recovery successful');
+        
+        // Reset error state after a short delay
+        setTimeout(() => {
+          this.setState({ hasError: false, error: undefined });
+        }, 100);
+      }
+    } catch (e) {
+      console.error('[ErrorBoundary] Recovery failed:', e);
+    }
+  };
 
   render() {
     if (this.state.hasError) {

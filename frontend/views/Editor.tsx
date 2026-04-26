@@ -22,6 +22,7 @@ import { componentRegistry } from '@/lib/componentRegistry';
 import { toast } from 'sonner';
 import type { GenerationProgress } from '@/lib/ai/types';
 import { SequenceDiagramViewer } from '@/components/SequenceDiagramViewer';
+import { ContextualSidebar } from '@/components/editor/ContextualSidebar';
 
 function generateCanvasName(prompt: string): string {
   const words = prompt.trim().split(/\s+/);
@@ -41,6 +42,7 @@ export default function EditorPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<GenerationProgress | null>(null);
   const [canvasSidebarOpen, setCanvasSidebarOpen] = useState(false);
+  const [infoSidebarOpen, setInfoSidebarOpen] = useState(false);
   
   // Refs for useEffect to avoid dependency issues
   const sidebarOpenRef = useRef(sidebarOpen);
@@ -363,7 +365,14 @@ export default function EditorPage() {
           />
         )}
         
-        {(selectedNodeId || selectedEdgeId) && <PropertiesPanel />}
+        {(selectedNodeId && !selectedEdgeId) && (
+          <ContextualSidebar 
+            nodeId={selectedNodeId} 
+            onClose={() => useDiagramStore.getState().setSelectedNodeId(null)} 
+          />
+        )}
+        
+        {selectedEdgeId && <PropertiesPanel />}
         
         <CommandPalette />
         <OnboardingOverlay />

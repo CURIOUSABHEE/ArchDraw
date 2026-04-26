@@ -44,6 +44,11 @@ const SHORTCUTS = [
     { key: 'Drag port',     action: 'Create connection' },
     { key: 'Right-click',   action: 'Context menu' },
   ]},
+  { category: 'Groups', items: [
+    { key: '⇧ + Drag',     action: 'Create group rectangle' },
+    { key: '⌘ G',         action: 'Group selected nodes' },
+    { key: '⌘ ⇧ G',      action: 'Ungroup selected' },
+  ]},
 ];
 
 interface Props {

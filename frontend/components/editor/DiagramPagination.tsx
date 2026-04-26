@@ -2,116 +2,81 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Plus, LayoutGrid, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiagramStore } from '@/store/diagramStore';
 import { toast } from 'sonner';
-import { canvasCache } from '@/lib/cache/canvasCache';
-
-interface CanvasMeta {
-  id: string;
-  name: string;
-  lastAccessedAt: number;
-}
-
-interface CanvasMeta {
-  id: string;
-  name: string;
-  lastAccessedAt: number;
-}
 
 export function DiagramPagination() {
   const router = useRouter();
-  const { canvases, activeCanvasId, addCanvas } = useDiagramStore();
+  const { canvases, activeCanvasId, addCanvas, switchCanvas } = useDiagramStore();
   
   const [isNavigating, setIsNavigating] = useState(false);
-  const [sortedCanvases, setSortedCanvases] = useState<CanvasMeta[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
 
-  useEffect(() => {
-    if (canvases.length > 0) {
-      const sorted = [...canvases]
-        .sort((a, b) => (b.lastAccessedAt || 0) - (a.lastAccessedAt || 0))
-        .map(c => ({ id: c.id, name: c.name, lastAccessedAt: c.lastAccessedAt || 0 }));
-      setSortedCanvases(sorted);
-    }
-  }, [canvases]);
-
-  const currentIndex = sortedCanvases.findIndex(c => c.id === activeCanvasId);
-  const currentCanvas = sortedCanvases[currentIndex];
-  const totalCanvases = sortedCanvases.length;
+  // Canvas list from store
+  const canvasList = canvases || [];
+  const total = canvasList.length;
   
-  const canGoPrev = currentIndex > 0 && totalCanvases > 1;
-  const canGoNext = currentIndex < totalCanvases - 1 && totalCanvases > 1;
+  // Find current index (0-based)
+  const currentIndex = canvasList.findIndex(c => c.id === activeCanvasId);
+  const currentCanvas = canvasList[currentIndex];
+  const currentName = currentCanvas?.name || 'Untitled';
+  
+  // Previous button: disabled at first position
+  const canGoPrev = currentIndex > 0;
+  
+  // Next button: NEVER disabled - creates new if at last
+  const isAtLast = currentIndex === total - 1;
 
-  const navigateTo = useCallback(async (canvasId: string) => {
-    if (isNavigating || canvasId === activeCanvasId) return;
+  const navigateTo = useCallback(async (canvasId: string, isNew?: boolean) => {
+    if (!canvasId) return;
+    if (canvasId === activeCanvasId) return;
     
-    setIsNavigating(true);
+    if (isNew) {
+      setIsCreating(true);
+    } else {
+      setIsNavigating(true);
+    }
     
     try {
-      // Check cache first - for instant preload
-      const cached = canvasCache.get(canvasId);
-      if (cached) {
-        // Load from cache first (instant)
-        router.push(`/editor?canvas=${canvasId}`);
-      } else {
-        // Fetch normally if not cached
-        router.push(`/editor?canvas=${canvasId}`);
+      router.push(`/editor?canvas=${canvasId}`);
+      switchCanvas(canvasId);
+      if (isNew) {
+        toast.success('Created new canvas');
       }
     } catch {
-      toast.error('Failed to load diagram');
+      toast.error('Failed to load canvas');
     } finally {
-      setTimeout(() => setIsNavigating(false), 200);
+      setIsNavigating(false);
+      setIsCreating(false);
     }
-  }, [isNavigating, activeCanvasId, router]);
+  }, [activeCanvasId, router, switchCanvas]);
 
+  // Previous: go to previous (lower position)
   const handlePrev = useCallback(() => {
-    if (canGoPrev) {
-      navigateTo(sortedCanvases[currentIndex - 1].id);
+    if (canGoPrev && currentIndex > 0) {
+      const prevId = canvasList[currentIndex - 1]?.id;
+      if (prevId) navigateTo(prevId);
     }
-  }, [canGoPrev, currentIndex, sortedCanvases, navigateTo]);
+  }, [canGoPrev, currentIndex, canvasList, navigateTo]);
 
-  const handleNext = useCallback(() => {
-    if (canGoNext) {
-      navigateTo(sortedCanvases[currentIndex + 1].id);
+  // Next: go to next if exists, otherwise create new
+  const handleNext = useCallback(async () => {
+    if (isAtLast) {
+      // At last position - create new canvas
+      addCanvas();
+    } else {
+      // Navigate to existing next
+      const nextId = canvasList[currentIndex + 1]?.id;
+      if (nextId) navigateTo(nextId);
     }
-  }, [canGoNext, currentIndex, sortedCanvases, navigateTo]);
+  }, [isAtLast, currentIndex, canvasList, navigateTo, addCanvas]);
 
-  const handleNew = useCallback(() => {
-    addCanvas();
-  }, [addCanvas]);
-
-  // Preload adjacent canvases on hover
-  const handleHoverPreload = useCallback((canvasId: string) => {
-    if (!canvasCache.has(canvasId)) {
-      // Background preload
-      setTimeout(async () => {
-        if (!canvasCache.has(canvasId)) {
-          try {
-            const response = await fetch(`/api/diagram/load?id=${canvasId}`);
-            if (response.ok) {
-              const data = await response.json();
-              if (data.nodes && data.edges) {
-                canvasCache.set(canvasId, {
-                  id: canvasId,
-                  name: data.label || 'Untitled',
-                  nodes: data.nodes,
-                  edges: data.edges,
-                });
-              }
-            }
-          } catch {
-            // Silent fail for preload
-          }
-        }
-      }, 200);
-    }
-  }, []);
-
+  // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      
       if (e.key === 'ArrowLeft' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         handlePrev();
@@ -120,63 +85,50 @@ export function DiagramPagination() {
         handleNext();
       }
     }
-    
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handlePrev, handleNext]);
 
-  if (totalCanvases === 0) {
+  // Don't render if no canvases or invalid state
+  if (total === 0 || currentIndex < 0) {
     return null;
   }
 
   return (
     <div className="flex items-center gap-1">
-      {/* Previous button */}
+      {/* Previous - disabled at position 1 */}
       <Button
         variant="ghost"
         size="sm"
-        className="h-9 px-2 gap-1 text-muted-foreground"
+        className="h-9 px-2 text-muted-foreground"
         onClick={handlePrev}
-        onMouseEnter={() => canGoPrev && handleHoverPreload(sortedCanvases[currentIndex - 1]?.id)}
-        disabled={!canGoPrev || isNavigating}
+        disabled={!canGoPrev || isNavigating || isCreating}
       >
         {isNavigating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronLeft className="w-4 h-4" />}
-        <span className="hidden sm:inline text-xs">Prev</span>
       </Button>
 
-      {/* Current diagram display */}
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 text-sm font-medium min-w-[140px] justify-center">
-        <LayoutGrid className="w-4 h-4" />
-        <span className="truncate max-w-[100px]">
-          {currentCanvas?.name || 'Select'}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {currentIndex + 1}/{totalCanvases}
+      {/* Current canvas name */}
+      <div className="px-3 py-1.5 rounded-md bg-muted/50 text-sm font-medium">
+        <span className="text-xs font-medium truncate max-w-[150px] block">
+          {currentName}
         </span>
       </div>
 
-      {/* Next button */}
+      {/* Next - NEVER disabled */}
       <Button
         variant="ghost"
         size="sm"
-        className="h-9 px-2 gap-1 text-muted-foreground"
+        className="h-9 px-2 text-muted-foreground"
         onClick={handleNext}
-        onMouseEnter={() => canGoNext && handleHoverPreload(sortedCanvases[currentIndex + 1]?.id)}
-        disabled={!canGoNext || isNavigating}
+        disabled={isNavigating || isCreating}
       >
-        <span className="hidden sm:inline text-xs">Next</span>
-        {isNavigating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
-      </Button>
-
-      {/* New button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-9 px-2 gap-1 ml-1 text-muted-foreground hover:text-foreground"
-        onClick={handleNew}
-      >
-        <Plus className="w-4 h-4" />
-        <span className="hidden sm:inline text-xs">New</span>
+        {isCreating ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : isAtLast ? (
+          <Plus className="w-4 h-4" />
+        ) : (
+          <ChevronRight className="w-4 h-4" />
+        )}
       </Button>
     </div>
   );
