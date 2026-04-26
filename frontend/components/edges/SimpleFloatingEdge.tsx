@@ -20,11 +20,11 @@ interface SimpleEdgeData {
 }
 
 const EDGE_COLORS: Record<string, string> = {
-  sync: '#6366f1',
-  async: '#f59e0b',
-  stream: '#22c55e',
-  event: '#ec4899',
-  dep: '#94a3b8',
+  sync: '#818cf8',
+  async: '#fbbf24',
+  stream: '#4ade80',
+  event: '#f472c6',
+  dep: '#a1a1aa',
 };
 
 const STROKE_DASHARRAYS: Record<string, string | undefined> = {
@@ -110,9 +110,9 @@ export default function SimpleFloatingEdge({
   const strokeDasharray = animated || connectionType === 'async' || connectionType === 'stream' || connectionType === 'event' || connectionType === 'dep' 
     ? getStrokeDasharray(connectionType) 
     : undefined;
-  const strokeWidth = (style as React.CSSProperties)?.strokeWidth || 2;
+  const strokeWidth = (style as React.CSSProperties)?.strokeWidth || 2.5;
 
-  const pathType = (data as SimpleEdgeData)?.pathType || 'smooth';
+  const pathType = (data as SimpleEdgeData)?.pathType || 'Smoothstep';
   
   let edgePath: string;
   if (pathType === 'straight') {
@@ -127,7 +127,7 @@ export default function SimpleFloatingEdge({
       targetX: tx,
       targetY: ty,
       targetPosition: targetPos,
-      borderRadius: 12,
+      borderRadius: 50,
     });
   }
 
