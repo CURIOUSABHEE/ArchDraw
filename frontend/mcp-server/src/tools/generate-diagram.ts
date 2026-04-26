@@ -148,16 +148,38 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
     }
 
     const commColors: Record<string, { color: string; dash: string }> = {
-      sync: { color: '#6366f1', dash: '' },
-      async: { color: '#f59e0b', dash: '8,4' },
-      stream: { color: '#10b981', dash: '4,2' },
-      event: { color: '#ec4899', dash: '2,3' },
-      dep: { color: '#94a3b8', dash: '6,6' },
+      sync: { color: '#818cf8', dash: '' },
+      async: { color: '#fbbf24', dash: '8,4' },
+      stream: { color: '#4ade80', dash: '4,2' },
+      event: { color: '#f472c6', dash: '2,3' },
+      dep: { color: '#a1a1aa', dash: '6,6' },
     };
+
+    const commLabels: Record<string, string> = {
+      sync: 'sync',
+      async: 'async',
+      stream: 'stream',
+      event: 'event',
+      dep: 'uses',
+    };
+
+    function generateEdgeLabel(edge: { source: string; target: string; communicationType?: string; label?: string }, nodes: ArchitectureNode[]): string {
+      if (edge.label && edge.label.trim()) {
+        return edge.label.trim();
+      }
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+      const sourceLabel = sourceNode?.label?.toLowerCase() || 'source';
+      const targetLabel = targetNode?.label?.toLowerCase() || 'target';
+      const type = edge.communicationType || 'sync';
+      const suffix = commLabels[type] || type;
+      return `${sourceLabel} → ${targetLabel}`;
+    }
 
     const architectureEdges: ArchitectureEdge[] = (input.edges || []).map((edge, index) => {
       const commType = edge.communicationType || 'sync';
       const commStyle = commColors[commType] || commColors.sync;
+      const label = generateEdgeLabel(edge, architectureNodes);
 
       return {
         id: edge.id || `edge-${index}`,
@@ -166,14 +188,14 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         sourceHandle: 'right' as const,
         targetHandle: 'left' as const,
         communicationType: commType as ArchitectureEdge['communicationType'],
-        pathType: 'smooth' as ArchitectureEdge['pathType'],
-        label: edge.label || '',
+        pathType: 'Smoothstep' as ArchitectureEdge['pathType'],
+        label,
         labelPosition: 'center' as const,
         animated: commType !== 'sync' && commType !== 'dep',
         style: {
           stroke: commStyle.color,
           strokeDasharray: commStyle.dash,
-          strokeWidth: 2,
+          strokeWidth: 2.5,
         },
         markerEnd: 'arrowclosed' as const,
         markerStart: 'none' as const,

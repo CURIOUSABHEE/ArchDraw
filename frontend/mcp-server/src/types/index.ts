@@ -113,6 +113,7 @@ export interface ReactFlowEdge {
     communicationType: CommunicationType;
     pathType: PathType;
     label: string;
+    labelDetailed?: string;
     edgeVariant?: EdgeVariant;
     edgeType?: CommunicationType;
   };
