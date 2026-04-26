@@ -182,6 +182,10 @@ export interface ReactFlowNode {
   };
   width?: number;
   height?: number;
+  measured?: {
+    width: number;
+    height: number;
+  };
   zIndex?: number;
   extent?: 'parent';
   style?: Record<string, unknown>;

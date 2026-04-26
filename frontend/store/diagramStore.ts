@@ -722,7 +722,13 @@ export const useDiagramStore = create<DiagramState>()(
                 id: d.id,
                 name: d.name,
                 nodes: sortedNodes,
-                edges: migrateEdgesToSmoothstep(d.edges ?? []),
+                edges: migrateEdgesToSmoothstep(d.edges ?? []).map((e: Edge) => {
+                  // Add markerEnd if missing
+                  if (!e.markerEnd) {
+                    return { ...e, markerEnd: e.animated ? 'url(#arrow-async)' : 'url(#arrow-default)' };
+                  }
+                  return e;
+                }),
                 updatedAt: new Date(d.updated_at).getTime(),
                 isOpen: true,
                 lastAccessedAt: new Date(d.updated_at).getTime(),
@@ -1026,8 +1032,16 @@ onConnect: (connection) => {
           return { ...edge, sourceHandle, targetHandle };
         });
         
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, edgesWithHandles);
-        set({ nodes: resolvedNodes, edges: edgesWithHandles, canvases });
+        // Add markerEnd to edges if missing
+        const edgesWithMarkers = edgesWithHandles.map(edge => {
+          if (!edge.markerEnd) {
+            return { ...edge, markerEnd: edge.animated ? 'url(#arrow-async)' : 'url(#arrow-default)' };
+          }
+          return edge;
+        });
+        
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, edgesWithMarkers);
+        set({ nodes: resolvedNodes, edges: edgesWithMarkers, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1297,11 +1311,27 @@ onConnect: (connection) => {
             // Strip reserved layer nodes, resolve collisions
             const cleaned = stripReservedLayerNodes(active.nodes || []);
             state.nodes = resolveNodeCollisions(cleaned);
-            state.edges = (active.edges || []).map((e: Edge) => ({ ...e, type: 'simpleFloating' }));
+            // Fix edge types and add markerEnd for arrows
+            state.edges = (active.edges || []).map((e: Edge) => {
+              const edge = { ...e, type: 'simpleFloating' };
+              // Add markerEnd if missing
+              if (!edge.markerEnd) {
+                const markerId = edge.animated ? 'url(#arrow-async)' : 'url(#arrow-default)';
+                edge.markerEnd = markerId;
+              }
+              return edge;
+            });
             // Fix edge types in all canvases
             state.canvases = state.canvases.map((c: CanvasTab) => ({
               ...c,
-              edges: (c.edges || []).map((e: Edge) => ({ ...e, type: 'simpleFloating' }))
+              edges: (c.edges || []).map((e: Edge) => {
+                const edge = { ...e, type: 'simpleFloating' };
+                if (!edge.markerEnd) {
+                  const markerId = edge.animated ? 'url(#arrow-async)' : 'url(#arrow-default)';
+                  edge.markerEnd = markerId;
+                }
+                return edge;
+              })
             }));
           } else {
             // Fallback: create a default canvas if none exist

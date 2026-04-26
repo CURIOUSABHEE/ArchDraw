@@ -5,28 +5,45 @@ export const SCORE_THRESHOLD = 75;
 
 export const DIAGRAM_SYSTEM_MESSAGE = 'Output NDJSON only. One JSON object per line. No markdown. No arrays. No prose.';
 
-export const COMMUNICATION_STYLES: Record<string, { color: string; dash: string; animated: boolean; pathType?: string; strokeDasharray?: string; markerEnd?: string }> = {
-  sync: { color: '#6366f1', dash: '', animated: false, pathType: 'Smoothstep', strokeDasharray: '', markerEnd: 'arrowclosed' },
-  async: { color: '#f59e0b', dash: '8,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '8,4', markerEnd: 'arrowclosed' },
-  stream: { color: '#10b981', dash: '4,2', animated: true, pathType: 'Smoothstep', strokeDasharray: '4,2', markerEnd: 'arrowclosed' },
-  event: { color: '#ec4899', dash: '2,3', animated: true, pathType: 'Smoothstep', strokeDasharray: '2,3', markerEnd: 'arrowclosed' },
+export const COMMUNICATION_STYLES: Record<string, { color: string; dash: string | undefined; animated: boolean; pathType?: string; strokeDasharray: string; markerEnd: string; markerId: string }> = {
+  sync: { color: '#818cf8', dash: '', animated: false, pathType: 'Smoothstep', strokeDasharray: '', markerEnd: 'arrowclosed', markerId: 'arrow-sync' },
+  async: { color: '#fbbf24', dash: '8,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '8,4', markerEnd: 'arrowclosed', markerId: 'arrow-async' },
+  stream: { color: '#4ade80', dash: '10,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '10,4', markerEnd: 'arrowclosed', markerId: 'arrow-stream' },
+  event: { color: '#f472c6', dash: '4,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '4,4', markerEnd: 'arrowclosed', markerId: 'arrow-event' },
+  dep: { color: '#a1a1aa', dash: '6,6', animated: false, pathType: 'Smoothstep', strokeDasharray: '6,6', markerEnd: 'arrowclosed', markerId: 'arrow-dep' },
+};
+
+export const EDGE_COLORS: Record<string, string> = {
+  sync: '#818cf8',
+  async: '#fbbf24',
+  stream: '#4ade80',
+  event: '#f472c6',
+  dep: '#a1a1aa',
+};
+
+export const EDGE_MARKER_IDS: Record<string, string> = {
+  sync: 'arrow-sync',
+  async: 'arrow-async',
+  stream: 'arrow-stream',
+  event: 'arrow-event',
+  dep: 'arrow-dep',
 };
 
 export const DEFAULT_ELK_OPTIONS: Record<string, string> = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
   'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-  'elk.spacing.nodeNode': '120',
-  'elk.spacing.edgeNode': '80',
-  'elk.spacing.edgeEdge': '60',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '250',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '150',
+  'elk.spacing.nodeNode': '20',
+  'elk.spacing.edgeNode': '20',
+  'elk.spacing.edgeEdge': '20',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '200',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '40',
   'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
   'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
   'elk.edgeRouting': 'ORTHOGONAL',
   'elk.portConstraints': 'FIXED_SIDE',
-  'elk.padding': '[top=60, left=40, bottom=60, right=40]',
+  'elk.padding': '[top=40, left=40, bottom=40, right=40]',
 };
 
 export const REASONING_PROMPT = `ROLE: Software architect. JSON-only. No prose.

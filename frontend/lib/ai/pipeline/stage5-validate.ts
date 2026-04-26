@@ -2,6 +2,49 @@ import type { RawNode, RawFlow, DiagramEdge, ValidatedDiagram } from './types';
 
 const LAYER_ORDER = ['presentation', 'gateway', 'application', 'async', 'data', 'observability', 'external'];
 
+// Abstract layer patterns to filter out
+const ABSTRACT_LAYER_PATTERNS = [
+  /layer$/i,           // "Application Layer", "Data Layer"
+  /^layer/i,            // "Layer Gateway"
+  /tier$/i,             // "Application Tier", "Data Tier"
+  /services$/i,         // "Backend Services", "API Services"
+  /infrastructure/i,   // "Infrastructure"
+  /system$/i,           // "System", "System Architecture"
+  /architecture/i,     // "Architecture" (too abstract alone)
+  /framework/i,         // "Framework"
+  /platform$/i,         // "Platform" (unless specific like "AWS Platform")
+];
+
+const ABSTRACT_GENERIC_TERMS = [
+  'backend', 'frontend', 'infrastructure', 'system',
+  'platform', 'framework', 'application', 'data',
+  'logic', 'tier', 'layer', 'services', 'mesh'
+];
+
+function isAbstractLayerNode(node: RawNode): boolean {
+  const label = node.label?.trim() || '';
+  const lowerLabel = label.toLowerCase();
+  
+  // Check against patterns
+  for (const pattern of ABSTRACT_LAYER_PATTERNS) {
+    if (pattern.test(label)) {
+      return true;
+    }
+  }
+  
+  // Check for generic single terms
+  if (ABSTRACT_GENERIC_TERMS.includes(lowerLabel)) {
+    return true;
+  }
+  
+  // Check for "X Services" without specific name (e.g., "Backend Services" but not "User Service")
+  if (/^\w+\s+services$/i.test(label)) {
+    return true;
+  }
+  
+  return false;
+}
+
 function getLayerIndex(layer: string): number {
   const idx = LAYER_ORDER.indexOf(layer);
   return idx >= 0 ? idx : 3; // default to 'application' position
@@ -55,6 +98,17 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
     console.log(`[Validate] Label duplicate "${node.label}" — kept ${existing.id}, removed ${node.id}`);
   }
   workingNodes = Array.from(labelMap.values());
+
+  // ── CHECK-ABSTRACT-LAYERS: filter out abstract layer/tier nodes ──
+  let abstractFiltered: RawNode[] = [];
+  for (const node of workingNodes) {
+    if (isAbstractLayerNode(node)) {
+      console.log(`[Validate] Abstract layer node "${node.label}" removed`);
+    } else {
+      abstractFiltered.push(node);
+    }
+  }
+  workingNodes = abstractFiltered;
 
   // ── CHECK-ORPHAN-CHILDREN: strip parentId if parent group does not exist ──
   const groupIdsAfterDedup = new Set(workingNodes.filter(n => n.isGroup === true).map(n => n.id));

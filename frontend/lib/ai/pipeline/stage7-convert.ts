@@ -1,5 +1,6 @@
 import { Node, Edge } from 'reactflow';
 import type { LayoutedNode, DiagramEdge, ValidatedDiagram } from './types';
+import { EDGE_COLORS, EDGE_MARKER_IDS } from '../constants';
 
 function normalizeLabel(label: string): string {
   return label.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -104,8 +105,7 @@ export function convertToReactFlow(
       id: node.id,
       type: isGroup ? 'groupNode' : 'architectureNode',
       position: { x: node.x, y: node.y },
-      // parentId at top level of Node — never only inside data{}
-      parentId: node.parentId || undefined,
+      parentNode: node.parentId || undefined,
       data: {
         label: node.label,
         subtitle: node.subtitle || '',
@@ -115,13 +115,10 @@ export function convertToReactFlow(
         isGroup: node.isGroup || false,
         groupLabel: node.groupLabel || '',
         groupColor: node.groupColor || '',
-        // parentId is NOT duplicated inside data — only at top level
       },
       width: node.width,
       height: node.height,
-      // Group nodes get zIndex: 1, child and root nodes get zIndex: 1000
       zIndex: isGroup ? 1 : 1000,
-      // extent: 'parent' only when parentId points to a verified group
       extent: hasVerifiedParent ? 'parent' : undefined,
       style: isGroup ? { width: node.width, height: node.height } : undefined,
     };
@@ -182,8 +179,9 @@ export function convertToReactFlow(
     .filter(edge => dedupNodeIds.has(edge.source) && dedupNodeIds.has(edge.target))
     .map((edge, idx) => {
     const connectionType = edge.async ? 'async' : 'sync';
-    const strokeColor = connectionType === 'async' ? '#f59e0b' : '#64748b';
+    const style = EDGE_COLORS[connectionType] || EDGE_COLORS.sync;
     const strokeDash = connectionType === 'async' ? '8 6' : '';
+    const markerId = EDGE_MARKER_IDS[connectionType] || EDGE_MARKER_IDS.sync;
 
     return {
       id: edge.id || `rf-${idx}`,
@@ -191,8 +189,8 @@ export function convertToReactFlow(
       target: edge.target,
       type: 'simpleFloating',
       animated: edge.async,
-      style: { stroke: strokeColor, strokeWidth: 2, strokeDasharray: strokeDash },
-      markerEnd: 'arrowclosed' as const,
+      style: { stroke: style, strokeWidth: 2, strokeDasharray: strokeDash },
+      markerEnd: `url(#${markerId})`,
       data: {
         connectionType,
         pathType: 'smooth',

@@ -124,13 +124,26 @@ const MIN_NODES: PromptModule = {
 const EXAMPLES: PromptModule = {
   name: 'examples',
   priority: 6,
-  content: `EXAMPLES:
+  content: `EXAMPLES: 
 
 User: "e-commerce website"
 Output: Client → CDN → Load Balancer → API Gateway → [Auth, Product, Order] → Message Queue → [Email Worker, Notification Worker] → [PostgreSQL, Redis] → Monitoring
 
 User: "real-time chat app"
 Output: Client → CDN → Load Balancer → WebSocket Server → [Auth, Chat, Presence] → Redis Pub/Sub → [Notification, Analytics] → [PostgreSQL, Redis, S3]`,
+};
+
+// IMPORTANT: Prevent abstract layer nodes - add after EXAMPLES
+const ABSTRACT_LAYER_RULE: PromptModule = {
+  name: 'no_abstract_layers',
+  priority: 7,
+  content: `IMPORTANT - DO NOT GENERATE ABSTRACT LAYERS:
+- DO NOT create nodes like "Application Layer", "Data Layer", "Gateway Layer", "Service Layer"
+- DO NOT create nodes ending in "Layer" or "Tier" (e.g., "Presentation Tier")
+- DO NOT create abstract organizational concepts like "Backend Services", "Infrastructure", "System"
+- Each node must be a CONCRETE, DEPLOYABLE service or infrastructure component
+- Acceptable: "API Gateway", "PostgreSQL Database", "Redis Cache", "React Web App"
+- NOT acceptable: "Application Layer", "Data Tier", "Service Mesh Layer"`,
 };
 
 export function buildComponentPrompt(
@@ -147,7 +160,7 @@ export function buildComponentPrompt(
     modules.push(GENERIC_SERVICES);
   }
   
-  modules.push(OUTPUT_FORMAT, MIN_NODES, EXAMPLES);
+  modules.push(OUTPUT_FORMAT, MIN_NODES, EXAMPLES, ABSTRACT_LAYER_RULE);
   
   modules.sort((a, b) => a.priority - b.priority);
   

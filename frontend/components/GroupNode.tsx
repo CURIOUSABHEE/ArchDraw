@@ -9,7 +9,7 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   
-  const color = (data as { groupColor?: string })?.groupColor || '#e2e8f0';
+  const color = (data as { groupColor?: string })?.groupColor || '#8b5cf6';
 
   const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -18,11 +18,11 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
     return `rgba(${r},${g},${b},${alpha})`;
   };
 
-  const bg = hexToRgba(color, 0.04);
-  const borderColor = selected ? hexToRgba('#8b5cf6', 0.7) : hexToRgba(color, 0.35);
-  const tagBorder = hexToRgba(color, 0.5);
-  const tagText = hexToRgba(color, 0.9);
-  const tagBg = hexToRgba(color, 0.08);
+  const bg = hexToRgba(color, 0.08);
+  const borderColor = selected ? hexToRgba(color, 0.9) : hexToRgba(color, 0.5);
+  const tagBorder = hexToRgba(color, 0.6);
+  const tagText = hexToRgba(color, 0.95);
+  const tagBg = hexToRgba(color, 0.15);
 
   const label =
     (data as { groupLabel?: string; label?: string })?.groupLabel ||

@@ -18,6 +18,9 @@ import { ensureConnectivity } from '../graph/connectivityEnforcer';
 import { autoAddCompensatingComponents } from '../graph/compensatingComponents';
 import { validateDiagramQuality, type DiagramQualityReport } from '../validation/diagramQualityValidator';
 import * as diagramCache from '../services/diagramCache';
+import { detectDomain, validateAndFixComponents } from '../graph/componentValidator';
+import { enforceMinimumConnections, detectOrphans, ensureGroupConnectivity } from '../graph/edgeValidator';
+import { applyDomainEdgePatterns } from '../graph/domainEdgePatterns';
 
 export interface PipelineState {
   userIntent: UserIntent;
@@ -103,8 +106,20 @@ export async function runArchitecturePipeline(
     state.useAWS = state.systemIntent.useAWS || detectAWSInPrompt(userIntent.description);
     logger.log(`[Pipeline] System intent: ${JSON.stringify(state.systemIntent)}, useAWS: ${state.useAWS}`);
 
+    // Detect domain early for validation rules
+    const domain = detectDomain(userIntent.description);
+    logger.log(`[Pipeline] Detected domain: ${domain}`);
+
     onProgress?.('Generating components', 15);
     state.rawNodes = await generateComponents(state);
+    
+    // FIX 1: Validate and fix components post-generation
+    const componentFix = validateAndFixComponents(state.rawNodes, domain);
+    if (componentFix.fixApplied.length > 0) {
+      console.log('[Pipeline] Component fixes applied:', componentFix.fixApplied);
+    }
+    state.rawNodes = componentFix.nodes;
+    
     state.history.push({
       step: 'components',
       timestamp: Date.now(),
@@ -121,6 +136,14 @@ export async function runArchitecturePipeline(
 
     onProgress?.('Generating edges', 50);
     state.edges = await generateEdges(state);
+    
+    // FIX 2: Apply domain-specific edge patterns
+    const domainResult = applyDomainEdgePatterns(state.enrichedNodes, domain, state.edges);
+    if (domainResult.added > 0) {
+      console.log(`[Pipeline] Domain edge patterns added: ${domainResult.added}`);
+      state.edges = [...state.edges, ...domainResult.edges];
+    }
+    
     state.history.push({
       step: 'edges',
       timestamp: Date.now(),
@@ -146,6 +169,20 @@ export async function runArchitecturePipeline(
         const fallbackEdges = generateDeterministicEdges(state.enrichedNodes);
         state.edges = [...state.edges, ...fallbackEdges];
       }
+    }
+
+    // FIX 3: Enforce minimum connections per node
+    const connectionFix = enforceMinimumConnections(state.enrichedNodes, state.edges);
+    if (connectionFix.fixes.length > 0) {
+      console.log('[Pipeline] Connection fixes applied:', connectionFix.fixes);
+      state.edges = connectionFix.edges;
+    }
+    
+    // FIX 4: Ensure group connectivity
+    const groupConnectivity = ensureGroupConnectivity(state.enrichedNodes, state.edges);
+    if (groupConnectivity.fixes.length > 0) {
+      console.log('[Pipeline] Group connectivity fixes:', groupConnectivity.fixes);
+      state.edges = groupConnectivity.edges;
     }
 
     // Step B: Ensure connectivity for orphaned nodes
@@ -204,6 +241,17 @@ export async function runArchitecturePipeline(
       state.edges,
       { direction: 'RIGHT' }
     );
+    
+    console.log('[Pipeline] Layout output - first 5 nodes:', 
+      layoutResult.nodes.slice(0, 5).map(n => ({
+        label: n.data.label,
+        position: n.position,
+        width: n.width,
+        height: n.height,
+        measured: n.measured,
+      }))
+    );
+    
     state.graph = layoutResult.graph;
     state.reactFlowNodes = layoutResult.nodes;
 

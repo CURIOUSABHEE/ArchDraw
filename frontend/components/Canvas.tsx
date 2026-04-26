@@ -215,7 +215,7 @@ function CanvasInner() {
       // Cmd+0 / Ctrl+0 — fit view to all nodes
       if ((e.metaKey || e.ctrlKey) && e.key === '0') {
         e.preventDefault();
-        const fitOpts = { padding: 0.12, duration: 400, maxZoom: 1.0, minZoom: 0.3 };
+        const fitOpts = { padding: 0.2, duration: 400, maxZoom: 1.0, minZoom: 0.3 };
         if (reactFlowInstance?.fitView) {
           reactFlowInstance.fitView(fitOpts);
         }
@@ -228,7 +228,7 @@ function CanvasInner() {
       // f key — fit view
       if (e.key === 'f' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
         e.preventDefault();
-        const fitOpts = { padding: 0.12, duration: 200, maxZoom: 1.0, minZoom: 0.3 };
+        const fitOpts = { padding: 0.2, duration: 200, maxZoom: 1.0, minZoom: 0.3 };
         if (reactFlowInstance?.fitView) {
           reactFlowInstance.fitView(fitOpts);
         }
@@ -298,7 +298,7 @@ function CanvasInner() {
     const isNewDiagram = prevNodeCountRef.current === 0 && nodes.length > 0;
     prevNodeCountRef.current = nodes.length;
     
-    const fitOpts = { padding: 0.12, duration: isNewDiagram ? 0 : 500, maxZoom: 1.0, minZoom: 0.1 };
+    const fitOpts = { padding: 0.2, duration: isNewDiagram ? 0 : 500, maxZoom: 1.0, minZoom: 0.1 };
     // Wait for ReactFlow to MEASURE node dimensions in the DOM (not just stored width/height)
     let attempts = 0;
     let rafId: number;
@@ -583,13 +583,34 @@ function CanvasInner() {
           connectionLineStyle={{ stroke: '#6366f1', strokeWidth: 2 }}
           defaultEdgeOptions={{
             type: 'simpleFloating',
+            markerEnd: 'arrowclosed',
             data: { connectionType: 'sync', pathType: 'smooth' },
           }}
         >
           <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
           <defs>
-            <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#6366f1" />
+            {/* Arrow markers for all edge types - refX positions arrow tip at node edge */}
+            {/* sync: indigo, async: amber, stream: green, event: pink, dep: gray */}
+            <marker id="arrow-sync" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,8 L8,4 z" fill="#818cf8" />
+            </marker>
+            <marker id="arrow-async" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,8 L8,4 z" fill="#fbbf24" />
+            </marker>
+            <marker id="arrow-stream" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,8 L8,4 z" fill="#4ade80" />
+            </marker>
+            <marker id="arrow-event" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,8 L8,4 z" fill="#f472c6" />
+            </marker>
+            <marker id="arrow-dep" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,8 L8,4 z" fill="#a1a1aa" />
+            </marker>
+            <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,8 L8,4 z" fill="#6366f1" />
+            </marker>
+            <marker id="arrow-error" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,8 L8,4 z" fill="#ef4444" />
             </marker>
           </defs>
         </svg>

@@ -18,10 +18,10 @@ export interface LayoutMetrics {
 }
 
 const SPACING = {
-  nodeNode: 80,
-  nodeNodeBetweenLayers: 150,
-  edgeNode: 60,
-  edgeEdge: 30,
+  nodeNode: 20,
+  nodeNodeBetweenLayers: 200,
+  edgeNode: 20,
+  edgeEdge: 20,
   labelNode: 30,
 } as const;
 
@@ -29,6 +29,17 @@ const MIN_NODE_WIDTH = 160;
 const MAX_NODE_WIDTH = 280;
 const MIN_NODE_HEIGHT = 60;
 const MAX_NODE_HEIGHT = 80;
+
+// Consistent 20px spacing constants for layout
+export const LAYOUT_SPACING = {
+  NODE_SPACING_X: 20,
+  NODE_SPACING_Y: 20,
+  TIER_SPACING_Y: 200,
+  CANVAS_PADDING_X: 40,
+  CANVAS_PADDING_Y: 40,
+  NODE_WIDTH: 180,
+  NODE_HEIGHT: 70,
+} as const;
 
 const BASE_FONT_SIZE = 14;
 const SUBTITLE_FONT_SIZE = 11;
@@ -115,7 +126,7 @@ export function generateELKOptions(metrics: LayoutMetrics): Record<string, strin
     ),
     'elk.edgeLabels.inline': 'false',
     'elk.edgeLabels.placement': 'CENTER',
-    'elk.padding': '[top=50, left=24, bottom=24, right=24]',
+    'elk.padding': '[top=40, left=40, bottom=40, right=40]',
   };
   
   if (metrics.hasAsync) {
@@ -192,20 +203,20 @@ export function getTierYPosition(
   direction: Direction,
   nodeHeight: number
 ): number {
-  const spacing = nodeHeight + 60;
-  const totalHeight = totalInTier * spacing - 60;
+  const spacing = nodeHeight + LAYOUT_SPACING.NODE_SPACING_Y;
+  const totalHeight = totalInTier * spacing - LAYOUT_SPACING.NODE_SPACING_Y;
   const canvasHeight = 800;
-  const startY = Math.max(50, (canvasHeight - totalHeight) / 2);
+  const startY = Math.max(LAYOUT_SPACING.CANVAS_PADDING_Y, (canvasHeight - totalHeight) / 2);
   
   if (direction === 'DOWN') {
     const tierYPositions: Record<TierType, number> = {
       client: 50,
       edge: 200,
-      compute: 400,
-      async: 600,
-      data: 800,
-      observe: 1000,
-      external: 1200,
+      compute: 450,
+      async: 700,
+      data: 950,
+      observe: 1200,
+      external: 1450,
     };
     return tierYPositions[tier] + nodeIndex * spacing;
   }

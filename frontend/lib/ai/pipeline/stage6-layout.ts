@@ -48,9 +48,9 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
     layoutOptions: {
       'elk.algorithm': 'layered',
       'elk.direction': 'RIGHT',
-      'elk.spacing.nodeNode': '40',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '100',
-      'elk.padding': '[top=60,left=60,bottom=60,right=60]',
+      'elk.spacing.nodeNode': '20',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '120',
+      'elk.padding': '[top=40,left=40,bottom=40,right=40]',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
       'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
       'elk.edgeRouting': 'ORTHOGONAL',

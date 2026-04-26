@@ -12,18 +12,18 @@ const FAST_ELK_OPTIONS: Record<string, string> = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
   'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-  'elk.spacing.nodeNode': '100',
-  'elk.spacing.edgeNode': '80',
-  'elk.spacing.edgeEdge': '60',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '200',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '120',
+  'elk.spacing.nodeNode': '20',
+  'elk.spacing.edgeNode': '20',
+  'elk.spacing.edgeEdge': '20',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '120',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '40',
   'elk.layered.nodePlacement.strategy': 'SIMPLE',
   'elk.layered.crossingMinimization.strategy': 'NONE',
   'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
   'elk.edgeRouting': 'ORTHOGONAL',
   'elk.portConstraints': 'FIXED_SIDE',
   'elk.separateConnectedComponents': 'false',
-  'elk.padding': '[top=50, left=30, bottom=50, right=30]',
+  'elk.padding': '[top=40, left=40, bottom=40, right=40]',
 };
 
 function getTopologySignature(nodes: ArchitectureNode[]): string {
@@ -106,13 +106,13 @@ const OPTIMIZED_ELK_OPTIONS = {
   'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
   'elk.edgeRouting': 'SPLINES',
   'elk.portConstraints': 'FIXED_SIDE',
-  'elk.spacing.nodeNode': '120',
-  'elk.spacing.edgeEdge': '60',
-  'elk.spacing.edgeNode': '100',
-  'elk.spacing.labelNode': '50',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '250',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '150',
-  'elk.layered.spacing.edgeEdgeBetweenLayers': '80',
+  'elk.spacing.nodeNode': '20',
+  'elk.spacing.edgeEdge': '20',
+  'elk.spacing.edgeNode': '20',
+  'elk.spacing.labelNode': '30',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '220',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '40',
+  'elk.layered.spacing.edgeEdgeBetweenLayers': '40',
   'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
   'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
@@ -124,7 +124,7 @@ const OPTIMIZED_ELK_OPTIONS = {
   'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
   'elk.edgeLabels.inline': 'false',
   'elk.edgeLabels.placement': 'CENTER',
-  'elk.padding': '[top=80, left=50, bottom=80, right=50]',
+  'elk.padding': '[top=40, left=40, bottom=40, right=40]',
 };
 
 const TIER_X: Record<string, number> = {
@@ -155,20 +155,20 @@ export function getELKOptionsForComplexity(tier: ComplexityTier): Record<string,
   const baseOptions: Record<string, string> = {};
   
   if (tier === 'simple') {
-    baseOptions['elk.spacing.nodeNode'] = '100';
-    baseOptions['elk.spacing.edgeNode'] = '80';
-    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '200';
-    baseOptions['elk.padding'] = '[top=50, left=30, bottom=50, right=30]';
+    baseOptions['elk.spacing.nodeNode'] = '20';
+    baseOptions['elk.spacing.edgeNode'] = '20';
+    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '120';
+    baseOptions['elk.padding'] = '[top=40, left=40, bottom=40, right=40]';
   } else if (tier === 'moderate') {
-    baseOptions['elk.spacing.nodeNode'] = '120';
-    baseOptions['elk.spacing.edgeNode'] = '100';
-    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '250';
-    baseOptions['elk.padding'] = '[top=80, left=50, bottom=80, right=50]';
+    baseOptions['elk.spacing.nodeNode'] = '20';
+    baseOptions['elk.spacing.edgeNode'] = '20';
+    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '150';
+    baseOptions['elk.padding'] = '[top=40, left=40, bottom=40, right=40]';
   } else {
-    baseOptions['elk.spacing.nodeNode'] = '160';
-    baseOptions['elk.spacing.edgeNode'] = '140';
-    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '350';
-    baseOptions['elk.padding'] = '[top=100, left=80, bottom=100, right=80]';
+    baseOptions['elk.spacing.nodeNode'] = '20';
+    baseOptions['elk.spacing.edgeNode'] = '20';
+    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '180';
+    baseOptions['elk.padding'] = '[top=40, left=40, bottom=40, right=40]';
   }
 
   return {

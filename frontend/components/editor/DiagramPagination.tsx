@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Plus, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Loader2, FilePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiagramStore } from '@/store/diagramStore';
 import { toast } from 'sonner';
@@ -64,14 +64,25 @@ export function DiagramPagination() {
   // Next: go to next if exists, otherwise create new
   const handleNext = useCallback(async () => {
     if (isAtLast) {
-      // At last position - create new canvas
       addCanvas();
     } else {
-      // Navigate to existing next
       const nextId = canvasList[currentIndex + 1]?.id;
       if (nextId) navigateTo(nextId);
     }
   }, [isAtLast, currentIndex, canvasList, navigateTo, addCanvas]);
+
+  // Create new canvas
+  const handleCreateNew = useCallback(async () => {
+    setIsCreating(true);
+    try {
+      addCanvas();
+      toast.success('Created new canvas');
+    } catch {
+      toast.error('Failed to create canvas');
+    } finally {
+      setIsCreating(false);
+    }
+  }, [addCanvas]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -130,6 +141,24 @@ export function DiagramPagination() {
           <ChevronRight className="w-4 h-4" />
         )}
       </Button>
+
+      {/* New Canvas button - always visible */}
+      {total > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-9 px-2 text-muted-foreground"
+          onClick={handleCreateNew}
+          disabled={isCreating}
+          title="Create new canvas"
+        >
+          {isCreating ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <FilePlus className="w-4 h-4" />
+          )}
+        </Button>
+      )}
     </div>
   );
 }
