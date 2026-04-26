@@ -9,13 +9,6 @@ import {
   Plus, X, PanelLeftClose, LayoutTemplate, Pin, FolderOpen,
   LayoutDashboard, LayoutGrid,
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
@@ -28,6 +21,7 @@ import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { DiagramPagination } from '@/components/editor/DiagramPagination';
 import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
 import {
   Select,
@@ -622,94 +616,7 @@ export function Toolbar() {
             <span>Dashboard</span>
           </button>
 
-          {/* Current Canvas Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-[14px] text-xs font-medium transition-all cursor-pointer"
-                style={{ background: '#EDEDED', color: '#1A1A1A' }}
-                onDoubleClick={(e) => {
-                  if (activeCanvas) {
-                    e.stopPropagation();
-                    startRename(activeCanvasId, activeCanvas.name, e);
-                  }
-                }}
-              >
-                {editingId === activeCanvasId ? (
-                  <input
-                    ref={editInputRef}
-                    value={editDraft}
-                    onChange={(e) => setEditDraft(e.target.value)}
-                    onBlur={commitRename}
-                    onKeyDown={(e) => {
-                      e.stopPropagation();
-                      if (e.key === 'Enter') commitRename();
-                      if (e.key === 'Escape') setEditingId(null);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="bg-transparent outline-none border-none text-xs font-medium w-full min-w-0"
-                    style={{ color: 'inherit', background: 'transparent', maxWidth: 120 }}
-                    autoFocus
-                  />
-                ) : (
-                  <>
-                    <div className="w-5 h-5 rounded-[8px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                      <LayoutGrid className="w-3 h-3 text-white" />
-                    </div>
-                    <span className="truncate max-w-[120px]">{activeCanvas?.name || 'Select Canvas'}</span>
-                    <ChevronDown className="w-3 h-3 shrink-0" style={{ color: '#6B6B6B' }} />
-                  </>
-                )}
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="p-2"
-              style={{ background: 'white', borderRadius: 16, boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: 'none' }}
-            >
-              {canvases
-                .sort((a, b) => (b.lastAccessedAt || 0) - (a.lastAccessedAt || 0))
-                .map((canvas) => (
-                  <DropdownMenuItem
-                    key={canvas.id}
-                    onClick={() => switchCanvas(canvas.id)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-[10px] cursor-pointer"
-                    style={{
-                      background: canvas.id === activeCanvasId ? '#F2F2F2' : 'transparent',
-                    }}
-                  >
-                    <div
-                      className="w-6 h-6 rounded-[6px] flex items-center justify-center"
-                      style={{ background: '#F2F2F2' }}
-                    >
-                      <LayoutGrid className="w-3 h-3" style={{ color: '#6B6B6B' }} />
-                    </div>
-                    <span className="text-sm" style={{ color: '#1A1A1A' }}>{canvas.name}</span>
-                  </DropdownMenuItem>
-                ))}
-              <DropdownMenuSeparator className="my-2" style={{ background: '#F2F2F2' }} />
-              <DropdownMenuItem
-                onClick={() => addCanvas()}
-                className="flex items-center gap-3 px-3 py-2 rounded-[10px] cursor-pointer"
-                style={{ background: 'transparent' }}
-              >
-                <div
-                  className="w-6 h-6 rounded-[6px] flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-                >
-                  <Plus className="w-3 h-3 text-white" />
-                </div>
-                <span className="text-sm font-medium" style={{ color: '#6366f1' }}>New Canvas</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <button
-            onClick={() => addCanvas()}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all focus:outline-none focus:ring-2 focus:ring-ring"
-            title="New canvas"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
+          <DiagramPagination />
         </div>
 
         {/* CENTER: Context info */}
