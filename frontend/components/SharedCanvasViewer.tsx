@@ -151,7 +151,7 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
         proOptions={{ hideAttribution: true }}
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
-          type: 'custom',
+          type: 'simpleFloating',
           data: { edgeType: 'sync', pathType: 'smooth' },
         }}
       >

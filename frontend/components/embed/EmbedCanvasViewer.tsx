@@ -91,7 +91,7 @@ function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls
         proOptions={{ hideAttribution: true }}
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
-          type: 'custom',
+          type: 'simpleFloating',
           style: pathTypeConfig[pathType],
           data: { edgeType: 'sync', pathType: 'smooth' },
         }}

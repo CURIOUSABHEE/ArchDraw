@@ -832,7 +832,7 @@ onConnect: (connection) => {
             sourceHandle,
             targetHandle,
             id: edgeId, 
-            type: 'custom',
+            type: 'simpleFloating',
             data: { 
               edgeType: DEFAULT_EDGE_TYPE as EdgeType,
             },
@@ -1244,11 +1244,11 @@ onConnect: (connection) => {
             // Strip reserved layer nodes, resolve collisions
             const cleaned = stripReservedLayerNodes(active.nodes || []);
             state.nodes = resolveNodeCollisions(cleaned);
-            state.edges = (active.edges || []).map((e: Edge) => ({ ...e, type: 'custom' }));
+            state.edges = (active.edges || []).map((e: Edge) => ({ ...e, type: 'simpleFloating' }));
             // Fix edge types in all canvases
             state.canvases = state.canvases.map((c: CanvasTab) => ({
               ...c,
-              edges: (c.edges || []).map((e: Edge) => ({ ...e, type: 'custom' }))
+              edges: (c.edges || []).map((e: Edge) => ({ ...e, type: 'simpleFloating' }))
             }));
           } else {
             // Fallback: create a default canvas if none exist

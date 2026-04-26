@@ -315,7 +315,7 @@ export default function EditorPage() {
 
       const processedEdges = (result.edges as Record<string, unknown>[]).map((edge) => ({
         ...edge,
-        type: 'custom',
+        type: 'simpleFloating',
       }));
 
       importDiagram(processedNodes as unknown as Node[], processedEdges as unknown as Edge[]);

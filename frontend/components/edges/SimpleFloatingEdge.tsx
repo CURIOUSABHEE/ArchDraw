@@ -5,8 +5,11 @@ import {
   BaseEdge, 
   EdgeProps, 
   getSmoothStepPath,
+  getBezierPath,
+  getStraightPath,
   useStore,
   ReactFlowState,
+  Position,
 } from 'reactflow';
 import { getSimpleEdgePositions, getSimpleHandlePosition } from '@/lib/utils/simpleFloatingEdge';
 
@@ -50,44 +53,55 @@ export default function SimpleFloatingEdge({
   markerEnd,
   data,
   animated,
+  sourceX = 0,
+  sourceY = 0,
+  targetX = 0,
+  targetY = 0,
+  sourcePosition = Position.Right,
+  targetPosition = Position.Left,
 }: EdgeProps) {
   const sourceNode = useStore((s: ReactFlowState) => s.nodeInternals.get(source));
   const targetNode = useStore((s: ReactFlowState) => s.nodeInternals.get(target));
 
   const edgeParams = useMemo(() => {
-    if (!sourceNode || !targetNode) return null;
+    let sx = sourceX;
+    let sy = sourceY;
+    let tx = targetX;
+    let ty = targetY;
+    let sourcePos = sourcePosition;
+    let targetPos = targetPosition;
 
-    const sx = sourceNode.positionAbsolute?.x ?? sourceNode.position.x;
-    const sy = sourceNode.positionAbsolute?.y ?? sourceNode.position.y;
-    const tx = targetNode.positionAbsolute?.x ?? targetNode.position.x;
-    const ty = targetNode.positionAbsolute?.y ?? targetNode.position.y;
+    if (sourceNode && targetNode) {
+      sx = sourceNode.positionAbsolute?.x ?? sourceNode.position.x;
+      sy = sourceNode.positionAbsolute?.y ?? sourceNode.position.y;
+      tx = targetNode.positionAbsolute?.x ?? targetNode.position.x;
+      ty = targetNode.positionAbsolute?.y ?? targetNode.position.y;
 
-    const sourceWidth = sourceNode.width ?? 160;
-    const sourceHeight = sourceNode.height ?? 80;
-    const targetWidth = targetNode.width ?? 160;
-    const targetHeight = targetNode.height ?? 80;
+      const sourceWidth = sourceNode.width ?? 160;
+      const sourceHeight = sourceNode.height ?? 80;
+      const targetWidth = targetNode.width ?? 160;
+      const targetHeight = targetNode.height ?? 80;
 
-    const { sourcePos, targetPos } = getSimpleEdgePositions(
-      sx + sourceWidth / 2,
-      sy + sourceHeight / 2,
-      tx + targetWidth / 2,
-      ty + targetHeight / 2
-    );
+      const positions = getSimpleEdgePositions(
+        sx + sourceWidth / 2,
+        sy + sourceHeight / 2,
+        tx + targetWidth / 2,
+        ty + targetHeight / 2
+      );
+      sourcePos = positions.sourcePos;
+      targetPos = positions.targetPos;
 
-    const sourceHandle = getSimpleHandlePosition(sx, sy, sourceWidth, sourceHeight, sourcePos);
-    const targetHandle = getSimpleHandlePosition(tx, ty, targetWidth, targetHeight, targetPos);
+      const sourceHandle = getSimpleHandlePosition(sx, sy, sourceWidth, sourceHeight, sourcePos);
+      const targetHandle = getSimpleHandlePosition(tx, ty, targetWidth, targetHeight, targetPos);
 
-    return {
-      sx: sourceHandle.x,
-      sy: sourceHandle.y,
-      tx: targetHandle.x,
-      ty: targetHandle.y,
-      sourcePos,
-      targetPos,
-    };
-  }, [sourceNode, targetNode]);
+      sx = sourceHandle.x;
+      sy = sourceHandle.y;
+      tx = targetHandle.x;
+      ty = targetHandle.y;
+    }
 
-  if (!edgeParams) return null;
+    return { sx, sy, tx, ty, sourcePos, targetPos };
+  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
 
   const { sx, sy, tx, ty, sourcePos, targetPos } = edgeParams;
   
@@ -98,15 +112,24 @@ export default function SimpleFloatingEdge({
     : undefined;
   const strokeWidth = (style as React.CSSProperties)?.strokeWidth || 2;
 
-  const [edgePath] = getSmoothStepPath({
-    sourceX: sx,
-    sourceY: sy,
-    sourcePosition: sourcePos,
-    targetX: tx,
-    targetY: ty,
-    targetPosition: targetPos,
-    borderRadius: 12,
-  });
+  const pathType = (data as SimpleEdgeData)?.pathType || 'smooth';
+  
+  let edgePath: string;
+  if (pathType === 'straight') {
+    [edgePath] = getStraightPath({ sourceX: sx, sourceY: sy, targetX: tx, targetY: ty });
+  } else if (pathType === 'bezier') {
+    [edgePath] = getBezierPath({ sourceX: sx, sourceY: sy, targetX: tx, targetY: ty });
+  } else {
+    [edgePath] = getSmoothStepPath({
+      sourceX: sx,
+      sourceY: sy,
+      sourcePosition: sourcePos,
+      targetX: tx,
+      targetY: ty,
+      targetPosition: targetPos,
+      borderRadius: 12,
+    });
+  }
 
   return (
     <BaseEdge

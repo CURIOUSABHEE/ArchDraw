@@ -542,7 +542,7 @@ function CanvasInner() {
           connectionLineType={ConnectionLineType.SmoothStep}
           connectionLineStyle={{ stroke: '#6366f1', strokeWidth: 2 }}
           defaultEdgeOptions={{
-            type: 'custom',
+            type: 'simpleFloating',
             data: { connectionType: 'sync', pathType: 'smooth' },
           }}
         >

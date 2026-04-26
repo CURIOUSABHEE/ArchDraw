@@ -369,7 +369,7 @@ function TutorialCanvasInner({
           connectionLineType={ConnectionLineType.SmoothStep}
           style={{ background: canvasBg }}
           defaultEdgeOptions={{
-            type: 'custom',
+            type: 'simpleFloating',
             animated: true,
             data: { connectionType: 'smooth', edgeType: 'sync', pathType: 'smooth' },
             style: { stroke: '#94a3b8', strokeWidth: '2px' },

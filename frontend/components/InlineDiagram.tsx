@@ -63,7 +63,7 @@ export function InlineDiagram({ data, onOpenFullEditor, height = 400 }: InlineDi
   }, [data.edges, setEdges]);
 
   const defaultEdgeOptions = useMemo(() => ({
-    type: 'custom',
+    type: 'simpleFloating',
     data: { edgeType: 'sync', pathType: 'smooth' },
   }), []);
 
@@ -167,7 +167,7 @@ export function InlineDiagramRenderer({ content, onNavigateToEditor }: InlineDia
           }));
           const edgeData = edges.map((e: Record<string, unknown>) => ({
             ...e,
-            type: 'custom',
+            type: 'simpleFloating',
           }));
           
           return {
