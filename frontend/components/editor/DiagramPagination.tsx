@@ -1,11 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Plus, LayoutGrid } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, Plus, LayoutGrid, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiagramStore } from '@/store/diagramStore';
 import { toast } from 'sonner';
+import { canvasCache } from '@/lib/cache/canvasCache';
+
+interface CanvasMeta {
+  id: string;
+  name: string;
+  lastAccessedAt: number;
+}
 
 interface CanvasMeta {
   id: string;
@@ -15,7 +22,6 @@ interface CanvasMeta {
 
 export function DiagramPagination() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { canvases, activeCanvasId, addCanvas } = useDiagramStore();
   
   const [isNavigating, setIsNavigating] = useState(false);
@@ -43,12 +49,19 @@ export function DiagramPagination() {
     setIsNavigating(true);
     
     try {
-      router.push(`/editor?canvas=${canvasId}`);
-      toast.success('Diagram loaded');
+      // Check cache first - for instant preload
+      const cached = canvasCache.get(canvasId);
+      if (cached) {
+        // Load from cache first (instant)
+        router.push(`/editor?canvas=${canvasId}`);
+      } else {
+        // Fetch normally if not cached
+        router.push(`/editor?canvas=${canvasId}`);
+      }
     } catch {
       toast.error('Failed to load diagram');
     } finally {
-      setTimeout(() => setIsNavigating(false), 300);
+      setTimeout(() => setIsNavigating(false), 200);
     }
   }, [isNavigating, activeCanvasId, router]);
 
@@ -67,6 +80,33 @@ export function DiagramPagination() {
   const handleNew = useCallback(() => {
     addCanvas();
   }, [addCanvas]);
+
+  // Preload adjacent canvases on hover
+  const handleHoverPreload = useCallback((canvasId: string) => {
+    if (!canvasCache.has(canvasId)) {
+      // Background preload
+      setTimeout(async () => {
+        if (!canvasCache.has(canvasId)) {
+          try {
+            const response = await fetch(`/api/diagram/load?id=${canvasId}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.nodes && data.edges) {
+                canvasCache.set(canvasId, {
+                  id: canvasId,
+                  name: data.label || 'Untitled',
+                  nodes: data.nodes,
+                  edges: data.edges,
+                });
+              }
+            }
+          } catch {
+            // Silent fail for preload
+          }
+        }
+      }, 200);
+    }
+  }, []);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -97,9 +137,10 @@ export function DiagramPagination() {
         size="sm"
         className="h-9 px-2 gap-1 text-muted-foreground"
         onClick={handlePrev}
+        onMouseEnter={() => canGoPrev && handleHoverPreload(sortedCanvases[currentIndex - 1]?.id)}
         disabled={!canGoPrev || isNavigating}
       >
-        <ChevronLeft className="w-4 h-4" />
+        {isNavigating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronLeft className="w-4 h-4" />}
         <span className="hidden sm:inline text-xs">Prev</span>
       </Button>
 
@@ -120,10 +161,11 @@ export function DiagramPagination() {
         size="sm"
         className="h-9 px-2 gap-1 text-muted-foreground"
         onClick={handleNext}
+        onMouseEnter={() => canGoNext && handleHoverPreload(sortedCanvases[currentIndex + 1]?.id)}
         disabled={!canGoNext || isNavigating}
       >
         <span className="hidden sm:inline text-xs">Next</span>
-        <ChevronRight className="w-4 h-4" />
+        {isNavigating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
       </Button>
 
       {/* New button */}
