@@ -304,7 +304,7 @@ export class ArchitectureGraph {
             labelPosition: 'center',
             animated: false,
             style: {
-              stroke: '#6366f1',
+              stroke: '#94a3b8',
               strokeDasharray: '',
               strokeWidth: 2,
             },

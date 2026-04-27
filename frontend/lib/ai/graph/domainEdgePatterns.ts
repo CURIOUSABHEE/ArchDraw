@@ -73,7 +73,7 @@ const DOMAIN_EDGE_PATTERNS: Record<string, EdgePattern[]> = {
 };
 
 const EDGE_COLORS: Record<string, string> = {
-  sync: '#6366f1',
+  sync: '#94a3b8',
   async: '#f59e0b',
   stream: '#10b981',
   event: '#ec4899',

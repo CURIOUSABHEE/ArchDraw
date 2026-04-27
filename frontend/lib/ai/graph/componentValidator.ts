@@ -1,41 +1,36 @@
 import type { ArchitectureNode } from '../types';
 
+// Minimal rules - don't block anything, just guidelines
 const DOMAIN_COMPONENT_RULES: Record<string, {
-  required: string[];
-  recommended: string[];
-  forbidden: string[];
+  suggested: string[];
   minNodes: number;
   maxNodes: number;
 }> = {
   chat: {
-    required: ['Chat Service', 'Message Store', 'Client'],
-    recommended: ['Queue', 'Cache', 'Load Balancer', 'API Gateway'],
-    forbidden: ['Clients', 'Services', 'System', 'Backend', 'Platform'],
-    minNodes: 6,
-    maxNodes: 20,
+    suggested: ['Chat Service', 'Message Store', 'Client', 'API Gateway', 'Database'],
+    minNodes: 2,
+    maxNodes: 50,
   },
   'video streaming': {
-    required: ['Video Upload', 'Transcoding', 'CDN', 'Storage'],
-    recommended: ['API Gateway', 'Database', 'Load Balancer'],
-    forbidden: ['Application Layer', 'Data Layer', 'Services'],
-    minNodes: 6,
-    maxNodes: 20,
+    suggested: ['Video Upload', 'Transcoding', 'CDN', 'Storage', 'API Gateway'],
+    minNodes: 2,
+    maxNodes: 50,
   },
   ecommerce: {
-    required: ['API Gateway', 'Product Service', 'Order Service', 'Database'],
-    recommended: ['Cache', 'Payment Gateway', 'CDN', 'Queue'],
-    forbidden: ['Backend Services', 'System', 'Services'],
-    minNodes: 8,
-    maxNodes: 25,
+    suggested: ['API Gateway', 'Product Service', 'Order Service', 'Database'],
+    minNodes: 2,
+    maxNodes: 50,
   },
   general: {
-    required: ['API Gateway', 'Database'],
-    recommended: ['Cache', 'Queue', 'Load Balancer'],
-    forbidden: ['Clients', 'Services', 'System', 'Platform', 'Infrastructure', 'Backend'],
-    minNodes: 6,
-    maxNodes: 20,
+    suggested: ['API Gateway', 'Database', 'Cache', 'Queue'],
+    minNodes: 1,
+    maxNodes: 50,
   },
 };
+
+function getDomainRules(domain: string) {
+  return DOMAIN_COMPONENT_RULES[domain] || DOMAIN_COMPONENT_RULES.general;
+}
 
 export function detectDomain(prompt: string): string {
   const domainMap: Record<string, string[]> = {
@@ -48,65 +43,30 @@ export function detectDomain(prompt: string): string {
   };
   
   const lowerPrompt = prompt.toLowerCase();
+  
   for (const [domain, keywords] of Object.entries(domainMap)) {
     if (keywords.some(k => lowerPrompt.includes(k))) {
       return domain;
     }
   }
+  
   return 'general';
 }
 
-export function getDomainRules(domain: string) {
-  return DOMAIN_COMPONENT_RULES[domain] || DOMAIN_COMPONENT_RULES['general'];
+function isVagueNode(node: ArchitectureNode): boolean {
+  // Only remove truly invalid placeholders, not real components
+  const vague = ['placeholder', 'todo', 'undefined', 'unknown', 'tbd'];
+  return vague.some(v => node.label.toLowerCase() === v);
 }
 
-export function isVagueNode(node: ArchitectureNode): boolean {
-  const vaguePatterns = [
-    /^clients?$/i,
-    /^services?$/i,
-    /^system$/i,
-    /^platform$/i,
-    /^infrastructure$/i,
-    /^application$/i,
-    /^backend$/i,
-    /^frontend$/i,
-    /^layer$/i,
-    /^tier$/i,
-    /^data layer$/i,
-    /^application layer$/i,
-    /^presentation layer$/i,
-  ];
-  
-  return vaguePatterns.some(pattern => pattern.test(node.label.trim()));
-}
-
-export function deduplicateNodes(nodes: ArchitectureNode[]): ArchitectureNode[] {
+function deduplicateNodes(nodes: ArchitectureNode[]): ArchitectureNode[] {
   const seen = new Map<string, ArchitectureNode>();
-  const duplicates: string[] = [];
   
   for (const node of nodes) {
-    const normalizedLabel = node.label.toLowerCase().trim();
-    const existing = seen.get(normalizedLabel);
-    
-    if (existing) {
-      duplicates.push(node.label);
-      continue;
+    const key = node.label.toLowerCase().trim();
+    if (!seen.has(key)) {
+      seen.set(key, node);
     }
-    
-    for (const [key, existingNode] of seen) {
-      if (existingNode.serviceType === node.serviceType) {
-        if (normalizedLabel.includes(key) || key.includes(normalizedLabel)) {
-          duplicates.push(node.label);
-          continue;
-        }
-      }
-    }
-    
-    seen.set(normalizedLabel, node);
-  }
-  
-  if (duplicates.length > 0) {
-    console.log(`[ComponentValidator] Removed ${duplicates.length} duplicates:`, duplicates);
   }
   
   return Array.from(seen.values());
@@ -121,37 +81,16 @@ export function validateAndFixComponents(
   
   const rules = getDomainRules(domain);
   
-  result = result.filter(node => {
-    if (isVagueNode(node)) {
-      fixes.push(`Removed vague node: "${node.label}"`);
-      console.log(`[ComponentValidator] Removing vague node: "${node.label}"`);
-      return false;
-    }
-    return true;
-  });
-  
-  const forbidden = result.filter(node =>
-    rules.forbidden.some(f => node.label.toLowerCase().includes(f.toLowerCase()))
-  );
-  
-  if (forbidden.length > 0) {
-    const labels = forbidden.map(n => n.label);
-    fixes.push(`Removed forbidden: ${labels.join(', ')}`);
-    console.log(`[ComponentValidator] Removing forbidden:`, labels);
-    result = result.filter(n => !forbidden.includes(n));
-  }
-  
+  // Just deduplicate, don't remove anything
   result = deduplicateNodes(result);
   
+  // Warn if outside range, but don't truncate
   if (result.length < rules.minNodes) {
-    fixes.push(`Node count (${result.length}) below minimum (${rules.minNodes})`);
-    console.warn(`[ComponentValidator] Node count ${result.length} < ${rules.minNodes}`);
+    fixes.push(`Note: ${result.length} nodes (minimum suggested: ${rules.minNodes})`);
   }
   
   if (result.length > rules.maxNodes) {
-    fixes.push(`Truncated from ${result.length} to ${rules.maxNodes} nodes`);
-    console.log(`[ComponentValidator] Truncating from ${result.length} to ${rules.maxNodes}`);
-    result = result.slice(0, rules.maxNodes);
+    fixes.push(`Note: ${result.length} nodes (maximum suggested: ${rules.maxNodes})`);
   }
   
   return { nodes: result, fixApplied: fixes };
@@ -161,6 +100,6 @@ export function requiresMinimumComponent(
   domain: string,
   componentType: string
 ): boolean {
-  const rules = getDomainRules(domain);
-  return rules.required.some(r => r.toLowerCase().includes(componentType.toLowerCase()));
+  // Always return false - don't enforce requirements
+  return false;
 }

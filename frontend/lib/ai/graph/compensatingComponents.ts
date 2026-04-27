@@ -10,7 +10,7 @@ const DEFAULT_EDGE_PROPS = {
   labelPosition: 'center' as const,
   animated: false,
   style: {
-    stroke: '#6366f1',
+    stroke: '#94a3b8',
     strokeDasharray: '',
     strokeWidth: 2,
   },

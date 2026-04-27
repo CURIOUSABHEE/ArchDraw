@@ -106,7 +106,7 @@ function createEdge(source: string, target: string, isAsync: boolean = false): A
     labelPosition: 'center' as const,
     animated: isAsync,
     style: {
-      stroke: isAsync ? '#f59e0b' : '#6366f1',
+      stroke: isAsync ? '#f59e0b' : '#94a3b8',
       strokeDasharray: isAsync ? '8,4' : '',
       strokeWidth: 2,
     },
