@@ -316,7 +316,7 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
 
       return {
         id: node.id,
-        type: 'systemNode',
+        type: 'customNode',
         position: { x: TIER_X[tier] || 650, y },
         data: {
           label: node.label,
@@ -334,7 +334,7 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
 
     const reactFlowEdges: ReactFlowEdge[] = templateEdges.map((edge, idx) => {
       const commColors: Record<string, { color: string; dash: string; animated: boolean }> = {
-        sync: { color: '#6366f1', dash: '', animated: false },
+        sync: { color: '#94a3b8', dash: '', animated: false },
         async: { color: '#f59e0b', dash: '8,4', animated: true },
         stream: { color: '#10b981', dash: '4,2', animated: true },
         event: { color: '#ec4899', dash: '2,3', animated: true },

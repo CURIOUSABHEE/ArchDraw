@@ -11,32 +11,32 @@ import { Node, Edge } from 'reactflow';
 
 export const chatgptNodes: Node[] = [
   // Col 0 — 1 node, centered at y=400
-  { id: 'cg_client',    type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Web',                   category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
+  { id: 'cg_client',    type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Web',                   category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
   // Col 1 — 2 nodes, centered at y=400, spacing 180 → y=310, 490
-  { id: 'cg_cdn',       type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#6366f1', icon: 'RadioTower'    } },
-  { id: 'cg_apigw',     type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#6366f1', icon: 'Webhook'       } },
+  { id: 'cg_cdn',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#6366f1', icon: 'RadioTower'    } },
+  { id: 'cg_apigw',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#6366f1', icon: 'Webhook'       } },
   // Col 2 — 2 nodes → y=310, 490
-  { id: 'cg_lb',        type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Load Balancer',         category: 'Client & Entry',    color: '#6366f1', icon: 'Scale'         } },
-  { id: 'cg_jwt',       type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service (JWT)',    category: 'Auth & Security',   color: '#8b5cf6', icon: 'Shield'        } },
+  { id: 'cg_lb',        type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Load Balancer',         category: 'Client & Entry',    color: '#6366f1', icon: 'Scale'         } },
+  { id: 'cg_jwt',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service (JWT)',    category: 'Auth & Security',   color: '#8b5cf6', icon: 'Shield'        } },
   // Col 3 — 3 nodes, centered at y=400, spacing 180 → y=220, 400, 580
-  { id: 'cg_auth_ms',   type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
-  { id: 'cg_chat_ms',   type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Chat Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
-  { id: 'cg_stream_ms', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Streaming Service',     category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  { id: 'cg_auth_ms',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  { id: 'cg_chat_ms',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Chat Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
+  { id: 'cg_stream_ms', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Streaming Service',     category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
   // Col 4 — 5 nodes, centered at y=400, spacing 180 → y=40, 220, 400, 580, 760
-  { id: 'cg_llm',       type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'LLM API (GPT / Claude)',category: 'AI / ML',           color: '#ec4899', icon: 'Brain'         } },
-  { id: 'cg_embed',     type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Embedding Service',     category: 'AI / ML',           color: '#ec4899', icon: 'Network'       } },
-  { id: 'cg_cache',     type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'In-Memory Cache',       category: 'Caching',           color: '#ef4444', icon: 'Layers'        } },
-  { id: 'cg_mq',        type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Message Queue',         category: 'Messaging & Events',color: '#f59e0b', icon: 'MessageSquare' } },
-  { id: 'cg_rag',       type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'RAG Pipeline',          category: 'AI / ML',           color: '#ec4899', icon: 'GitMerge'      } },
+  { id: 'cg_llm',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'LLM API (GPT / Claude)',category: 'AI / ML',           color: '#ec4899', icon: 'Brain'         } },
+  { id: 'cg_embed',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Embedding Service',     category: 'AI / ML',           color: '#ec4899', icon: 'Network'       } },
+  { id: 'cg_cache',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'In-Memory Cache',       category: 'Caching',           color: '#ef4444', icon: 'Layers'        } },
+  { id: 'cg_mq',        type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Message Queue',         category: 'Messaging & Events',color: '#f59e0b', icon: 'MessageSquare' } },
+  { id: 'cg_rag',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'RAG Pipeline',          category: 'AI / ML',           color: '#ec4899', icon: 'GitMerge'      } },
   // Col 5 — 5 nodes, centered at y=400, spacing 180 → y=40, 220, 400, 580, 760
-  { id: 'cg_sql',       type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'SQL Database',          category: 'Data Storage',      color: '#334155', icon: 'Database'      } },
-  { id: 'cg_nosql',     type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'NoSQL Database',        category: 'Data Storage',      color: '#334155', icon: 'Leaf'          } },
-  { id: 'cg_vector',    type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Vector Database',       category: 'AI / ML',           color: '#ec4899', icon: 'Cpu'           } },
-  { id: 'cg_objstore',  type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Object Storage',        category: 'Data Storage',      color: '#334155', icon: 'HardDrive'     } },
-  { id: 'cg_worker',    type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Worker / Background Job',category:'Compute',           color: '#3b82f6', icon: 'Timer'         } },
+  { id: 'cg_sql',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'SQL Database',          category: 'Data Storage',      color: '#334155', icon: 'Database'      } },
+  { id: 'cg_nosql',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'NoSQL Database',        category: 'Data Storage',      color: '#334155', icon: 'Leaf'          } },
+  { id: 'cg_vector',    type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Vector Database',       category: 'AI / ML',           color: '#ec4899', icon: 'Cpu'           } },
+  { id: 'cg_objstore',  type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Object Storage',        category: 'Data Storage',      color: '#334155', icon: 'HardDrive'     } },
+  { id: 'cg_worker',    type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Worker / Background Job',category:'Compute',           color: '#3b82f6', icon: 'Timer'         } },
   // Col 6 — 2 nodes → y=310, 490
-  { id: 'cg_logger',    type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Logger',                category: 'Observability',     color: '#06b6d4', icon: 'ScrollText'    } },
-  { id: 'cg_metrics',   type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Metrics Collector',     category: 'Observability',     color: '#06b6d4', icon: 'BarChart2'     } },
+  { id: 'cg_logger',    type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Logger',                category: 'Observability',     color: '#06b6d4', icon: 'ScrollText'    } },
+  { id: 'cg_metrics',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Metrics Collector',     category: 'Observability',     color: '#06b6d4', icon: 'BarChart2'     } },
 ];
 
 const E = (id: string, source: string, target: string, label: string): Edge => ({

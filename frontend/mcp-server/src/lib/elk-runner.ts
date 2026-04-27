@@ -60,7 +60,7 @@ const TIER_COLORS: Record<TierType, string> = {
 };
 
 const COMM_COLORS: Record<string, { color: string; dash: string; animated: boolean }> = {
-  sync: { color: '#6366f1', dash: '', animated: false },
+  sync: { color: '#94a3b8', dash: '', animated: false },
   async: { color: '#f59e0b', dash: '8,4', animated: true },
   stream: { color: '#10b981', dash: '4,2', animated: true },
   event: { color: '#ec4899', dash: '2,3', animated: true },

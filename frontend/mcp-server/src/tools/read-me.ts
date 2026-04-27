@@ -19,14 +19,14 @@ When to use each:
 
 | Type | Use Case | Style |
 |------|----------|-------|
-| sync | Request/response (REST, gRPC) | Solid indigo line |
+| sync | Request/response (REST, gRPC) | Solid slate gray line |
 | async | Message queues, background jobs | Dashed amber, animated |
 | stream | WebSockets, SSE, real-time data | Dashed green, animated |
 | event | Pub/sub, event-driven patterns | Dashed pink, animated |
 | dep | Build-time dependency | Dotted gray |
 
 ## EDGE STYLES
-- sync: solid #6366f1
+- sync: solid #94a3b8
 - async: dashed #f59e0b (animated)
 - stream: dashed #10b981 (animated)
 - event: dashed #ec4899 (animated)

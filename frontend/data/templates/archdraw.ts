@@ -4,43 +4,43 @@ import { Node, Edge } from 'reactflow';
 
 export const archdrawNodes: Node[] = [
   // Col 0 — Client & Entry
-  { id: 'af_browser',     type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'User Browser',         category: 'Client & Entry',     color: '#6366f1', icon: 'Monitor'      } },
-  { id: 'af_cdn',         type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Vercel CDN',           category: 'Client & Entry',     color: '#6366f1', icon: 'RadioTower'   } },
+  { id: 'af_browser',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'User Browser',         category: 'Client & Entry',     color: '#6366f1', icon: 'Monitor'      } },
+  { id: 'af_cdn',         type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Vercel CDN',           category: 'Client & Entry',     color: '#6366f1', icon: 'RadioTower'   } },
 
   // Col 1 — Gateway
-  { id: 'af_approuter',   type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Next.js App Router',   category: 'Client & Entry',     color: '#6366f1', icon: 'Webhook'      } },
-  { id: 'af_edge',        type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Vercel Edge Network',  category: 'Client & Entry',     color: '#6366f1', icon: 'Globe'        } },
+  { id: 'af_approuter',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Next.js App Router',   category: 'Client & Entry',     color: '#6366f1', icon: 'Webhook'      } },
+  { id: 'af_edge',        type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Vercel Edge Network',  category: 'Client & Entry',     color: '#6366f1', icon: 'Globe'        } },
 
   // Col 2 — Frontend
-  { id: 'af_canvas',      type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'React + ReactFlow',    category: 'Compute',            color: '#3b82f6', icon: 'Boxes'        } },
-  { id: 'af_zustand',     type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Zustand State',        category: 'Caching',            color: '#ef4444', icon: 'Layers'       } },
-  { id: 'af_localstorage',type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'localStorage',         category: 'Caching',            color: '#ef4444', icon: 'HardDrive'    } },
+  { id: 'af_canvas',      type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'React + ReactFlow',    category: 'Compute',            color: '#3b82f6', icon: 'Boxes'        } },
+  { id: 'af_zustand',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Zustand State',        category: 'Caching',            color: '#ef4444', icon: 'Layers'       } },
+  { id: 'af_localstorage',type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'localStorage',         category: 'Caching',            color: '#ef4444', icon: 'HardDrive'    } },
 
   // Col 3 — Auth
-  { id: 'af_sbauth',      type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Supabase Auth',        category: 'Auth & Security',    color: '#8b5cf6', icon: 'Shield'       } },
-  { id: 'af_otp',         type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Magic Link OTP',       category: 'Auth & Security',    color: '#8b5cf6', icon: 'KeyRound'     } },
-  { id: 'af_emailmodal',  type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Email Capture Modal',  category: 'Compute',            color: '#3b82f6', icon: 'Mail'         } },
+  { id: 'af_sbauth',      type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Supabase Auth',        category: 'Auth & Security',    color: '#8b5cf6', icon: 'Shield'       } },
+  { id: 'af_otp',         type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Magic Link OTP',       category: 'Auth & Security',    color: '#8b5cf6', icon: 'KeyRound'     } },
+  { id: 'af_emailmodal',  type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Email Capture Modal',  category: 'Compute',            color: '#3b82f6', icon: 'Mail'         } },
 
   // Col 4 — API / Server
-  { id: 'af_apiroutes',   type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Next.js API Routes',   category: 'Compute',            color: '#3b82f6', icon: 'Server'       } },
-  { id: 'af_sharehandler',type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Share Handler',        category: 'Compute',            color: '#3b82f6', icon: 'Share2'       } },
+  { id: 'af_apiroutes',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Next.js API Routes',   category: 'Compute',            color: '#3b82f6', icon: 'Server'       } },
+  { id: 'af_sharehandler',type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Share Handler',        category: 'Compute',            color: '#3b82f6', icon: 'Share2'       } },
   { id: 'af_exporthandler',type:'systemNode', position: { x: 0, y: 0 }, data: { label: 'Export Handler',       category: 'Compute',            color: '#3b82f6', icon: 'Download'     } },
-  { id: 'af_templates',   type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Template Engine',      category: 'Compute',            color: '#3b82f6', icon: 'LayoutTemplate'} },
+  { id: 'af_templates',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Template Engine',      category: 'Compute',            color: '#3b82f6', icon: 'LayoutTemplate'} },
 
   // Col 5 — Email + Database
-  { id: 'af_email',       type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Resend Email',         category: 'Messaging & Events', color: '#f59e0b', icon: 'Send'         } },
-  { id: 'af_postgres',    type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Supabase PostgreSQL',  category: 'Data Storage',       color: '#334155', icon: 'Database'     } },
-  { id: 'af_shared_table',type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'shared_canvases',      category: 'Data Storage',       color: '#334155', icon: 'Table'        } },
-  { id: 'af_user_table',  type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'user_canvases',        category: 'Data Storage',       color: '#334155', icon: 'Table'        } },
+  { id: 'af_email',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Resend Email',         category: 'Messaging & Events', color: '#f59e0b', icon: 'Send'         } },
+  { id: 'af_postgres',    type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Supabase PostgreSQL',  category: 'Data Storage',       color: '#334155', icon: 'Database'     } },
+  { id: 'af_shared_table',type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'shared_canvases',      category: 'Data Storage',       color: '#334155', icon: 'Table'        } },
+  { id: 'af_user_table',  type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'user_canvases',        category: 'Data Storage',       color: '#334155', icon: 'Table'        } },
 
   // Col 6 — Storage & Export
-  { id: 'af_dagre',       type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Dagre Auto Layout',    category: 'Compute',            color: '#3b82f6', icon: 'GitBranch'    } },
-  { id: 'af_htmltoimage', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'html-to-image',        category: 'Compute',            color: '#3b82f6', icon: 'Image'        } },
-  { id: 'af_pngexport',   type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'PNG Export',           category: 'Data Storage',       color: '#334155', icon: 'FileImage'    } },
+  { id: 'af_dagre',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Dagre Auto Layout',    category: 'Compute',            color: '#3b82f6', icon: 'GitBranch'    } },
+  { id: 'af_htmltoimage', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'html-to-image',        category: 'Compute',            color: '#3b82f6', icon: 'Image'        } },
+  { id: 'af_pngexport',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'PNG Export',           category: 'Data Storage',       color: '#334155', icon: 'FileImage'    } },
 
   // Col 7 — Observability
-  { id: 'af_analytics',   type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Vercel Analytics',     category: 'Observability',      color: '#06b6d4', icon: 'BarChart2'    } },
-  { id: 'af_logs',        type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Vercel Logs',          category: 'Observability',      color: '#06b6d4', icon: 'ScrollText'   } },
+  { id: 'af_analytics',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Vercel Analytics',     category: 'Observability',      color: '#06b6d4', icon: 'BarChart2'    } },
+  { id: 'af_logs',        type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Vercel Logs',          category: 'Observability',      color: '#06b6d4', icon: 'ScrollText'   } },
 ];
 
 const E = (id: string, source: string, target: string, label: string): Edge => ({

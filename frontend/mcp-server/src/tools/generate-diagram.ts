@@ -148,7 +148,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
     }
 
     const commColors: Record<string, { color: string; dash: string }> = {
-      sync: { color: '#818cf8', dash: '' },
+      sync: { color: '#94a3b8', dash: '' },
       async: { color: '#fbbf24', dash: '8,4' },
       stream: { color: '#4ade80', dash: '4,2' },
       event: { color: '#f472c6', dash: '2,3' },

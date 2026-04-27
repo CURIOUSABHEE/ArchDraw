@@ -83,7 +83,7 @@ export async function fixLayout(input: FixLayoutInput): Promise<{
     const architectureEdges: ArchitectureEdge[] = inputEdges.map((edge: InputEdge, index: number) => {
       const commType = edge.communicationType || 'sync';
       const commColors: Record<string, { color: string; dash: string }> = {
-        sync: { color: '#6366f1', dash: '' },
+        sync: { color: '#94a3b8', dash: '' },
         async: { color: '#f59e0b', dash: '8,4' },
         stream: { color: '#10b981', dash: '4,2' },
         event: { color: '#ec4899', dash: '2,3' },

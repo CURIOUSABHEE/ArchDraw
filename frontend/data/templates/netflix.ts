@@ -2,49 +2,49 @@ import { Node, Edge } from 'reactflow';
 
 export const netflixNodes: Node[] = [
   // Layer 1: Client Layer
-  { id: 'web', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Web Client', category: 'Client', color: '#6366f1', icon: 'Globe' } },
-  { id: 'mobile', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Mobile App', category: 'Client', color: '#6366f1', icon: 'Smartphone' } },
-  { id: 'smarttv', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Smart TV', category: 'Client', color: '#6366f1', icon: 'Tv' } },
+  { id: 'web', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Web Client', category: 'Client', color: '#6366f1', icon: 'Globe' } },
+  { id: 'mobile', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Mobile App', category: 'Client', color: '#6366f1', icon: 'Smartphone' } },
+  { id: 'smarttv', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Smart TV', category: 'Client', color: '#6366f1', icon: 'Tv' } },
 
   // Layer 2: Edge Layer
-  { id: 'cdn', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'CDN (Open Connect)', category: 'Edge', color: '#f59e0b', icon: 'Cloud' } },
-  { id: 'dns', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'DNS Routing', category: 'Edge', color: '#f59e0b', icon: 'Globe' } },
+  { id: 'cdn', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'CDN (Open Connect)', category: 'Edge', color: '#f59e0b', icon: 'Cloud' } },
+  { id: 'dns', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'DNS Routing', category: 'Edge', color: '#f59e0b', icon: 'Globe' } },
 
   // Layer 3: API Gateway Layer
-  { id: 'gateway', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway', category: 'Gateway', color: '#8b5cf6', icon: 'Gateway' } },
+  { id: 'gateway', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway', category: 'Gateway', color: '#8b5cf6', icon: 'Gateway' } },
 
   // Layer 4: Microservices - User Domain
-  { id: 'auth', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service', category: 'User Domain', color: '#3b82f6', icon: 'Lock' } },
-  { id: 'profile', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Profile Service', category: 'User Domain', color: '#3b82f6', icon: 'User' } },
+  { id: 'auth', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service', category: 'User Domain', color: '#3b82f6', icon: 'Lock' } },
+  { id: 'profile', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Profile Service', category: 'User Domain', color: '#3b82f6', icon: 'User' } },
 
   // Layer 4: Microservices - Content Domain
-  { id: 'catalog', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Catalog Service', category: 'Content Domain', color: '#10b981', icon: 'Boxes' } },
-  { id: 'metadata', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Metadata Service', category: 'Content Domain', color: '#10b981', icon: 'FileText' } },
+  { id: 'catalog', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Catalog Service', category: 'Content Domain', color: '#10b981', icon: 'Boxes' } },
+  { id: 'metadata', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Metadata Service', category: 'Content Domain', color: '#10b981', icon: 'FileText' } },
 
   // Layer 4: Microservices - Streaming Domain
-  { id: 'playback', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Playback Service', category: 'Streaming Domain', color: '#ef4444', icon: 'Play' } },
-  { id: 'orchestrator', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Orchestrator', category: 'Streaming Domain', color: '#ef4444', icon: 'Cpu' } },
+  { id: 'playback', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Playback Service', category: 'Streaming Domain', color: '#ef4444', icon: 'Play' } },
+  { id: 'orchestrator', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Orchestrator', category: 'Streaming Domain', color: '#ef4444', icon: 'Cpu' } },
 
   // Layer 4: Microservices - Other
-  { id: 'recommendation', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Recommendation', category: 'Recommendation', color: '#ec4899', icon: 'Brain' } },
-  { id: 'billing', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Billing Service', category: 'Billing', color: '#f97316', icon: 'CreditCard' } },
+  { id: 'recommendation', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Recommendation', category: 'Recommendation', color: '#ec4899', icon: 'Brain' } },
+  { id: 'billing', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Billing Service', category: 'Billing', color: '#f97316', icon: 'CreditCard' } },
 
   // Layer 5: Data Layer
-  { id: 'cassandra', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Cassandra', category: 'Database', color: '#334155', icon: 'Database' } },
-  { id: 'mysql', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'MySQL', category: 'Database', color: '#334155', icon: 'Database' } },
-  { id: 'redis', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Redis Cache', category: 'Cache', color: '#dc2626', icon: 'Zap' } },
-  { id: 'elasticsearch', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Elasticsearch', category: 'Search', color: '#0ea5e9', icon: 'Search' } },
+  { id: 'cassandra', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Cassandra', category: 'Database', color: '#334155', icon: 'Database' } },
+  { id: 'mysql', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'MySQL', category: 'Database', color: '#334155', icon: 'Database' } },
+  { id: 'redis', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Redis Cache', category: 'Cache', color: '#dc2626', icon: 'Zap' } },
+  { id: 'elasticsearch', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Elasticsearch', category: 'Search', color: '#0ea5e9', icon: 'Search' } },
 
   // Layer 6: Streaming Pipeline
-  { id: 'ingestion', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Content Ingestion', category: 'Pipeline', color: '#a855f7', icon: 'Upload' } },
-  { id: 'transcoding', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Transcoding', category: 'Pipeline', color: '#a855f7', icon: 'Cpu' } },
-  { id: 'abr', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'ABR Encoding', category: 'Pipeline', color: '#a855f7', icon: 'Layers' } },
-  { id: 'storage', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'S3 Storage', category: 'Storage', color: '#eab308', icon: 'HardDrive' } },
+  { id: 'ingestion', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Content Ingestion', category: 'Pipeline', color: '#a855f7', icon: 'Upload' } },
+  { id: 'transcoding', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Transcoding', category: 'Pipeline', color: '#a855f7', icon: 'Cpu' } },
+  { id: 'abr', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'ABR Encoding', category: 'Pipeline', color: '#a855f7', icon: 'Layers' } },
+  { id: 'storage', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'S3 Storage', category: 'Storage', color: '#eab308', icon: 'HardDrive' } },
 
   // Layer 7: Data & Analytics
-  { id: 'kafka', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Kafka', category: 'Event Stream', color: '#06b6d4', icon: 'Activity' } },
-  { id: 'realtime', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Real-time Processing', category: 'Analytics', color: '#06b6d4', icon: 'Zap' } },
-  { id: 'batch', type: 'systemNode', position: { x: 0, y: 0 }, data: { label: 'Batch Processing', category: 'Analytics', color: '#06b6d4', icon: 'Clock' } },
+  { id: 'kafka', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Kafka', category: 'Event Stream', color: '#06b6d4', icon: 'Activity' } },
+  { id: 'realtime', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Real-time Processing', category: 'Analytics', color: '#06b6d4', icon: 'Zap' } },
+  { id: 'batch', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Batch Processing', category: 'Analytics', color: '#06b6d4', icon: 'Clock' } },
 ];
 
 const E = (id: string, source: string, target: string, label: string, animated = false): Edge => ({

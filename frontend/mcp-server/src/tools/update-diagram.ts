@@ -15,7 +15,7 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 const COMM_COLORS: Record<string, { color: string; dash: string; animated: boolean }> = {
-  sync: { color: '#6366f1', dash: '', animated: false },
+  sync: { color: '#94a3b8', dash: '', animated: false },
   async: { color: '#f59e0b', dash: '8,4', animated: true },
   stream: { color: '#10b981', dash: '4,2', animated: true },
   event: { color: '#ec4899', dash: '2,3', animated: true },
@@ -72,7 +72,7 @@ export async function updateDiagram(input: UpdateDiagramInput): Promise<{
   if (input.addNodes && input.addNodes.length > 0) {
     const newNodes: ReactFlowNode[] = input.addNodes.map(node => ({
       id: node.id,
-      type: 'systemNode',
+      type: 'customNode',
       position: { x: 0, y: 0 },
       data: {
         label: node.label,
@@ -169,7 +169,7 @@ export async function updateDiagram(input: UpdateDiagramInput): Promise<{
     labelPosition: 'center',
     animated: e.animated,
     style: {
-      stroke: e.style?.stroke || '#6366f1',
+      stroke: e.style?.stroke || '#94a3b8',
       strokeDasharray: e.style?.strokeDasharray || '',
       strokeWidth: 2,
     },
