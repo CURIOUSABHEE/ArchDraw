@@ -75,7 +75,7 @@ function adjustCachedLayout(
     } else {
       result.push({
         id: node.id,
-        type: 'systemNode',
+        type: 'customNode',
         position: { x: TIER_X[node.layer || 'compute'] ?? 500, y: 50 },
         data: {
           label: node.label,
@@ -477,7 +477,7 @@ export async function computeELKLayout(
           label: '',
           labelPosition: 'center',
           animated: false,
-          style: { stroke: '#6366f1', strokeDasharray: '', strokeWidth: 2 },
+          style: { stroke: '#94a3b8', strokeDasharray: '', strokeWidth: 2 },
           markerEnd: 'arrowclosed',
           markerStart: 'none',
         });
@@ -912,7 +912,7 @@ async function runELKLayoutQuick(nodes: ArchitectureNode[]): Promise<LayoutResul
       const tier = originalNode?.tier || originalNode?.layer || 'compute';
       return {
         id: elkNode.id,
-        type: 'systemNode',
+        type: 'customNode',
         position: { x: elkNode.x ?? TIER_X[tier] ?? 500, y: elkNode.y ?? 0 },
         data: {
           label: originalNode.label,

@@ -261,7 +261,7 @@ export function runDeterministicLayout(
   
     const reactFlowNode: ReactFlowNode = {
       id: node.id,
-      type: 'systemNode',
+      type: 'customNode',
       position: { x, y },
       data: {
         label: node.label,

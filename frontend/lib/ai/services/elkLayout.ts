@@ -54,7 +54,7 @@ export function computeLayout(
 
         reactFlowNodes.push({
           id: node.id,
-          type: 'systemNode',
+          type: 'customNode',
           position: { x: nodeX, y: nodeY },
           data: {
             label: node.label,
@@ -77,7 +77,7 @@ export function computeLayout(
 
         reactFlowNodes.push({
           id: node.id,
-          type: 'systemNode',
+          type: 'customNode',
           position: { x: nodeX, y: nodeY },
           data: {
             label: node.label,
@@ -98,7 +98,7 @@ export function computeLayout(
       const defaultLayerPos = layerPositions[node.layer] ?? { x: 400, y: 200 };
       reactFlowNodes.push({
         id: node.id,
-        type: 'systemNode',
+        type: 'customNode',
         position: { x: defaultLayerPos.x, y: defaultLayerPos.y + Math.random() * 50 },
         data: {
           label: node.label,
@@ -169,11 +169,11 @@ function convertEdge(
     labelBgStyle: { fill: '#1e1e2e', fillOpacity: 0.9 },
     labelStyle: { fontSize: 10, fontWeight: 600, fill: '#e2e8f0' },
     style: {
-      stroke: edge.style?.stroke ?? '#6366f1',
+      stroke: edge.style?.stroke ?? '#94a3b8',
       strokeWidth: edge.style?.strokeWidth ?? 2,
       strokeDasharray: edge.style?.strokeDasharray ?? '',
     },
-    markerEnd: { type: edge.markerEnd ?? 'arrowclosed', color: edge.style?.stroke ?? '#6366f1' },
+    markerEnd: { type: edge.markerEnd ?? 'arrowclosed', color: edge.style?.stroke ?? '#94a3b8' },
     data: { communicationType: commType },
   };
 }

@@ -401,7 +401,7 @@ async function generateEdges(state: PipelineState): Promise<ArchitectureEdge[]> 
       labelPosition: 'center',
       animated: false,
       style: {
-        stroke: '#6366f1',
+        stroke: '#94a3b8',
         strokeDasharray: '',
         strokeWidth: 2,
       },
@@ -576,7 +576,7 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
             labelPosition: 'center',
             animated: targetTier === 'async',
             style: {
-              stroke: '#6366f1',
+              stroke: '#94a3b8',
               strokeDasharray: targetTier === 'async' ? '5,5' : '',
               strokeWidth: 2,
             },
@@ -607,7 +607,7 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
         labelPosition: 'center',
         animated: true,
         style: {
-          stroke: '#6366f1',
+          stroke: '#94a3b8',
           strokeDasharray: '5,5',
           strokeWidth: 2,
         },
