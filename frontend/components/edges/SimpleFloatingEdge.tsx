@@ -20,7 +20,7 @@ interface SimpleEdgeData {
 }
 
 const EDGE_COLORS: Record<string, string> = {
-  sync: '#818cf8',
+  sync: '#94a3b8',
   async: '#fbbf24',
   stream: '#4ade80',
   event: '#f472c6',

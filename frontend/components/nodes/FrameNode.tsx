@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Handle, Position, NodeProps, NodeResizer, useReactFlow } from 'reactflow';
+import { Position, NodeProps, NodeResizer, useReactFlow } from 'reactflow';
 import type { Node } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
 import { FRAME_COLORS } from './nodeDesignTokens';
@@ -117,10 +117,7 @@ function FrameNodeComponent({ id, data, selected }: NodeProps<FrameNodeData>) {
           )}
         </div>
 
-        <Handle type="target" position={Position.Left} style={{ width: 12, height: 12 }} />
-        <Handle type="source" position={Position.Right} style={{ width: 12, height: 12 }} />
-        <Handle type="target" position={Position.Top} style={{ width: 12, height: 12 }} />
-        <Handle type="source" position={Position.Bottom} style={{ width: 12, height: 12 }} />
+        {/* No handles needed — FloatingEdge computes boundary intersection mathematically */}
       </div>
     </>
   );

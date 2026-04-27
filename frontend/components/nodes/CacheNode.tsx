@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useState } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Position, NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { useTheme } from '@/lib/theme';
 import { motion } from 'framer-motion';
@@ -60,29 +60,6 @@ function CacheNodeComponent({ id, data, selected }: NodeProps<CacheNodeData>) {
     backgroundPosition: ['200% 0', '-200% 0'],
   };
 
-  const handleStyleForSide = (side: 'left' | 'right' | 'top' | 'bottom', kind: 'target' | 'source'): React.CSSProperties => {
-    const axisOffset = kind === 'source' ? 8 : -8;
-    const sidePosition =
-      side === 'left'
-        ? { left: -5, top: '50%', transform: `translateY(calc(-50% + ${axisOffset}px))` }
-        : side === 'right'
-          ? { right: -5, top: '50%', transform: `translateY(calc(-50% + ${axisOffset}px))` }
-          : side === 'top'
-            ? { top: -5, left: '50%', transform: `translateX(calc(-50% + ${axisOffset}px))` }
-            : { bottom: -5, left: '50%', transform: `translateX(calc(-50% + ${axisOffset}px))` };
-
-    return {
-      width: 10,
-      height: 10,
-      background: isDark ? accent : '#ffffff',
-      border: `2px solid ${accent}`,
-      boxShadow: isHovered ? `0 0 8px ${accent}60` : 'none',
-      transition: 'all 0.15s ease',
-      opacity: isHovered ? 1 : 0.8,
-      ...sidePosition,
-    };
-  };
-
   return (
     <div
       className="relative group"
@@ -109,18 +86,7 @@ function CacheNodeComponent({ id, data, selected }: NodeProps<CacheNodeData>) {
     >
       <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/10 via-white/[0.02] to-transparent" />
 
-      <Handle type="target" position={Position.Left} id="target-left" style={handleStyleForSide('left', 'target')} />
-      <Handle type="source" position={Position.Left} id="source-left" style={handleStyleForSide('left', 'source')} />
-      <Handle type="target" position={Position.Right} id="target-right" style={handleStyleForSide('right', 'target')} />
-      <Handle type="source" position={Position.Right} id="source-right" style={handleStyleForSide('right', 'source')} />
-      <Handle type="target" position={Position.Top} id="target-top" style={handleStyleForSide('top', 'target')} />
-      <Handle type="source" position={Position.Top} id="source-top" style={handleStyleForSide('top', 'source')} />
-      <Handle type="target" position={Position.Bottom} id="target-bottom" style={handleStyleForSide('bottom', 'target')} />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" style={handleStyleForSide('bottom', 'source')} />
-
-      {/* Back-compat handles for persisted edges */}
-      <Handle type="target" position={Position.Left} id="input-0" style={handleStyleForSide('left', 'target')} />
-      <Handle type="source" position={Position.Right} id="output-0" style={handleStyleForSide('right', 'source')} />
+      {/* No handles needed — FloatingEdge computes boundary intersection mathematically */}
 
       <div style={{
         padding: '10px 14px',

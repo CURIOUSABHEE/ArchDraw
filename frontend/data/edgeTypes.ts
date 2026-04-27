@@ -18,7 +18,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
   sync: {
     id: 'sync',
     label: 'Sync',
-    color: '#6366f1',
+    color: '#94a3b8',
     dash: '',
     animated: false,
     markerStart: false,

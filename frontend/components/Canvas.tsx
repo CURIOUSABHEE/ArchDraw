@@ -5,7 +5,7 @@ import ReactFlow, {
   useReactFlow, ReactFlowProvider,
   NodeMouseHandler, EdgeMouseHandler, NodeDragHandler,
   SelectionMode, ConnectionLineType,
-  ConnectionMode,
+  ConnectionMode, MarkerType,
   type OnSelectionChangeParams,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -29,6 +29,7 @@ import { LayoutGrid, LayoutTemplate, MousePointer2 } from 'lucide-react';
 import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
+import FloatingEdge from '@/components/edges/FloatingEdge';
 import { useCanvasTheme } from '@/lib/theme';
 import { TemplateModal } from '@/components/TemplateModal';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -38,6 +39,7 @@ import { useGrouping } from '@/hooks/useGrouping';
 import { toast } from 'sonner';
 import type { Node, Edge } from 'reactflow';
 import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
+import CustomNode from '@/components/nodes/CustomNode';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -54,12 +56,13 @@ const NODE_TYPES = {
   textLabelNode:     TextLabelNode,
   annotationNode:    AnnotationNode,
   messageBrokerNode: MessageBrokerNode,
+  customNode:        CustomNode,
 };
 
 const EDGE_TYPES = {
   custom: FlowEdge,
   simpleFloating: SimpleFloatingEdge,
-  floating: SimpleFloatingEdge,
+  floating: FloatingEdge,
   default: FlowEdge,
 };
 
@@ -580,10 +583,10 @@ function CanvasInner() {
           connectionMode={ConnectionMode.Loose}
           proOptions={{ hideAttribution: true }}
           connectionLineType={ConnectionLineType.SmoothStep}
-          connectionLineStyle={{ stroke: '#6366f1', strokeWidth: 2 }}
+          connectionLineStyle={{ stroke: '#94a3b8', strokeWidth: 2 }}
           defaultEdgeOptions={{
-            type: 'simpleFloating',
-            markerEnd: 'arrowclosed',
+            type: 'floating',
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#94A3B8' },
             data: { connectionType: 'sync', pathType: 'smooth' },
           }}
         >
@@ -592,7 +595,7 @@ function CanvasInner() {
             {/* Arrow markers for all edge types - refX positions arrow tip at node edge */}
             {/* sync: indigo, async: amber, stream: green, event: pink, dep: gray */}
             <marker id="arrow-sync" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,8 L8,4 z" fill="#818cf8" />
+              <path d="M0,0 L0,8 L8,4 z" fill="#94A3B8" />
             </marker>
             <marker id="arrow-async" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
               <path d="M0,0 L0,8 L8,4 z" fill="#fbbf24" />
@@ -607,7 +610,7 @@ function CanvasInner() {
               <path d="M0,0 L0,8 L8,4 z" fill="#a1a1aa" />
             </marker>
             <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,8 L8,4 z" fill="#6366f1" />
+              <path d="M0,0 L0,8 L8,4 z" fill="#94A3B8" />
             </marker>
             <marker id="arrow-error" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
               <path d="M0,0 L0,8 L8,4 z" fill="#ef4444" />
@@ -676,10 +679,10 @@ function CanvasInner() {
                 style={{
                   position: 'absolute',
                   transform: `translate(-50%, -50%) translate(${midX}px, ${midY}px)`,
-                  pointerEvents: 'all',
-                  zIndex: 1000,
-                }}
-              >
+pointerEvents: 'all',
+                zIndex: 1000,
+              }}
+            >
                 <input
                   ref={labelInputRef}
                   value={labelDraft}

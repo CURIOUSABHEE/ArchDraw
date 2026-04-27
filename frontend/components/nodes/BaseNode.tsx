@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useState, useMemo, useCallback } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Position, NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { NodeIcon, resolveNodeColor } from '@/components/NodeIcon';
 import { useTheme } from '@/lib/theme';
@@ -12,8 +12,6 @@ import { getStrictPortConfig } from '@/lib/componentPorts';
 
 interface BaseNodeData extends NodeData {
   shape?: NodeShape;
-  inputCount?: number;
-  outputCount?: number;
 }
 
 function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
@@ -82,24 +80,6 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
     }
     return getShapeConfig(data.category);
   }, [data.category, data.shape]);
-
-  const portConfig = useMemo(() => {
-    const componentType = data.componentType || data.category.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    try {
-      return getStrictPortConfig(componentType);
-    } catch {
-      // Fallback for unknown types - will throw error in strict mode
-      return { inputs: 1, outputs: 1 };
-    }
-  }, [data.componentType, data.category]);
-  
-  const inputCount = useMemo((): number => {
-    return portConfig.inputs;
-  }, [portConfig.inputs]);
-
-  const outputCount = useMemo((): number => {
-    return portConfig.outputs;
-  }, [portConfig.outputs]);
 
   const visualWeight = shapeConfig.visualWeight;
 
@@ -182,116 +162,10 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
             : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)',
   };
 
-  const baseHandleStyle: React.CSSProperties = {
-    width: 12,
-    height: 12,
-    background: isDark ? 'hsl(var(--card))' : '#ffffff',
-    border: `2px solid ${resolvedAccent}60`,
-    borderRadius: '50%',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    boxShadow: '0 2px 8px hsl(var(--foreground) / 0.15)',
-  };
 
-  const getHandleOpacity = (hasConnections: boolean, isActive: boolean) => {
-    if (hasConnections || isActive) return 1;
-    return isHovered ? 0.9 : 0;
-  };
 
-  const getPortSpacing = (count: number) => {
-    if (count <= 1) return 0;
-    if (count === 2) return 24;
-    if (count === 3) return 22;
-    if (count === 4) return 20;
-    return 18;
-  };
 
-  const renderInputHandles = () => {
-    if (inputCount === 0) return null;
-    
-    const handles = [];
-    const count = inputCount;
-    const spacing = getPortSpacing(count);
-    const startOffset = count > 1 ? -((count - 1) * spacing) / 2 : 0;
-    
-    for (let i = 0; i < count; i++) {
-      const offset = count > 1 ? startOffset + i * spacing : 0;
-      handles.push(
-        <motion.div
-          key={`input-${i}`}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ 
-            opacity: getHandleOpacity(false, isHovered),
-            scale: isHovered ? 1.15 : 1,
-          }}
-          transition={{ duration: 0.15 }}
-          style={{
-            position: 'absolute',
-            left: -5,
-            top: '50%',
-            marginTop: offset,
-            zIndex: 10,
-          }}
-        >
-          <Handle
-            type="target"
-            position={Position.Left}
-            id={`input-${i}`}
-            style={{
-              ...baseHandleStyle,
-              background: isDark ? resolvedAccent : '#ffffff',
-              border: `2px solid ${resolvedAccent}`,
-              boxShadow: isHovered ? `0 0 12px ${resolvedAccent}60` : '0 2px 8px hsl(var(--foreground) / 0.1)',
-            }}
-          />
-        </motion.div>
-      );
-    }
-    return handles;
-  };
 
-  const renderOutputHandles = () => {
-    if (outputCount === 0) return null;
-    
-    const handles = [];
-    const count = outputCount;
-    const spacing = getPortSpacing(count);
-    const startOffset = count > 1 ? -((count - 1) * spacing) / 2 : 0;
-    
-    for (let i = 0; i < count; i++) {
-      const offset = count > 1 ? startOffset + i * spacing : 0;
-      handles.push(
-        <motion.div
-          key={`output-${i}`}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ 
-            opacity: getHandleOpacity(false, isHovered),
-            scale: isHovered ? 1.15 : 1,
-          }}
-          transition={{ duration: 0.15 }}
-          style={{
-            position: 'absolute',
-            right: -5,
-            top: '50%',
-            marginTop: offset,
-            zIndex: 10,
-          }}
-        >
-          <Handle
-            type="source"
-            position={Position.Right}
-            id={`output-${i}`}
-            style={{
-              ...baseHandleStyle,
-              background: isDark ? resolvedAccent : '#ffffff',
-              border: `2px solid ${resolvedAccent}`,
-              boxShadow: isHovered ? `0 0 12px ${resolvedAccent}60` : '0 2px 8px hsl(var(--foreground) / 0.1)',
-            }}
-          />
-        </motion.div>
-      );
-    }
-    return handles;
-  };
 
   const renderShapeContent = () => {
     switch (shape) {
@@ -318,64 +192,6 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
     }
   };
 
-  const renderHandles = () => {
-    if (shape === 'pill') {
-      return (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: selected || isHovered ? 1 : getHandleOpacity(false, false) }}
-            style={{ position: 'absolute', left: -5, zIndex: 10 }}
-          >
-            <Handle
-              type="target"
-              position={Position.Left}
-              id="input"
-              style={{
-                ...baseHandleStyle,
-                background: isDark ? resolvedAccent : '#ffffff',
-                border: `2px solid ${resolvedAccent}`,
-              }}
-            />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: selected || isHovered ? 1 : getHandleOpacity(false, false) }}
-            style={{ position: 'absolute', right: -5, zIndex: 10 }}
-          >
-            <Handle
-              type="source"
-              position={Position.Right}
-              id="output"
-              style={{
-                ...baseHandleStyle,
-                background: isDark ? resolvedAccent : '#ffffff',
-                border: `2px solid ${resolvedAccent}`,
-              }}
-            />
-          </motion.div>
-        </>
-      );
-    }
-    return (
-      <>
-        {renderInputHandles()}
-        {renderOutputHandles()}
-        <Handle 
-          type="target" 
-          position={Position.Top} 
-          id="input"
-          style={baseHandleStyle} 
-        />
-        <Handle 
-          type="source" 
-          position={Position.Bottom} 
-          id="output"
-          style={baseHandleStyle} 
-        />
-      </>
-    );
-  };
 
   return (
     <div
@@ -427,7 +243,6 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
       )}
       <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/8 via-white/[0.02] to-transparent dark:from-white/8 dark:via-white/[0.02] dark:to-transparent" />
       
-      {renderHandles()}
       {renderShapeContent()}
     </div>
   );
