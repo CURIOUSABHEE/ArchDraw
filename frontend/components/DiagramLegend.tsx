@@ -23,8 +23,8 @@ export function DiagramLegend() {
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <svg width="40" height="4" className="shrink-0">
-              <line x1="0" y1="2" x2="40" y2="2" stroke="#6366F1" strokeWidth="2" />
-              <path d="M36 0 L40 2 L36 4 z" fill="#6366F1" />
+              <line x1="0" y1="2" x2="40" y2="2" stroke="#94A3B8" strokeWidth="2" />
+              <path d="M36 0 L40 2 L36 4 z" fill="#94A3B8" />
             </svg>
             <span className="text-[11px] text-gray-600">Sync (REST/gRPC)</span>
           </div>

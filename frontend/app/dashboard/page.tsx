@@ -122,7 +122,7 @@ function CanvasPreview({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
     return edgeType === 'async' ? '#F59E0B' 
       : edgeType === 'stream' ? '#10B981'
       : edgeType === 'event' ? '#EC4899'
-      : '#6366F1';
+      : '#94A3B8';
   };
 
   const getDashArray = (edge: Edge): string => {

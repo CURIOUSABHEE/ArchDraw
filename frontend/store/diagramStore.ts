@@ -855,7 +855,7 @@ onConnect: (connection) => {
             sourceHandle,
             targetHandle,
             id: edgeId, 
-            type: 'simpleFloating',
+            type: 'floating',
             data: { 
               edgeType: DEFAULT_EDGE_TYPE as EdgeType,
             },
@@ -909,7 +909,7 @@ onConnect: (connection) => {
           
           newNode = { 
             id, 
-            type: 'baseNode', 
+            type: 'customNode', 
             position: pos, 
             data: { 
               label: label || type, 

@@ -44,15 +44,30 @@ function getComponentType(componentId: string, category: string): string {
 export function createNode(options: CreateNodeOptions, source: NodeCreationSource = 'unknown'): CreatedNodeResult {
   const { componentId, label, category, color, icon, technology, position } = options;
   
+  // Get component type - if invalid, just use a generic type
   let componentType: string;
   try {
     componentType = getComponentType(componentId, category);
   } catch (error) {
-    console.error(`[NODE FACTORY] Invalid component: ${componentId}, category: ${category}`);
-    throw error;
+    // If component not found in COMPONENT_PORTS, create generically without strict ports
+    componentType = componentId.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    console.log(`[NODE FACTORY] Using generic component: ${componentType}`);
   }
   
-  const portConfig = getStrictPortConfig(componentType);
+  // Get port config - if invalid, create permissive defaults
+  let portConfig: ReturnType<typeof getStrictPortConfig>;
+  try {
+    portConfig = getStrictPortConfig(componentType);
+  } catch (error) {
+    // Use permissive port config for unknown components
+    portConfig = {
+      inputs: 1,
+      outputs: 1,
+      label: 'Generic',
+    };
+    console.log(`[NODE FACTORY] Using permissive ports for: ${componentType}`);
+  }
+  
   const shapeConfig = getShapeConfig(category);
   
   const id = `${componentId}-${Date.now()}`;
@@ -60,7 +75,7 @@ export function createNode(options: CreateNodeOptions, source: NodeCreationSourc
   
   const node: Node<NodeData> = {
     id,
-    type: 'baseNode',
+    type: 'customNode',
     position: pos,
     data: {
       label,

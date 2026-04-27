@@ -108,9 +108,9 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
         error: '#EF4444',
         success: '#10B981',
       };
-      return colors[edgeType] || '#6366F1';
+      return colors[edgeType] || '#94A3B8';
     }
-    return '#6366F1';
+    return '#94A3B8';
   };
 
   const getDashArray = (edge: Edge): string => {
@@ -237,7 +237,7 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
             refY="3"
             orient="auto"
           >
-            <path d="M0,0 L0,6 L8,3 z" fill="#6366F1" />
+            <path d="M0,0 L0,6 L8,3 z" fill="#94A3B8" />
           </marker>
         </defs>
 

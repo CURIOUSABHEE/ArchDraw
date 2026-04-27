@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Position, NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { useCanvasTheme } from '@/lib/theme';
 import { Activity, Palette, Pencil, Copy, Trash2 } from 'lucide-react';
@@ -18,8 +18,6 @@ interface NodeStyleConfig {
   shadowSelected: string;
   titleColor: string;
   subtitleColor: string;
-  handleBg: string;
-  handleBorder: string;
 }
 
 const LIGHT_STYLES: NodeStyleConfig = {
@@ -30,8 +28,6 @@ const LIGHT_STYLES: NodeStyleConfig = {
   shadowSelected: '0 0 0 2px rgba(99,102,241,0.4), 0 4px 12px rgba(99,102,241,0.2)',
   titleColor: '#111827',
   subtitleColor: '#6B7280',
-  handleBg: '#FFFFFF',
-  handleBorder: '#9CA3AF',
 };
 
 const DARK_STYLES: NodeStyleConfig = {
@@ -42,8 +38,6 @@ const DARK_STYLES: NodeStyleConfig = {
   shadowSelected: '0 0 0 2px rgba(129,140,248,0.5), 0 4px 12px rgba(129,140,248,0.25)',
   titleColor: '#F9FAFB',
   subtitleColor: '#9CA3AF',
-  handleBg: '#374151',
-  handleBorder: '#6B7280',
 };
 
 const STATUS_COLORS = {
@@ -65,79 +59,6 @@ function getTierColorNormalized(layer?: string): string {
     external: '#F43F5E',
   };
   return colorMap[tier] || colorMap.compute;
-}
-
-function NodeHandle({ 
-  type, 
-  position, 
-  id, 
-  color,
-  styles,
-}: { 
-  type: 'target' | 'source'; 
-  position: Position; 
-  id: string;
-  color: string;
-  styles: NodeStyleConfig;
-}) {
-  const isLeft = position === Position.Left;
-  const isRight = position === Position.Right;
-  const isTop = position === Position.Top;
-  
-  const nodeCenterY = NODE_HEIGHT / 2;
-  
-  const getHandleStyle = (): React.CSSProperties => {
-    const axisOffset = type === 'source' ? 8 : -8;
-    const baseStyle: React.CSSProperties = {
-      width: 10,
-      height: 10,
-      background: styles.handleBg,
-      border: `2px solid ${color}`,
-      borderRadius: '50%',
-      transition: 'all 150ms ease',
-      zIndex: 10,
-    };
-    
-    if (isLeft) {
-      return {
-        ...baseStyle,
-        left: -5,
-        top: nodeCenterY,
-        transform: `translateY(calc(-50% + ${axisOffset}px))`,
-      };
-    }
-    if (isRight) {
-      return {
-        ...baseStyle,
-        right: -5,
-        top: nodeCenterY,
-        transform: `translateY(calc(-50% + ${axisOffset}px))`,
-      };
-    }
-    if (isTop) {
-      return {
-        ...baseStyle,
-        top: -5,
-        left: '50%',
-        transform: `translateX(calc(-50% + ${axisOffset}px))`,
-      };
-    }
-    return {
-      ...baseStyle,
-      bottom: -5,
-      left: '50%',
-      transform: `translateX(calc(-50% + ${axisOffset}px))`,
-    };
-  };
-  
-  return (
-    <Handle
-      type={type}
-      position={position}
-      id={id}
-      style={getHandleStyle()}
-    />
-  );
 }
 
 function ToolbarButton({ 
@@ -330,9 +251,7 @@ return (
         )}
       </div>
 
-      {/* Connection Handles */}
-      <Handle type="target" position={Position.Left} id="left" style={getHandleStyle(Position.Left, 'target')} />
-      <Handle type="source" position={Position.Right} id="right" style={getHandleStyle(Position.Right, 'source')} />
+       {/* No handles needed — FloatingEdge computes boundary intersection mathematically */}
     </div>
   );
 }

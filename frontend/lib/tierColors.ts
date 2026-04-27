@@ -92,7 +92,7 @@ export type TierType = keyof typeof TIER_COLORS;
 
 export const EDGE_STYLES = {
   sync: {
-    color: '#6366F1',
+    color: '#94A3B8',
     dash: '',
     animated: false,
     label: 'REST',
@@ -125,7 +125,7 @@ export const EDGE_STYLES = {
 
 export const EDGE_STYLES_DARK = {
   sync: {
-    color: '#818CF8',
+    color: '#94A3B8',
     dash: '',
     animated: false,
     label: 'REST',
