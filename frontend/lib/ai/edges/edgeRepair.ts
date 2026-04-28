@@ -28,6 +28,94 @@ const DEFAULT_EDGE_PROPS = {
   markerStart: 'none' as const,
 };
 
+const DEGREE_CAP_BY_TIER: Partial<Record<TierType, number>> = {
+  client: 2,
+  edge: 4,
+  compute: 5,
+  async: 4,
+  data: 3,
+  observe: 2,
+  external: 2,
+};
+
+function getTier(node?: ArchitectureNode): TierType {
+  return ((node?.tier || node?.layer || 'compute') as TierType);
+}
+
+function edgePriority(edge: ArchitectureEdge, nodeMap: Map<string, ArchitectureNode>): number {
+  const sourceTier = getTier(nodeMap.get(edge.source));
+  const targetTier = getTier(nodeMap.get(edge.target));
+
+  let score = 0;
+
+  // Keep canonical forward flow
+  const sourceIdx = TIER_ORDER.indexOf(sourceTier);
+  const targetIdx = TIER_ORDER.indexOf(targetTier);
+  if (sourceIdx >= 0 && targetIdx >= 0 && sourceIdx <= targetIdx) score += 3;
+
+  // Favor major structural paths
+  if (sourceTier === 'client' && targetTier === 'edge') score += 5;
+  if (sourceTier === 'edge' && targetTier === 'compute') score += 5;
+  if (sourceTier === 'compute' && (targetTier === 'data' || targetTier === 'async')) score += 4;
+  if (sourceTier === 'async' && (targetTier === 'compute' || targetTier === 'observe')) score += 3;
+
+  // Penalize spaghetti patterns
+  if (sourceTier === targetTier) score -= 3;
+  if (sourceTier === 'data' && targetTier !== 'observe') score -= 4;
+  if (sourceTier === 'observe') score -= 5;
+  if (sourceIdx > targetIdx && sourceTier !== 'external') score -= 2;
+
+  if (edge.communicationType === 'async' || edge.communicationType === 'event') score += 1;
+
+  return score;
+}
+
+function pruneSpaghettiEdges(
+  nodes: ArchitectureNode[],
+  edges: ArchitectureEdge[]
+): { edges: ArchitectureEdge[]; removed: string[] } {
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  const degree = new Map<string, number>();
+
+  for (const edge of edges) {
+    degree.set(edge.source, (degree.get(edge.source) || 0) + 1);
+    degree.set(edge.target, (degree.get(edge.target) || 0) + 1);
+  }
+
+  const removed = new Set<string>();
+  const currentEdges = [...edges].sort((a, b) => edgePriority(a, nodeMap) - edgePriority(b, nodeMap));
+
+  for (const edge of currentEdges) {
+    const sourceNode = nodeMap.get(edge.source);
+    const targetNode = nodeMap.get(edge.target);
+    if (!sourceNode || !targetNode) continue;
+
+    const sourceTier = getTier(sourceNode);
+    const targetTier = getTier(targetNode);
+    const sourceCap = DEGREE_CAP_BY_TIER[sourceTier] ?? 4;
+    const targetCap = DEGREE_CAP_BY_TIER[targetTier] ?? 4;
+
+    const sourceDegree = degree.get(edge.source) || 0;
+    const targetDegree = degree.get(edge.target) || 0;
+    const overCap = sourceDegree > sourceCap || targetDegree > targetCap;
+    const weakEdge = edgePriority(edge, nodeMap) <= 0;
+
+    if (!overCap && !weakEdge) continue;
+
+    // Never isolate endpoints here; connectivity pass can add better bridges later.
+    if (sourceDegree <= 1 || targetDegree <= 1) continue;
+
+    removed.add(edge.id);
+    degree.set(edge.source, sourceDegree - 1);
+    degree.set(edge.target, targetDegree - 1);
+  }
+
+  return {
+    edges: currentEdges.filter((e) => !removed.has(e.id)),
+    removed: Array.from(removed),
+  };
+}
+
 export function repairEdges(
   nodes: ArchitectureNode[],
   edges: ArchitectureEdge[]
@@ -51,6 +139,20 @@ export function repairEdges(
 
   const graph = ArchitectureGraph.fromArrays(nodes, currentEdges);
 
+  const spaghettiPrune = pruneSpaghettiEdges(nodes, currentEdges);
+  if (spaghettiPrune.removed.length > 0) {
+    currentEdges = spaghettiPrune.edges;
+    removed.push(...spaghettiPrune.removed);
+    for (const edgeId of spaghettiPrune.removed) {
+      repaired.push({
+        edgeId,
+        type: 'max-edges',
+        severity: 'warning',
+        message: `Pruned low-value edge to reduce crossing and clutter`,
+      });
+    }
+  }
+
   const edgeCountByNode = new Map<string, number>();
   for (const edge of currentEdges) {
     edgeCountByNode.set(edge.source, (edgeCountByNode.get(edge.source) || 0) + 1);
@@ -58,25 +160,25 @@ export function repairEdges(
   }
 
   for (const [nodeId, count] of edgeCountByNode) {
-    if (count > 4) {
-      const nodeEdges = currentEdges.filter(e => e.source === nodeId || e.target === nodeId);
-      const sorted = nodeEdges.sort((a, b) => {
-        const priority: Record<string, number> = { sync: 1, async: 2, event: 3, stream: 4, dep: 5 };
-        return (priority[a.communicationType] || 0) - (priority[b.communicationType] || 0);
-      });
+      const tier = getTier(nodes.find((n) => n.id === nodeId));
+      const cap = DEGREE_CAP_BY_TIER[tier] ?? 4;
+      if (count > cap) {
+        const nodeEdges = currentEdges.filter(e => e.source === nodeId || e.target === nodeId);
+       const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+       const sorted = nodeEdges.sort((a, b) => edgePriority(a, nodeMap) - edgePriority(b, nodeMap));
 
-      const toRemove = sorted.slice(4);
-      for (const edge of toRemove) {
-        removed.push(edge.id);
-        currentEdges = currentEdges.filter(e => e.id !== edge.id);
-        repaired.push({
-          edgeId: edge.id,
-          type: 'max-edges',
-          severity: 'warning',
-          message: `Removed excess edge from "${nodeId}"`,
-        });
-      }
-    }
+       const toRemove = sorted.slice(cap);
+       for (const edge of toRemove) {
+         removed.push(edge.id);
+         currentEdges = currentEdges.filter(e => e.id !== edge.id);
+         repaired.push({
+           edgeId: edge.id,
+           type: 'max-edges',
+           severity: 'warning',
+           message: `Removed excess edge from "${nodeId}"`,
+         });
+       }
+     }
   }
 
   const connectivityErrors = validateConnectivity(nodes, currentEdges);

@@ -242,7 +242,7 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
         </defs>
 
         {/* Render edges first (behind nodes) */}
-        {edges.map((edge) => {
+        {edges.map((edge, index) => {
           const sourceNode = nodes.find((n) => n.id === edge.source);
           const targetNode = nodes.find((n) => n.id === edge.target);
           if (!sourceNode || !targetNode) return null;
@@ -252,7 +252,7 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
 
           return (
             <path
-              key={edge.id}
+              key={`${edge.id || 'edge'}-${index}`}
               d={path}
               fill="none"
               stroke={getEdgeColor(edge)}

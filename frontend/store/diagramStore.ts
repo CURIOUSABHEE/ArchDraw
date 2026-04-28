@@ -336,6 +336,63 @@ function migrateEdgesToSmoothstep(edges: Edge[]): Edge[] {
   });
 }
 
+const KNOWN_NODE_TYPES = new Set([
+  'systemNode',
+  'architectureNode',
+  'baseNode',
+  'databaseNode',
+  'cacheNode',
+  'shapeNode',
+  'groupNode',
+  'group',
+  'textLabelNode',
+  'annotationNode',
+  'messageBrokerNode',
+  'customNode',
+]);
+
+const KNOWN_EDGE_TYPES = new Set(['custom', 'simpleFloating', 'default']);
+
+function normalizeNodeType(type?: string): string {
+  if (!type || !KNOWN_NODE_TYPES.has(type)) return 'systemNode';
+  if (type === 'architectureNode') return 'systemNode';
+  return type;
+}
+
+function normalizeNodes(nodes: Node[]): Node[] {
+  return nodes.map((node) => ({
+    ...node,
+    type: normalizeNodeType(node.type as string | undefined),
+  }));
+}
+
+function normalizeEdge(edge: Edge): Edge {
+  const edgeType = edge.type as string | undefined;
+  const normalizedType = edgeType && KNOWN_EDGE_TYPES.has(edgeType) ? edgeType : 'simpleFloating';
+  const markerEnd = edge.markerEnd ?? (edge.animated ? 'url(#arrow-async)' : 'url(#arrow-default)');
+
+  if (normalizedType === 'simpleFloating') {
+    return {
+      ...edge,
+      type: normalizedType,
+      markerEnd,
+      sourceHandle: undefined,
+      targetHandle: undefined,
+    };
+  }
+
+  return {
+    ...edge,
+    type: normalizedType,
+    markerEnd,
+  };
+}
+
+function normalizeEdges(edges: Edge[]): Edge[] {
+  const migrated = migrateEdgesToSmoothstep(edges);
+  return migrated.map(normalizeEdge);
+}
+
 function mergeCanvases(localCanvases: CanvasTab[], dbCanvases: CanvasTab[]): CanvasTab[] {
   const merged = new Map<string, CanvasTab>();
   
@@ -518,8 +575,8 @@ export const useDiagramStore = create<DiagramState>()(
           canvases: updatedCanvases, 
           openCanvasIds: newOpenIds,
           activeCanvasId: id, 
-          nodes: target.nodes, 
-          edges: target.edges, 
+          nodes: normalizeNodes(target.nodes || []), 
+          edges: normalizeEdges(target.edges || []), 
           past: [], 
           future: [], 
           selectedNodeId: null, 
@@ -561,8 +618,8 @@ export const useDiagramStore = create<DiagramState>()(
           canvases: updatedCanvases, 
           openCanvasIds: newOpenIds,
           activeCanvasId: id,
-          nodes: target.nodes,
-          edges: target.edges,
+          nodes: normalizeNodes(target.nodes || []),
+          edges: normalizeEdges(target.edges || []),
           past: [],
           future: [],
           selectedNodeId: null,
@@ -599,8 +656,8 @@ export const useDiagramStore = create<DiagramState>()(
           canvases: updatedCanvases,
           openCanvasIds: newOpenIds,
           activeCanvasId: nextActiveId,
-          nodes: nextActive?.nodes || [],
-          edges: nextActive?.edges || [],
+          nodes: normalizeNodes(nextActive?.nodes || []),
+          edges: normalizeEdges(nextActive?.edges || []),
           past: [],
           future: [],
         });
@@ -705,7 +762,7 @@ export const useDiagramStore = create<DiagramState>()(
             .order('updated_at', { ascending: false });
           if (data && data.length > 0) {
             const dbCanvases: CanvasTab[] = data.map((d: { id: string; name: string; nodes: Node[]; edges: Edge[]; updated_at: string }) => {
-              const rawNodes = d.nodes ?? [];
+              const rawNodes = normalizeNodes(d.nodes ?? []);
               // Sort nodes so parent groups come before their children (using parentNode)
               const sortedNodes = [...rawNodes].sort((a, b) => {
                 const aIsGroup = a.type === 'groupNode' || a.type === 'group';
@@ -722,13 +779,7 @@ export const useDiagramStore = create<DiagramState>()(
                 id: d.id,
                 name: d.name,
                 nodes: sortedNodes,
-                edges: migrateEdgesToSmoothstep(d.edges ?? []).map((e: Edge) => {
-                  // Add markerEnd if missing
-                  if (!e.markerEnd) {
-                    return { ...e, markerEnd: e.animated ? 'url(#arrow-async)' : 'url(#arrow-default)' };
-                  }
-                  return e;
-                }),
+                edges: normalizeEdges(d.edges ?? []),
                 updatedAt: new Date(d.updated_at).getTime(),
                 isOpen: true,
                 lastAccessedAt: new Date(d.updated_at).getTime(),
@@ -740,7 +791,13 @@ export const useDiagramStore = create<DiagramState>()(
             
             const openIds = mergedCanvases.map((c) => c.id);
             const targetCanvas = mergedCanvases.find((c) => c.id === activeCanvasId) || mergedCanvases[0];
-            set({ canvases: mergedCanvases, openCanvasIds: openIds, activeCanvasId: targetCanvas.id, nodes: targetCanvas.nodes, edges: targetCanvas.edges });
+            set({
+              canvases: mergedCanvases,
+              openCanvasIds: openIds,
+              activeCanvasId: targetCanvas.id,
+              nodes: normalizeNodes(targetCanvas.nodes || []),
+              edges: normalizeEdges(targetCanvas.edges || []),
+            });
           }
         } catch {
           // silently fail — guest fallback
@@ -855,7 +912,7 @@ onConnect: (connection) => {
             sourceHandle,
             targetHandle,
             id: edgeId, 
-            type: 'floating',
+            type: 'simpleFloating',
             data: { 
               edgeType: DEFAULT_EDGE_TYPE as EdgeType,
             },
@@ -1004,10 +1061,12 @@ onConnect: (connection) => {
       importDiagram: (nodes, edges) => {
         get().pushHistory();
         
-        const cleanedNodes = stripReservedLayerNodes(nodes);
+        const normalizedNodes = normalizeNodes(nodes);
+        const cleanedNodes = stripReservedLayerNodes(normalizedNodes);
         const resolvedNodes = resolveNodeCollisions(cleanedNodes);
+        const normalizedEdges = normalizeEdges(edges);
         
-        const edgesWithHandles = edges.map(edge => {
+        const edgesWithHandles = normalizedEdges.map(edge => {
           // simpleFloating edges calculate positions dynamically — no handles needed
           if (edge.type === 'simpleFloating') return edge;
           if (edge.sourceHandle && edge.targetHandle) return edge;
@@ -1205,10 +1264,12 @@ onConnect: (connection) => {
 
       loadTemplate: (nodes, edges) => {
         get().pushHistory();
-        const cleanedNodes = stripReservedLayerNodes(nodes);
+        const normalizedNodes = normalizeNodes(nodes);
+        const cleanedNodes = stripReservedLayerNodes(normalizedNodes);
         const resolvedNodes = resolveNodeCollisions(cleanedNodes);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, edges);
-        set({ nodes: resolvedNodes, edges, canvases, selectedNodeId: null, selectedEdgeId: null });
+        const normalizedEdges = normalizeEdges(edges);
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, normalizedEdges);
+        set({ nodes: resolvedNodes, edges: normalizedEdges, canvases, selectedNodeId: null, selectedEdgeId: null });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1236,24 +1297,25 @@ onConnect: (connection) => {
 
       // ── AI Streaming ──────────────────────────────────────────────────────
       setNodes: (nodes) => {
-        const validatedNodes = validateAndFixNodes(nodes);
+        const validatedNodes = validateAndFixNodes(normalizeNodes(nodes));
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, validatedNodes, get().edges);
         set({ nodes: validatedNodes, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
       setEdges: (edges) => {
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases });
+        const normalized = normalizeEdges(edges);
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, normalized);
+        set({ edges: normalized, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
       appendNode: (node) => {
-        const nodes = [...get().nodes, node];
+        const nodes = [...get().nodes, { ...node, type: normalizeNodeType(node.type as string | undefined) }];
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
         set({ nodes, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
       appendEdge: (edge) => {
-        const edges = [...get().edges, edge];
+        const edges = [...get().edges, normalizeEdge(edge)];
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
@@ -1309,29 +1371,15 @@ onConnect: (connection) => {
           const active = state.canvases.find((c: CanvasTab) => c.id === state.activeCanvasId);
           if (active) {
             // Strip reserved layer nodes, resolve collisions
-            const cleaned = stripReservedLayerNodes(active.nodes || []);
+            const normalizedNodes = normalizeNodes(active.nodes || []);
+            const cleaned = stripReservedLayerNodes(normalizedNodes);
             state.nodes = resolveNodeCollisions(cleaned);
-            // Fix edge types and add markerEnd for arrows
-            state.edges = (active.edges || []).map((e: Edge) => {
-              const edge = { ...e, type: 'simpleFloating' };
-              // Add markerEnd if missing
-              if (!edge.markerEnd) {
-                const markerId = edge.animated ? 'url(#arrow-async)' : 'url(#arrow-default)';
-                edge.markerEnd = markerId;
-              }
-              return edge;
-            });
-            // Fix edge types in all canvases
+            state.edges = normalizeEdges(active.edges || []);
+            // Normalize node and edge types in all canvases
             state.canvases = state.canvases.map((c: CanvasTab) => ({
               ...c,
-              edges: (c.edges || []).map((e: Edge) => {
-                const edge = { ...e, type: 'simpleFloating' };
-                if (!edge.markerEnd) {
-                  const markerId = edge.animated ? 'url(#arrow-async)' : 'url(#arrow-default)';
-                  edge.markerEnd = markerId;
-                }
-                return edge;
-              })
+              nodes: normalizeNodes(c.nodes || []),
+              edges: normalizeEdges(c.edges || []),
             }));
           } else {
             // Fallback: create a default canvas if none exist

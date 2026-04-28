@@ -16,6 +16,7 @@ import { AnnotationNode } from '@/components/AnnotationNode';
 import { MessageBrokerNode } from '@/components/MessageBrokerNode';
 import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
 import { FlowEdge } from '@/components/edges/FlowEdge';
+import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { useTheme } from '@/lib/theme';
 
 const NODE_TYPES = {
@@ -32,7 +33,11 @@ const NODE_TYPES = {
   messageBrokerNode: MessageBrokerNode,
 };
 
-const EDGE_TYPES = { custom: FlowEdge };
+const EDGE_TYPES = {
+  custom: FlowEdge,
+  simpleFloating: SimpleFloatingEdge,
+  default: FlowEdge,
+};
 
 export interface DiagramData {
   nodes: Node[];
@@ -50,6 +55,8 @@ interface InlineDiagramProps {
 
 export function InlineDiagram({ data, onOpenFullEditor, height = 400 }: InlineDiagramProps) {
   const { isDark } = useTheme();
+  const nodeTypes = useMemo(() => NODE_TYPES, []);
+  const edgeTypes = useMemo(() => EDGE_TYPES, []);
   
   const [nodes, setNodes, onNodesChange] = useNodesState(data.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(data.edges);
@@ -82,8 +89,8 @@ export function InlineDiagram({ data, onOpenFullEditor, height = 400 }: InlineDi
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        nodeTypes={NODE_TYPES}
-        edgeTypes={EDGE_TYPES}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodesDraggable={false}

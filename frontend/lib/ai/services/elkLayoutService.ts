@@ -2,6 +2,7 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 import type { ReactFlowNode, ReactFlowEdge, ArchitectureNode, ArchitectureEdge } from '../types';
 import type { EdgePath, Point } from './edgeLayout';
 import logger from '@/lib/logger';
+import { getNodeShapeConfig } from '@/constants/nodeShapeConfig';
 
 const elk = new ELK();
 
@@ -52,13 +53,14 @@ async function runELKLayoutAsync(
 function adjustCachedLayout(
   cachedNodes: ReactFlowNode[],
   actualNodes: ArchitectureNode[],
-  nodeWidth: number,
-  nodeHeight: number
+  _nodeWidth: number,
+  _nodeHeight: number
 ): ReactFlowNode[] {
   const cachedMap = new Map(cachedNodes.map(n => [n.data?.label || n.id, n]));
   const result: ReactFlowNode[] = [];
 
   for (const node of actualNodes) {
+    const config = getNodeShapeConfig(node.serviceType);
     const cached = cachedMap.get(node.label);
     if (cached) {
       result.push({
@@ -69,8 +71,8 @@ function adjustCachedLayout(
           label: node.label,
           layer: node.layer,
         },
-        width: node.width ?? nodeWidth,
-        height: node.height ?? nodeHeight,
+        width: node.width ?? config.width,
+        height: node.height ?? config.height,
       });
     } else {
       result.push({
@@ -82,8 +84,8 @@ function adjustCachedLayout(
           icon: node.icon || 'box',
           layer: node.layer,
         },
-        width: node.width ?? nodeWidth,
-        height: node.height ?? nodeHeight,
+        width: node.width ?? config.width,
+        height: node.height ?? config.height,
       });
     }
   }
@@ -491,8 +493,9 @@ export async function computeELKLayout(
   const validatedEdges = validateAndFixOrphanNodes(nodes, edges);
 
   const toElkNode = (node: ArchitectureNode): ELKNode => {
-    const width = node.width ?? nodeWidth;
-    const height = node.height ?? nodeHeight;
+    const config = getNodeShapeConfig(node.serviceType);
+    const width = node.width ?? config.width;
+    const height = node.height ?? config.height;
     const inCount = validatedEdges.filter(e => e.target === node.id).length || incomingEdgeCount.get(node.id) || 0;
     const outCount = validatedEdges.filter(e => e.source === node.id).length || outgoingEdgeCount.get(node.id) || 0;
 
@@ -677,8 +680,8 @@ export async function computeELKLayout(
 function computeFallbackLayout(
   nodes: ArchitectureNode[],
   edges: ArchitectureEdge[],
-  nodeWidth: number,
-  nodeHeight: number
+  _nodeWidth: number,
+  _nodeHeight: number
 ): LayoutResult {
   logger.warn('[ELK] Using fallback layout');
 
@@ -690,8 +693,6 @@ function computeFallbackLayout(
   }
 
   const reactFlowNodes: ReactFlowNode[] = [];
-  const verticalSpacing = nodeHeight + 100;
-  const nodeSpacing = nodeWidth + 80;
 
   for (const layer of LAYER_ORDER) {
     const layerNodes = nodesByLayer[layer] || [];
@@ -701,6 +702,9 @@ function computeFallbackLayout(
     let y = 50;
 
     layerNodes.forEach((node, index) => {
+      const config = getNodeShapeConfig(node.serviceType);
+      const nodeW = node.width ?? config.width;
+      const nodeH = node.height ?? config.height;
       reactFlowNodes.push({
         id: node.id,
         type: node.isGroup === true ? 'group' : 'systemNode',
@@ -716,10 +720,10 @@ function computeFallbackLayout(
           groupColor: node.groupColor,
           serviceType: node.serviceType,
         },
-        width: node.width ?? nodeWidth,
-        height: node.height ?? nodeHeight,
+        width: nodeW,
+        height: nodeH,
       });
-      y += verticalSpacing;
+      y += nodeH + 100;
     });
   }
 
@@ -879,24 +883,24 @@ export function runSpeculativeELK(
 }
 
 async function runELKLayoutQuick(nodes: ArchitectureNode[]): Promise<LayoutResult | null> {
-  const nodeWidth = DEFAULT_NODE_WIDTH;
-  const nodeHeight = DEFAULT_NODE_HEIGHT;
-
-  const elkNodes = nodes.map(node => ({
-    id: node.id,
-    width: node.width ?? nodeWidth,
-    height: node.height ?? nodeHeight,
-    x: TIER_X[node.layer || 'compute'] ?? 500,
-    y: 50,
-    ports: [
-      { id: `${node.id}-port-west-default`, width: 10, height: 10, properties: { 'org.eclipse.elk.port.side': 'WEST' as const, 'org.eclipse.elk.port.anchor': 'CENTER' as const } },
-      { id: `${node.id}-port-east-default`, width: 10, height: 10, properties: { 'org.eclipse.elk.port.side': 'EAST' as const, 'org.eclipse.elk.port.anchor': 'CENTER' as const } },
-    ],
-    layoutOptions: {
-      'elk.nodeSize.constraints': 'MINIMUM_SIZE',
-      'elk.nodeSize.minimum': `${node.width ?? nodeWidth}, ${node.height ?? nodeHeight}`,
-    },
-  }));
+  const elkNodes = nodes.map(node => {
+    const config = getNodeShapeConfig(node.serviceType);
+    return {
+      id: node.id,
+      width: node.width ?? config.width,
+      height: node.height ?? config.height,
+      x: TIER_X[node.layer || 'compute'] ?? 500,
+      y: 50,
+      ports: [
+        { id: `${node.id}-port-west-default`, width: 10, height: 10, properties: { 'org.eclipse.elk.port.side': 'WEST' as const, 'org.eclipse.elk.port.anchor': 'CENTER' as const } },
+        { id: `${node.id}-port-east-default`, width: 10, height: 10, properties: { 'org.eclipse.elk.port.side': 'EAST' as const, 'org.eclipse.elk.port.anchor': 'CENTER' as const } },
+      ],
+      layoutOptions: {
+        'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+        'elk.nodeSize.minimum': `${node.width ?? config.width}, ${node.height ?? config.height}`,
+      },
+    };
+  });
 
   try {
     const graph = {
@@ -909,6 +913,7 @@ async function runELKLayoutQuick(nodes: ArchitectureNode[]): Promise<LayoutResul
 
     const reactFlowNodes: ReactFlowNode[] = elkGraph.children?.map((elkNode, i) => {
       const originalNode = nodes[i];
+      const config = getNodeShapeConfig(originalNode?.serviceType);
       const tier = originalNode?.tier || originalNode?.layer || 'compute';
       return {
         id: elkNode.id,
@@ -919,8 +924,8 @@ async function runELKLayoutQuick(nodes: ArchitectureNode[]): Promise<LayoutResul
           icon: originalNode.icon ?? 'box',
           layer: originalNode.layer,
         },
-        width: elkNode.width ?? nodeWidth,
-        height: elkNode.height ?? nodeHeight,
+        width: elkNode.width ?? config.width,
+        height: elkNode.height ?? config.height,
       };
     }) ?? [];
 

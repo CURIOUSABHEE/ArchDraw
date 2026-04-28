@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Fragment } from 'react';
+import { useMemo, useState, Fragment } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap, ReactFlowProvider,
   ConnectionLineType,
@@ -17,6 +17,7 @@ import { AnnotationNode } from '@/components/AnnotationNode';
 import { MessageBrokerNode } from '@/components/MessageBrokerNode';
 import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
 import { FlowEdge } from '@/components/edges/FlowEdge';
+import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
 import { EmailCaptureModal } from '@/components/EmailCaptureModal';
 
@@ -34,7 +35,11 @@ const NODE_TYPES = {
   messageBrokerNode: MessageBrokerNode,
 };
 
-const EDGE_TYPES = { custom: FlowEdge };
+const EDGE_TYPES = {
+  custom: FlowEdge,
+  simpleFloating: SimpleFloatingEdge,
+  default: FlowEdge,
+};
 
 interface SharedCanvas {
   id: string;
@@ -47,6 +52,8 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+  const nodeTypes = useMemo(() => NODE_TYPES, []);
+  const edgeTypes = useMemo(() => EDGE_TYPES, []);
 
   const doDownload = async () => {
     const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
@@ -139,8 +146,8 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
       <ReactFlow
         nodes={canvas.nodes as never[]}
         edges={canvas.edges as never[]}
-        nodeTypes={NODE_TYPES}
-        edgeTypes={EDGE_TYPES}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={true}

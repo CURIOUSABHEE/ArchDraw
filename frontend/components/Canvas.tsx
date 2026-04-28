@@ -23,13 +23,12 @@ import { GuideLines } from '@/components/GuideLines';
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu';
 import { useSnapping } from '@/hooks/useSnapping';
 import { useMiddleMousePan } from '@/hooks/useCanvasInteractions';
-import { useCallback, useEffect, useRef, DragEvent, useState } from 'react';
+import { useCallback, useEffect, useRef, DragEvent, useState, useMemo } from 'react';
 import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
 import { LayoutGrid, LayoutTemplate, MousePointer2 } from 'lucide-react';
 import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
-import FloatingEdge from '@/components/edges/FloatingEdge';
 import { useCanvasTheme } from '@/lib/theme';
 import { TemplateModal } from '@/components/TemplateModal';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -62,11 +61,13 @@ const NODE_TYPES = {
 const EDGE_TYPES = {
   custom: FlowEdge,
   simpleFloating: SimpleFloatingEdge,
-  floating: FloatingEdge,
   default: FlowEdge,
 };
 
 function CanvasInner() {
+  const nodeTypes = useMemo(() => NODE_TYPES, []);
+  const edgeTypes = useMemo(() => EDGE_TYPES, []);
+
   const {
     nodes, edges, onNodesChange, onEdgesChange, onConnect, onReconnect,
     selectedNodeIds, selectedEdgeId,
@@ -547,8 +548,8 @@ function CanvasInner() {
           onConnect={handleOnConnect}
           onReconnect={handleOnReconnect}
           isValidConnection={validateConnection}
-          nodeTypes={NODE_TYPES}
-          edgeTypes={EDGE_TYPES}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onDragOver={onDragOver}
           onDrop={onDrop}
           onNodeDrag={onNodeDrag}
@@ -585,7 +586,7 @@ function CanvasInner() {
           connectionLineType={ConnectionLineType.SmoothStep}
           connectionLineStyle={{ stroke: '#94a3b8', strokeWidth: 2 }}
           defaultEdgeOptions={{
-            type: 'floating',
+            type: 'simpleFloating',
             markerEnd: { type: MarkerType.ArrowClosed, color: '#94A3B8' },
             data: { connectionType: 'sync', pathType: 'smooth' },
           }}
@@ -594,26 +595,26 @@ function CanvasInner() {
           <defs>
             {/* Arrow markers for all edge types - refX positions arrow tip at node edge */}
             {/* sync: indigo, async: amber, stream: green, event: pink, dep: gray */}
-            <marker id="arrow-sync" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,8 L8,4 z" fill="#94A3B8" />
+            <marker id="arrow-sync" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
             </marker>
-            <marker id="arrow-async" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,8 L8,4 z" fill="#fbbf24" />
+            <marker id="arrow-async" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
             </marker>
-            <marker id="arrow-stream" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,8 L8,4 z" fill="#4ade80" />
+            <marker id="arrow-stream" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
             </marker>
-            <marker id="arrow-event" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,8 L8,4 z" fill="#f472c6" />
+            <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
             </marker>
-            <marker id="arrow-dep" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,8 L8,4 z" fill="#a1a1aa" />
+            <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
             </marker>
-            <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,8 L8,4 z" fill="#94A3B8" />
+            <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
             </marker>
-            <marker id="arrow-error" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,8 L8,4 z" fill="#ef4444" />
+            <marker id="arrow-error" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#ef4444" />
             </marker>
           </defs>
         </svg>

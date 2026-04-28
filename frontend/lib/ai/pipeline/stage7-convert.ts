@@ -179,9 +179,10 @@ export function convertToReactFlow(
     .filter(edge => dedupNodeIds.has(edge.source) && dedupNodeIds.has(edge.target))
     .map((edge, idx) => {
     const connectionType = edge.async ? 'async' : 'sync';
-    const style = EDGE_COLORS[connectionType] || EDGE_COLORS.sync;
+    const style = '#94a3b8';
     const strokeDash = connectionType === 'async' ? '8 6' : '';
     const markerId = EDGE_MARKER_IDS[connectionType] || EDGE_MARKER_IDS.sync;
+    const edgeLabel = edge.label?.trim();
 
     return {
       id: edge.id || `rf-${idx}`,
@@ -194,7 +195,7 @@ export function convertToReactFlow(
       data: {
         connectionType,
         pathType: 'smooth',
-        label: undefined,
+        label: edgeLabel && edgeLabel.length > 0 ? edgeLabel : undefined,
       },
     };
   });

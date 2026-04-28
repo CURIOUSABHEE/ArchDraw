@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback } from 'react';
-import { Position, NodeProps } from 'reactflow';
+import { Position, NodeProps, Handle } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { useCanvasTheme } from '@/lib/theme';
 import { Activity, Palette, Pencil, Copy, Trash2 } from 'lucide-react';
@@ -251,7 +251,10 @@ return (
         )}
       </div>
 
-       {/* No handles needed — FloatingEdge computes boundary intersection mathematically */}
+      <Handle type="target" position={Position.Left} id="target-left" style={getHandleStyle(Position.Left, 'target')} />
+      <Handle type="source" position={Position.Right} id="source-right" style={getHandleStyle(Position.Right, 'source')} />
+      <Handle type="target" position={Position.Top} id="target-top" style={getHandleStyle(Position.Top, 'target')} />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" style={getHandleStyle(Position.Bottom, 'source')} />
     </div>
   );
 }

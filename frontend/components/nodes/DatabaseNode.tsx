@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useState } from 'react';
-import { Position, NodeProps } from 'reactflow';
+import { Position, NodeProps, Handle } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { useTheme } from '@/lib/theme';
 import { motion } from 'framer-motion';
@@ -124,7 +124,10 @@ function DatabaseNodeComponent({ id, data, selected }: NodeProps<DatabaseNodeDat
     >
       <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/8 via-white/[0.02] to-transparent" />
 
-      {/* No handles needed — FloatingEdge computes boundary intersection mathematically */}
+      <Handle type="target" position={Position.Left} id="target-left" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
+      <Handle type="source" position={Position.Right} id="source-right" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
+      <Handle type="target" position={Position.Top} id="target-top" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
 
       <div style={{
         padding: '12px 14px',

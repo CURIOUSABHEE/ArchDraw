@@ -34,8 +34,69 @@ function hasEdgeBetween(
   target: string
 ): boolean {
   return edges.some(
-    (e) => e.source === source && e.target === target
+    (e) => (e.source === source && e.target === target) || (e.source === target && e.target === source)
   );
+}
+
+const OUTBOUND_TIER_PREFERENCES: Record<TierType, TierType[]> = {
+  client: ['edge', 'compute'],
+  edge: ['compute', 'async', 'data'],
+  compute: ['async', 'data', 'observe'],
+  async: ['compute', 'data', 'observe'],
+  data: [],
+  observe: [],
+  external: [],
+};
+
+const INBOUND_TIER_PREFERENCES: Record<TierType, TierType[]> = {
+  client: [],
+  edge: ['client', 'external'],
+  compute: ['edge', 'client', 'async'],
+  async: ['compute', 'edge'],
+  data: ['compute', 'async', 'edge'],
+  observe: ['compute', 'async', 'data'],
+  external: ['compute', 'edge'],
+};
+
+function inferTier(node: ArchitectureNode): TierType {
+  if (node.tier) return node.tier;
+  const layer = node.layer as TierType | undefined;
+  if (layer && TIER_ORDER.includes(layer)) return layer;
+
+  const serviceType = (node.serviceType || '').toLowerCase();
+  if (serviceType.includes('client')) return 'client';
+  if (serviceType.includes('gateway') || serviceType.includes('cdn') || serviceType.includes('loadbalancer') || serviceType.includes('load_balancer')) return 'edge';
+  if (serviceType.includes('queue') || serviceType.includes('stream')) return 'async';
+  if (serviceType.includes('database') || serviceType.includes('cache') || serviceType.includes('storage')) return 'data';
+  if (serviceType.includes('monitor') || serviceType.includes('observ')) return 'observe';
+  if (serviceType.includes('external')) return 'external';
+  return 'compute';
+}
+
+function isSinkTier(tier: TierType): boolean {
+  return tier === 'data' || tier === 'observe' || tier === 'external';
+}
+
+function findCandidateByTierPreference(
+  nodes: ArchitectureNode[],
+  currentEdges: ArchitectureEdge[],
+  nodeId: string,
+  preferredTiers: TierType[],
+  direction: 'outbound' | 'inbound'
+): ArchitectureNode | null {
+  for (const tier of preferredTiers) {
+    const candidate = nodes.find((n) => {
+      if (n.isGroup || n.id === nodeId) return false;
+      if (inferTier(n) !== tier) return false;
+      return direction === 'outbound'
+        ? !hasEdgeBetween(currentEdges, nodeId, n.id)
+        : !hasEdgeBetween(currentEdges, n.id, nodeId);
+    });
+
+    if (candidate) return candidate;
+  }
+
+  return null;
 }
 
 function getNodeDegree(
@@ -77,18 +138,36 @@ export function ensureConnectivity(
       continue;
     }
 
-    const nodeTier = (node.tier || node.layer) as TierType;
+    const nodeTier = inferTier(node);
     const tierIndex = TIER_ORDER.indexOf(nodeTier);
 
     let targetNode: ArchitectureNode | null = null;
     let sourceNode: ArchitectureNode | null = null;
 
-    if (tierIndex < TIER_ORDER.length - 1) {
+    if (!isSinkTier(nodeTier)) {
+      targetNode = findCandidateByTierPreference(
+        nodes,
+        currentEdges,
+        node.id,
+        OUTBOUND_TIER_PREFERENCES[nodeTier],
+        'outbound'
+      );
+    } else {
+      sourceNode = findCandidateByTierPreference(
+        nodes,
+        currentEdges,
+        node.id,
+        INBOUND_TIER_PREFERENCES[nodeTier],
+        'inbound'
+      );
+    }
+
+    if (!targetNode && !sourceNode && tierIndex < TIER_ORDER.length - 1) {
       for (let i = tierIndex + 1; i < TIER_ORDER.length; i++) {
         const candidates = nodes.filter(
           (n) =>
             !n.isGroup &&
-            (n.tier || n.layer) === TIER_ORDER[i] &&
+            inferTier(n) === TIER_ORDER[i] &&
             n.id !== node.id &&
             !hasEdgeBetween(currentEdges, node.id, n.id)
         );
@@ -99,12 +178,12 @@ export function ensureConnectivity(
       }
     }
 
-    if (!targetNode && tierIndex > 0) {
+    if (!targetNode && !sourceNode && tierIndex > 0) {
       for (let i = tierIndex - 1; i >= 0; i--) {
         const candidates = nodes.filter(
           (n) =>
             !n.isGroup &&
-            (n.tier || n.layer) === TIER_ORDER[i] &&
+            inferTier(n) === TIER_ORDER[i] &&
             n.id !== node.id &&
             !hasEdgeBetween(currentEdges, n.id, node.id)
         );

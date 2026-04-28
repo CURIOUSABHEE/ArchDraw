@@ -21,6 +21,7 @@ import * as diagramCache from '../services/diagramCache';
 import { detectDomain, validateAndFixComponents } from '../graph/componentValidator';
 import { enforceMinimumConnections, detectOrphans, ensureGroupConnectivity } from '../graph/edgeValidator';
 import { applyDomainEdgePatterns } from '../graph/domainEdgePatterns';
+import { findConnectedComponents, bridgeComponents } from '../graph/graphConnectivity';
 
 export interface PipelineState {
   userIntent: UserIntent;
@@ -224,6 +225,18 @@ export async function runArchitecturePipeline(
           message: r.message,
         })),
       });
+    }
+
+    const componentsAfterRepair = findConnectedComponents(state.enrichedNodes, state.edges);
+    if (componentsAfterRepair.length > 1) {
+      logger.warn(
+        `[Pipeline] ${componentsAfterRepair.length} disconnected components detected after repair, adding bridge edges`
+      );
+      const bridges = bridgeComponents(componentsAfterRepair, state.enrichedNodes, state.edges);
+      if (bridges.length > 0) {
+        state.edges = [...state.edges, ...bridges];
+        logger.log(`[Pipeline] Added ${bridges.length} bridge edge(s)`);
+      }
     }
 
     const missingEdges = generateMissingEdges(state.enrichedNodes, state.edges);
@@ -553,6 +566,32 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
   const edges: ArchitectureEdge[] = [];
   const tierOrder: TierType[] = ['client', 'edge', 'compute', 'async', 'data', 'observe'];
 
+  const edgeExists = (source: string, target: string) =>
+    edges.some((e) => e.source === source && e.target === target);
+
+  const pushEdge = (source: ArchitectureNode, target: ArchitectureNode, communicationType: 'sync' | 'async') => {
+    if (edgeExists(source.id, target.id)) return;
+    edges.push({
+      id: `auto-${source.id}-${target.id}`,
+      source: source.id,
+      target: target.id,
+      sourceHandle: 'right',
+      targetHandle: 'left',
+      communicationType,
+      pathType: 'smooth',
+      label: '',
+      labelPosition: 'center',
+      animated: communicationType === 'async',
+      style: {
+        stroke: '#94a3b8',
+        strokeDasharray: communicationType === 'async' ? '5,5' : '',
+        strokeWidth: 2,
+      },
+      markerEnd: 'arrowclosed',
+      markerStart: 'none',
+    });
+  };
+
   for (let i = 0; i < tierOrder.length - 1; i++) {
     const sourceTier = tierOrder[i];
     const targetTier = tierOrder[i + 1];
@@ -561,28 +600,22 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
     const targets = nodes.filter(n => (n.tier || n.layer) === targetTier && !n.isGroup);
 
     if (sources.length > 0 && targets.length > 0) {
-      // Connect EVERY source to EVERY target (was: limit to 2×2)
-      for (const source of sources) {
-        for (const target of targets) {
-          edges.push({
-            id: `auto-${source.id}-${target.id}`,
-            source: source.id,
-            target: target.id,
-            sourceHandle: 'right',
-            targetHandle: 'left',
-            communicationType: targetTier === 'async' ? 'async' : 'sync',
-            pathType: 'smooth',
-            label: '',
-            labelPosition: 'center',
-            animated: targetTier === 'async',
-            style: {
-              stroke: '#94a3b8',
-              strokeDasharray: targetTier === 'async' ? '5,5' : '',
-              strokeWidth: 2,
-            },
-            markerEnd: 'arrowclosed',
-            markerStart: 'none',
-          });
+      const commType: 'sync' | 'async' = targetTier === 'async' ? 'async' : 'sync';
+
+      // One primary downstream edge per source (round-robin)
+      for (let s = 0; s < sources.length; s++) {
+        const source = sources[s];
+        const primaryTarget = targets[s % targets.length];
+        pushEdge(source, primaryTarget, commType);
+      }
+
+      // Ensure each target has at least one upstream source
+      for (let t = 0; t < targets.length; t++) {
+        const target = targets[t];
+        const incomingExists = edges.some((e) => e.target === target.id);
+        if (!incomingExists) {
+          const source = sources[t % sources.length];
+          pushEdge(source, target, commType);
         }
       }
     }
@@ -594,26 +627,12 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
   const observeNodes = nodes.filter(n => (n.tier || n.layer) === 'observe' && !n.isGroup);
   
   for (const asyncNode of asyncNodes) {
-    for (const computeNode of computeNodes) {
-      edges.push({
-        id: `auto-${asyncNode.id}-${computeNode.id}`,
-        source: asyncNode.id,
-        target: computeNode.id,
-        sourceHandle: 'right',
-        targetHandle: 'left',
-        communicationType: 'async',
-        pathType: 'smooth',
-        label: '',
-        labelPosition: 'center',
-        animated: true,
-        style: {
-          stroke: '#94a3b8',
-          strokeDasharray: '5,5',
-          strokeWidth: 2,
-        },
-        markerEnd: 'arrowclosed',
-        markerStart: 'none',
-      });
+    if (computeNodes.length > 0) {
+      const primaryConsumer = computeNodes[asyncNodes.indexOf(asyncNode) % computeNodes.length];
+      pushEdge(asyncNode, primaryConsumer, 'async');
+    } else if (observeNodes.length > 0) {
+      const observeConsumer = observeNodes[asyncNodes.indexOf(asyncNode) % observeNodes.length];
+      pushEdge(asyncNode, observeConsumer, 'async');
     }
   }
 

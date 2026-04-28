@@ -2,6 +2,7 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 import type { Node, Edge } from 'reactflow';
 import type { LayoutPreset } from './layoutPresets';
 import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
+import { getNodeShapeConfig } from '@/constants/nodeShapeConfig';
 
 const elk = new ELK();
 
@@ -56,15 +57,19 @@ export async function applyLayoutPreset(
 
   const elkNodes = nodes.map(node => {
     const isGroup = node.type === 'group' || node.type === 'groupNode';
-    const nodeWidth = node.width ?? (isGroup ? DEFAULT_GROUP_WIDTH : DEFAULT_NODE_WIDTH);
-    const nodeHeight = node.height ?? (isGroup ? DEFAULT_GROUP_HEIGHT : DEFAULT_NODE_HEIGHT);
+    const serviceType = (node.data as { serviceType?: string })?.serviceType;
+    const config = getNodeShapeConfig(serviceType);
+    const nodeWidth = node.width ?? (isGroup ? DEFAULT_GROUP_WIDTH : config.width);
+    const nodeHeight = node.height ?? (isGroup ? DEFAULT_GROUP_HEIGHT : config.height);
     
     const children = isGroup
       ? leafNodes
           .filter(n => n.parentId === node.id)
           .map(child => {
-            const childWidth = child.width ?? DEFAULT_NODE_WIDTH;
-            const childHeight = child.height ?? DEFAULT_NODE_HEIGHT;
+            const childServiceType = (child.data as { serviceType?: string })?.serviceType;
+            const childConfig = getNodeShapeConfig(childServiceType);
+            const childWidth = child.width ?? childConfig.width;
+            const childHeight = child.height ?? childConfig.height;
             return {
               id: child.id,
               width: childWidth,
@@ -77,7 +82,7 @@ export async function applyLayoutPreset(
             };
           })
       : [];
-
+    
     return {
       id: node.id,
       width: nodeWidth,

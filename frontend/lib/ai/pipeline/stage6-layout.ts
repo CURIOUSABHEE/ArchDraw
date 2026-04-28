@@ -43,6 +43,19 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
   const childNodes = nodes.filter(n => n.parentId && n.isGroup !== true);
   const rootNodes = nodes.filter(n => !n.parentId && n.isGroup !== true);
 
+  const groupById = new Map(groupNodes.map((g) => [g.id, g]));
+  const attachableRoots = rootNodes.filter((n) => {
+    const targetGroupId = `${n.layer}-group`;
+    return groupById.has(targetGroupId);
+  });
+  const pinnedRootIds = new Set(attachableRoots.map((n) => n.id));
+
+  const normalizedChildNodes = [
+    ...childNodes,
+    ...attachableRoots.map((n) => ({ ...n, parentId: `${n.layer}-group` })),
+  ];
+  const normalizedRootNodes = rootNodes.filter((n) => !pinnedRootIds.has(n.id));
+
   const elkGraph: ELKGraph = {
     id: 'root',
     layoutOptions: {
@@ -57,13 +70,13 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
       'elk.layered.unnecessaryBendpoints': 'true',
     },
     children: [
-      ...rootNodes.map(n => ({
+      ...normalizedRootNodes.map(n => ({
         id: n.id,
         width: NODE_WIDTH,
         height: NODE_HEIGHT,
       })),
       ...groupNodes.map(group => {
-        const children = childNodes.filter(c => c.parentId === group.id);
+        const children = normalizedChildNodes.filter(c => c.parentId === group.id);
         const cols = Math.min(children.length, 2);
         const rows = Math.ceil(children.length / cols);
         const w = cols * (NODE_WIDTH + 40) + 80;

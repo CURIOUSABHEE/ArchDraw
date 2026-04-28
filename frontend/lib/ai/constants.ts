@@ -6,19 +6,19 @@ export const SCORE_THRESHOLD = 75;
 export const DIAGRAM_SYSTEM_MESSAGE = 'Output NDJSON only. One JSON object per line. No markdown. No arrays. No prose.';
 
 export const COMMUNICATION_STYLES: Record<string, { color: string; dash: string | undefined; animated: boolean; pathType?: string; strokeDasharray: string; markerEnd: string; markerId: string }> = {
-  sync: { color: '#818cf8', dash: '', animated: false, pathType: 'Smoothstep', strokeDasharray: '', markerEnd: 'arrowclosed', markerId: 'arrow-sync' },
-  async: { color: '#fbbf24', dash: '8,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '8,4', markerEnd: 'arrowclosed', markerId: 'arrow-async' },
-  stream: { color: '#4ade80', dash: '10,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '10,4', markerEnd: 'arrowclosed', markerId: 'arrow-stream' },
-  event: { color: '#f472c6', dash: '4,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '4,4', markerEnd: 'arrowclosed', markerId: 'arrow-event' },
-  dep: { color: '#a1a1aa', dash: '6,6', animated: false, pathType: 'Smoothstep', strokeDasharray: '6,6', markerEnd: 'arrowclosed', markerId: 'arrow-dep' },
+  sync: { color: '#94a3b8', dash: '', animated: false, pathType: 'Smoothstep', strokeDasharray: '', markerEnd: 'arrowclosed', markerId: 'arrow-sync' },
+  async: { color: '#94a3b8', dash: '8,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '8,4', markerEnd: 'arrowclosed', markerId: 'arrow-async' },
+  stream: { color: '#94a3b8', dash: '10,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '10,4', markerEnd: 'arrowclosed', markerId: 'arrow-stream' },
+  event: { color: '#94a3b8', dash: '4,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '4,4', markerEnd: 'arrowclosed', markerId: 'arrow-event' },
+  dep: { color: '#94a3b8', dash: '6,6', animated: false, pathType: 'Smoothstep', strokeDasharray: '6,6', markerEnd: 'arrowclosed', markerId: 'arrow-dep' },
 };
 
 export const EDGE_COLORS: Record<string, string> = {
-  sync: '#818cf8',
-  async: '#fbbf24',
-  stream: '#4ade80',
-  event: '#f472c6',
-  dep: '#a1a1aa',
+  sync: '#94a3b8',
+  async: '#94a3b8',
+  stream: '#94a3b8',
+  event: '#94a3b8',
+  dep: '#94a3b8',
 };
 
 export const EDGE_MARKER_IDS: Record<string, string> = {
@@ -122,11 +122,17 @@ GROUP NAMING:
 - All IDs must be simple kebab-case with no prefixes: "user-service" not "as-user-service"
 
 DUPLICATE PREVENTION (MOST IMPORTANT):
-- Each service label appears EXACTLY ONCE in the entire output
+- Each service LABEL appears EXACTLY ONCE in the entire output
+- Each service ID appears EXACTLY ONCE - NO DUPLICATE IDs ALLOWED
 - If "API Gateway" is a child inside gateway-group, do NOT also output a standalone "API Gateway"
 - A group container is NOT a visible node — do NOT create a child with the same name as its group
 - WRONG: group groupLabel="GATEWAY" + child label="Gateway" — this is a duplicate
 - CORRECT: group groupLabel="GATEWAY" + child label="API Gateway" + child label="Load Balancer"
+
+VERIFY BEFORE OUTPUT:
+- Check your generated node IDs — each must be UNIQUE
+- Check your generated node labels — each must be UNIQUE  
+- If duplicates exist, remove the extras before outputting
 
 GROUP CHILDREN:
 - Every group must have exactly 2-4 children (never 0, never 1, never 5+)

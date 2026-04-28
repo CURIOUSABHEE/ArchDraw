@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { 
   BaseEdge, 
+  EdgeLabelRenderer,
   EdgeProps, 
   getSmoothStepPath,
   getBezierPath,
@@ -19,12 +20,28 @@ interface SimpleEdgeData {
   label?: string;
 }
 
+function resolveMarkerEnd(markerEnd: unknown, connectionType?: string): string {
+  if (typeof markerEnd === 'string' && markerEnd.startsWith('url(')) {
+    return markerEnd;
+  }
+
+  const markerByType: Record<string, string> = {
+    sync: 'url(#arrow-sync)',
+    async: 'url(#arrow-async)',
+    stream: 'url(#arrow-stream)',
+    event: 'url(#arrow-event)',
+    dep: 'url(#arrow-dep)',
+  };
+
+  return markerByType[connectionType || 'sync'] || 'url(#arrow-default)';
+}
+
 const EDGE_COLORS: Record<string, string> = {
   sync: '#94a3b8',
-  async: '#fbbf24',
-  stream: '#4ade80',
-  event: '#f472c6',
-  dep: '#a1a1aa',
+  async: '#94a3b8',
+  stream: '#94a3b8',
+  event: '#94a3b8',
+  dep: '#94a3b8',
 };
 
 const STROKE_DASHARRAYS: Record<string, string | undefined> = {
@@ -107,12 +124,14 @@ export default function SimpleFloatingEdge({
   
   const connectionType = (data as SimpleEdgeData)?.connectionType || 'sync';
   const stroke = getEdgeColor(connectionType);
+  const resolvedMarkerEnd = 'url(#arrow-sync)'; // Force explicit marker
   const strokeDasharray = animated || connectionType === 'async' || connectionType === 'stream' || connectionType === 'event' || connectionType === 'dep' 
     ? getStrokeDasharray(connectionType) 
     : undefined;
   const strokeWidth = (style as React.CSSProperties)?.strokeWidth || 2.5;
 
   const pathType = (data as SimpleEdgeData)?.pathType || 'Smoothstep';
+  const edgeLabel = (data as SimpleEdgeData)?.label?.trim();
   
   let edgePath: string;
   if (pathType === 'straight') {
@@ -131,17 +150,42 @@ export default function SimpleFloatingEdge({
     });
   }
 
+  const labelX = (sx + tx) / 2;
+  const labelY = (sy + ty) / 2;
+
   return (
-    <BaseEdge
-      id={id}
-      path={edgePath}
-      style={{
-        stroke,
-        strokeWidth,
-        strokeDasharray: strokeDasharray || undefined,
-        ...style,
-      }}
-      markerEnd={markerEnd}
-    />
+    <>
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        style={{
+          stroke,
+          strokeWidth,
+          strokeDasharray: strokeDasharray || undefined,
+          ...style,
+        }}
+        markerEnd={resolvedMarkerEnd}
+      />
+      {edgeLabel && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              pointerEvents: 'none',
+              fontSize: 11,
+              fontWeight: 500,
+              color: '#64748b',
+              background: 'rgba(255,255,255,0.85)',
+              borderRadius: 4,
+              padding: '1px 4px',
+            }}
+            className="nodrag nopan"
+          >
+            {edgeLabel}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
   );
 }

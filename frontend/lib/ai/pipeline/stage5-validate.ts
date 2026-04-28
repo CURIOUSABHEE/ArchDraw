@@ -21,7 +21,140 @@ const ABSTRACT_GENERIC_TERMS = [
   'logic', 'tier', 'layer', 'services', 'mesh'
 ];
 
+const LAYER_GROUP_META: Record<string, { label: string; groupLabel: string; color: string }> = {
+  presentation: { label: 'Clients', groupLabel: 'CLIENTS', color: '#dbeafe' },
+  gateway: { label: 'Gateway', groupLabel: 'GATEWAY', color: '#dcfce7' },
+  application: { label: 'Services', groupLabel: 'SERVICES', color: '#fef3c7' },
+  async: { label: 'Workers', groupLabel: 'WORKERS', color: '#fde68a' },
+  data: { label: 'Storage', groupLabel: 'STORAGE', color: '#fce7f3' },
+  observability: { label: 'Monitoring', groupLabel: 'MONITORING', color: '#e5e7eb' },
+  external: { label: 'External', groupLabel: 'EXTERNAL', color: '#e2e8f0' },
+};
+
+const ZONE_LABEL_EXACT: Record<string, string[]> = {
+  presentation: ['client', 'clients', 'frontend', 'presentation'],
+  gateway: ['gateway', 'edge'],
+  application: ['service', 'services', 'application', 'backend', 'compute'],
+  async: ['async', 'workers', 'events'],
+  data: ['data', 'storage'],
+  observability: ['observability', 'monitoring'],
+  external: ['external'],
+};
+
+const CONCRETE_COMPONENT_HINTS = [
+  'api', 'app', 'service', 'server', 'gateway', 'load balancer', 'load-balancer', 'lb',
+  'queue', 'worker', 'database', 'db', 'cache', 'redis', 'kafka', 'rabbitmq', 'cdn',
+  'storage', 'bucket', 'postgres', 'mysql', 'mongo', 's3', 'drm', 'transcod', 'stream',
+];
+
+function isConcreteComponentLabel(label: string): boolean {
+  const normalized = label.toLowerCase().trim();
+  return CONCRETE_COMPONENT_HINTS.some((hint) => normalized.includes(hint));
+}
+
+function inferLayerFromZoneLabel(label: string): RawNode['layer'] | null {
+  const normalized = label.toLowerCase().trim();
+  
+  // Only match VERY specific abstract zone names (exact matches only, no substrings)
+  const exactZoneLabels: Record<string, string> = {
+    'clients': 'presentation',
+    'client': 'presentation',
+    'gateway': 'gateway',
+    'services': 'application',
+    'service': 'application',
+    'workers': 'async',
+    'storage': 'data',
+    'monitoring': 'observability',
+    'external': 'external',
+  };
+  
+  if (exactZoneLabels[normalized]) {
+    return exactZoneLabels[normalized] as RawNode['layer'];
+  }
+  return null;
+}
+
+function asGroupId(id: string): string {
+  return id.endsWith('-group') ? id : `${id}-group`;
+}
+
+function promoteAbstractZoneNodesToGroups(nodes: RawNode[]): RawNode[] {
+  return nodes.map((node) => {
+    if (node.isGroup || node.parentId) return node;
+    if (isConcreteComponentLabel(node.label || '')) return node;
+
+    const inferredLayer = inferLayerFromZoneLabel(node.label || '');
+    if (!inferredLayer) return node;
+
+    const meta = LAYER_GROUP_META[inferredLayer] || {
+      label: node.label,
+      groupLabel: node.label.toUpperCase(),
+      color: '#e2e8f0',
+    };
+
+    return {
+      ...node,
+      id: asGroupId(node.id),
+      label: meta.label,
+      layer: inferredLayer,
+      isGroup: true,
+      groupLabel: meta.groupLabel,
+      groupColor: meta.color,
+      parentId: undefined,
+    };
+  });
+}
+
+function synthesizeMissingLayerGroups(nodes: RawNode[]): RawNode[] {
+  const byLayer = new Map<RawNode['layer'], RawNode[]>();
+  for (const node of nodes) {
+    if (node.isGroup) continue;
+    if (!byLayer.has(node.layer)) byLayer.set(node.layer, []);
+    byLayer.get(node.layer)!.push(node);
+  }
+
+  const existingGroupLayers = new Set(nodes.filter((n) => n.isGroup).map((n) => n.layer));
+  const syntheticGroups: RawNode[] = [];
+
+  for (const [layer, members] of byLayer.entries()) {
+    if (existingGroupLayers.has(layer)) continue;
+    if (members.length < 2) continue;
+
+    const meta = LAYER_GROUP_META[layer];
+    if (!meta) continue;
+
+    syntheticGroups.push({
+      id: `${layer}-group`,
+      label: meta.label,
+      layer: layer as RawNode['layer'],
+      isGroup: true,
+      groupLabel: meta.groupLabel,
+      groupColor: meta.color,
+    });
+  }
+
+  if (syntheticGroups.length === 0) return nodes;
+  return [...syntheticGroups, ...nodes];
+}
+
+function attachUngroupedNodesToLayerGroups(nodes: RawNode[]): RawNode[] {
+  const groupsByLayer = new Map<RawNode['layer'], RawNode>();
+  for (const group of nodes.filter((n) => n.isGroup)) {
+    if (!groupsByLayer.has(group.layer)) {
+      groupsByLayer.set(group.layer, group);
+    }
+  }
+
+  return nodes.map((node) => {
+    if (node.isGroup || node.parentId) return node;
+    const group = groupsByLayer.get(node.layer);
+    if (!group) return node;
+    return { ...node, parentId: group.id };
+  });
+}
+
 function isAbstractLayerNode(node: RawNode): boolean {
+  if (node.isGroup) return false;
   const label = node.label?.trim() || '';
   const lowerLabel = label.toLowerCase();
   
@@ -52,52 +185,49 @@ function getLayerIndex(layer: string): number {
 
 export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }): ValidatedDiagram {
   const flows = [...parsed.flows];
-
-  // ── CHECK-DEDUP-ID: keep first occurrence ──
-  const seenIds = new Set<string>();
-  let workingNodes: RawNode[] = [];
-  for (const node of parsed.nodes) {
-    if (seenIds.has(node.id)) {
-      console.log(`[Validate] Duplicate node ID ${node.id} removed`);
-      continue;
+  
+  // Build edges FIRST so we know what's connected
+  const validEdges: DiagramEdge[] = [];
+  const flowEdgeMap = new Map<string, DiagramEdge>();
+  
+  for (const flow of flows) {
+    if (flow.path.length < 2) continue;
+    for (let i = 0; i < flow.path.length - 1; i++) {
+      const src = flow.path[i];
+      const tgt = flow.path[i + 1];
+      if (!src || !tgt || src === tgt) continue;
+      const key = `${src}->${tgt}`;
+      if (!flowEdgeMap.has(key)) {
+        flowEdgeMap.set(key, {
+          id: key,
+          source: src,
+          target: tgt,
+          label: flow.label,
+          async: flow.async,
+        });
+      }
     }
-    seenIds.add(node.id);
-    workingNodes.push({ ...node });
+  }
+  validEdges.push(...flowEdgeMap.values());
+
+  // Build edges FIRST so we know what's connected
+  const validNodeIds = new Set<string>();
+  for (const edge of validEdges) {
+    validNodeIds.add(edge.source);
+    validNodeIds.add(edge.target);
   }
 
-  // ── CHECK-DEDUP-LABEL: keep child over root ──
-  const labelMap = new Map<string, RawNode>();
-  for (const node of workingNodes) {
-    const key = node.label.trim().toLowerCase();
-    if (!key) continue;
+  // Keep only nodes that appear in flows - ignore orphans
+  let workingNodes = parsed.nodes.filter(n => validNodeIds.has(n.id));
 
-    const existing = labelMap.get(key);
-    if (!existing) {
-      labelMap.set(key, node);
-      continue;
-    }
+  // REMOVED: promoteAbstractZoneNodesToGroups - don't transform nodes, causes ID mismatches with flows
+  // REMOVED: synthesizeMissingLayerGroups - creates empty groups that get removed
+  // SIMPLIFIED: Just keep the nodes the LLM generated, attach to existing groups if any
 
-    const existingIsChild = Boolean(existing.parentId);
-    const incomingIsChild = Boolean(node.parentId);
-    const existingIsGroup = existing.isGroup === true;
-    const incomingIsGroup = node.isGroup === true;
-
-    // Keep child over root (child wins)
-    if (!existingIsChild && incomingIsChild) {
-      console.log(`[Validate] Label duplicate "${node.label}" — removed root ${existing.id}, kept child ${node.id}`);
-      labelMap.set(key, node);
-      continue;
-    }
-
-    // Keep first group if both groups
-    if (existingIsGroup && incomingIsGroup) {
-      console.log(`[Validate] Label duplicate "${node.label}" — kept first group ${existing.id}, removed ${node.id}`);
-      continue;
-    }
-
-    console.log(`[Validate] Label duplicate "${node.label}" — kept ${existing.id}, removed ${node.id}`);
-  }
-  workingNodes = Array.from(labelMap.values());
+  // Promote abstract zone nodes into real groups before abstract filtering.
+  workingNodes = promoteAbstractZoneNodesToGroups(workingNodes);
+  workingNodes = synthesizeMissingLayerGroups(workingNodes);
+  workingNodes = attachUngroupedNodesToLayerGroups(workingNodes);
 
   // ── CHECK-ABSTRACT-LAYERS: filter out abstract layer/tier nodes ──
   let abstractFiltered: RawNode[] = [];
@@ -131,15 +261,9 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
     return true;
   });
 
-  // ── CHECK-SINGLE-CHILD-GROUPS: remove group and ungroup child ──
+  // ── CHECK-SINGLE-CHILD-GROUPS: keep single-child groups (important for small diagrams) ──
+  // Disabled - prefer keeping small groups over breaking structure
   const groupsWithOneChild = new Set<string>();
-  for (const group of nonEmptyNodes.filter(n => n.isGroup === true)) {
-    const children = nonEmptyNodes.filter(n => n.parentId === group.id);
-    if (children.length === 1) {
-      groupsWithOneChild.add(group.id);
-      console.log(`[Validate] Group ${group.id} has exactly 1 child — removing group and ungrouping ${children[0].id}`);
-    }
-  }
 
   const finalNodes = nonEmptyNodes
     .filter(node => !groupsWithOneChild.has(node.id))
@@ -193,7 +317,7 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
           .toLowerCase()
           .replace(/layer|zone|group/g, '')
           .trim();
-        if (parentLabel && (nodeLabel === parentLabel || nodeLabel.includes(parentLabel) || parentLabel.includes(nodeLabel))) {
+        if (parentLabel && nodeLabel === parentLabel) {
           console.log(`[Validate] Removed label-duplicate child ${node.id} matching group ${parentGroup.id} ("${node.label}" matches "${parentGroup.groupLabel || parentGroup.label}")`);
           continue;
         }
@@ -201,7 +325,7 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
     }
 
     // Check 2: ANY non-group node whose label matches any group name
-    if (allGroupNames.has(nodeLabel) || [...allGroupNames].some(gn => nodeLabel.includes(gn) || gn.includes(nodeLabel))) {
+    if (allGroupNames.has(nodeLabel)) {
       console.log(`[Validate] Removed node ${node.id} — label "${node.label}" duplicates a group name`);
       continue;
     }
@@ -210,7 +334,7 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
   }
 
   // ── CHECK-FLOW-TOKENS: drop group IDs from paths, drop invalid tokens ──
-  const validNodeIds = new Set(cleanedNodes.map(n => n.id));
+  const finalNodeIds = new Set(cleanedNodes.map(n => n.id));
   const finalGroupIds = new Set(cleanedNodes.filter(n => n.isGroup === true).map(n => n.id));
   const validFlows: RawFlow[] = [];
   for (const flow of flows) {
@@ -219,7 +343,7 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
         console.log(`[Validate] Flow contains group token ${token} — removed token`);
         return false;
       }
-      if (!validNodeIds.has(token)) {
+      if (!finalNodeIds.has(token)) {
         console.log(`[Validate] Flow token ${token} not found in nodes — removed token`);
         return false;
       }
@@ -251,16 +375,16 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
   }
 
   // ── CHECK-EDGE-DEDUP: one edge per source→target pair ──
-  const edgeMap = new Map<string, DiagramEdge>();
+  const seenEdges = new Map<string, DiagramEdge>();
   for (const edge of builtEdges) {
     const key = `${edge.source}->${edge.target}`;
-    if (edgeMap.has(key)) {
+    if (seenEdges.has(key)) {
       console.log(`[Validate] Duplicate edge ${edge.source}->${edge.target} removed`);
       continue;
     }
-    edgeMap.set(key, edge);
+    seenEdges.set(key, edge);
   }
-  const edges = Array.from(edgeMap.values());
+  const edges = Array.from(seenEdges.values());
 
   // ── CHECK-ORPHANS: every non-group node must be in at least one edge ──
   // Connect orphans to the nearest CONNECTED node (not to other orphans)
@@ -309,7 +433,7 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
         : [nearest.id, node.id];
       
       const edgeKey = `${src}->${tgt}`;
-      if (!edgeMap.has(edgeKey)) {
+      if (!edges.some(e => e.source === src && e.target === tgt)) {
         const edgeId = `${src}-${tgt}`;
         edges.push({
           id: edgeId,
@@ -318,7 +442,6 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
           label: undefined,
           async: false,
         });
-        edgeMap.set(edgeKey, edges[edges.length - 1]);
         connectedNodes.add(node.id);
         console.log(`[Validate] Orphan node ${node.id} connected to ${nearest.id}`);
       }
@@ -327,7 +450,7 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
 
   // ── Final safety: drop any edges that reference nodes not in cleanedNodes ──
   const finalEdges = edges.filter(edge => {
-    if (!validNodeIds.has(edge.source) || !validNodeIds.has(edge.target)) {
+    if (!finalNodeIds.has(edge.source) || !finalNodeIds.has(edge.target)) {
       console.log(`[Validate] Dropping dangling edge ${edge.source}->${edge.target}`);
       return false;
     }

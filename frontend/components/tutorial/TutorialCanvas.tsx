@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, DragEvent, useState, useEffect, useRef } from 'react';
+import { useCallback, DragEvent, useState, useEffect, useRef, useMemo } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, Controls,
   ReactFlowProvider, useReactFlow,
@@ -26,10 +26,13 @@ import { AnnotationNode } from '@/components/AnnotationNode';
 import { MessageBrokerNode } from '@/components/MessageBrokerNode';
 import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
 import { FlowEdge } from '@/components/edges/FlowEdge';
+import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
 
 const EDGE_TYPES = {
   custom: FlowEdge,
+  simpleFloating: SimpleFloatingEdge,
+  default: FlowEdge,
 };
 import { ComponentPalette } from '@/components/tutorial/ComponentPalette';
 import { NodeTooltip } from '@/components/tutorial/NodeTooltip';
@@ -141,6 +144,8 @@ function TutorialCanvasInner({
   onRestart,
   onSkip,
 }: TutorialCanvasInnerProps) {
+  const nodeTypes = useMemo(() => NODE_TYPES, []);
+  const edgeTypes = useMemo(() => EDGE_TYPES, []);
   const isDark = theme === 'dark';
   const canvasBg = isDark ? '#0f172a' : '#f8fafc';
   const dotColor = isDark ? '#334155' : '#cbd5e1';
@@ -356,8 +361,8 @@ function TutorialCanvasInner({
           onConnect={onConnect}
           onDragOver={onDragOver}
           onDrop={onDrop}
-          nodeTypes={NODE_TYPES}
-          edgeTypes={EDGE_TYPES}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           snapToGrid
           snapGrid={[20, 20]}
           minZoom={0.1}

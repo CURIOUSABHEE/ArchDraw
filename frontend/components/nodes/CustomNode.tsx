@@ -1,6 +1,6 @@
 'use client';
 
-import { NodeProps } from 'reactflow';
+import { Handle, NodeProps, Position } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
 
 export default function CustomNode({ id, data, selected }: NodeProps) {
@@ -19,6 +19,11 @@ export default function CustomNode({ id, data, selected }: NodeProps) {
         cursor: 'pointer',
       }}
     >
+      <Handle type="target" position={Position.Left} id="target-left" style={{ width: 10, height: 10, background: '#fff', border: '2px solid #94a3b8', borderRadius: '50%' }} />
+      <Handle type="source" position={Position.Right} id="source-right" style={{ width: 10, height: 10, background: '#fff', border: '2px solid #94a3b8', borderRadius: '50%' }} />
+      <Handle type="target" position={Position.Top} id="target-top" style={{ width: 10, height: 10, background: '#fff', border: '2px solid #94a3b8', borderRadius: '50%' }} />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" style={{ width: 10, height: 10, background: '#fff', border: '2px solid #94a3b8', borderRadius: '50%' }} />
+
       <div
         style={{
           background: '#ffffff',
@@ -38,7 +43,6 @@ export default function CustomNode({ id, data, selected }: NodeProps) {
       >
         {label}
       </div>
-      {/* No handles needed — FloatingEdge computes boundary intersection mathematically */}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -20,6 +20,7 @@ import { AnnotationNode } from '@/components/AnnotationNode';
 import { MessageBrokerNode } from '@/components/MessageBrokerNode';
 import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
 import { FlowEdge } from '@/components/edges/FlowEdge';
+import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
 
 const NODE_TYPES = {
@@ -36,7 +37,11 @@ const NODE_TYPES = {
   messageBrokerNode: MessageBrokerNode,
 };
 
-const EDGE_TYPES = { custom: FlowEdge };
+const EDGE_TYPES = {
+  custom: FlowEdge,
+  simpleFloating: SimpleFloatingEdge,
+  default: FlowEdge,
+};
 
 interface EmbedCanvasProps {
   nodes: Node[];
@@ -49,6 +54,8 @@ interface EmbedCanvasProps {
 
 function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls = true, pathType = 'smooth' }: EmbedCanvasProps) {
   const { fitView } = useReactFlow();
+  const nodeTypes = useMemo(() => NODE_TYPES, []);
+  const edgeTypes = useMemo(() => EDGE_TYPES, []);
   const isDark = theme === 'dark';
   
   const backgroundColor = isDark ? '#0f172a' : '#ffffff';
@@ -75,8 +82,8 @@ function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        nodeTypes={NODE_TYPES}
-        edgeTypes={EDGE_TYPES}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={true}

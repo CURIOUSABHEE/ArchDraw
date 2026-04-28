@@ -193,6 +193,8 @@ CRITICAL MINIMUM EDGE REQUIREMENT:
 - You MUST generate AT LEAST ${minRequiredEdges} edges
 - Every node must have at least 1 connection (incoming OR outgoing)
 - Missing edges are a CRITICAL FAILURE
+- Every single node ID listed below MUST appear as a source or target in at least one edge
+- Nodes frequently missed (gateway, storage, clients, cdn, monitoring) MUST still be connected
 
 EDGES MUST:
 - Connect tiers in correct order: client → edge → compute → async → data
@@ -217,6 +219,10 @@ OUTPUT FORMAT (JSON only):
     }
   ]
 }
+
+FINAL SELF-CHECK BEFORE OUTPUT:
+1) Verify each node id from the AVAILABLE NODES list appears in at least one edge.
+2) If any are missing, add edges for them before returning.
 
 REMEMBER: At least ${minRequiredEdges} edges required!`;
 }
