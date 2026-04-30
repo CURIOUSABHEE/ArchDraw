@@ -72,6 +72,10 @@ export interface ReasoningResult {
   patterns: { pattern: string; justification: string }[];
   stressTests: { scenario: string; outcome: string; safe: boolean; mitigation: string }[];
   keyDecisions: string[];
+  // NEW: Structured architectural plan
+  layers?: Record<string, { description: string; components: string[] }>;
+  keyFlows?: Array<{ name: string; description: string; path: string[] }>;
+  architecturalPlan?: string;
 }
 
 export interface DiagramScore {
@@ -81,6 +85,11 @@ export interface DiagramScore {
   orphanCount: number;
   hasGroups: boolean;
   score: number;
+  // NEW: Preservation metrics
+  nodesRemoved?: number;
+  edgesRemoved?: number;
+  groupsRemoved?: number;
+  preservationPenalty?: number;
 }
 
 export interface StreamingData {

@@ -42,8 +42,8 @@ const createTierTheme = (
 });
 
 export const TIER_THEMES: TierThemes = {
-  client: createTierTheme('Client', '#a855f7', 'monitor', 'User-facing applications'),
-  edge: createTierTheme('Edge', '#8b5cf6', 'globe', 'CDN, Load Balancer, API Gateway, WAF'),
+  client: createTierTheme('Client', '#5A5A5A', 'monitor', 'User-facing applications'),
+  edge: createTierTheme('Edge', '#6B7B8D', 'globe', 'CDN, Load Balancer, API Gateway, WAF'),
   compute: createTierTheme('Compute', '#14b8a6', 'server', 'App Servers, Microservices, Functions'),
   async: createTierTheme('Async', '#f59e0b', 'message-square', 'Message Queue, Event Bus'),
   data: createTierTheme('Data', '#3b82f6', 'database', 'Database, Cache, Storage'),

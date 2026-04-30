@@ -23,6 +23,16 @@ import { enforceMinimumConnections, detectOrphans, ensureGroupConnectivity } fro
 import { applyDomainEdgePatterns } from '../graph/domainEdgePatterns';
 import { findConnectedComponents, bridgeComponents } from '../graph/graphConnectivity';
 
+// NEW: Import redesigned 8-stage pipeline
+import { detectIntent, getLayerForNode, getLayerIndex } from './stage1-intent';
+import { callReasoningLLM, type ReasoningResult } from './stage2-reasoning';
+import { callDiagramLLM, parseLLMOutput } from './stage3-diagram';
+import { validateAndRepair, getLayerIndex as validateGetLayerIndex } from './stage5-validate';
+import { applyLayout } from './stage6-layout';
+import { convertToReactFlow } from './stage7-convert';
+import { scoreDiagram } from './stage8-score';
+import type { DiagramScore, LayoutedNode, RawNode, RawFlow } from './types';
+
 export interface PipelineState {
   userIntent: UserIntent;
   rawNodes: ArchitectureNode[];
@@ -36,10 +46,13 @@ export interface PipelineState {
   errors: PipelineError[];
   useAWS: boolean;
   systemIntent: ReturnType<typeof detectSystemIntent>;
+  // NEW: Pipeline stage results
+  intentResult?: ReturnType<typeof detectIntent>;
+  reasoningResult?: ReasoningResult;
 }
 
 export interface PipelineHistoryEntry {
-  step: 'normalize' | 'components' | 'enrich' | 'edges' | 'repair' | 'validate' | 'layout' | 'score';
+  step: 'normalize' | 'intent' | 'reasoning' | 'diagram' | 'validate' | 'layout' | 'convert' | 'score' | 'enrich' | 'edges' | 'repair';
   timestamp: number;
   input?: unknown;
   output?: unknown;
@@ -60,11 +73,24 @@ export interface PipelineResult {
   state: PipelineState;
   score: number;
   qualityReport?: DiagramQualityReport;
+  diagramScore?: DiagramScore;
 }
 
 const MAX_ITERATIONS = 3;
 const SCORE_THRESHOLD = 75;
 
+/**
+ * MAIN PIPELINE ORCHESTRATOR
+ * 
+ * 8-Stage Pipeline:
+ * STAGE 1 - Intent Detection (improved with confidence scoring)
+ * STAGE 2 - Reasoning (structured architectural plan)
+ * STAGE 3 - Diagram Generation (LLM with minimum constraints)
+ * STAGE 4/5 - Validation (NON-DESTRUCTIVE: repair, don't remove)
+ * STAGE 6 - Layout (hierarchy-aware, left-to-right flow)
+ * STAGE 7 - React Flow Conversion (never remove nodes)
+ * STAGE 8 - Quality Scoring (with preservation penalties)
+ */
 export async function runArchitecturePipeline(
   userIntent: UserIntent,
   onProgress?: (step: string, progress: number) => void
@@ -85,17 +111,18 @@ export async function runArchitecturePipeline(
   };
 
   try {
+    // ── STAGE 0: Normalize Input ──
     onProgress?.('Normalizing input', 5);
     state.history.push({ step: 'normalize', timestamp: Date.now(), input: userIntent });
 
-    // Step A: Check semantic cache before LLM call
+    // Check semantic cache before LLM call
     const cached = diagramCache.get(userIntent.description);
     if (cached) {
       logger.log('[Pipeline] Cache hit for prompt, returning cached diagram');
       onProgress?.('Complete', 100);
       return {
         success: true,
-        nodes: [], // Will be computed from cached nodes after layout
+        nodes: [],
         edges: cached.edges,
         state,
         score: 0,
@@ -103,31 +130,69 @@ export async function runArchitecturePipeline(
       };
     }
 
+    // ── STAGE 1: Intent Detection ──
+    onProgress?.('Detecting intent', 10);
     state.systemIntent = detectSystemIntent(userIntent.description);
     state.useAWS = state.systemIntent.useAWS || detectAWSInPrompt(userIntent.description);
-    logger.log(`[Pipeline] System intent: ${JSON.stringify(state.systemIntent)}, useAWS: ${state.useAWS}`);
+    
+    // NEW: Improved intent detection with confidence
+    state.intentResult = detectIntent(userIntent.description);
+    logger.log(`[Pipeline] Intent: ${state.intentResult.type} (confidence: ${state.intentResult.confidence.toFixed(2)}, ambiguous: ${state.intentResult.ambiguous})`);
+    
+    state.history.push({
+      step: 'intent',
+      timestamp: Date.now(),
+      output: state.intentResult,
+    });
 
     // Detect domain early for validation rules
     const domain = detectDomain(userIntent.description);
     logger.log(`[Pipeline] Detected domain: ${domain}`);
 
-    onProgress?.('Generating components', 15);
-    state.rawNodes = await generateComponents(state);
+    // ── STAGE 2: Reasoning ──
+    onProgress?.('Reasoning about architecture', 20);
+    state.reasoningResult = await callReasoningLLM(userIntent.description, state.intentResult.type);
+    logger.log(`[Pipeline] Reasoning complete: ${state.reasoningResult.systemType}`);
+    logger.log(`[Pipeline] Architectural plan: ${state.reasoningResult.architecturalPlan}`);
     
-    // FIX 1: Validate and fix components post-generation
-    const componentFix = validateAndFixComponents(state.rawNodes, domain);
-    if (componentFix.fixApplied.length > 0) {
-      console.log('[Pipeline] Component fixes applied:', componentFix.fixApplied);
+    if (state.reasoningResult.layers) {
+      logger.log(`[Pipeline] Layers defined: ${Object.keys(state.reasoningResult.layers).join(', ')}`);
     }
-    state.rawNodes = componentFix.nodes;
     
     state.history.push({
-      step: 'components',
+      step: 'reasoning',
       timestamp: Date.now(),
-      output: state.rawNodes.length,
+      output: state.reasoningResult,
     });
 
-    onProgress?.('Enriching nodes', 30);
+    // ── STAGE 3: Diagram Generation (LLM) ──
+    onProgress?.('Generating diagram', 35);
+    
+    const diagramResult = await callDiagramLLM(
+      state.reasoningResult,
+      (node) => {
+        logger.log(`[Pipeline] Generated node: ${node.label} (${node.id})`);
+      },
+      (flow) => {
+        logger.log(`[Pipeline] Generated flow: ${flow.path.join(' → ')}`);
+      }
+    );
+
+    // Convert RawNode[] to ArchitectureNode[]
+    state.rawNodes = diagramResult.nodes.map(n => 
+      rawNodeToArchitectureNode(n as RawNode)
+    );
+    
+    logger.log(`[Pipeline] Generated ${state.rawNodes.length} nodes (${state.rawNodes.filter(n => !(n as unknown as RawNode).isGroup).length} non-group) and ${diagramResult.flows.length} flows`);
+    
+    state.history.push({
+      step: 'diagram',
+      timestamp: Date.now(),
+      output: { nodeCount: state.rawNodes.length, flowCount: diagramResult.flows.length },
+    });
+
+    // ── Enrich Nodes ──
+    onProgress?.('Enriching nodes', 45);
     state.enrichedNodes = enrichNodes(state.rawNodes);
     state.history.push({
       step: 'enrich',
@@ -135,13 +200,14 @@ export async function runArchitecturePipeline(
       output: state.enrichedNodes.length,
     });
 
+    // ── Generate Edges ──
     onProgress?.('Generating edges', 50);
     state.edges = await generateEdges(state);
     
-    // FIX 2: Apply domain-specific edge patterns
+    // Apply domain-specific edge patterns
     const domainResult = applyDomainEdgePatterns(state.enrichedNodes, domain, state.edges);
     if (domainResult.added > 0) {
-      console.log(`[Pipeline] Domain edge patterns added: ${domainResult.added}`);
+      logger.log(`[Pipeline] Domain edge patterns added: ${domainResult.added}`);
       state.edges = [...state.edges, ...domainResult.edges];
     }
     
@@ -151,66 +217,109 @@ export async function runArchitecturePipeline(
       output: state.edges.length,
     });
 
-    // CRITICAL: If no edges generated, force retry or use fallback
-    if (state.edges.length === 0) {
-      console.error('[Pipeline] CRITICAL: Zero edges generated, forcing fallback');
-      state.edges = generateDeterministicEdges(state.enrichedNodes);
-    }
-
-    // CRITICAL: Require minimum edges relative to node count
-    const minRequiredEdges = Math.floor(state.enrichedNodes.length * 0.5);
+    // Ensure minimum edges
+    const minRequiredEdges = Math.max(10, Math.floor(state.enrichedNodes.filter(n => !(n as unknown as RawNode).isGroup).length * 0.5));
     if (state.edges.length < minRequiredEdges) {
-      console.warn(`[Pipeline] Low edge count (${state.edges.length} < ${minRequiredEdges}), adding missing edges`);
+      logger.warn(`[Pipeline] Low edge count (${state.edges.length} < ${minRequiredEdges}), adding missing edges`);
       const missingEdges = generateMissingEdges(state.enrichedNodes, state.edges);
       if (missingEdges.length > 0) {
         state.edges = [...state.edges, ...missingEdges];
       }
-      // Final fallback if still insufficient
-      if (state.edges.length < minRequiredEdges) {
-        const fallbackEdges = generateDeterministicEdges(state.enrichedNodes);
-        state.edges = [...state.edges, ...fallbackEdges];
-      }
     }
 
-    // FIX 3: Enforce minimum connections per node
+    // Enforce minimum connections per node
     const connectionFix = enforceMinimumConnections(state.enrichedNodes, state.edges);
     if (connectionFix.fixes.length > 0) {
-      console.log('[Pipeline] Connection fixes applied:', connectionFix.fixes);
+      logger.log('[Pipeline] Connection fixes applied:', connectionFix.fixes);
       state.edges = connectionFix.edges;
     }
-    
-    // FIX 4: Ensure group connectivity
+
+    // Ensure group connectivity
     const groupConnectivity = ensureGroupConnectivity(state.enrichedNodes, state.edges);
     if (groupConnectivity.fixes.length > 0) {
-      console.log('[Pipeline] Group connectivity fixes:', groupConnectivity.fixes);
+      logger.log('[Pipeline] Group connectivity fixes:', groupConnectivity.fixes);
       state.edges = groupConnectivity.edges;
     }
 
-    // Step B: Ensure connectivity for orphaned nodes
+    // Ensure connectivity for orphaned nodes
     const connectivityResult = ensureConnectivity(state.enrichedNodes, state.edges);
     state.edges = connectivityResult.edges;
     logger.log(`[Pipeline] Connectivity enforcement complete`);
 
-    // Step C: Auto-add compensating resilience components
+    // Auto-add compensating resilience components
     const resilientResult = autoAddCompensatingComponents(state.enrichedNodes, state.edges);
     state.enrichedNodes = resilientResult.nodes;
     state.edges = resilientResult.edges;
     logger.log(`[Pipeline] Compensating components added`);
 
-    // Step D: Validate diagram quality
-    const qualityReport = validateDiagramQuality(state.enrichedNodes, state.edges);
-    console.log('[ArchDraw Quality Gate]', qualityReport);
+    // ── STAGE 4/5: NON-DESTRUCTIVE Validation ──
+    onProgress?.('Validating and repairing', 65);
+    
+    // Convert ArchitectureNode[] to RawNode[] for validation
+    const rawNodesForValidation: RawNode[] = state.enrichedNodes.map(n => 
+      architectureNodeToRawNode(n)
+    );
 
-    onProgress?.('Validating graph', 65);
-    const validationResult = validateEdges(state.edges, state.enrichedNodes);
-    if (!validationResult.valid) {
-      state.errors.push(...validationResult.errors.map(e => ({
+    // Convert ArchitectureEdge[] to RawFlow[]
+    const rawFlows: RawFlow[] = state.edges.map(e => ({
+      path: [e.source, e.target],
+      label: (e as { label?: string }).label || '',
+      async: (e as { communicationType?: string }).communicationType === 'async',
+    }));
+
+    // RUN NON-DESTRUCTIVE VALIDATION
+    const validationResult = validateAndRepair({ nodes: rawNodesForValidation, flows: rawFlows });
+    
+    // Convert back to ArchitectureNode[] and ArchitectureEdge[]
+    const nodesRemoved = rawNodesForValidation.length - validationResult.nodes.length;
+    const edgesRemoved = rawFlows.length - validationResult.edges.length;
+    
+    if (nodesRemoved > 0) {
+      logger.warn(`[Pipeline] WARNING: ${nodesRemoved} nodes removed during validation`);
+    }
+    if (edgesRemoved > 0) {
+      logger.warn(`[Pipeline] WARNING: ${edgesRemoved} edges removed during validation`);
+    }
+
+    // Update state with validated nodes/edges
+    state.enrichedNodes = validationResult.nodes.map(n => rawNodeToArchitectureNode(n));
+    state.edges = validationResult.edges.map(e => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: 'right',
+      targetHandle: 'left',
+      communicationType: e.async ? 'async' : 'sync',
+      pathType: 'smooth',
+      label: e.label || '',
+      labelPosition: 'center',
+      animated: e.async,
+      style: {
+        stroke: '#94a3b8',
+        strokeDasharray: e.async ? '5,5' : '',
+        strokeWidth: 2,
+      },
+      markerEnd: 'arrowclosed',
+      markerStart: 'none',
+    } as unknown as ArchitectureEdge));
+    
+    state.history.push({
+      step: 'validate',
+      timestamp: Date.now(),
+      output: { nodeCount: state.enrichedNodes.length, edgeCount: state.edges.length },
+    });
+
+    // Additional validation
+    const validationResult2 = validateEdges(state.edges, state.enrichedNodes);
+    if (!validationResult2.valid) {
+      state.errors.push(...validationResult2.errors.map(e => ({
         type: e.type,
         severity: e.severity,
         message: e.message,
       })));
     }
 
+    // Repair edges
     onProgress?.('Repairing edges', 75);
     const repairResult = repairEdges(state.enrichedNodes, state.edges);
     state.edges = repairResult.edges;
@@ -227,6 +336,7 @@ export async function runArchitecturePipeline(
       });
     }
 
+    // Bridge disconnected components
     const componentsAfterRepair = findConnectedComponents(state.enrichedNodes, state.edges);
     if (componentsAfterRepair.length > 1) {
       logger.warn(
@@ -239,55 +349,130 @@ export async function runArchitecturePipeline(
       }
     }
 
+    // Generate any remaining missing edges
     const missingEdges = generateMissingEdges(state.enrichedNodes, state.edges);
     if (missingEdges.length > 0) {
       state.edges = [...state.edges, ...missingEdges];
       logger.log(`[Pipeline] Added ${missingEdges.length} missing edges`);
     }
 
+    // Allocate ports
     const portAssignments = allocatePorts(state.enrichedNodes, state.edges);
     state.edges = assignHandlesToEdges(state.edges, state.enrichedNodes, portAssignments);
 
+    // ── STAGE 6: Layout ──
     onProgress?.('Computing layout', 85);
-    const layoutResult = runDeterministicLayout(
-      state.enrichedNodes,
-      state.edges,
-      { direction: 'RIGHT' }
-    );
     
-    console.log('[Pipeline] Layout output - first 5 nodes:', 
-      layoutResult.nodes.slice(0, 5).map(n => ({
-        label: n.data.label,
-        position: n.position,
-        width: n.width,
-        height: n.height,
-        measured: n.measured,
-      }))
-    );
-    
-    state.graph = layoutResult.graph;
-    state.reactFlowNodes = layoutResult.nodes;
+    // Convert to LayoutedNode[] for layout
+    const nodesForLayout: LayoutedNode[] = state.enrichedNodes.map(n => {
+      const raw = architectureNodeToRawNode(n);
+      return {
+        ...raw,
+        x: (n as { position?: { x: number } }).position?.x || 0,
+        y: (n as { position?: { y: number } }).position?.y || 0,
+        width: (n as { width?: number }).width || 180,
+        height: (n as { height?: number }).height || 70,
+      };
+    });
 
+    const layoutResult = await applyLayout({ 
+      nodes: nodesForLayout, 
+      edges: state.edges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        label: (e as { label?: string }).label || '',
+        async: (e as { communicationType?: string }).communicationType === 'async',
+      }))
+    });
+    
+    // Convert layout result back to ArchitectureNode[]
+    state.reactFlowNodes = layoutResult.map(n => rawNodeToArchitectureNode(n as RawNode) as unknown as ReactFlowNode);
+    state.graph = null; // TODO: Convert to ArchitectureGraph if needed
+    
     state.history.push({
       step: 'layout',
       timestamp: Date.now(),
-      output: layoutResult.nodes.length,
+      output: layoutResult.length,
     });
 
+    // ── STAGE 7: React Flow Conversion ──
+    onProgress?.('Converting to React Flow', 90);
+    
+    const { nodes: rfNodes, edges: rfEdges } = convertToReactFlow(
+      layoutResult,
+      { 
+        nodes: layoutResult.map(n => ({
+          id: n.id,
+          label: n.label,
+          subtitle: n.subtitle || '',
+          layer: n.layer,
+          icon: n.icon || 'box',
+          serviceType: n.serviceType || '',
+          isGroup: n.isGroup || false,
+          groupLabel: n.groupLabel || '',
+          groupColor: n.groupColor || '',
+          parentId: n.parentId,
+        })),
+        edges: state.edges.map(e => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          label: (e as { label?: string })?.label || '',
+          async: (e as { communicationType?: string })?.communicationType === 'async',
+        }))
+      }
+    );
+
+    // Use the converted nodes/edges
+    state.reactFlowNodes = rfNodes as unknown as ReactFlowNode[];
+    state.edges = rfEdges as unknown as ArchitectureEdge[];
+
+    state.history.push({
+      step: 'convert',
+      timestamp: Date.now(),
+      output: { nodeCount: rfNodes.length, edgeCount: rfEdges.length },
+    });
+
+    // ── STAGE 8: Quality Scoring ──
     onProgress?.('Scoring output', 95);
-    state.score = computeScore(layoutResult.nodes.length, state.edges.length, state.errors);
+    
+    const diagramScore = scoreDiagram(
+      rfNodes,
+      rfEdges,
+      {
+        nodesRemoved: Math.max(0, nodesForLayout.length - rfNodes.length),
+        edgesRemoved: Math.max(0, state.edges.length - rfEdges.length),
+        groupsRemoved: 0, // Non-destructive validation shouldn't remove groups
+      }
+    );
+    
+    state.score = diagramScore.score;
+    
     state.history.push({
       step: 'score',
       timestamp: Date.now(),
-      output: state.score,
+      output: diagramScore,
     });
 
+    // Log quality report
+    const qualityReport = validateDiagramQuality(
+      state.enrichedNodes.map(n => ({
+        ...n,
+        layer: n.layer,
+        serviceType: n.serviceType,
+      })),
+      state.edges
+    );
+    logger.log('[ArchDraw Quality Gate]', qualityReport);
+
+    // Iteration check
     if (state.score < SCORE_THRESHOLD && state.iteration < MAX_ITERATIONS) {
       logger.log(`[Pipeline] Score ${state.score} < ${SCORE_THRESHOLD}, iteration ${state.iteration + 1}/${MAX_ITERATIONS}`);
       state.iteration++;
     }
 
-    // Step E: Store in semantic cache
+    // Store in semantic cache
     diagramCache.set(userIntent.description, {
       nodes: state.enrichedNodes,
       edges: state.edges,
@@ -303,6 +488,7 @@ export async function runArchitecturePipeline(
       state,
       score: state.score,
       qualityReport,
+      diagramScore,
     };
   } catch (error) {
     const pipelineError: PipelineError = {
@@ -332,51 +518,70 @@ export async function runArchitecturePipeline(
   }
 }
 
-async function generateComponents(state: PipelineState): Promise<ArchitectureNode[]> {
-  const { userIntent, useAWS } = state;
+// ── Helper Functions ──
+
+/**
+ * Convert RawNode to ArchitectureNode
+ */
+function rawNodeToArchitectureNode(raw: RawNode): ArchitectureNode {
+  return {
+    id: raw.id,
+    type: raw.isGroup ? 'groupNode' : 'architectureNode',
+    position: { x: (raw as { x?: number }).x || 0, y: (raw as { y?: number }).y || 0 },
+    data: {
+      label: raw.label,
+      subtitle: raw.subtitle || '',
+      layer: raw.layer,
+      icon: raw.icon || 'box',
+      serviceType: raw.serviceType || '',
+      isGroup: raw.isGroup || false,
+      groupLabel: raw.groupLabel || '',
+      groupColor: raw.groupColor || '',
+    },
+    parentNode: raw.parentId,
+    width: (raw as { width?: number }).width || 180,
+    height: (raw as { height?: number }).height || 70,
+  } as unknown as ArchitectureNode;
+}
+
+/**
+ * Convert ArchitectureNode to RawNode
+ */
+function architectureNodeToRawNode(node: ArchitectureNode): RawNode {
+  const data = (node as { data?: { 
+    label?: string; 
+    subtitle?: string; 
+    layer?: string; 
+    icon?: string; 
+    serviceType?: string;
+    isGroup?: boolean;
+    groupLabel?: string;
+    groupColor?: string;
+  } }).data || {};
   
-  const prompt = buildComponentPrompt(userIntent.description, {
-    useAWS,
-    minNodes: 12,
-    maxNodes: 20,
-  });
-
-  try {
-    const result = await apiKeyManager.executeWithRetry(async (groq) => {
-      const completion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: 'You are a JSON-only output system. Always respond with valid JSON object with a "nodes" array. Do NOT wrap in markdown code blocks. Output ONLY raw JSON.' },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 4096,
-      });
-      return completion.choices[0]?.message?.content ?? '';
-    });
-
-    const cleaned = result
-      .replace(/```json\s*/gi, '')
-      .replace(/```\s*/gi, '')
-      .trim();
-
-    const parsed = JSON.parse(cleaned);
-    return parsed.nodes || [];
-  } catch (error) {
-    logger.error('[Pipeline] Component generation failed:', error);
-    return generateFallbackFromIntent(userIntent, state.systemIntent);
-  }
+  return {
+    id: node.id,
+    label: data.label || node.id,
+    subtitle: data.subtitle,
+    layer: (data.layer || 'application') as RawNode['layer'],
+    icon: data.icon,
+    serviceType: data.serviceType,
+    isGroup: data.isGroup,
+    groupLabel: data.groupLabel,
+    groupColor: data.groupColor,
+    parentId: (node as { parentNode?: string }).parentNode,
+  };
 }
 
 async function generateEdges(state: PipelineState): Promise<ArchitectureEdge[]> {
   const { userIntent, enrichedNodes } = state;
 
   const nodeSummaries = enrichedNodes
-    .filter(n => !n.isGroup)
+    .filter(n => !((n as { data?: { isGroup?: boolean } }).data?.isGroup))
     .map(n => ({
       id: n.id,
-      label: n.label,
-      tier: (n.tier || n.layer) as string,
+      label: ((n as { data?: { label?: string } }).data?.label || n.id),
+      tier: (((n as { data?: { layer?: string } }).data?.layer || 'application') as string),
     }));
 
   const prompt = buildEdgePrompt(userIntent.description, nodeSummaries);
@@ -420,7 +625,7 @@ async function generateEdges(state: PipelineState): Promise<ArchitectureEdge[]> 
       },
       markerEnd: 'arrowclosed',
       markerStart: 'none',
-    }));
+    } as ArchitectureEdge));
   } catch (error) {
     logger.error('[Pipeline] Edge generation failed:', error);
     return generateDeterministicEdges(enrichedNodes);
@@ -436,127 +641,127 @@ function generateFallbackFromIntent(
   nodes.push({
     id: 'client',
     type: 'architectureNode',
-    label: 'Client App',
-    subtitle: 'web browser',
-    layer: 'client',
-    tier: 'client',
-    tierColor: '#a855f7',
-    width: 180,
-    height: 70,
-    icon: 'monitor',
-    serviceType: 'client',
-    metadata: {},
-  });
+    position: { x: 0, y: 0 },
+    data: {
+      label: 'Client App',
+      subtitle: 'web browser',
+      layer: 'client',
+      tier: 'client',
+      tierColor: '#6B7B8D',
+      icon: 'monitor',
+      serviceType: 'client',
+    },
+  } as unknown as ArchitectureNode);
 
   if (intent.primary.includes('auth')) {
     nodes.push({
       id: 'auth-service',
       type: 'architectureNode',
-      label: 'Auth Service',
-      subtitle: 'authentication & authz',
-      layer: 'compute',
-      tier: 'compute',
-      tierColor: '#14b8a6',
-      width: 180,
-      height: 70,
-      icon: 'lock',
-      serviceType: 'auth',
-      metadata: {},
-    });
+      position: { x: 0, y: 0 },
+      data: {
+        label: 'Auth Service',
+        subtitle: 'authentication & authz',
+        layer: 'compute',
+        tier: 'compute',
+        tierColor: '#14b8a6',
+        icon: 'lock',
+        serviceType: 'auth',
+      },
+    } as unknown as ArchitectureNode);
   }
 
   nodes.push({
     id: 'api-gateway',
     type: 'architectureNode',
-    label: 'API Gateway',
-    subtitle: 'REST API entry',
-    layer: 'edge',
-    tier: 'edge',
-    tierColor: '#8b5cf6',
-    width: 180,
-    height: 70,
-    icon: 'webhook',
-    serviceType: 'gateway',
-    metadata: {},
-  });
+    position: { x: 0, y: 0 },
+    data: {
+      label: 'API Gateway',
+      subtitle: 'REST API entry',
+      layer: 'edge',
+      tier: 'edge',
+      tierColor: '#6B7B8D',
+      icon: 'webhook',
+      serviceType: 'gateway',
+    },
+  } as unknown as ArchitectureNode);
 
   nodes.push({
     id: 'main-service',
     type: 'architectureNode',
-    label: 'Main Service',
-    subtitle: 'business logic',
-    layer: 'compute',
-    tier: 'compute',
-    tierColor: '#14b8a6',
-    width: 180,
-    height: 70,
-    icon: 'server',
-    serviceType: 'api',
-    metadata: {},
-  });
+    position: { x: 0, y: 0 },
+    data: {
+      label: 'Main Service',
+      subtitle: 'business logic',
+      layer: 'compute',
+      tier: 'compute',
+      tierColor: '#14b8a6',
+      icon: 'server',
+      serviceType: 'api',
+    },
+  } as unknown as ArchitectureNode);
 
   if (intent.primary.includes('storage')) {
     nodes.push({
       id: 'storage',
       type: 'architectureNode',
-      label: 'Object Storage',
-      subtitle: 'file storage',
-      layer: 'data',
-      tier: 'data',
-      tierColor: '#3b82f6',
-      width: 180,
-      height: 70,
-      icon: 'hard-drive',
-      serviceType: 'storage',
-      metadata: {},
-    });
+      position: { x: 0, y: 0 },
+      data: {
+        label: 'Object Storage',
+        subtitle: 'file storage',
+        layer: 'data',
+        tier: 'data',
+        tierColor: '#3b82f6',
+        icon: 'hard-drive',
+        serviceType: 'storage',
+      },
+    } as unknown as ArchitectureNode);
   }
 
   nodes.push({
     id: 'database',
     type: 'architectureNode',
-    label: 'Database',
-    subtitle: 'primary data store',
-    layer: 'data',
-    tier: 'data',
-    tierColor: '#3b82f6',
-    width: 180,
-    height: 70,
-    icon: 'database',
-    serviceType: 'database',
-    metadata: {},
-  });
+    position: { x: 0, y: 0 },
+    data: {
+      label: 'Database',
+      subtitle: 'primary data store',
+      layer: 'data',
+      tier: 'data',
+      tierColor: '#3b82f6',
+      icon: 'database',
+      serviceType: 'database',
+    },
+  } as unknown as ArchitectureNode);
 
   nodes.push({
     id: 'cache',
     type: 'architectureNode',
-    label: 'Cache',
-    subtitle: 'Redis cache',
-    layer: 'data',
-    tier: 'data',
-    tierColor: '#3b82f6',
-    width: 160,
-    height: 70,
-    icon: 'gauge',
-    serviceType: 'cache',
-    metadata: {},
-  });
+    position: { x: 0, y: 0 },
+    data: {
+      label: 'Cache',
+      subtitle: 'Redis cache',
+      layer: 'data',
+      tier: 'data',
+      tierColor: '#3b82f6',
+      icon: 'gauge',
+      serviceType: 'cache',
+    },
+  } as unknown as ArchitectureNode);
 
   if (intent.primary.includes('queue')) {
     nodes.push({
       id: 'queue',
       type: 'architectureNode',
-      label: 'Message Queue',
-      subtitle: 'async messaging',
-      layer: 'async',
-      tier: 'async',
-      tierColor: '#f59e0b',
-      width: 180,
-      height: 70,
-      icon: 'message-square',
-      serviceType: 'queue',
-      metadata: {},
-    });
+      position: { x: 0, y: 0 },
+      data: {
+        label: 'Message Queue',
+        subtitle: 'async messaging',
+        layer: 'async',
+        tier: 'async',
+        tierColor: '#f59e0b',
+        icon: 'message-square',
+        serviceType: 'queue',
+      },
+    } as unknown as ArchitectureNode);
   }
 
   return nodes;
@@ -589,27 +794,25 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
       },
       markerEnd: 'arrowclosed',
       markerStart: 'none',
-    });
+    } as ArchitectureEdge);
   };
 
   for (let i = 0; i < tierOrder.length - 1; i++) {
     const sourceTier = tierOrder[i];
     const targetTier = tierOrder[i + 1];
 
-    const sources = nodes.filter(n => (n.tier || n.layer) === sourceTier && !n.isGroup);
-    const targets = nodes.filter(n => (n.tier || n.layer) === targetTier && !n.isGroup);
+    const sources = nodes.filter(n => ((n.tier || n.layer) === sourceTier && !n.isGroup));
+    const targets = nodes.filter(n => ((n.tier || n.layer) === targetTier && !n.isGroup));
 
     if (sources.length > 0 && targets.length > 0) {
       const commType: 'sync' | 'async' = targetTier === 'async' ? 'async' : 'sync';
 
-      // One primary downstream edge per source (round-robin)
       for (let s = 0; s < sources.length; s++) {
         const source = sources[s];
         const primaryTarget = targets[s % targets.length];
         pushEdge(source, primaryTarget, commType);
       }
 
-      // Ensure each target has at least one upstream source
       for (let t = 0; t < targets.length; t++) {
         const target = targets[t];
         const incomingExists = edges.some((e) => e.target === target.id);
@@ -621,10 +824,9 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
     }
   }
 
-  // Also connect async to compute/observe for consumers
-  const asyncNodes = nodes.filter(n => (n.tier || n.layer) === 'async' && !n.isGroup);
-  const computeNodes = nodes.filter(n => (n.tier || n.layer) === 'compute' && !n.isGroup);
-  const observeNodes = nodes.filter(n => (n.tier || n.layer) === 'observe' && !n.isGroup);
+  const asyncNodes = nodes.filter(n => ((n.tier || n.layer) === 'async' && !n.isGroup));
+  const computeNodes = nodes.filter(n => ((n.tier || n.layer) === 'compute' && !n.isGroup));
+  const observeNodes = nodes.filter(n => ((n.tier || n.layer) === 'observe' && !n.isGroup));
   
   for (const asyncNode of asyncNodes) {
     if (computeNodes.length > 0) {

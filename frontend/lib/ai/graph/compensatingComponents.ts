@@ -91,7 +91,7 @@ export function autoAddCompensatingComponents(
   nodes: ArchitectureNode[],
   edges: ArchitectureEdge[]
 ): { nodes: ArchitectureNode[]; edges: ArchitectureEdge[] } {
-  let currentNodes = [...nodes];
+  const currentNodes = [...nodes];
   let currentEdges = [...edges];
 
   // Pattern A: Database without cache

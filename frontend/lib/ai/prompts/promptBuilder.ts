@@ -39,8 +39,8 @@ const TIER_MODULE: PromptModule = {
   name: 'tiers',
   priority: 2,
   content: `TIER SYSTEM:
-Client (PURPLE): Browser, Mobile App, Web App
-Edge (PURPLE #8b5cf6): CDN, Load Balancer, API Gateway, WAF, DNS
+Client (NEUTRAL): Browser, Mobile App, Web App
+Edge (NEUTRAL #6B7B8D): CDN, Load Balancer, API Gateway, WAF, DNS
 Compute (TEAL #14b8a6): API Server, Auth Service, Business Logic, Workers, Functions
 Async (AMBER #f59e0b): Message Queue, Event Bus, Task Queue (own column!)
 Data (BLUE #3b82f6): Database, Cache, Object Storage, File System
@@ -92,7 +92,7 @@ const OUTPUT_FORMAT: PromptModule = {
     "label": "EDGE",
     "isGroup": true,
     "groupLabel": "Edge / Routing",
-    "groupColor": "#8b5cf6",
+    "groupColor": "#6B7B8D",
     "tier": "edge",
     "width": 400,
     "height": 200

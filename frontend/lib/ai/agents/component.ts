@@ -29,8 +29,8 @@ export function detectAWSInPrompt(description: string): boolean {
 export function enrichNodes(nodes: ArchitectureNode[]): ArchitectureNode[] {
   const TIER_ORDER_LOCAL: Array<'client' | 'edge' | 'compute' | 'async' | 'data' | 'observe' | 'external'> = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
   const TIER_COLORS_LOCAL: Record<string, string> = {
-    client: '#a855f7',
-    edge: '#8b5cf6',
+    client: '#5A5A5A',
+    edge: '#6B7B8D',
     compute: '#14b8a6',
     async: '#f59e0b',
     data: '#3b82f6',
@@ -49,7 +49,7 @@ export function enrichNodes(nodes: ArchitectureNode[]): ArchitectureNode[] {
     }
 
     if (enriched.tier && !enriched.tierColor) {
-      enriched.tierColor = TIER_COLORS_LOCAL[enriched.tier] || '#6366f1';
+      enriched.tierColor = TIER_COLORS_LOCAL[enriched.tier] || '#5A5A5A';
     }
 
     if (enriched.isGroup && !enriched.groupColor) {
@@ -349,7 +349,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     subtitle: 'web browser',
     layer: 'client',
     tier: 'client',
-    tierColor: '#a855f7',
+    tierColor: '#6B7B8D',
     width: 180,
     height: 70,
     icon: 'monitor',
@@ -379,7 +379,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     subtitle: 'content delivery',
     layer: 'edge',
     tier: 'edge',
-    tierColor: '#8b5cf6',
+    tierColor: '#6B7B8D',
     width: 160,
     height: 70,
     icon: 'globe',
@@ -394,7 +394,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     subtitle: 'traffic routing',
     layer: 'edge',
     tier: 'edge',
-    tierColor: '#8b5cf6',
+    tierColor: '#6B7B8D',
     width: 180,
     height: 70,
     icon: 'scale',
@@ -409,7 +409,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
     subtitle: 'REST API entry',
     layer: 'edge',
     tier: 'edge',
-    tierColor: '#8b5cf6',
+    tierColor: '#6B7B8D',
     width: 180,
     height: 70,
     icon: 'webhook',
@@ -622,7 +622,7 @@ function getFallbackAWSComponentsWithContext(userIntent: SharedState['userIntent
     subtitle: 'web browser',
     layer: 'client',
     tier: 'client',
-    tierColor: '#a855f7',
+    tierColor: '#6B7B8D',
     width: 180,
     height: 70,
     icon: 'monitor',
@@ -637,7 +637,7 @@ function getFallbackAWSComponentsWithContext(userIntent: SharedState['userIntent
     subtitle: 'global CDN',
     layer: 'edge',
     tier: 'edge',
-    tierColor: '#8b5cf6',
+    tierColor: '#6B7B8D',
     width: 200,
     height: 70,
     icon: 'radio',
@@ -652,7 +652,7 @@ function getFallbackAWSComponentsWithContext(userIntent: SharedState['userIntent
     subtitle: 'REST API entry',
     layer: 'edge',
     tier: 'edge',
-    tierColor: '#8b5cf6',
+    tierColor: '#6B7B8D',
     width: 200,
     height: 70,
     icon: 'webhook',
@@ -667,7 +667,7 @@ function getFallbackAWSComponentsWithContext(userIntent: SharedState['userIntent
     subtitle: 'traffic routing',
     layer: 'edge',
     tier: 'edge',
-    tierColor: '#8b5cf6',
+    tierColor: '#6B7B8D',
     width: 200,
     height: 70,
     icon: 'scale',

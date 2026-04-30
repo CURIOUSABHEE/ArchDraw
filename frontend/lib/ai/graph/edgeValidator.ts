@@ -120,7 +120,7 @@ export function enforceMinimumConnections(
   edges: ArchitectureEdge[]
 ): { edges: ArchitectureEdge[]; fixes: string[] } {
   const fixes: string[] = [];
-  let enhancedEdges = [...edges];
+  const enhancedEdges = [...edges];
   
   for (const node of nodes) {
     if (node.isGroup) continue;
@@ -193,7 +193,7 @@ export function ensureGroupConnectivity(
   edges: ArchitectureEdge[]
 ): { edges: ArchitectureEdge[]; fixes: string[] } {
   const fixes: string[] = [];
-  let enhancedEdges = [...edges];
+  const enhancedEdges = [...edges];
   
   const groups = nodes.filter(n => n.isGroup);
   const children = nodes.filter(n => !n.isGroup && n.parentId);

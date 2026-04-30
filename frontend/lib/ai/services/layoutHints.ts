@@ -5,7 +5,7 @@ const LAYER_ORDER: LayerType[] = ['client', 'edge', 'compute', 'async', 'data', 
 const GROUP_PATTERNS: Record<string, { keywords: string[]; color: string }> = {
   'RAG Pipeline': {
     keywords: ['rag', 'vector', 'embedding', 'pinecone', 'weaviate', 'chroma'],
-    color: '#8b5cf6'
+    color: '#8A8A8A'
   },
   'Data Pipeline': {
     keywords: ['etl', 'pipeline', 'transform', 'processor', 'stream'],
@@ -25,7 +25,7 @@ const GROUP_PATTERNS: Record<string, { keywords: string[]; color: string }> = {
   },
   'Cache Stack': {
     keywords: ['cache', 'redis', 'memcached'],
-    color: '#6366f1'
+    color: '#6B7280'
   },
   'Auth Stack': {
     keywords: ['auth', 'oauth', 'cognito', 'auth0', 'jwt', 'session'],
@@ -236,7 +236,7 @@ export function generateLayoutHints(
       id: 'group-services',
       label: 'Core Services',
       nodeIds: serviceNodes.map(n => n.id),
-      color: '#6366f1'
+      color: '#6B7280'
     });
   }
   

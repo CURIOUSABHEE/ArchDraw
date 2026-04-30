@@ -201,7 +201,7 @@ function extractFlows(description: string): FlowDescription[] {
   for (const sentence of sentences) {
     const lowerSentence = sentence.toLowerCase();
     
-    let flowSteps: string[] = [];
+    const flowSteps: string[] = [];
     let currentStep = '';
     
     const words = sentence.split(/\s+/);

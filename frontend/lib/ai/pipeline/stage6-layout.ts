@@ -1,5 +1,5 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
-import type { LayoutedNode, ValidatedDiagram } from './types';
+import type { LayoutedNode, ValidatedDiagram, PipelineLayer } from './types';
 
 const elk = new ELK();
 
@@ -8,6 +8,8 @@ const NODE_WIDTH = 180;
 const NODE_HEIGHT = 70;
 const MIN_PADDING = 10;
 const MIN_SPACING = 20;
+
+const LAYER_ORDER: PipelineLayer[] = ['presentation', 'gateway', 'application', 'async', 'data', 'observability', 'external'];
 
 interface ELKNode {
   id: string;
@@ -36,62 +38,93 @@ interface ELKGraph {
   layoutOptions?: Record<string, string>;
 }
 
+/**
+ * STAGE 6 — LAYOUT
+ * 
+ * Uses hierarchy-aware layout with improved handling for non-grouped nodes:
+ * - Groups are optional - only used when present
+ * - Non-grouped nodes flow naturally left-to-right by layer
+ * - Better spacing and positioning
+ * - Cleaner, more practical layouts
+ * 
+ * STRUCTURAL ENFORCEMENT:
+ * LEFT → RIGHT FLOW: clients → entry → services → async → data
+ */
 export async function applyLayout(validated: ValidatedDiagram): Promise<LayoutedNode[]> {
-  const { nodes } = validated;
+  const { nodes, edges } = validated;
 
+  // Separate nodes by type
   const groupNodes = nodes.filter(n => n.isGroup === true);
   const childNodes = nodes.filter(n => n.parentId && n.isGroup !== true);
   const rootNodes = nodes.filter(n => !n.parentId && n.isGroup !== true);
 
+  console.log(`[Layout] Processing: ${groupNodes.length} groups, ${childNodes.length} children, ${rootNodes.length} roots`);
+
+  // If no groups, use simple layer-based layout
+  if (groupNodes.length === 0) {
+    return applySimpleLayerLayout(nodes, edges);
+  }
+
+  // Build group lookup
   const groupById = new Map(groupNodes.map((g) => [g.id, g]));
+
+  // Attach root nodes to appropriate groups if they exist
   const attachableRoots = rootNodes.filter((n) => {
     const targetGroupId = `${n.layer}-group`;
     return groupById.has(targetGroupId);
   });
-  const pinnedRootIds = new Set(attachableRoots.map((n) => n.id));
 
   const normalizedChildNodes = [
     ...childNodes,
     ...attachableRoots.map((n) => ({ ...n, parentId: `${n.layer}-group` })),
   ];
-  const normalizedRootNodes = rootNodes.filter((n) => !pinnedRootIds.has(n.id));
 
+  const normalizedRootNodes = rootNodes.filter((n) => {
+    const targetGroupId = `${n.layer}-group`;
+    return !groupById.has(targetGroupId);
+  });
+
+  // Build ELK graph with hierarchy enforcement
   const elkGraph: ELKGraph = {
     id: 'root',
     layoutOptions: {
       'elk.algorithm': 'layered',
       'elk.direction': 'RIGHT',
-      'elk.spacing.nodeNode': '20',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '120',
-      'elk.padding': '[top=40,left=40,bottom=40,right=40]',
+      'elk.spacing.nodeNode': '40',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '150',
+      'elk.padding': '[top=60,left=60,bottom=60,right=60]',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
       'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
       'elk.edgeRouting': 'ORTHOGONAL',
-      'elk.layered.unnecessaryBendpoints': 'true',
     },
     children: [
+      // Root nodes first (ungrouped)
       ...normalizedRootNodes.map(n => ({
         id: n.id,
         width: NODE_WIDTH,
         height: NODE_HEIGHT,
       })),
+
+      // Group nodes with children
       ...groupNodes.map(group => {
         const children = normalizedChildNodes.filter(c => c.parentId === group.id);
-        const cols = Math.min(children.length, 2);
+        
+        // Calculate group dimensions based on children
+        const cols = Math.min(Math.max(children.length, 1), 3);
         const rows = Math.ceil(children.length / cols);
-        const w = cols * (NODE_WIDTH + 40) + 80;
-        const h = rows * (NODE_HEIGHT + 40) + 80;
+        const w = Math.max(cols * (NODE_WIDTH + 40) + 80, 400);
+        const h = Math.max(rows * (NODE_HEIGHT + 40) + 100, 220);
+
         return {
           id: group.id,
-          width: Math.max(w, 400),
-          height: Math.max(h, 200),
+          width: w,
+          height: h,
           layoutOptions: {
-            'elk.algorithm': 'layered',
-            'elk.direction': 'DOWN',
-            'elk.padding': '[top=50,left=20,bottom=20,right=20]',
-            'elk.spacing.nodeNode': '30',
+            'elk.algorithm': 'box',
+            'elk.padding': '[top=60,left=30,bottom=30,right=30]',
+            'elk.spacing.nodeNode': '40',
           },
-          children: children.map(c => ({
+          children: children.map((c, idx) => ({
             id: c.id,
             width: NODE_WIDTH,
             height: NODE_HEIGHT,
@@ -99,7 +132,9 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
         };
       }),
     ],
-    edges: validated.edges
+
+    // Edges - filter out edges involving groups
+    edges: edges
       .filter(e => {
         const srcIsGroup = groupNodes.some(g => g.id === e.source);
         const tgtIsGroup = groupNodes.some(g => g.id === e.target);
@@ -112,11 +147,14 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
       })),
   };
 
+  // Run ELK layout
   const result = await elk.layout(elkGraph) as ELKGraph;
 
+  // Convert ELK output back to LayoutedNode[]
   const originalById = new Map(nodes.map(n => [n.id, n]));
   const outById = new Map<string, LayoutedNode>();
 
+  // Process top-level nodes (groups and root nodes)
   for (const top of result.children ?? []) {
     const originalTop = originalById.get(top.id);
     if (!originalTop) continue;
@@ -125,108 +163,85 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
       ...originalTop,
       x: top.x ?? 0,
       y: top.y ?? 0,
-      width: top.width ?? 180,
-      height: top.height ?? 70,
+      width: top.width ?? (originalTop.isGroup ? 400 : NODE_WIDTH),
+      height: top.height ?? (originalTop.isGroup ? 220 : NODE_HEIGHT),
     });
 
+    // Process children (their positions are relative to parent)
     for (const child of top.children ?? []) {
       const originalChild = originalById.get(child.id);
       if (!originalChild) continue;
 
-      // Child positions from ELK are already parent-relative for React Flow parentId nodes.
       outById.set(child.id, {
         ...originalChild,
         x: child.x ?? 0,
         y: child.y ?? 0,
-        width: child.width ?? 180,
-        height: child.height ?? 70,
+        width: child.width ?? NODE_WIDTH,
+        height: child.height ?? NODE_HEIGHT,
       });
     }
   }
 
+  // Handle any nodes not processed (orphans)
   for (const node of nodes) {
     if (outById.has(node.id)) continue;
-    // Use ELK's default padding as base position for orphaned nodes
-    const idx = outById.size;
-    const col = idx % 4;
-    const row = Math.floor(idx / 4);
+
+    const layerIdx = LAYER_ORDER.indexOf(node.layer as PipelineLayer);
+    const col = outById.size % 4;
+    const row = Math.floor(outById.size / 4);
+    const xOffset = (layerIdx >= 0 ? layerIdx * 250 : 0);
+
     outById.set(node.id, {
       ...node,
-      x: 60 + col * (NODE_WIDTH + MIN_SPACING),
+      x: 60 + xOffset + col * (NODE_WIDTH + MIN_SPACING),
       y: 60 + row * (NODE_HEIGHT + MIN_SPACING),
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
     });
   }
 
-  const nodeArray = Array.from(outById.values());
-  resolveCollisions(nodeArray);
-
-  return nodeArray
-    .map(n => outById.get(n.id))
-    .filter((n): n is LayoutedNode => Boolean(n));
+  return Array.from(outById.values());
 }
 
-function resolveCollisions(nodes: LayoutedNode[]): void {
-  const padding = MIN_PADDING;
-  const minSpacing = MIN_SPACING;
-  const iters = 5;
-  
-  for (let iter = 0; iter < iters; iter++) {
-    let moved = false;
-    
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (nodes[i].isGroup === true || nodes[j].isGroup === true) continue;
-        if (nodes[i].parentId !== nodes[j].parentId) continue;
+/**
+ * Simple layer-based layout for diagrams without groups
+ * Creates a clean left-to-right flow
+ */
+function applySimpleLayerLayout(nodes: RawNode[], edges: DiagramEdge[]): LayoutedNode[] {
+  const layerGroups = new Map<PipelineLayer, RawNode[]>();
 
-        const a = nodes[i];
-        const b = nodes[j];
-        
-        const ax1 = a.x - padding;
-        const ay1 = a.y - padding;
-        const ax2 = a.x + (a.width ?? NODE_WIDTH) + padding;
-        const ay2 = a.y + (a.height ?? NODE_HEIGHT) + padding;
-        
-        const bx1 = b.x - padding;
-        const by1 = b.y - padding;
-        const bx2 = b.x + (b.width ?? NODE_WIDTH) + padding;
-        const by2 = b.y + (b.height ?? NODE_HEIGHT) + padding;
-
-        const overlapX = Math.min(ax2, bx2) - Math.max(ax1, bx1);
-        const overlapY = Math.min(ay2, by2) - Math.max(ay1, by1);
-        
-        if (overlapX > 0 && overlapY > 0) {
-          const dx = overlapX > overlapY ? 0 : overlapX / 2;
-          const dy = overlapY >= overlapX ? 0 : overlapY / 2;
-          
-          if (a.x < b.x) {
-            a.x -= minSpacing;
-            b.x += minSpacing;
-          } else {
-            a.x += minSpacing;
-            b.x -= minSpacing;
-          }
-          moved = true;
-        }
-        
-        const gapX = Math.min(Math.abs(ax2 - bx1), Math.abs(bx2 - ax2));
-        const gapY = Math.min(Math.abs(ay2 - by1), Math.abs(by2 - ay2));
-        
-        if (gapX < minSpacing && gapY < minSpacing) {
-          const shift = minSpacing - gapX;
-          if (a.x < b.x) {
-            a.x -= shift / 2;
-            b.x += shift / 2;
-          } else {
-            a.x += shift / 2;
-            b.x -= shift / 2;
-          }
-          moved = true;
-        }
-      }
+  // Group nodes by layer
+  for (const node of nodes) {
+    const layer = node.layer as PipelineLayer;
+    if (!layerGroups.has(layer)) {
+      layerGroups.set(layer, []);
     }
-    
-    if (!moved) break;
+    layerGroups.get(layer)!.push(node);
   }
+
+  const result: LayoutedNode[] = [];
+  const LAYER_SPACING = 300;
+  const NODE_SPACING_Y = 120;
+  const START_X = 100;
+  const START_Y = 100;
+
+  // Position nodes layer by layer (left to right)
+  LAYER_ORDER.forEach((layer, layerIdx) => {
+    const nodesInLayer = layerGroups.get(layer) || [];
+    const x = START_X + layerIdx * LAYER_SPACING;
+
+    nodesInLayer.forEach((node, nodeIdx) => {
+      const y = START_Y + nodeIdx * NODE_SPACING_Y;
+      
+      result.push({
+        ...node,
+        x,
+        y,
+        width: NODE_WIDTH,
+        height: NODE_HEIGHT,
+      });
+    });
+  });
+
+  return result;
 }

@@ -169,11 +169,11 @@ function convertEdge(
     labelBgStyle: { fill: '#1e1e2e', fillOpacity: 0.9 },
     labelStyle: { fontSize: 10, fontWeight: 600, fill: '#e2e8f0' },
     style: {
-      stroke: edge.style?.stroke ?? '#94a3b8',
+      stroke: edge.style?.stroke ?? '#6B7280',
       strokeWidth: edge.style?.strokeWidth ?? 2,
       strokeDasharray: edge.style?.strokeDasharray ?? '',
     },
-    markerEnd: { type: edge.markerEnd ?? 'arrowclosed', color: edge.style?.stroke ?? '#94a3b8' },
+    markerEnd: { type: edge.markerEnd ?? 'arrowclosed', color: edge.style?.stroke ?? '#6B7280' },
     data: { communicationType: commType },
   };
 }
