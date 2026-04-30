@@ -33,6 +33,7 @@ function PhaseRenderer({
   const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShowContinueAnyway(false);
     setShowHint(false);
     
@@ -106,7 +107,7 @@ export function GuidePanel() {
     
     if (session?.phase === 'action' || session?.phase === 'connecting') {
       if (currentStep) {
-        const result = validateStep(currentStep as any, nodes, edges);
+        const result = validateStep(currentStep, nodes, edges);
         if (!result.valid) {
           setValidationError(result.message);
           return;
@@ -131,7 +132,7 @@ export function GuidePanel() {
       <div className="p-6 text-center">
         <h2 className="text-2xl font-bold text-green-600 mb-4">Tutorial Complete!</h2>
         <p className="text-muted-foreground mb-4">
-          You've completed {activeTutorial.title}
+          You&apos;ve completed {activeTutorial.title}
         </p>
         <button
           onClick={exitTutorial}

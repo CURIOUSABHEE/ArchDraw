@@ -184,7 +184,7 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
             <div className="flex items-center gap-2">
               {isLiveTutorial(tutorial.id) && (
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium"
-                  style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}
+                  style={{ background: 'rgba(99,102,241,0.15)', color: '#8A8A8A' }}
                 >
                   <Sparkles className="w-3 h-3" />
                   AI
@@ -276,13 +276,13 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
           <button
             className="w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 group/btn"
             style={{ 
-              background: isInProgress ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(255,255,255,0.06)',
+              background: isInProgress ? 'linear-gradient(135deg, #595959 0%, #434343 100%)' : 'rgba(255,255,255,0.06)',
               color: isInProgress ? '#ffffff' : '#e2e8f0',
               border: isInProgress ? 'none' : '1px solid rgba(255,255,255,0.1)',
             }}
             onMouseEnter={(e) => {
               if (isInProgress) {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #8A8A8A 0%, #595959 100%)';
               } else {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
@@ -290,7 +290,7 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
             }}
             onMouseLeave={(e) => {
               if (isInProgress) {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #595959 0%, #434343 100%)';
               } else {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
@@ -347,8 +347,8 @@ export default function TutorialsPage() {
             </Link>
             <div className="w-px h-5" style={{ background: 'rgba(255,255,255,0.1)' }} />
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}>
-                <BookOpen className="w-4 h-4 text-white" />
+<div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #595959 0%, #434343 100%)' }}>
+                 <BookOpen className="w-4 h-4 text-white" />
               </div>
               <span className="font-semibold text-sm">Tutorials</span>
             </div>
@@ -428,8 +428,8 @@ export default function TutorialsPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8' }}
           >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#6366f1' }} />
-            {totalCount} tutorials available
+<span className="w-1.5 h-1.5 rounded-full" style={{ background: '#595959' }} />
+             {totalCount} tutorials available
           </div>
           
           <h1 
@@ -445,7 +445,7 @@ export default function TutorialsPage() {
 
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
-              <Zap className="w-4 h-4" style={{ color: '#818cf8' }} />
+              <Zap className="w-4 h-4" style={{ color: '#8A8A8A' }} />
               <span className="text-sm text-slate-300">Interactive Canvas</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.15)' }}>
@@ -464,21 +464,21 @@ export default function TutorialsPage() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.2)' }}>
-                  <CheckCircle className="w-5 h-5" style={{ color: '#818cf8' }} />
+                  <CheckCircle className="w-5 h-5" style={{ color: '#8A8A8A' }} />
                 </div>
                 <div>
                   <div className="text-sm font-medium text-white">Your Progress</div>
                   <div className="text-xs text-slate-400">{completedCount} of {totalCount} tutorials completed</div>
                 </div>
               </div>
-              <div className="text-2xl font-bold" style={{ color: '#818cf8' }}>{completionPercent}%</div>
+              <div className="text-2xl font-bold" style={{ color: '#8A8A8A' }}>{completionPercent}%</div>
             </div>
             <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
               <div
                 className="h-full rounded-full transition-all duration-700"
                 style={{ 
                   width: `${completionPercent}%`,
-                  background: 'linear-gradient(90deg, #6366f1 0%, #818cf8 100%)',
+                  background: 'linear-gradient(90deg, #595959 0%, #8A8A8A 100%)',
                 }}
               />
             </div>
@@ -498,7 +498,7 @@ export default function TutorialsPage() {
         <div className="mt-16 text-center">
           <p className="text-sm text-slate-500">
             More tutorials coming soon
-            <span className="inline-flex items-center gap-1 ml-2" style={{ color: '#6366f1' }}>
+            <span className="inline-flex items-center gap-1 ml-2" style={{ color: '#595959' }}>
               <Sparkles className="w-3.5 h-3.5" />
               AI Agent System, RAG Application, URL Shortener
             </span>

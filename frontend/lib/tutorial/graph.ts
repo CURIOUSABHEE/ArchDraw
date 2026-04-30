@@ -97,7 +97,7 @@ export function createGraph(nodes: Node[], edges: Edge[]): ArchitectureGraph {
     type: n.type || 'systemNode',
     label: n.data?.label || n.id,
     category: n.data?.category || 'Unknown',
-    color: n.data?.color || '#6366f1',
+    color: n.data?.color || '#6B7280',
     position: n.position,
     componentId: n.data?.componentId || n.id,
   }));

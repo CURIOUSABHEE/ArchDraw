@@ -24,7 +24,7 @@ interface CompletionCardFlowProps {
 
 export function CompletionCardFlow({
   tutorialTitle,
-  tutorialColor = '#6366f1',
+  tutorialColor = '#6B7280',
   learnedItems,
   nextTutorialTitle,
   nextTutorialReason,
@@ -205,7 +205,7 @@ export function CompletionCardFlow({
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
               >
-                <Trophy className="w-4 h-4 text-indigo-500" />
+                <Trophy className="w-4 h-4 text-gray-500" />
               </div>
               <span className="text-sm font-medium text-[#1A1A1A]">Tutorial Complete</span>
             </div>

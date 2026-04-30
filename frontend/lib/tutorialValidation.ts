@@ -1,8 +1,9 @@
 import type { Node, Edge } from 'reactflow';
-import type { TutorialStep, EdgeRequirement } from '@/lib/tutorial/types';
+import type { TutorialStep as TypesTutorialStep, EdgeRequirement } from '@/lib/tutorial/types';
+import type { TutorialStep as SchemaTutorialStep } from '@/lib/tutorial/schema';
 import { EDGE_LABEL } from '@/lib/tutorial/factories';
 
-type AnyTutorialStep = TutorialStep;
+type AnyTutorialStep = TypesTutorialStep | SchemaTutorialStep;
 
 interface ValidationFields {
   requiredNodes?: string[];
@@ -12,12 +13,15 @@ interface ValidationFields {
 }
 
 function getValidationFields(step: AnyTutorialStep): ValidationFields {
-  return {
-    requiredNodes: step.requiredNodes,
-    requiredEdges: step.requiredEdges,
-    errorMessage: step.errorMessage,
-    successMessage: step.successMessage,
-  };
+  if ('requiredNodes' in step) {
+    return {
+      requiredNodes: (step as TypesTutorialStep).requiredNodes,
+      requiredEdges: (step as TypesTutorialStep).requiredEdges,
+      errorMessage: (step as TypesTutorialStep).errorMessage,
+      successMessage: (step as TypesTutorialStep).successMessage,
+    };
+  }
+  return {};
 }
 
 function getRequiredNodes(step: AnyTutorialStep): string[] {

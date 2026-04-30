@@ -24,7 +24,7 @@ const TutorialCanvas = dynamic(
     loading: () => (
       <div className="flex-1 flex items-center justify-center" style={{ background: '#F4F4F4' }}>
         <div className="flex flex-col items-center gap-3">
-          <div className="w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="w-6 h-6 rounded-full border-2 border-gray-500 border-t-transparent animate-spin" />
           <span className="text-xs text-slate-600">Loading canvas…</span>
         </div>
       </div>
@@ -56,7 +56,7 @@ function LevelCompleteScreen({
     <div className="absolute inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
       <div className="w-full max-w-sm mx-4 rounded-2xl p-6 flex flex-col gap-5" style={{ background: 'white', border: '1px solid rgba(0,0,0,0.1)' }}>
         <div className="flex items-center gap-2">
-          <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(89,89,89,0.1)', color: '#595959', border: '1px solid rgba(99,102,241,0.2)' }}>
             Level {levelNum} Complete
           </span>
         </div>
@@ -76,9 +76,9 @@ function LevelCompleteScreen({
           <button
             onClick={onContinue}
             className="w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors"
-            style={{ background: '#6366f1' }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#4f46e5')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#6366f1')}
+style={{ background: '#595959' }}
+             onMouseEnter={e => (e.currentTarget.style.background = '#434343')}
+             onMouseLeave={e => (e.currentTarget.style.background = '#595959')}
           >
             Continue to Level {nextLevelNum} →
           </button>
@@ -320,7 +320,7 @@ export default function TutorialPage() {
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#F4F4F4', color: '#1A1A1A' }}>
         <div className="text-center">
           <p className="text-slate-500 mb-4">Tutorial not found.</p>
-          <Link href="/tutorials" className="text-indigo-500 hover:text-indigo-600 text-sm">← Back to tutorials</Link>
+          <Link href="/tutorials" className="text-gray-500 hover:text-gray-600 text-sm">← Back to tutorials</Link>
         </div>
       </div>
     );
@@ -344,7 +344,7 @@ export default function TutorialPage() {
         </Link>
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-[#1A1A1A] hidden md:block">{tutorial.title}</span>
-          <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(89,89,89,0.1)', color: '#595959', border: '1px solid rgba(99,102,241,0.2)' }}>
             {stepLabel}
           </span>
         </div>
@@ -352,7 +352,7 @@ export default function TutorialPage() {
           <div className="hidden sm:flex items-center gap-2">
             <span className="text-xs text-slate-500">{totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0}%</span>
             <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>
-              <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0}%` }} />
+              <div className="h-full bg-gray-500 rounded-full transition-all duration-500" style={{ width: `${totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0}%` }} />
             </div>
           </div>
           <button
@@ -377,7 +377,7 @@ export default function TutorialPage() {
               Restart
             </button>
           )}
-          <a href="/editor" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-colors flex-shrink-0" style={{ background: '#6366f1' }} onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#4f46e5')} onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#6366f1')}>
+          <a href="/editor" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-colors flex-shrink-0" style={{ background: '#595959' }} onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#434343')} onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#595959')}>
             <PenSquare className="w-3.5 h-3.5" />
             Create your own
           </a>

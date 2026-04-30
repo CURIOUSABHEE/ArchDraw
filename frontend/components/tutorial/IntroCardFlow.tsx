@@ -48,7 +48,7 @@ export function IntroCardFlow({
   componentCount,
   onStart,
   onSkip,
-  tutorialColor = '#6366f1',
+  tutorialColor = '#6B7280',
 }: IntroCardFlowProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   // Lazy initializer: reads localStorage once on first mount (SSR-safe via the guard

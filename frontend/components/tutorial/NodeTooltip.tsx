@@ -22,7 +22,7 @@ export function NodeTooltip({
   label,
   description,
   category,
-  color = '#6366f1',
+  color = '#6B7280',
   isDragging = false,
   children,
   role,
@@ -37,7 +37,10 @@ export function NodeTooltip({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     setPos({ x: e.clientX, y: e.clientY });
@@ -57,6 +60,7 @@ export function NodeTooltip({
   useEffect(() => {
     if (isDragging) {
       if (timerRef.current) clearTimeout(timerRef.current);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisible(false);
     }
   }, [isDragging]);
@@ -138,9 +142,9 @@ export function NodeTooltip({
                 key={idx}
                 className="text-[10px] px-2 py-0.5 rounded-md font-medium"
                 style={{ 
-                  background: 'rgba(99, 102, 241, 0.15)', 
-                  color: '#a5b4fc',
-                  border: '1px solid rgba(99, 102, 241, 0.25)'
+background: 'rgba(107, 114, 128, 0.15)', 
+                   color: '#9ca3af',
+                   border: '1px solid rgba(107, 114, 128, 0.25)'
                 }}
               >
                 {concept}

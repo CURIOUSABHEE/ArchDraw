@@ -96,9 +96,9 @@ function TutorialSystemNodeWrapper(props: NodeProps<NodeData>) {
       concepts={richTooltip?.concepts}
     >
       <div 
-        className={`${isHighlighted === 'source' ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white' : ''} ${isHighlighted === 'target' ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-white' : ''} rounded-lg transition-all duration-300`}
+        className={`${isHighlighted === 'source' ? 'ring-2 ring-gray-500 ring-offset-2 ring-offset-white' : ''} ${isHighlighted === 'target' ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-white' : ''} rounded-lg transition-all duration-300`}
         style={{
-          boxShadow: isHighlighted === 'source' ? '0 0 20px rgba(99,102,241,0.4), inset 0 0 15px rgba(99,102,241,0.1)' : 
+          boxShadow: isHighlighted === 'source' ? '0 0 20px rgba(107,114,128,0.4), inset 0 0 15px rgba(107,114,128,0.1)' : 
                      isHighlighted === 'target' ? '0 0 20px rgba(16,185,129,0.4), inset 0 0 15px rgba(16,185,129,0.1)' : 'none',
         }}
       >
@@ -229,7 +229,7 @@ function TutorialCanvasInner({
     return () => {
       if (canvasSaveTimerRef.current) clearTimeout(canvasSaveTimerRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [nodes, edges, tutorialId, saveProgress, isSwitchingTutorial]);
 
   const onNodesChange = useCallback(
@@ -377,7 +377,7 @@ function TutorialCanvasInner({
             type: 'simpleFloating',
             animated: true,
             data: { connectionType: 'smooth', edgeType: 'sync', pathType: 'smooth' },
-            style: { stroke: '#94a3b8', strokeWidth: '2px' },
+            style: { stroke: '#6B7280', strokeWidth: 2 },
           }}
           deleteKeyCode={['Backspace', 'Delete', 'Meta+Backspace']}
         >

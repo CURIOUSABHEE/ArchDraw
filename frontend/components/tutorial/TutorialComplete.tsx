@@ -230,7 +230,7 @@ export function TutorialComplete({ tutorial, onRetry, onNext, onGoToCanvas }: Tu
         <div className="relative">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)' }}
+            style={{ background: 'rgba(89,89,89,0.15)', border: '1px solid rgba(89,89,89,0.3)' }}
           >
             <Trophy className="w-8 h-8 text-indigo-400" />
           </div>
@@ -268,7 +268,7 @@ export function TutorialComplete({ tutorial, onRetry, onNext, onGoToCanvas }: Tu
             onClick={onGoToCanvas}
             className="w-full py-2.5 rounded-lg text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
             style={{ background: '#4f46e5' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#6366f1')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#595959')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#4f46e5')}
           >
             Open this diagram in Canvas →
