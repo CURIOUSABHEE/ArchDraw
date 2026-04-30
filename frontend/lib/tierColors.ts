@@ -1,43 +1,50 @@
+/* ═══════════════════════════════════════════════════════════════
+   NEUTRAL SEMANTIC TIER COLORS
+   Muted, architectural — color communicates structure
+   Blue: services/compute, Amber: storage/data
+   80-90% neutral, accents reserved for meaning
+   ═══════════════════════════════════════════════════════════════ */
+
 export const TIER_COLORS = {
   client: {
-    color: '#8B5CF6',
-    bg: 'rgba(139, 92, 246, 0.1)',
+    color: '#5A5A5A',
+    bg: 'rgba(90, 90, 90, 0.06)',
     label: 'Client',
     description: 'Browser, Mobile, Web',
   },
   edge: {
-    color: '#6366F1',
-    bg: 'rgba(99, 102, 241, 0.1)',
+    color: '#6B7B8D',
+    bg: 'rgba(107, 123, 141, 0.06)',
     label: 'Edge / Gateway',
     description: 'CDN, Load Balancer, API Gateway',
   },
   compute: {
-    color: '#0D9488',
-    bg: 'rgba(13, 148, 136, 0.1)',
+    color: '#6FA8DC',
+    bg: 'rgba(111, 168, 220, 0.07)',
     label: 'Compute / Service',
     description: 'Microservices, Business Logic',
   },
   async: {
-    color: '#F59E0B',
-    bg: 'rgba(245, 158, 11, 0.1)',
+    color: '#C4A86C',
+    bg: 'rgba(196, 168, 108, 0.07)',
     label: 'Async / Queue',
     description: 'Message Queue, Event Bus',
   },
   data: {
-    color: '#3B82F6',
-    bg: 'rgba(59, 130, 246, 0.1)',
+    color: '#D8AA59',
+    bg: 'rgba(216, 170, 89, 0.07)',
     label: 'Data / Storage',
     description: 'Database, Cache, Object Storage',
   },
   observe: {
-    color: '#6B7280',
-    bg: 'rgba(107, 114, 128, 0.1)',
+    color: '#8A8A8A',
+    bg: 'rgba(138, 138, 138, 0.06)',
     label: 'Observe',
     description: 'Monitoring, Logging, Tracing',
   },
   external: {
-    color: '#F43F5E',
-    bg: 'rgba(244, 63, 94, 0.1)',
+    color: '#9A8575',
+    bg: 'rgba(154, 133, 117, 0.06)',
     label: 'External',
     description: 'Third-party APIs, Payment',
   },
@@ -45,44 +52,44 @@ export const TIER_COLORS = {
 
 export const TIER_COLORS_DARK = {
   client: {
-    color: '#A78BFA',
-    bg: 'rgba(167, 139, 250, 0.15)',
+    color: '#9A9A9A',
+    bg: 'rgba(154, 154, 154, 0.08)',
     label: 'Client',
     description: 'Browser, Mobile, Web',
   },
   edge: {
-    color: '#818CF8',
-    bg: 'rgba(129, 140, 248, 0.15)',
+    color: '#8B9BAD',
+    bg: 'rgba(139, 155, 173, 0.08)',
     label: 'Edge / Gateway',
     description: 'CDN, Load Balancer, API Gateway',
   },
   compute: {
-    color: '#2DD4BF',
-    bg: 'rgba(45, 212, 191, 0.15)',
+    color: '#7DB8E8',
+    bg: 'rgba(125, 184, 232, 0.1)',
     label: 'Compute / Service',
     description: 'Microservices, Business Logic',
   },
   async: {
-    color: '#FBBF24',
-    bg: 'rgba(251, 191, 36, 0.15)',
+    color: '#D4B87C',
+    bg: 'rgba(212, 184, 124, 0.08)',
     label: 'Async / Queue',
     description: 'Message Queue, Event Bus',
   },
   data: {
-    color: '#60A5FA',
-    bg: 'rgba(96, 165, 250, 0.15)',
+    color: '#E0B868',
+    bg: 'rgba(224, 184, 104, 0.08)',
     label: 'Data / Storage',
     description: 'Database, Cache, Object Storage',
   },
   observe: {
-    color: '#9CA3AF',
-    bg: 'rgba(156, 163, 175, 0.15)',
+    color: '#A8A8A8',
+    bg: 'rgba(168, 168, 168, 0.08)',
     label: 'Observe',
     description: 'Monitoring, Logging, Tracing',
   },
   external: {
-    color: '#FB7185',
-    bg: 'rgba(251, 113, 133, 0.15)',
+    color: '#B09E8E',
+    bg: 'rgba(176, 158, 142, 0.08)',
     label: 'External',
     description: 'Third-party APIs, Payment',
   },
@@ -90,33 +97,34 @@ export const TIER_COLORS_DARK = {
 
 export type TierType = keyof typeof TIER_COLORS;
 
+/* Edge styles — muted neutral, subtle semantic hints */
 export const EDGE_STYLES = {
   sync: {
-    color: '#94A3B8',
+    color: '#7A7A7A',
     dash: '',
     animated: false,
-    label: 'REST',
+    label: 'sync',
   },
   async: {
-    color: '#F59E0B',
+    color: '#B89E60',
     dash: '6,3',
     animated: true,
     label: 'async',
   },
   stream: {
-    color: '#10B981',
+    color: '#7BA89A',
     dash: '2,2',
     animated: true,
     label: 'stream',
   },
   event: {
-    color: '#EC4899',
+    color: '#A89080',
     dash: '2,3',
     animated: true,
     label: 'event',
   },
   dep: {
-    color: '#94A3B8',
+    color: '#9A9A9A',
     dash: '6,6',
     animated: false,
     label: 'dep',
@@ -125,55 +133,56 @@ export const EDGE_STYLES = {
 
 export const EDGE_STYLES_DARK = {
   sync: {
-    color: '#94A3B8',
+    color: '#8A8A8A',
     dash: '',
     animated: false,
-    label: 'REST',
+    label: 'sync',
   },
   async: {
-    color: '#FBBF24',
+    color: '#C8B070',
     dash: '6,3',
     animated: true,
     label: 'async',
   },
   stream: {
-    color: '#34D399',
+    color: '#8BB8AA',
     dash: '2,2',
     animated: true,
     label: 'stream',
   },
   event: {
-    color: '#F472B6',
+    color: '#B8A090',
     dash: '2,3',
     animated: true,
     label: 'event',
   },
   dep: {
-    color: '#64748B',
+    color: '#707070',
     dash: '6,6',
     animated: false,
     label: 'dep',
   },
 } as const;
 
+/* Zone backgrounds — barely perceptible, warm neutrals */
 export const ZONE_BACKGROUNDS: Record<TierType, string> = {
-  client: '#F5F3FF',
-  edge: '#EEF2FF',
-  compute: '#F0FDFA',
-  async: '#FFFBEB',
-  data: '#EFF6FF',
-  observe: '#F9FAFB',
-  external: '#FFF1F2',
+  client: '#F6F6F4',
+  edge: '#F5F6F8',
+  compute: '#F4F7FA',
+  async: '#FAF8F2',
+  data: '#FAF6EE',
+  observe: '#F7F7F5',
+  external: '#F8F5F2',
 };
 
 export const ZONE_BACKGROUNDS_DARK: Record<TierType, string> = {
-  client: '#1E1B4B',
-  edge: '#1E1B4B',
-  compute: '#134E4A',
-  async: '#451A03',
-  data: '#1E3A5F',
-  observe: '#1F2937',
-  external: '#4C0519',
+  client: '#181816',
+  edge: '#171819',
+  compute: '#151920',
+  async: '#1A1914',
+  data: '#1C1812',
+  observe: '#181816',
+  external: '#191715',
 };
 
 export function getTierColor(tier?: string, isDark = false): string {

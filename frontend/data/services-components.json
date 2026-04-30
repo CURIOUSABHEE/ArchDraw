@@ -31,7 +31,7 @@
     "id": "nextauth",
     "label": "NextAuth.js",
     "category": "Auth & Identity",
-    "color": "#7c3aed",
+    "color": "#8A8A8A",
     "icon": "KeyRound"
   },
   {
@@ -311,7 +311,7 @@
     "id": "stability_ai",
     "label": "Stability AI",
     "category": "AI & ML APIs",
-    "color": "#7c3aed",
+    "color": "#8A8A8A",
     "icon": "Image"
   },
   {
@@ -444,7 +444,7 @@
     "id": "fly_io",
     "label": "Fly.io",
     "category": "Cloud Infrastructure",
-    "color": "#7c3aed",
+    "color": "#8A8A8A",
     "icon": "Server"
   },
   {
@@ -633,7 +633,7 @@
     "id": "growthbook",
     "label": "GrowthBook",
     "category": "Feature Flags",
-    "color": "#7c3aed",
+    "color": "#8A8A8A",
     "icon": "Flag"
   },
   {
@@ -647,7 +647,7 @@
     "id": "inngest",
     "label": "Inngest",
     "category": "Background Jobs",
-    "color": "#7c3aed",
+    "color": "#8A8A8A",
     "icon": "Timer"
   },
   {
@@ -766,7 +766,7 @@
     "id": "soketi",
     "label": "Soketi",
     "category": "Realtime",
-    "color": "#6366f1",
+    "color": "#6B7280",
     "icon": "Radio"
   },
   {
@@ -808,7 +808,7 @@
     "id": "custom_node_premium",
     "label": "Premium User Feature Management",
     "category": "Custom",
-    "color": "#6366f1",
+    "color": "#6B7280",
     "icon": "user-crown",
     "description": "I want to build a professional networking platform like LinkedIn. Users can sign up with email or Google OAuth, create a detailed profile with work experience, education, skills, and a profile photo. Users can send and accept connection requests, follow companies, and see a personalized activity feed showing posts, job updates, and articles from their network. Users can create text and image posts, react with emoji, comment, and share. There is a job board where companies post openings with requ"
   },
@@ -816,7 +816,7 @@
     "id": "custom_node_company",
     "label": "Company Page Management",
     "category": "Custom",
-    "color": "#6366f1",
+    "color": "#6B7280",
     "icon": "building",
     "description": "I want to build a professional networking platform like LinkedIn. Users can sign up with email or Google OAuth, create a detailed profile with work experience, education, skills, and a profile photo. Users can send and accept connection requests, follow companies, and see a personalized activity feed showing posts, job updates, and articles from their network. Users can create text and image posts, react with emoji, comment, and share. There is a job board where companies post openings with requ"
   }

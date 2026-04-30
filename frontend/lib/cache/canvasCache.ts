@@ -1,8 +1,10 @@
+import type { Node, Edge } from 'reactflow';
+
 export interface CachedCanvas {
   id: string;
   name: string;
-  nodes: any[];
-  edges: any[];
+  nodes: Node[];
+  edges: Edge[];
   viewport?: { x: number; y: number; zoom: number };
   lastAccessed: number;
   loadedAt: number;

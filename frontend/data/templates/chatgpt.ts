@@ -11,13 +11,13 @@ import { Node, Edge } from 'reactflow';
 
 export const chatgptNodes: Node[] = [
   // Col 0 — 1 node, centered at y=400
-  { id: 'cg_client',    type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Web',                   category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
+  { id: 'cg_client',    type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Web',                   category: 'Client & Entry',    color: '#5A5A5A', icon: 'Monitor'       } },
   // Col 1 — 2 nodes, centered at y=400, spacing 180 → y=310, 490
-  { id: 'cg_cdn',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#6366f1', icon: 'RadioTower'    } },
-  { id: 'cg_apigw',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#6366f1', icon: 'Webhook'       } },
+  { id: 'cg_cdn',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#5A5A5A', icon: 'RadioTower'    } },
+  { id: 'cg_apigw',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#5A5A5A', icon: 'Webhook'       } },
   // Col 2 — 2 nodes → y=310, 490
-  { id: 'cg_lb',        type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Load Balancer',         category: 'Client & Entry',    color: '#6366f1', icon: 'Scale'         } },
-  { id: 'cg_jwt',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service (JWT)',    category: 'Auth & Security',   color: '#8b5cf6', icon: 'Shield'        } },
+  { id: 'cg_lb',        type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Load Balancer',         category: 'Client & Entry',    color: '#5A5A5A', icon: 'Scale'         } },
+  { id: 'cg_jwt',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service (JWT)',    category: 'Auth & Security',   color: '#3b82f6', icon: 'Shield'        } },
   // Col 3 — 3 nodes, centered at y=400, spacing 180 → y=220, 400, 580
   { id: 'cg_auth_ms',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
   { id: 'cg_chat_ms',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Chat Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },

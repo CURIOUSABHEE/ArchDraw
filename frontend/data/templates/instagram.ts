@@ -12,14 +12,14 @@ import { Node, Edge } from 'reactflow';
 
 export const instagramNodes: Node[] = [
   // Col 0 — 2 nodes stacked (mobile primary, web secondary)
-  { id: 'ig_client_mobile', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Mobile',                category: 'Client & Entry',    color: '#6366f1', icon: 'Smartphone'    } },
-  { id: 'ig_client_web',    type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Web',                   category: 'Client & Entry',    color: '#6366f1', icon: 'Monitor'       } },
+  { id: 'ig_client_mobile', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Mobile',                category: 'Client & Entry',    color: '#5A5A5A', icon: 'Smartphone'    } },
+  { id: 'ig_client_web',    type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Web',                   category: 'Client & Entry',    color: '#5A5A5A', icon: 'Monitor'       } },
   // Col 1 — 2 nodes, centered at y=600, spacing 180 → y=510, 690
-  { id: 'ig_dns',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'DNS',                   category: 'Client & Entry',    color: '#6366f1', icon: 'Globe'         } },
-  { id: 'ig_cdn',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#6366f1', icon: 'RadioTower'    } },
+  { id: 'ig_dns',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'DNS',                   category: 'Client & Entry',    color: '#5A5A5A', icon: 'Globe'         } },
+  { id: 'ig_cdn',       type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'CDN',                   category: 'Client & Entry',    color: '#5A5A5A', icon: 'RadioTower'    } },
   // Col 2 — 2 nodes → y=510, 690
-  { id: 'ig_apigw',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#6366f1', icon: 'Webhook'       } },
-  { id: 'ig_lb',        type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Load Balancer',         category: 'Client & Entry',    color: '#6366f1', icon: 'Scale'         } },
+  { id: 'ig_apigw',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway',           category: 'Client & Entry',    color: '#5A5A5A', icon: 'Webhook'       } },
+  { id: 'ig_lb',        type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Load Balancer',         category: 'Client & Entry',    color: '#5A5A5A', icon: 'Scale'         } },
   // Col 3 — 5 nodes, centered at y=600, spacing 180 → y=240, 420, 600, 780, 960
   { id: 'ig_user_svc',  type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'User Service',          category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
   { id: 'ig_search_svc',type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Search Service',        category: 'Compute',           color: '#3b82f6', icon: 'Boxes'         } },
@@ -38,8 +38,8 @@ export const instagramNodes: Node[] = [
   { id: 'ig_eventbus',  type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Event Bus / Pub-Sub',   category: 'Messaging & Events',color: '#f59e0b', icon: 'Radio'         } },
   { id: 'ig_worker',    type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Worker / Background Job',category:'Compute',           color: '#3b82f6', icon: 'Timer'         } },
   // Col 6 — 3 nodes, centered at y=600, spacing 180 → y=420, 600, 780
-  { id: 'ig_auth',      type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service (JWT)',    category: 'Auth & Security',   color: '#8b5cf6', icon: 'Shield'        } },
-  { id: 'ig_oauth',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'OAuth / Identity Provider',category:'Auth & Security', color: '#8b5cf6', icon: 'KeyRound'      } },
+  { id: 'ig_auth',      type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Auth Service (JWT)',    category: 'Auth & Security',   color: '#3b82f6', icon: 'Shield'        } },
+  { id: 'ig_oauth',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'OAuth / Identity Provider',category:'Auth & Security', color: '#3b82f6', icon: 'KeyRound'      } },
   { id: 'ig_push',      type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'SMS / Push Notification',category:'External Services', color: '#10b981', icon: 'Smartphone'    } },
   // Col 7 — 4 nodes, centered at y=600, spacing 180 → y=330, 510, 690, 870
   { id: 'ig_metrics',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Metrics Collector',     category: 'Observability',     color: '#06b6d4', icon: 'BarChart2'     } },

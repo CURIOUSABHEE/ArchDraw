@@ -4,12 +4,12 @@ import { Node, Edge } from 'reactflow';
 
 export const archdrawNodes: Node[] = [
   // Col 0 — Client & Entry
-  { id: 'af_browser',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'User Browser',         category: 'Client & Entry',     color: '#6366f1', icon: 'Monitor'      } },
-  { id: 'af_cdn',         type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Vercel CDN',           category: 'Client & Entry',     color: '#6366f1', icon: 'RadioTower'   } },
+  { id: 'af_browser',     type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'User Browser',         category: 'Client & Entry',     color: '#5A5A5A', icon: 'Monitor'      } },
+  { id: 'af_cdn',         type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Vercel CDN',           category: 'Client & Entry',     color: '#5A5A5A', icon: 'RadioTower'   } },
 
   // Col 1 — Gateway
-  { id: 'af_approuter',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Next.js App Router',   category: 'Client & Entry',     color: '#6366f1', icon: 'Webhook'      } },
-  { id: 'af_edge',        type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Vercel Edge Network',  category: 'Client & Entry',     color: '#6366f1', icon: 'Globe'        } },
+  { id: 'af_approuter',   type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Next.js App Router',   category: 'Client & Entry',     color: '#5A5A5A', icon: 'Webhook'      } },
+  { id: 'af_edge',        type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Vercel Edge Network',  category: 'Client & Entry',     color: '#5A5A5A', icon: 'Globe'        } },
 
   // Col 2 — Frontend
   { id: 'af_canvas',      type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'React + ReactFlow',    category: 'Compute',            color: '#3b82f6', icon: 'Boxes'        } },
@@ -17,8 +17,8 @@ export const archdrawNodes: Node[] = [
   { id: 'af_localstorage',type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'localStorage',         category: 'Caching',            color: '#ef4444', icon: 'HardDrive'    } },
 
   // Col 3 — Auth
-  { id: 'af_sbauth',      type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Supabase Auth',        category: 'Auth & Security',    color: '#8b5cf6', icon: 'Shield'       } },
-  { id: 'af_otp',         type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Magic Link OTP',       category: 'Auth & Security',    color: '#8b5cf6', icon: 'KeyRound'     } },
+  { id: 'af_sbauth',      type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Supabase Auth',        category: 'Auth & Security',    color: '#3b82f6', icon: 'Shield'       } },
+  { id: 'af_otp',         type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Magic Link OTP',       category: 'Auth & Security',    color: '#3b82f6', icon: 'KeyRound'     } },
   { id: 'af_emailmodal',  type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Email Capture Modal',  category: 'Compute',            color: '#3b82f6', icon: 'Mail'         } },
 
   // Col 4 — API / Server

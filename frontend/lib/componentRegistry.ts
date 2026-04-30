@@ -156,7 +156,7 @@ class ComponentRegistry {
   }
 
   getColor(componentId: string): string {
-    return this.components.get(componentId)?.color || '#6366f1';
+    return this.components.get(componentId)?.color || '#6B7280';
   }
 
   getCategory(componentId: string): string {
@@ -266,10 +266,10 @@ export function getComponentsByLayer(layer: 'A' | 'B' | 'C' | 'D'): ComponentDef
 
 export function getLayerColor(layer: 'A' | 'B' | 'C' | 'D'): string {
   const colors: Record<string, string> = {
-    A: '#6366f1',
-    B: '#0891b2',
-    C: '#059669',
-    D: '#7c3aed',
+    A: '#5A5A5A',
+    B: '#6FA8DC',
+    C: '#D8AA59',
+    D: '#9A8575',
   };
-  return colors[layer] || '#6366f1';
+  return colors[layer] || '#5A5A5A';
 }

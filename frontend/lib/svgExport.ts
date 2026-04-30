@@ -95,7 +95,7 @@ function getNodeIconSVG(technology?: string, icon?: string, color?: string): str
   };
   
   const pathData = iconMap[technology || icon || 'Server'] || iconMap['Server'];
-  const fillColor = color || '#6366f1';
+  const fillColor = color || '#6B7280';
   return `<g transform="translate(8, 8) scale(0.8)">
     <path d="${pathData}" fill="${fillColor}" stroke="none"/>
   </g>`;

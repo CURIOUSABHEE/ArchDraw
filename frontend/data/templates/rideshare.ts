@@ -2,12 +2,12 @@ import { Node, Edge } from 'reactflow';
 
 export const rideshareNodes: Node[] = [
   // Client Layer (Col 0)
-  { id: 'rs_rider', type: 'customNode', position: { x: 0, y: 200 }, data: { label: 'Mobile App (Rider)', category: 'Client Layer', color: '#6366f1', icon: 'Smartphone' } },
-  { id: 'rs_driver', type: 'customNode', position: { x: 0, y: 400 }, data: { label: 'Mobile App (Driver)', category: 'Client Layer', color: '#6366f1', icon: 'Car' } },
+  { id: 'rs_rider', type: 'customNode', position: { x: 0, y: 200 }, data: { label: 'Mobile App (Rider)', category: 'Client Layer', color: '#5A5A5A', icon: 'Smartphone' } },
+  { id: 'rs_driver', type: 'customNode', position: { x: 0, y: 400 }, data: { label: 'Mobile App (Driver)', category: 'Client Layer', color: '#5A5A5A', icon: 'Car' } },
   
   // Gateway Layer (Col 1)
-  { id: 'rs_apigw', type: 'customNode', position: { x: 350, y: 200 }, data: { label: 'API Gateway', category: 'Gateway Layer', color: '#8b5cf6', icon: 'Webhook' } },
-  { id: 'rs_ws', type: 'customNode', position: { x: 350, y: 400 }, data: { label: 'WebSocket Server', category: 'Gateway Layer', color: '#8b5cf6', icon: 'Radio' } },
+  { id: 'rs_apigw', type: 'customNode', position: { x: 350, y: 200 }, data: { label: 'API Gateway', category: 'Gateway Layer', color: '#3b82f6', icon: 'Webhook' } },
+  { id: 'rs_ws', type: 'customNode', position: { x: 350, y: 400 }, data: { label: 'WebSocket Server', category: 'Gateway Layer', color: '#3b82f6', icon: 'Radio' } },
   
   // Core Ride System (Col 2)
   { id: 'rs_usersvc', type: 'customNode', position: { x: 700, y: 100 }, data: { label: 'User Service', category: 'Core Ride System', color: '#3b82f6', icon: 'Users' } },

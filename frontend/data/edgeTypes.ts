@@ -18,7 +18,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
   sync: {
     id: 'sync',
     label: 'Sync',
-    color: '#94a3b8',
+    color: '#6B7280',
     dash: '',
     animated: false,
     markerStart: false,
@@ -28,7 +28,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
   async: {
     id: 'async',
     label: 'Async',
-    color: '#f59e0b',
+    color: '#6B7280',
     dash: '8 6',
     animated: true,
     markerStart: false,
@@ -38,7 +38,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
   stream: {
     id: 'stream',
     label: 'Stream',
-    color: '#22c55e',
+    color: '#6B7280',
     dash: '10 4 2 4',
     animated: true,
     markerStart: false,
@@ -48,7 +48,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
   event: {
     id: 'event',
     label: 'Event',
-    color: '#ec4899',
+    color: '#6B7280',
     dash: '4 4',
     animated: true,
     markerStart: false,
@@ -58,7 +58,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
   dep: {
     id: 'dep',
     label: 'Dep',
-    color: '#94a3b8',
+    color: '#6B7280',
     dash: '6 6',
     animated: true,
     markerStart: false,

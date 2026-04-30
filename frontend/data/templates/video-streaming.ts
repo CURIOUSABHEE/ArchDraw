@@ -1,9 +1,9 @@
 import { Node, Edge } from 'reactflow';
 
 export const videoStreamingNodes: Node[] = [
-  { id: 'user', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'User', category: 'Client', color: '#6366f1', icon: 'Monitor' } },
+  { id: 'user', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'User', category: 'Client', color: '#5A5A5A', icon: 'Monitor' } },
   { id: 'cdn', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'CDN', category: 'Gateway', color: '#f59e0b', icon: 'Globe' } },
-  { id: 'gateway', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway', category: 'Gateway', color: '#8b5cf6', icon: 'Gateway' } },
+  { id: 'gateway', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'API Gateway', category: 'Gateway', color: '#3b82f6', icon: 'Gateway' } },
   { id: 'playback', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Playback Service', category: 'Compute', color: '#3b82f6', icon: 'Play' } },
   { id: 'cache', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Cache', category: 'Caching', color: '#ef4444', icon: 'Zap' } },
   { id: 'database', type: 'customNode', position: { x: 0, y: 0 }, data: { label: 'Database', category: 'Data Storage', color: '#334155', icon: 'Database' } },
