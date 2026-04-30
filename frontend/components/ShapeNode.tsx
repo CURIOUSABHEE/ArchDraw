@@ -1,7 +1,7 @@
 'use client';
 
-import { memo } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { memo, useEffect } from 'react';
+import { Handle, Position, NodeProps, useUpdateNodeInternals } from 'reactflow';
 
 export type ShapeType =
   | 'rectangle'
@@ -29,11 +29,18 @@ const HANDLE_STYLE = (color: string) => ({
 });
 
 /** Four-directional handles shared by all shapes */
-function Handles({ color }: { color: string }) {
+function Handles({ color, nodeId }: { color: string; nodeId: string }) {
+  const updateNodeInternals = useUpdateNodeInternals();
   const s = HANDLE_STYLE(color);
+  const sLeft = { ...s, left: -15 };
+  
+  useEffect(() => {
+    updateNodeInternals(nodeId);
+  }, [nodeId, updateNodeInternals]);
+  
   return (
     <>
-      <Handle type="target" position={Position.Left}   style={s} />
+      <Handle type="target" position={Position.Left}   style={sLeft} />
       <Handle type="source" position={Position.Right}  style={s} />
       <Handle type="target" position={Position.Top}    style={s} />
       <Handle type="source" position={Position.Bottom} style={s} />
@@ -57,7 +64,7 @@ function Label({ label, sublabel, color }: { label: string; sublabel?: string; c
 // ── Individual shape renderers ────────────────────────────────────────────────
 
 function Rectangle({ data, selected, rounded }: { data: ShapeNodeData; selected: boolean; rounded: boolean }) {
-  const color = data.accentColor ?? data.color ?? '#6366f1';
+  const color = data.accentColor ?? data.color ?? '#6B7280';
   const r = rounded ? 14 : 8;
   return (
     <div
@@ -77,14 +84,14 @@ function Rectangle({ data, selected, rounded }: { data: ShapeNodeData; selected:
         transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
-      <Handles color={color} />
+      <Handles color={color} nodeId={`shape-${data.label}`} />
       <Label label={data.label} sublabel={data.sublabel} color={color} />
     </div>
   );
 }
 
 function Diamond({ data, selected }: { data: ShapeNodeData; selected: boolean }) {
-  const color = data.accentColor ?? data.color ?? '#6366f1';
+  const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 140, H = 80;
   return (
     <div style={{ width: W, height: H, position: 'relative' }}>
@@ -97,7 +104,7 @@ function Diamond({ data, selected }: { data: ShapeNodeData; selected: boolean })
           filter={selected ? `drop-shadow(0 0 8px ${color}40)` : 'none'}
         />
       </svg>
-      <Handles color={color} />
+      <Handles color={color} nodeId={`diamond-${data.label}`} />
       <div
         style={{
           position: 'absolute', inset: 0,
@@ -111,7 +118,7 @@ function Diamond({ data, selected }: { data: ShapeNodeData; selected: boolean })
 }
 
 function Cylinder({ data, selected }: { data: ShapeNodeData; selected: boolean }) {
-  const color = data.accentColor ?? data.color ?? '#6366f1';
+  const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 120, H = 90, RY = 14;
   const stroke = selected ? color : `${color}60`;
   const strokeW = selected ? 2 : 1.5;
@@ -125,7 +132,7 @@ function Cylinder({ data, selected }: { data: ShapeNodeData; selected: boolean }
         {/* Top ellipse (drawn last so it overlaps body top edge) */}
         <ellipse cx={W / 2} cy={RY} rx={(W - 4) / 2} ry={RY} fill={`${color}18`} stroke={stroke} strokeWidth={strokeW} />
       </svg>
-      <Handles color={color} />
+      <Handles color={color} nodeId={`cylinder-${data.label}`} />
       <div
         style={{
           position: 'absolute', inset: 0,
@@ -139,7 +146,7 @@ function Cylinder({ data, selected }: { data: ShapeNodeData; selected: boolean }
 }
 
 function Circle({ data, selected }: { data: ShapeNodeData; selected: boolean }) {
-  const color = data.accentColor ?? data.color ?? '#6366f1';
+  const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 100, H = 100;
   return (
     <div style={{ width: W, height: H, position: 'relative' }}>
@@ -151,7 +158,7 @@ function Circle({ data, selected }: { data: ShapeNodeData; selected: boolean }) 
           strokeWidth={selected ? 2 : 1.5}
         />
       </svg>
-      <Handles color={color} />
+      <Handles color={color} nodeId={`circle-${data.label}`} />
       <div
         style={{
           position: 'absolute', inset: 0,
@@ -165,7 +172,7 @@ function Circle({ data, selected }: { data: ShapeNodeData; selected: boolean }) 
 }
 
 function Parallelogram({ data, selected }: { data: ShapeNodeData; selected: boolean }) {
-  const color = data.accentColor ?? data.color ?? '#6366f1';
+  const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 150, H = 70, SKEW = 20;
   const pts = `${SKEW},2 ${W - 2},2 ${W - SKEW - 2},${H - 2} 2,${H - 2}`;
   return (
@@ -178,7 +185,7 @@ function Parallelogram({ data, selected }: { data: ShapeNodeData; selected: bool
           strokeWidth={selected ? 2 : 1.5}
         />
       </svg>
-      <Handles color={color} />
+      <Handles color={color} nodeId={`parallelogram-${data.label}`} />
       <div
         style={{
           position: 'absolute', inset: 0,

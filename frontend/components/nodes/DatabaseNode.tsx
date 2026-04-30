@@ -1,11 +1,12 @@
 'use client';
 
 import { memo, useState } from 'react';
-import { Position, NodeProps, Handle } from 'reactflow';
+import { NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { useTheme } from '@/lib/theme';
 import { motion } from 'framer-motion';
 import { Database, HardDrive, Table2, Server } from 'lucide-react';
+import { FloatingHandles } from './FloatingHandles';
 
 interface DatabaseNodeData extends NodeData {
   variant?: 'primary' | 'replica' | 'sharded';
@@ -15,37 +16,45 @@ interface DatabaseNodeData extends NodeData {
 function DatabaseNodeComponent({ id, data, selected }: NodeProps<DatabaseNodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
   const { isDark } = useTheme();
-  const accent = data.accentColor ?? data.color ?? '#334155';
+  const accent = data.accentColor ?? data.color ?? '#f97316';
   const [isHovered, setIsHovered] = useState(false);
 
   const variant = data.variant || 'primary';
 
-  const nodeStyles: React.CSSProperties = {
-    width: 180,
-    minWidth: 180,
-    minHeight: 160,
-    maxHeight: 180,
+  const nodeSurfaceStyles: React.CSSProperties = {
+    width: 160,
+    minWidth: 160,
+    minHeight: 140,
+    maxHeight: 160,
     height: 'auto',
     boxSizing: 'border-box',
-    borderRadius: 12,
+    borderRadius: 10,
     cursor: 'pointer',
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
     background: isDark
-      ? 'linear-gradient(180deg, #1e2138 0%, #161928 100%)'
-      : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-    border: selected
-      ? `2px solid ${accent}`
-      : `1px solid rgba(255,255,255,0.12)`,
+      ? 'linear-gradient(180deg, #252525 0%, #1a1a1a 100%)'
+      : 'linear-gradient(180deg, #ffffff 0%, #f8f8f6 100%)',
+    border: `1.5px solid ${isDark ? '#4a4a4a' : '#595959'}`,
     boxShadow: selected
-      ? `0 0 0 2px ${accent}, 0 4px 24px ${accent}40`
-      : isDark
-        ? '0 4px 12px rgba(0,0,0,0.4)'
-        : '0 4px 12px rgba(0,0,0,0.15)',
+      ? `0 0 0 2px ${accent}, 0 3px 8px rgba(0,0,0,0.07)`
+      : `0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)`,
     transition: 'box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease',
+    zIndex: 2,
   };
+
+  /* Backplate layers — separate elements, BELOW edges */
+  const backplateLayers = selected
+    ? [
+        { offset: 10, color: isDark ? 'rgba(0,0,0,0.04)' : '#ecece5' },
+        { offset: 5, color: isDark ? 'rgba(0,0,0,0.06)' : '#dfdfd8' },
+      ]
+    : [
+        { offset: 10, color: isDark ? 'rgba(0,0,0,0.05)' : '#f0f0e9' },
+        { offset: 5, color: isDark ? 'rgba(0,0,0,0.08)' : '#e2e2db' },
+      ];
 
   const getDbIcon = () => {
     const iconSize = 14;
@@ -63,7 +72,7 @@ function DatabaseNodeComponent({ id, data, selected }: NodeProps<DatabaseNodeDat
     const badges = {
       primary: { label: 'Primary', color: accent },
       replica: { label: 'Replica', color: '#10b981' },
-      sharded: { label: 'Sharded', color: '#8b5cf6' },
+      sharded: { label: 'Sharded', color: '#3b82f6' },
     };
     const badge = badges[variant];
 
@@ -98,36 +107,52 @@ function DatabaseNodeComponent({ id, data, selected }: NodeProps<DatabaseNodeDat
     { height: 4, opacity: 0.08 },
   ];
 
-  return (
-    <div
-      className="relative group"
-      style={nodeStyles}
-      onClick={() => setSelectedNodeId(id)}
-      onMouseEnter={(e) => {
-        setIsHovered(true);
-        if (!selected) {
-          e.currentTarget.style.borderColor = `${accent}80`;
-          e.currentTarget.style.boxShadow = isDark
-            ? `0 4px 20px ${accent}30`
-            : `0 4px 20px ${accent}25`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        setIsHovered(false);
-        if (!selected) {
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
-          e.currentTarget.style.boxShadow = isDark
-            ? '0 4px 12px rgba(0,0,0,0.4)'
-            : '0 4px 12px rgba(0,0,0,0.15)';
-        }
-      }}
-    >
+   return (
+    <div style={{ position: 'relative', zIndex: 2 /* node above edges */ }}>
+      {/* Backplate layers — z-index: -1, below edges */}
+      {backplateLayers.map((layer, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 'inherit',
+            transform: `translate(${layer.offset}px, ${layer.offset}px)`,
+            background: layer.color,
+            zIndex: -1,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+
+      {/* Main node surface — z-index: 2, above edges */}
+      <div
+        className="group"
+        style={nodeSurfaceStyles}
+        onClick={() => setSelectedNodeId(id)}
+        onMouseEnter={(e) => {
+          setIsHovered(true);
+          if (!selected) {
+            e.currentTarget.style.borderColor = `${accent}80`;
+            e.currentTarget.style.boxShadow = isDark
+              ? `0 4px 20px ${accent}30`
+              : `0 4px 20px ${accent}25`;
+          }
+        }}
+        onMouseLeave={(e) => {
+          setIsHovered(false);
+          if (!selected) {
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+            e.currentTarget.style.boxShadow = isDark
+              ? '0 4px 12px rgba(0,0,0,0.4)'
+              : '0 4px 12px rgba(0,0,0,0.15)';
+          }
+        }}
+      >
       <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/8 via-white/[0.02] to-transparent" />
 
-      <Handle type="target" position={Position.Left} id="target-left" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
-      <Handle type="source" position={Position.Right} id="source-right" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
-      <Handle type="target" position={Position.Top} id="target-top" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
+      {/* Floating handles positioned outside node */}
+      <FloatingHandles nodeId={id} />
 
       <div style={{
         padding: '12px 14px',
@@ -251,6 +276,7 @@ function DatabaseNodeComponent({ id, data, selected }: NodeProps<DatabaseNodeDat
         </div>
 
         {getVariantBadge()}
+         </div>
       </div>
     </div>
   );

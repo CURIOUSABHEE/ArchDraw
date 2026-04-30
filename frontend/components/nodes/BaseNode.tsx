@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useState, useMemo, useCallback } from 'react';
-import { Position, NodeProps, Handle } from 'reactflow';
+import { NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { NodeIcon, resolveNodeColor } from '@/components/NodeIcon';
 import { useTheme } from '@/lib/theme';
@@ -9,15 +9,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Layers, Activity, Radio, Database, Shield, Zap, Cpu, Server, Box, Globe, Cloud, Cpu as CpuIcon, Pencil, Copy, Trash2, Activity as StatusIcon, Palette } from 'lucide-react';
 import { getShapeConfig, getNodeShape, type NodeShape, type ShapeConfig } from '@/lib/nodeShapes';
 import { getStrictPortConfig } from '@/lib/componentPorts';
+import { FloatingHandles } from './FloatingHandles';
 
 interface BaseNodeData extends NodeData {
   shape?: NodeShape;
 }
 
+function ToolbarButton({ onClick, children, title, hoverClass = '' }: { onClick: (e: React.MouseEvent) => void; children: React.ReactNode; title?: string; hoverClass?: string }) {
+  return (
+    <button onClick={onClick} title={title} className={`h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center justify-center transition-colors ${hoverClass}`}>
+      {children}
+    </button>
+  );
+}
+
 function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
   const { isDark } = useTheme();
-  const accent = data.accentColor ?? data.color ?? '#6366f1';
+  const accent = data.accentColor ?? data.color ?? '#6B7280';
   const resolvedAccent = data.technology ? resolveNodeColor(data.technology, accent) : accent;
   const hasError = data.hasError;
   const shape = data.shape || getNodeShape(data.category);
@@ -55,8 +64,8 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
 
   const handleColorChange = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#22c55e', '#14b8a6', '#0ea5e9', '#3b82f6', '#6b7280'];
-    const currentIndex = colors.indexOf(data.accentColor || data.color || '#6366f1');
+    const colors = ['#6B7280', '#8A8A8A', '#6FA8DC', '#D8AA59', '#9A8B7A', '#555555', '#7BA89A', '#A89080', '#999999', '#888888'];
+    const currentIndex = colors.indexOf(data.accentColor || data.color || '#6B7280');
     const nextColor = colors[(currentIndex + 1) % colors.length];
     useDiagramStore.getState().updateNodeData(id, { accentColor: nextColor });
   }, [id, data.accentColor, data.color]);
@@ -66,13 +75,7 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
     useDiagramStore.getState().setSidebarOpen(true);
   }, []);
 
-  const ToolbarButton = ({ onClick, children, title, hoverClass = '' }: { onClick: (e: React.MouseEvent) => void; children: React.ReactNode; title?: string; hoverClass?: string }) => (
-    <button onClick={onClick} title={title} className={`h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center justify-center transition-colors ${hoverClass}`}>
-      {children}
-    </button>
-  );
-
-  const statusColor = data.status === 'warning' ? '#F59E0B' : data.status === 'error' ? '#EF4444' : data.status === 'unknown' ? '#6B7280' : '#10B981';
+  const statusColor = data.status === 'warning' ? '#D4A843' : data.status === 'error' ? '#C47A7A' : data.status === 'unknown' ? '#9A9A9A' : '#7BA88A';
 
   const shapeConfig = useMemo((): ShapeConfig => {
     if (data.shape) {
@@ -143,24 +146,43 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
   const borderOpacity = getBorderOpacity();
   const borderWidth = getBorderWidth();
   
-  const nodeStyles: React.CSSProperties = {
+const nodeSurfaceStyles: React.CSSProperties = {
     ...getBaseStyles(),
     background: isDark
-      ? 'linear-gradient(145deg, hsl(220 18% 15%) 0%, hsl(220 18% 11%) 100%)'
-      : 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
-    border: 'none',
+      ? 'linear-gradient(180deg, #2a2a2a 0%, #222222 100%)'
+      : 'linear-gradient(180deg, #ffffff 0%, #f8f8f6 100%)',
+    border: `1.5px solid ${isDark ? '#4a4a4a' : '#595959'}`,
+    borderRadius: 10,
+    /* Only direct shadows (no offsets) — backplates are separate elements now */
     boxShadow: selected
-      ? `0 0 0 2px ${resolvedAccent}, 0 8px 32px ${resolvedAccent}30, 0 4px 12px hsl(var(--foreground) / 0.1)`
+      ? `0 0 0 2px ${resolvedAccent}, 0 3px 8px rgba(0,0,0,0.07)`
       : hasError
-        ? '0 0 0 2px rgba(239,68,68,0.5), 0 4px 16px rgba(239,68,68,0.2)'
-        : visualWeight === 'high'
-          ? isDark
-            ? `0 8px 24px hsl(var(--foreground) / 0.3), inset 0 1px 0 hsl(var(--foreground) / 0.1)`
-            : `0 6px 20px hsl(var(--foreground) / 0.1), inset 0 1px 0 hsl(var(--foreground) / 0.05)`
-          : isDark
-            ? `0 4px 16px hsl(var(--foreground) / 0.25), inset 0 1px 0 hsl(var(--foreground) / 0.08)`
-            : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)',
+        ? `0 0 0 2px rgba(239,68,68,0.5), 0 3px 10px rgba(239,68,68,0.12)`
+        : `0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.85)`,
+    zIndex: 2, /* Above edges */
+    position: 'relative',
   };
+
+/* Backplate layers — separate elements with their own z-index (below edges) */
+const backplateLayers = selected
+  ? [
+      { offset: 10, color: isDark ? 'rgba(0,0,0,0.04)' : '#ecece5' },
+      { offset: 5, color: isDark ? 'rgba(0,0,0,0.06)' : '#dfdfd8' },
+    ]
+  : hasError
+    ? [
+        { offset: 10, color: '#f2e9e6' },
+        { offset: 5, color: '#e9ddd9' },
+      ]
+    : visualWeight === 'high'
+      ? [
+          { offset: 10, color: isDark ? 'rgba(0,0,0,0.05)' : '#efefe8' },
+          { offset: 5, color: isDark ? 'rgba(0,0,0,0.08)' : '#e1e1da' },
+        ]
+      : [
+          { offset: 8, color: isDark ? 'rgba(0,0,0,0.04)' : '#f1f1eb' },
+          { offset: 4, color: isDark ? 'rgba(0,0,0,0.06)' : '#e4e4dd' },
+        ];
 
 
 
@@ -194,61 +216,79 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
 
 
   return (
-    <div
-      className="relative group"
-      style={nodeStyles}
-      onClick={() => setSelectedNodeId(id)}
-      onMouseEnter={(e) => {
-        setIsHovered(true);
-        if (!selected) {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = isDark
-            ? `0 8px 24px hsl(var(--foreground) / 0.35), 0 0 0 1px ${resolvedAccent}40`
-            : `0 8px 24px hsl(var(--foreground) / 0.12), 0 0 0 1px ${resolvedAccent}20`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        setIsHovered(false);
-        if (!selected) {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = isDark
-            ? `0 4px 16px hsl(var(--foreground) / 0.25), inset 0 1px 0 hsl(var(--foreground) / 0.08)`
-            : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)';
-        }
-      }}
-    >
-      {/* Toolbar - appears above when selected */}
+    <div style={{ position: 'relative', zIndex: 2 /* node above edges */ }}>
+      {/* Backplate layers — separate elements, BELOW edges (z-index: -1) */}
+      {backplateLayers.map((layer, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 'inherit',
+            transform: `translate(${layer.offset}px, ${layer.offset}px)`,
+            background: layer.color,
+            zIndex: -1,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+
+      {/* Main node surface — above edges */}
+      <div
+        style={nodeSurfaceStyles}
+        onClick={() => setSelectedNodeId(id)}
+        onMouseEnter={(e) => {
+          setIsHovered(true);
+          if (!selected) {
+            e.currentTarget.style.transform = 'translateY(-2px) rotate(0.2deg)';
+            e.currentTarget.style.boxShadow = isDark
+              ? `0 4px 14px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)`
+              : `0 4px 14px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.08)`;
+          }
+        }}
+        onMouseLeave={(e) => {
+          setIsHovered(false);
+          if (!selected) {
+            e.currentTarget.style.transform = 'translateY(0) rotate(0deg)';
+            e.currentTarget.style.boxShadow = isDark
+              ? `0 3px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)`
+              : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), 0 -1px 0 rgba(0,0,0,0.02)';
+          }
+        }}
+      >
+      {/* Toolbar - appears above when selected, positioned outside node surface */}
       {selected && (
         <div 
-          className="absolute -top-14 left-1/2 -translate-x-1/2 z-50 flex items-center gap-0.5 px-1.5 py-1 rounded-lg shadow-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+          className="absolute -top-12 left-1/2 -translate-x-1/2 z-50 flex items-center gap-0.5 px-1.5 py-1 rounded-lg shadow-md border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
           onClick={(e) => e.stopPropagation()}
+          style={{ position: 'absolute', zIndex: 50 }}
         >
           <ToolbarButton onClick={handleEdit} title="Edit">
-            <Pencil className="w-3.5 h-3.5" />
+            <Pencil className="w-3 h-3" />
           </ToolbarButton>
           <ToolbarButton onClick={handleDuplicate} title="Duplicate">
-            <Copy className="w-3.5 h-3.5" />
+            <Copy className="w-3 h-3" />
           </ToolbarButton>
           <ToolbarButton onClick={handleDelete} title="Delete" hoverClass="hover:text-red-500">
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-3 h-3" />
           </ToolbarButton>
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1" />
+          <div className="w-px h-3.5 bg-gray-300 dark:bg-gray-600 mx-0.5" />
           <ToolbarButton onClick={handleStatusChange} title="Toggle Status">
-            <StatusIcon className="w-3.5 h-3.5" style={{ color: statusColor }} />
+            <StatusIcon className="w-3 h-3" style={{ color: statusColor }} />
           </ToolbarButton>
           <ToolbarButton onClick={handleColorChange} title="Change Color">
-            <Palette className="w-3.5 h-3.5" style={{ color: resolvedAccent }} />
+            <Palette className="w-3 h-3" style={{ color: resolvedAccent }} />
           </ToolbarButton>
         </div>
       )}
-      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/8 via-white/[0.02] to-transparent dark:from-white/8 dark:via-white/[0.02] dark:to-transparent" />
+
+      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/5 via-white/[0.01] to-transparent dark:from-white/5 dark:via-white/[0.01] dark:to-transparent" />
       
-      <Handle type="target" position={Position.Left} id="target-left" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${resolvedAccent}`, borderRadius: '50%' }} />
-      <Handle type="source" position={Position.Right} id="source-right" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${resolvedAccent}`, borderRadius: '50%' }} />
-      <Handle type="target" position={Position.Top} id="target-top" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${resolvedAccent}`, borderRadius: '50%' }} />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${resolvedAccent}`, borderRadius: '50%' }} />
+      {/* Floating handles positioned outside node */}
+      <FloatingHandles nodeId={id} />
       
       {renderShapeContent()}
+    </div>
     </div>
   );
 }
@@ -735,46 +775,52 @@ function DefaultContent({ data, isDark, resolvedAccent }: { data: NodeData; isDa
     <div style={{
       width: '100%',
       height: '100%',
-      padding: '12px',
+      padding: '14px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: 8,
+      justifyContent: 'center',
+      gap: 10,
     }}>
       <div style={{
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        background: isDark ? `${resolvedAccent}15` : `${resolvedAccent}10`,
-        border: isDark ? `1px solid ${resolvedAccent}30` : `1px solid ${resolvedAccent}20`,
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        background: isDark ? `${resolvedAccent}18` : `${resolvedAccent}12`,
+        border: `1px solid ${isDark ? `${resolvedAccent}35` : `${resolvedAccent}25`}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
         {data.technology ? (
-          <NodeIcon technology={data.technology} size={18} />
+          <NodeIcon technology={data.technology} size={16} />
         ) : (
-          <NodeIcon technology={undefined} fallbackIcon={data.icon} fallbackColor={resolvedAccent} size={18} />
+          <NodeIcon technology={undefined} fallbackIcon={data.icon} fallbackColor={resolvedAccent} size={16} />
         )}
       </div>
-      <span style={{
-        fontSize: 12,
-        fontWeight: 600,
-        color: isDark ? '#e5e7eb' : '#1e293b',
-        textAlign: 'center',
-        lineHeight: 1.3,
-      }}>
-        {data.label}
-      </span>
-      {data.sublabel && (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
         <span style={{
-          fontSize: 10,
-          color: isDark ? '#94a3b8' : '#64748b',
+          fontSize: 11,
+          fontWeight: 600,
+          color: isDark ? '#e5e7eb' : '#374151',
           textAlign: 'center',
+          lineHeight: 1.3,
+          letterSpacing: '0.02em',
         }}>
-          {data.sublabel}
+          {data.label}
         </span>
-      )}
+        {data.sublabel && (
+          <span style={{
+            fontSize: 9,
+            color: isDark ? '#9ca3af' : '#9ca3af',
+            textAlign: 'center',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}>
+            {data.sublabel}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

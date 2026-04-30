@@ -1,11 +1,12 @@
 'use client';
 
 import { memo, useState } from 'react';
-import { Position, NodeProps, Handle } from 'reactflow';
+import { NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { useTheme } from '@/lib/theme';
 import { motion } from 'framer-motion';
 import { Layers, Zap, Activity, Circle } from 'lucide-react';
+import { FloatingHandles } from './FloatingHandles';
 
 interface CacheNodeData extends NodeData {
   showHitMiss?: boolean;
@@ -23,73 +24,97 @@ function CacheNodeComponent({ id, data, selected }: NodeProps<CacheNodeData>) {
 
   const isHit = hitRate >= 70;
 
-  const nodeStyles: React.CSSProperties = {
-    width: 180,
-    minWidth: 180,
-    minHeight: 130,
-    maxHeight: 150,
+  const nodeSurfaceStyles: React.CSSProperties = {
+    width: 150,
+    minWidth: 150,
+    minHeight: 100,
+    maxHeight: 120,
     height: 'auto',
     boxSizing: 'border-box',
-    borderRadius: 12,
+    borderRadius: 10,
     cursor: 'pointer',
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
     background: isDark
-      ? 'linear-gradient(145deg, #1e2138 0%, #161928 100%)'
-      : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
-    border: selected
-      ? `2px solid ${accent}`
-      : `1px solid ${accent}40`,
+      ? 'linear-gradient(180deg, #252525 0%, #1a1a1a 100%)'
+      : 'linear-gradient(180deg, #ffffff 0%, #f8f8f6 100%)',
+    border: `1.5px solid ${isDark ? '#4a4a4a' : '#595959'}`,
     boxShadow: selected
-      ? `0 0 0 2px ${accent}, 0 4px 20px ${accent}40`
-      : isDark
-        ? `0 2px 10px rgba(0,0,0,0.3), inset 0 0 30px ${accent}08`
-        : `0 2px 10px rgba(0,0,0,0.1), inset 0 0 30px ${accent}05`,
+      ? `0 0 0 2px ${accent}, 0 3px 8px rgba(0,0,0,0.07)`
+      : `0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)`,
     transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+    zIndex: 2,
   };
 
+  /* Backplate layers — separate elements, BELOW edges */
+  const backplateLayers = selected
+    ? [
+        { offset: 10, color: isDark ? 'rgba(0,0,0,0.04)' : '#ecece5' },
+        { offset: 5, color: isDark ? 'rgba(0,0,0,0.06)' : '#dfdfd8' },
+      ]
+    : [
+        { offset: 10, color: isDark ? 'rgba(0,0,0,0.05)' : '#f0f0e9' },
+        { offset: 5, color: isDark ? 'rgba(0,0,0,0.08)' : '#e2e2db' },
+      ];
+
   const layers = [
-    { offset: 0, height: 22 },
-    { offset: 4, height: 20 },
-    { offset: 8, height: 18 },
+    { offset: 0, height: 18 },
+    { offset: 3, height: 16 },
+    { offset: 6, height: 14 },
   ];
 
   const shimmerKeyframes = {
     backgroundPosition: ['200% 0', '-200% 0'],
   };
 
-  return (
-    <div
-      className="relative group"
-      style={nodeStyles}
-      onClick={() => setSelectedNodeId(id)}
-      onMouseEnter={(e) => {
-        setIsHovered(true);
-        if (!selected) {
-          e.currentTarget.style.borderColor = `${accent}80`;
-          e.currentTarget.style.boxShadow = isDark
-            ? `0 4px 20px ${accent}35, inset 0 0 40px ${accent}12`
-            : `0 4px 20px ${accent}25, inset 0 0 40px ${accent}08`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        setIsHovered(false);
-        if (!selected) {
-          e.currentTarget.style.borderColor = `${accent}40`;
-          e.currentTarget.style.boxShadow = isDark
-            ? `0 2px 10px rgba(0,0,0,0.3), inset 0 0 30px ${accent}08`
-            : `0 2px 10px rgba(0,0,0,0.1), inset 0 0 30px ${accent}05`;
-        }
-      }}
-    >
+   return (
+    <div style={{ position: 'relative', zIndex: 2 /* node above edges */ }}>
+      {/* Backplate layers — z-index: -1, below edges */}
+      {backplateLayers.map((layer, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 'inherit',
+            transform: `translate(${layer.offset}px, ${layer.offset}px)`,
+            background: layer.color,
+            zIndex: -1,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+
+      {/* Main node surface — z-index: 2, above edges */}
+      <div
+        className="group"
+        style={nodeSurfaceStyles}
+        onClick={() => setSelectedNodeId(id)}
+        onMouseEnter={(e) => {
+          setIsHovered(true);
+          if (!selected) {
+            e.currentTarget.style.borderColor = `${accent}80`;
+            e.currentTarget.style.boxShadow = isDark
+              ? `0 4px 20px ${accent}35, inset 0 0 40px ${accent}12`
+              : `0 4px 20px ${accent}25, inset 0 0 40px ${accent}08`;
+          }
+        }}
+        onMouseLeave={(e) => {
+          setIsHovered(false);
+          if (!selected) {
+            e.currentTarget.style.borderColor = `${accent}40`;
+            e.currentTarget.style.boxShadow = isDark
+              ? `0 2px 10px rgba(0,0,0,0.3), inset 0 0 30px ${accent}08`
+              : `0 2px 10px rgba(0,0,0,0.1), inset 0 0 30px ${accent}05`;
+          }
+        }}
+      >
       <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/10 via-white/[0.02] to-transparent" />
 
-      <Handle type="target" position={Position.Left} id="target-left" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
-      <Handle type="source" position={Position.Right} id="source-right" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
-      <Handle type="target" position={Position.Top} id="target-top" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" style={{ width: 10, height: 10, background: '#fff', border: `2px solid ${accent}`, borderRadius: '50%' }} />
+      {/* Floating handles positioned outside node */}
+      <FloatingHandles nodeId={id} />
 
       <div style={{
         padding: '10px 14px',
@@ -103,17 +128,17 @@ function CacheNodeComponent({ id, data, selected }: NodeProps<CacheNodeData>) {
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}>
+<div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}>
             <div style={{
               width: 24,
               height: 24,
               borderRadius: 6,
               background: isDark ? `${accent}15` : `${accent}10`,
-              border: `1px solid ${accent}30`,
+              border: `1px solid ${isDark ? `${accent}30` : `${accent}25`}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -121,9 +146,10 @@ function CacheNodeComponent({ id, data, selected }: NodeProps<CacheNodeData>) {
               <Layers size={12} style={{ color: accent }} />
             </div>
             <span style={{
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: 600,
-              color: isDark ? '#e5e7eb' : '#1e293b',
+              color: isDark ? '#e5e7eb' : '#374151',
+              letterSpacing: '0.02em',
             }}>
               {data.label || 'Cache'}
             </span>
@@ -274,6 +300,7 @@ function CacheNodeComponent({ id, data, selected }: NodeProps<CacheNodeData>) {
             </span>
           </div>
         )}
+       </div>
       </div>
     </div>
   );

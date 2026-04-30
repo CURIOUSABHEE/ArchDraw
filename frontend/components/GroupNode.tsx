@@ -9,7 +9,7 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   
-  const color = (data as { groupColor?: string })?.groupColor || '#8b5cf6';
+  const color = (data as { groupColor?: string })?.groupColor || '#3b82f6';
 
   const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -18,10 +18,10 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
     return `rgba(${r},${g},${b},${alpha})`;
   };
 
-  const bg = hexToRgba(color, 0.08);
-  const borderColor = selected ? hexToRgba(color, 0.9) : hexToRgba(color, 0.5);
-  const tagBorder = hexToRgba(color, 0.6);
-  const tagText = hexToRgba(color, 0.95);
+  const bg = hexToRgba(color, 0.12);
+  const borderColor = selected ? hexToRgba(color, 0.8) : hexToRgba(color, 0.35);
+  const tagBorder = hexToRgba(color, 0.5);
+  const tagText = hexToRgba(color, 0.9);
   const tagBg = hexToRgba(color, 0.15);
 
   const label =
@@ -81,8 +81,8 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
         width: '100%',
         height: '100%',
         backgroundColor: bg,
-        border: `2px ${selected ? 'solid' : 'dashed'} ${borderColor}`,
-        borderRadius: 16,
+        border: `1.5px ${selected ? 'solid' : 'dashed'} ${borderColor}`,
+        borderRadius: 20,
         position: 'relative',
         boxSizing: 'border-box',
         cursor: 'pointer',
@@ -93,26 +93,27 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
       <div
         style={{
           position: 'absolute',
-          top: -12,
-          left: 16,
+          top: -14,
+          left: 20,
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 4,
-          padding: '3px 10px',
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: '0.1em',
+          gap: 6,
+          padding: '4px 12px',
+          fontSize: 9,
+          fontWeight: 600,
+          letterSpacing: '0.12em',
           textTransform: 'uppercase',
           color: tagText,
-          background: tagBg,
+          background: 'rgba(255,255,255,0.9)',
           border: `1px solid ${tagBorder}`,
-          borderRadius: 6,
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
+          borderRadius: 999,
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
           lineHeight: 1.4,
           whiteSpace: 'nowrap',
           cursor: 'pointer',
-          minWidth: 40,
+          minWidth: 50,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
         }}
         onClick={handleLabelClick}
         title="Click to edit group name"

@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Handle, Position, NodeProps, NodeResizer, useReactFlow } from 'reactflow';
+import { Handle, Position, NodeProps, NodeResizer, useReactFlow, useUpdateNodeInternals } from 'reactflow';
 import type { TextSize } from './TextLabelNode';
 
 export interface AnnotationNodeData {
@@ -55,6 +55,7 @@ function SizeButton({ size, currentSize, onClick }: SizeButtonProps) {
 }
 
 function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNodeData>) {
+  const updateNodeInternals = useUpdateNodeInternals();
   const { setNodes } = useReactFlow();
   const [title, setTitle] = useState(data.title ?? '');
   const [body, setBody] = useState(data.body ?? '');
@@ -70,8 +71,13 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
   const containerRef = useRef<HTMLDivElement>(null);
 
   const SIZE_ORDER: TextSize[] = ['small', 'medium', 'large', 'heading'];
+  
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, updateNodeInternals]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTitle(data.title ?? '');
     setBody(data.body ?? '');
     setTitleSize(data.titleSize ?? 'heading');
@@ -130,12 +136,12 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
   const increaseSize = useCallback(() => {
     const idx = SIZE_ORDER.indexOf(currentSize);
     if (idx < SIZE_ORDER.length - 1) setCurrentSize(SIZE_ORDER[idx + 1]);
-  }, [currentSize]);
+  }, [currentSize, SIZE_ORDER, setCurrentSize]);
 
   const decreaseSize = useCallback(() => {
     const idx = SIZE_ORDER.indexOf(currentSize);
     if (idx > 0) setCurrentSize(SIZE_ORDER[idx - 1]);
-  }, [currentSize]);
+  }, [currentSize, SIZE_ORDER, setCurrentSize]);
 
   const commitTitle = useCallback(() => {
     setEditingTitle(false);
@@ -180,7 +186,7 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [editingTitle, editingBody, currentBold, increaseSize, decreaseSize]);
+  }, [editingTitle, editingBody, currentBold, increaseSize, decreaseSize, setCurrentBold]);
 
   useEffect(() => {
     const isEditing = editingTitle || editingBody;
@@ -263,7 +269,7 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
           boxShadow: selected ? '0 0 0 2px hsl(var(--ring)/0.3)' : undefined,
         }}
       >
-        <Handle type="target" position={Position.Left}   style={handleStyle} />
+        <Handle type="target" position={Position.Left}   style={{ ...handleStyle, left: -15 }} />
         <Handle type="source" position={Position.Right}  style={handleStyle} />
         <Handle type="target" position={Position.Top}    style={handleStyle} />
         <Handle type="source" position={Position.Bottom} style={handleStyle} />

@@ -16,12 +16,12 @@ export interface ComponentType {
 
 export const COMPONENT_TYPES: ComponentType[] = [
   // Compute group
-  { id: 'service', label: 'Service', icon: Server, color: '#8b5cf6', group: 'compute' },
+  { id: 'service', label: 'Service', icon: Server, color: '#3b82f6', group: 'compute' },
   { id: 'client', label: 'Client', icon: Monitor, color: '#10b981', group: 'compute' },
-  { id: 'gateway', label: 'Gateway', icon: Globe, color: '#6366f1', group: 'compute' },
+  { id: 'gateway', label: 'Gateway', icon: Globe, color: '#3b82f6', group: 'compute' },
   { id: 'queue', label: 'Queue', icon: Radio, color: '#f59e0b', group: 'compute' },
   // Data group
-  { id: 'database', label: 'Database', icon: Database, color: '#3b82f6', group: 'data' },
+  { id: 'database', label: 'Database', icon: Database, color: '#f97316', group: 'data' },
   { id: 'storage', label: 'Storage', icon: HardDrive, color: '#f97316', group: 'data' },
   { id: 'cache', label: 'Cache', icon: Zap, color: '#ef4444', group: 'data' },
   // Infrastructure group
@@ -30,7 +30,7 @@ export const COMPONENT_TYPES: ComponentType[] = [
   // External group
   { id: 'ai-ml', label: 'AI / ML', icon: Brain, color: '#ec4899', group: 'external' },
   { id: 'security', label: 'Security', icon: Shield, color: '#ef4444', group: 'external' },
-  { id: 'other', label: 'Other', icon: Webhook, color: '#6366f1', group: 'external' },
+  { id: 'other', label: 'Other', icon: Webhook, color: '#3b82f6', group: 'external' },
 ];
 
 const TYPE_GROUPS = {

@@ -1,11 +1,12 @@
 'use client';
 
 import { memo, useState } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { Layers, Activity, Radio } from 'lucide-react';
 import { useTheme } from '@/lib/theme';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FloatingHandles } from './nodes/FloatingHandles';
 
 interface MessageBrokerNodeData extends NodeData {
   brokerType?: 'rabbitmq' | 'kafka' | 'sqs' | 'pubsub';
@@ -26,7 +27,7 @@ function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBro
     pubsub: 'Pub/Sub',
   }[brokerType];
 
-  const nodeStyles: React.CSSProperties = {
+  const nodeSurfaceStyles: React.CSSProperties = {
     width: data.nodeWidth ?? 220,
     minWidth: 220,
     minHeight: 140,
@@ -44,16 +45,21 @@ function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBro
         : `1px solid ${accent}25`,
     boxShadow: selected
       ? `0 0 0 2px ${accent}, 0 4px 20px ${accent}50`
-      : isDark
-        ? '0 2px 8px rgba(0,0,0,0.3)'
-        : '0 2px 8px rgba(0,0,0,0.1)',
+      : `0 2px 8px rgba(0,0,0,0.1)`,
     transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
     cursor: 'pointer',
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
+    zIndex: 2,
   };
+
+  /* Backplate layers — separate elements, BELOW edges */
+  const backplateLayers = [
+    { offset: 8, color: isDark ? 'rgba(0,0,0,0.05)' : `${accent}10` },
+    { offset: 4, color: isDark ? 'rgba(0,0,0,0.08)' : `${accent}08` },
+  ];
 
   const handleStyle: React.CSSProperties = {
     width: 10,
@@ -68,7 +74,7 @@ function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBro
     const axisOffset = kind === 'source' ? 8 : -8;
     const offsetStyle =
       side === 'left'
-        ? { left: -5, top: '50%', transform: `translateY(calc(-50% + ${axisOffset}px))` }
+        ? { left: -15, top: '50%', transform: `translateY(calc(-50% + ${axisOffset}px))` }
         : side === 'right'
           ? { right: -5, top: '50%', transform: `translateY(calc(-50% + ${axisOffset}px))` }
           : side === 'top'
@@ -99,46 +105,54 @@ function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBro
 
   const queueMessages = Array.from({ length: 5 }, (_, i) => i);
 
-  return (
-    <div
-      className="relative group"
-      style={nodeStyles}
-      onClick={() => setSelectedNodeId(id)}
-      onMouseEnter={(e) => {
-        setIsHovered(true);
-        if (!selected) {
-          e.currentTarget.style.borderColor = `${accent}80`;
-          e.currentTarget.style.transform = 'translateY(-1px)';
-          e.currentTarget.style.boxShadow = isDark
-            ? `0 4px 16px ${accent}30`
-            : `0 4px 16px ${accent}25`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        setIsHovered(false);
-        if (!selected) {
-          e.currentTarget.style.borderColor = isDark ? `${accent}30` : `${accent}25`;
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = isDark
-            ? '0 2px 8px rgba(0,0,0,0.3)'
-            : '0 2px 8px rgba(0,0,0,0.1)';
-        }
-      }}
-    >
+   return (
+    <div style={{ position: 'relative', zIndex: 2 /* node above edges */ }}>
+      {/* Backplate layers — z-index: -1, below edges */}
+      {backplateLayers.map((layer, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 'inherit',
+            transform: `translate(${layer.offset}px, ${layer.offset}px)`,
+            background: layer.color,
+            zIndex: -1,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+
+      {/* Main node surface — z-index: 2, above edges */}
+      <div
+        className="group"
+        style={nodeSurfaceStyles}
+        onClick={() => setSelectedNodeId(id)}
+        onMouseEnter={(e) => {
+          setIsHovered(true);
+          if (!selected) {
+            e.currentTarget.style.borderColor = `${accent}80`;
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = isDark
+              ? `0 4px 16px ${accent}30`
+              : `0 4px 16px ${accent}25`;
+          }
+        }}
+        onMouseLeave={(e) => {
+          setIsHovered(false);
+          if (!selected) {
+            e.currentTarget.style.borderColor = isDark ? `${accent}30` : `${accent}25`;
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = isDark
+              ? '0 2px 8px rgba(0,0,0,0.3)'
+              : '0 2px 8px rgba(0,0,0,0.1)';
+          }
+        }}
+      >
       <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-10 bg-gradient-to-br from-white/10 via-white/[0.03] to-transparent dark:from-white/10 dark:via-white/[0.03] dark:to-transparent" />
       
-      <Handle type="target" position={Position.Left} id="target-left" style={sideHandleStyle('left', 'target')} />
-      <Handle type="source" position={Position.Left} id="source-left" style={sideHandleStyle('left', 'source')} />
-      <Handle type="target" position={Position.Right} id="target-right" style={sideHandleStyle('right', 'target')} />
-      <Handle type="source" position={Position.Right} id="source-right" style={sideHandleStyle('right', 'source')} />
-      <Handle type="target" position={Position.Top} id="target-top" style={sideHandleStyle('top', 'target')} />
-      <Handle type="source" position={Position.Top} id="source-top" style={sideHandleStyle('top', 'source')} />
-      <Handle type="target" position={Position.Bottom} id="target-bottom" style={sideHandleStyle('bottom', 'target')} />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" style={sideHandleStyle('bottom', 'source')} />
-
-      {/* Back-compat handles for persisted edges */}
-      <Handle type="target" position={Position.Left} id="left" style={sideHandleStyle('left', 'target')} />
-      <Handle type="source" position={Position.Right} id="right" style={sideHandleStyle('right', 'source')} />
+      {/* Floating handles positioned outside node */}
+      <FloatingHandles nodeId={id} />
 
       <div style={{
         padding: '12px 14px',
@@ -253,9 +267,10 @@ function MessageBrokerNodeComponent({ id, data, selected }: NodeProps<MessageBro
           </div>
 
           <Radio size={12} style={{ color: accent, flexShrink: 0, opacity: 0.6 }} />
-        </div>
+         </div>
       </div>
     </div>
+  </div>
   );
 }
 

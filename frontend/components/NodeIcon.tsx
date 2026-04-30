@@ -47,7 +47,7 @@ interface NodeIconProps {
 export function NodeIcon({ technology, fallbackIcon, fallbackColor, size = 18 }: NodeIconProps) {
   const entry = technology ? iconRegistry[technology] : undefined;
   const iconName = entry?.icon ?? fallbackIcon ?? 'Server';
-  const color = entry?.color ?? fallbackColor ?? '#6366f1';
+  const color = entry?.color ?? fallbackColor ?? '#6B7280';
   
   if (entry?.kind === 'aws') {
     const awsIcon = getAWSIcon(entry.icon);
@@ -62,7 +62,7 @@ export function NodeIcon({ technology, fallbackIcon, fallbackColor, size = 18 }:
 
 export function resolveNodeColor(technology?: string, fallbackColor?: string): string {
   if (technology && iconRegistry[technology]) return iconRegistry[technology].color;
-  return fallbackColor ?? '#6366f1';
+  return fallbackColor ?? '#6B7280';
 }
 
 export function getNodeIcon(technology?: string): { icon: LucideIcon | typeof AWSIcon; kind: 'lucide' | 'aws'; color: string } | null {

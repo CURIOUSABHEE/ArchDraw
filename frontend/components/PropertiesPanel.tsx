@@ -54,8 +54,9 @@ function EdgePropertiesPanel() {
   const [localLabel, setLocalLabel] = useState(edge?.data?.label ?? '');
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (edge) setLocalLabel(edge.data?.label ?? '');
-  }, [edge?.data?.label]);
+  }, [edge?.data?.label, edge]);
 
   if (!edge) return null;
 
@@ -115,8 +116,9 @@ export function PropertiesPanel() {
   const [localLabel, setLocalLabel] = useState(node?.data?.label ?? '');
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (node) setLocalLabel(node.data.label ?? '');
-  }, [node?.id]);
+  }, [node?.id, node]);
 
   if (selectedEdgeId && !node) {
     return <EdgePropertiesPanel />;
@@ -151,14 +153,14 @@ export function PropertiesPanel() {
   };
 
   const handleColorChange = () => {
-    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#22c55e', '#14b8a6', '#0ea5e9', '#3b82f6', '#6b7280'];
-    const currentIndex = colors.indexOf(data.accentColor || data.color || '#6366f1');
+    const colors = ['#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#22c55e', '#f59e0b', '#f97316', '#ef4444', '#ec4899', '#6b7280'];
+    const currentIndex = colors.indexOf(data.accentColor || data.color || '#3b82f6');
     const nextColor = colors[(currentIndex + 1) % colors.length];
     updateNodeData(node.id, { accentColor: nextColor });
   };
 
   const statusColor = data.status === 'warning' ? '#F59E0B' : data.status === 'error' ? '#EF4444' : data.status === 'unknown' ? '#6B7280' : '#10B981';
-  const accent = data.accentColor || data.color || '#6366f1';
+  const accent = data.accentColor || data.color || '#3b82f6';
 
   return (
     <div 

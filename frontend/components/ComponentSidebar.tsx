@@ -90,6 +90,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCustomComponents(componentRegistry.getCustomComponents() as ComponentEntry[]);
   }, []);
 
@@ -171,7 +172,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
           <div className="w-8 h-px my-2" style={{ background: '#EAEAEA' }} />
 
           <SidebarButton
-            icon={<Plus className="w-5 h-5" style={{ color: '#6366f1' }} />}
+            icon={<Plus className="w-5 h-5" style={{ color: '#6B7280' }} />}
             label="Add"
             onClick={() => onOpenCreateModal?.()}
           />
@@ -196,7 +197,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#EAEAEA' }}>
             <div className="flex items-center gap-2">
-              <Blocks className="w-4 h-4" style={{ color: '#6366f1' }} />
+              <Blocks className="w-4 h-4" style={{ color: '#595959' }} />
               <span className="text-sm font-semibold text-[#1A1A1A]">Components</span>
             </div>
             <button
@@ -328,7 +329,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
             id,
             label: data.name,
             category: typeInfo?.label || 'Other',
-            color: typeInfo?.color || '#6366f1',
+            color: typeInfo?.color || '#6B7280',
             description: data.description,
             technology: 'custom',
           });

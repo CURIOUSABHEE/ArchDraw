@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Handle, Position, NodeProps, useReactFlow } from 'reactflow';
+import { Handle, Position, NodeProps, useReactFlow, useUpdateNodeInternals } from 'reactflow';
 
 export interface TextLabelNodeData {
   text: string;
@@ -28,12 +28,17 @@ const FONT_WEIGHT_MAP: Record<TextSize, number> = {
 
 function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
   const { setNodes } = useReactFlow();
+  const updateNodeInternals = useUpdateNodeInternals();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(data.text);
   const [currentSize, setCurrentSize] = useState<TextSize>(data.fontSize ?? 'medium');
   const [isBold, setIsBold] = useState(data.bold ?? false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, updateNodeInternals]);
   
   const fontSize = FONT_SIZE_MAP[currentSize];
   const fontWeight = isBold ? 700 : FONT_WEIGHT_MAP[currentSize];
@@ -42,6 +47,7 @@ function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
   const SIZE_ORDER: TextSize[] = ['small', 'medium', 'large', 'heading'];
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setText(data.text);
     setCurrentSize(data.fontSize ?? 'medium');
     setIsBold(data.bold ?? false);
@@ -64,14 +70,14 @@ function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
     if (idx < SIZE_ORDER.length - 1) {
       updateNodeFontSize(SIZE_ORDER[idx + 1]);
     }
-  }, [currentSize, updateNodeFontSize]);
+  }, [currentSize, updateNodeFontSize, SIZE_ORDER]);
   
   const decreaseSize = useCallback(() => {
     const idx = SIZE_ORDER.indexOf(currentSize);
     if (idx > 0) {
       updateNodeFontSize(SIZE_ORDER[idx - 1]);
     }
-  }, [currentSize, updateNodeFontSize]);
+  }, [currentSize, updateNodeFontSize, SIZE_ORDER]);
 
   const startEdit = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -163,7 +169,7 @@ function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
       onDoubleClick={startEdit}
       className="text-label-node"
     >
-      <Handle type="target" position={Position.Left}   style={handleStyle} />
+      <Handle type="target" position={Position.Left}   style={{ ...handleStyle, left: -15 }} />
       <Handle type="source" position={Position.Right}  style={handleStyle} />
       <Handle type="target" position={Position.Top}    style={handleStyle} />
       <Handle type="source" position={Position.Bottom} style={handleStyle} />
