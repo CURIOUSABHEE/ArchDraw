@@ -13,22 +13,22 @@ import { getEdgeConfig, getEffectivePathType } from '@/data/edgeTypes';
 
 const EDGE_COLORS = {
   light: {
-    default: '#9CA3AF',
-    hover: '#6B7280',
-    selected: '#2563EB',
-    async: '#F59E0B',
+    default: '#6B7280',
+    hover: '#4B5563',
+    selected: '#374151',
+    async: '#6B7280',
     error: '#EF4444',
     success: '#10B981',
-    data: '#F87171',
+    data: '#6B7280',
   },
   dark: {
-    default: '#4B5563',
+    default: '#6B7280',
     hover: '#9CA3AF',
-    selected: '#3B82F6',
-    async: '#FBBF24',
+    selected: '#9CA3AF',
+    async: '#6B7280',
     error: '#EF4444',
-    success: '#34D399',
-    data: '#FB7185',
+    success: '#10B981',
+    data: '#6B7280',
   },
 };
 
@@ -218,7 +218,7 @@ export function FlowEdge({
           id={`arrow-${id}`}
           markerWidth="6"
           markerHeight="6"
-          refX="5"
+          refX="3"
           refY="3"
           orient="auto"
           markerUnits="strokeWidth"
@@ -230,7 +230,7 @@ export function FlowEdge({
             id={`arrow-start-${id}`}
             markerWidth="6"
             markerHeight="6"
-            refX="1"
+            refX="3"
             refY="3"
             orient="auto-start-reverse"
             markerUnits="strokeWidth"
@@ -247,7 +247,7 @@ export function FlowEdge({
         strokeWidth={20}
         fill="none"
         onContextMenu={handleContextMenu}
-        style={{ cursor: 'pointer' }}
+        style={{ cursor: 'pointer', zIndex: 0 }}
       />
       
       {/* Visible edge path */}
@@ -257,7 +257,7 @@ export function FlowEdge({
         markerEnd={`url(#arrow-${id})`}
         markerStart={config.markerStart ? `url(#arrow-start-${id})` : undefined}
         onContextMenu={handleContextMenu}
-        style={strokeStyle}
+        style={{ ...strokeStyle, zIndex: 0 }}
         className={animationClass}
       />
       
@@ -268,7 +268,7 @@ export function FlowEdge({
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: 'all',
-              zIndex: 10,
+              zIndex: 1000,
             }}
             onContextMenu={handleContextMenu}
           >

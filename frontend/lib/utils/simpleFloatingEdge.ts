@@ -5,6 +5,17 @@ export interface EdgePositions {
   targetPos: Position;
 }
 
+// Handle offsets to position them outside the node
+// Left: negative to move outside
+// Right/Bottom: positive to clear shadows/backplates (30px for extra clearance)
+// Top: negative to move outside
+const HANDLE_OFFSETS = {
+  [Position.Left]: -15,
+  [Position.Right]: 30,
+  [Position.Top]: -15,
+  [Position.Bottom]: 30,
+};
+
 export function getSimpleEdgePositions(
   sourceX: number,
   sourceY: number,
@@ -45,14 +56,20 @@ export function getSimpleHandlePosition(
   height: number,
   position: Position
 ): { x: number; y: number } {
+  const offset = HANDLE_OFFSETS[position] || 0;
+  
   switch (position) {
     case Position.Left:
-      return { x: nodeX, y: nodeY + height / 2 };
+      return { x: nodeX + offset, y: nodeY + height / 2 };
     case Position.Right:
-      return { x: nodeX + width, y: nodeY + height / 2 };
+      return { x: nodeX + width + offset, y: nodeY + height / 2 };
     case Position.Top:
-      return { x: nodeX + width / 2, y: nodeY };
+      return { x: nodeX + width / 2, y: nodeY + offset };
     case Position.Bottom:
-      return { x: nodeX + width / 2, y: nodeY + height };
+      return { x: nodeX + width / 2, y: nodeY + height + offset };
   }
+}
+
+export function getHandleOffset(position: Position): number {
+  return HANDLE_OFFSETS[position] || 0;
 }

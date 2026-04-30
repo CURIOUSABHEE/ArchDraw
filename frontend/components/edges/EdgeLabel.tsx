@@ -167,6 +167,8 @@ export function EdgeLabel({ edgeId, label, labelX, labelY, edgeColor }: EdgeLabe
             boxShadow: isDark 
               ? '0 1px 3px rgba(0,0,0,0.3)' 
               : '0 1px 3px rgba(0,0,0,0.1)',
+            position: 'relative',
+            zIndex: 1000,
           }}
         />
       ) : (
@@ -197,6 +199,8 @@ export function EdgeLabel({ edgeId, label, labelX, labelY, edgeColor }: EdgeLabe
             boxShadow: isDark 
               ? '0 1px 3px rgba(0,0,0,0.3)' 
               : '0 1px 2px rgba(0,0,0,0.08)',
+            position: 'relative',
+            zIndex: 1000,
           }}
         >
           {displayText}

@@ -37,19 +37,19 @@ function resolveMarkerEnd(markerEnd: unknown, connectionType?: string): string {
 }
 
 const EDGE_COLORS: Record<string, string> = {
-  sync: '#94a3b8',
-  async: '#94a3b8',
-  stream: '#94a3b8',
-  event: '#94a3b8',
-  dep: '#94a3b8',
+  sync: '#6B7280',
+  async: '#6B7280',
+  stream: '#6B7280',
+  event: '#6B7280',
+  dep: '#6B7280',
 };
 
 const STROKE_DASHARRAYS: Record<string, string | undefined> = {
   sync: undefined,
-  async: '8 6',
-  stream: '10 4 2 4',
-  event: '4 4',
-  dep: '6 6',
+  async: '8 4',
+  stream: '6 3 2 3',
+  event: '4 2',
+  dep: '6 4',
 };
 
 function getEdgeColor(connectionType?: string): string {
@@ -59,6 +59,18 @@ function getEdgeColor(connectionType?: string): string {
 function getStrokeDasharray(connectionType?: string): string | undefined {
   return STROKE_DASHARRAYS[connectionType || 'sync'];
 }
+
+/**
+ * SimpleFloatingEdge - A floating edge implementation that dynamically chooses
+ * the correct side based on node geometry. This follows the React Flow "Simple
+ * Floating Edges" example pattern.
+ * 
+ * Key features:
+ * - Automatically determines source/target positions based on node centers
+ * - Uses handle offsets to position connection points outside nodes
+ * - Clears node shadows and backplates with proper spacing
+ * - Works with ConnectionMode.Loose for flexible connections
+ */
 
 export default function SimpleFloatingEdge({
   id,
@@ -124,11 +136,11 @@ export default function SimpleFloatingEdge({
   
   const connectionType = (data as SimpleEdgeData)?.connectionType || 'sync';
   const stroke = getEdgeColor(connectionType);
-  const resolvedMarkerEnd = 'url(#arrow-sync)'; // Force explicit marker
-  const strokeDasharray = animated || connectionType === 'async' || connectionType === 'stream' || connectionType === 'event' || connectionType === 'dep' 
-    ? getStrokeDasharray(connectionType) 
+  const resolvedMarkerEnd = 'url(#arrow-sync)';
+  const strokeDasharray = animated || connectionType === 'async' || connectionType === 'stream' || connectionType === 'event' || connectionType === 'dep'
+    ? getStrokeDasharray(connectionType)
     : undefined;
-  const strokeWidth = (style as React.CSSProperties)?.strokeWidth || 2.5;
+  const strokeWidth = (style as React.CSSProperties)?.strokeWidth || 2;
 
   const pathType = (data as SimpleEdgeData)?.pathType || 'Smoothstep';
   const edgeLabel = (data as SimpleEdgeData)?.label?.trim();
@@ -173,14 +185,18 @@ export default function SimpleFloatingEdge({
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: 'none',
-              fontSize: 11,
-              fontWeight: 500,
-              color: '#64748b',
-              background: 'rgba(255,255,255,0.85)',
+              fontSize: 9,
+              fontWeight: 600,
+              color: '#6B7280',
+              background: 'hsl(60 33% 98% / 1)',
+              padding: '2px 6px',
               borderRadius: 4,
-              padding: '1px 4px',
+              border: '1px solid hsl(40 20% 88% / 0.8)',
+              boxShadow: '0 1px 3px hsl(40 15% 20% / 0.08)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              zIndex: 1000,
             }}
-            className="nodrag nopan"
           >
             {edgeLabel}
           </div>

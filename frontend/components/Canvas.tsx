@@ -1,12 +1,15 @@
 'use client';
 
 import ReactFlow, {
-  Background, BackgroundVariant, Controls, MiniMap, Panel,
+  Background, BackgroundVariant, Controls, MiniMap,
   useReactFlow, ReactFlowProvider,
   NodeMouseHandler, EdgeMouseHandler, NodeDragHandler,
   SelectionMode, ConnectionLineType,
   ConnectionMode, MarkerType,
   type OnSelectionChangeParams,
+  type Connection,
+  type Edge,
+  type NodeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useDiagramStore, registerFitViewCallback } from '@/store/diagramStore';
@@ -36,7 +39,7 @@ import { isValidConnection, wouldCreateCycle } from '@/lib/config/edgeConfig';
 
 import { useGrouping } from '@/hooks/useGrouping';
 import { toast } from 'sonner';
-import type { Node, Edge } from 'reactflow';
+import type { Node } from 'reactflow';
 import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
 import CustomNode from '@/components/nodes/CustomNode';
 
@@ -192,6 +195,16 @@ function CanvasInner() {
     }
   }, [activeCanvasId, searchParams, router, urlCanvasHandled]);
 
+  // Load default architecture when canvas is empty (no session)
+  const loadDefaultArchitecture = useDiagramStore((s) => s.loadDefaultArchitecture);
+  useEffect(() => {
+    const sessionId = searchParams.get('session');
+    const canvasId = searchParams.get('canvas');
+    if (!sessionId && !canvasId && nodes.length === 0) {
+      loadDefaultArchitecture();
+    }
+  }, []); // Only run on mount
+
   // Cmd+D / Ctrl+D — duplicate selected nodes
   // Cmd+0 / Ctrl+0 — fit view
   useEffect(() => {
@@ -336,7 +349,7 @@ function CanvasInner() {
   // Focus label input when a new edge is drawn
   useEffect(() => {
     if (pendingLabelEdgeId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setLabelDraft('');
       requestAnimationFrame(() => labelInputRef.current?.focus());
     }
@@ -374,11 +387,11 @@ function CanvasInner() {
     dismissOnboarding();
   }, [onNodeDragStopSnap, reactFlowInstance, setNodes, dismissOnboarding]);
 
-  const handleOnConnect = useCallback((connection: any) => {
+  const handleOnConnect = useCallback((connection: Connection) => {
     onConnect(connection);
   }, [onConnect]);
 
-  const validateConnection = useCallback((connection: any) => {
+  const validateConnection = useCallback((connection: Connection & { data?: { connectionType?: string } }) => {
     if (connection.source === connection.target) {
       toast.error('Cannot connect a node to itself');
       return false;
@@ -403,7 +416,7 @@ function CanvasInner() {
       return false;
     }
 
-    if (wouldCreateCycle(edges, { source: connection.source, target: connection.target })) {
+    if (wouldCreateCycle(edges, { source: connection.source as string, target: connection.target as string })) {
       toast.error('Cannot create circular dependency');
       return false;
     }
@@ -411,20 +424,18 @@ function CanvasInner() {
     return true;
   }, [nodes, edges]);
 
-  const handleOnReconnect = useCallback((oldEdge: any, newConnection: any) => {
+  const handleOnReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
     const currentEdges = useDiagramStore.getState().edges;
     
-    const updatedEdge = {
-      ...newConnection,
-      id: oldEdge.id,
-      type: oldEdge.type || 'custom',
-      data: oldEdge.data,
-      style: oldEdge.style,
-      markerEnd: oldEdge.markerEnd,
-      animated: oldEdge.animated,
+    const updatedEdge: Edge = {
+      ...oldEdge,
+      source: newConnection.source as string,
+      target: newConnection.target as string,
+      sourceHandle: newConnection.sourceHandle,
+      targetHandle: newConnection.targetHandle,
     };
 
-    const newEdges = currentEdges.map((edge: any) => 
+    const newEdges = currentEdges.map((edge: Edge) => 
       edge.id === oldEdge.id ? updatedEdge : edge
     );
 
@@ -432,7 +443,7 @@ function CanvasInner() {
     toast.success('Connection updated');
   }, []);
 
-  const handleOnNodesChange = useCallback((changes: any[]) => {
+  const handleOnNodesChange = useCallback((changes: NodeChange[]) => {
     onNodesChange(changes);
   }, [onNodesChange]);
 
@@ -529,17 +540,8 @@ function CanvasInner() {
   }, [setCanvasMode, dismissOnboarding]);
 
   return (
-    <div className="fixed inset-0" style={{ background: isDark ? '#1a1a1a' : '#FFFFFF' }}>
-      {/* Soft canvas background - minimal gradient */}
-      {!isDark && (
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'transparent',
-          }}
-        />
-      )}
-      <div className="absolute inset-0" style={{ width: '100%', height: '100%', top: 0 }}>
+    <div className="fixed inset-0 drafting-canvas-bg">
+      <div className="absolute inset-0" style={{ width: '100%', height: '100%', top: 0, zIndex: 1 }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -572,8 +574,8 @@ function CanvasInner() {
           maxZoom={2}
           fitView
           elevateNodesOnSelect
-          style={{ background: isDark ? '#1a1a1a' : '#FFFFFF' }}
-          elevateEdgesOnSelect={true}
+          style={{ background: 'transparent' }}
+          elevateEdgesOnSelect={false}
           selectNodesOnDrag={false}
           panOnScroll
           panOnDrag={[1, 2]}
@@ -584,82 +586,82 @@ function CanvasInner() {
           connectionMode={ConnectionMode.Loose}
           proOptions={{ hideAttribution: true }}
           connectionLineType={ConnectionLineType.SmoothStep}
-          connectionLineStyle={{ stroke: '#94a3b8', strokeWidth: 2 }}
+          connectionLineStyle={{ stroke: '#9CA3AF', strokeWidth: 2 }}
           defaultEdgeOptions={{
             type: 'simpleFloating',
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#94A3B8' },
-            data: { connectionType: 'sync', pathType: 'smooth' },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#6B7280' },
+            style: { stroke: '#6B7280', strokeWidth: 2 },
+            data: { connectionType: 'sync', pathType: 'Smoothstep' },
           }}
         >
           <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
           <defs>
-            {/* Arrow markers for all edge types - refX positions arrow tip at node edge */}
-            {/* sync: indigo, async: amber, stream: green, event: pink, dep: gray */}
-            <marker id="arrow-sync" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
+            {/* Arrow markers — consistent neutral gray with gap before node */}
+            <marker id="arrow-sync" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
             </marker>
-            <marker id="arrow-async" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
+            <marker id="arrow-async" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
             </marker>
-            <marker id="arrow-stream" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
+            <marker id="arrow-stream" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
             </marker>
-            <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
+            <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
             </marker>
-            <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
+            <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
             </marker>
-            <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#94A3B8" />
+            <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
             </marker>
-            <marker id="arrow-error" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#ef4444" />
+            <marker id="arrow-error" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L6,3 z" fill="#EF4444" />
             </marker>
           </defs>
         </svg>
         <Background
           variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1.2}
-          color={isDark ? '#3a3a3a' : 'rgba(203, 213, 225, 0.5)'}
-          style={{ opacity: isDark ? 1 : 0.5 }}
+          gap={24}
+          size={1}
+          color={isDark ? '#3d3d3d' : '#d2d2cb'}
+          style={{ opacity: isDark ? 0.35 : 0.4, zIndex: 0 }}
         />
         <Controls
           showInteractive={false}
           style={{
-            background: '#111111',
-            border: '1px solid #2a2a2a',
-            borderRadius: '8px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            background: 'transparent',
+            border: 'none',
+            borderRadius: '12px',
+            boxShadow: 'none',
           }}
         />
         <MiniMap
-          nodeStrokeWidth={2}
+          nodeStrokeWidth={1.5}
           zoomable
           pannable
           style={{
-            background: '#171717',
-            borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+            background: 'transparent',
+            borderRadius: '14px',
+            boxShadow: 'none',
           }}
           nodeColor={(node) => {
             const serviceType = (node.data as { serviceType?: string })?.serviceType;
             const colors: Record<string, string> = {
-              client: '#818cf8',
-              gateway: '#a78bfa',
-              service: '#34d399',
-              queue: '#fbbf24',
-              database: '#f87171',
-              cache: '#fb923c',
-              auth: '#c084fc',
-              monitoring: '#94a3b8',
+              client: '#5A5A5A',
+              gateway: '#6B7B8D',
+              service: '#6FA8DC',
+              queue: '#C4A86C',
+              database: '#D8AA59',
+              cache: '#D8AA59',
+              auth: '#8A8A8A',
+              monitoring: '#8A8A8A',
             };
-            return colors[serviceType ?? ''] ?? '#4ade80';
+            return colors[serviceType ?? ''] ?? '#6B7280';
           }}
-          maskColor="rgba(0,0,0,0.3)"
-          maskStrokeColor="#333333"
-          maskStrokeWidth={1}
+          maskColor="rgba(248, 248, 244, 0.5)"
+          maskStrokeColor="transparent"
+          maskStrokeWidth={0}
         />
 
         {/* Floating label prompt after double-clicking an edge */}
@@ -698,8 +700,8 @@ pointerEvents: 'all',
                   autoFocus
                   style={{
                     width: 100,
-                    background: isDark ? 'hsl(var(--card))' : '#ffffff',
-                    border: 'none',
+                    background: isDark ? 'hsl(var(--card))' : 'hsl(60 33% 98%)',
+                    border: '1px solid hsl(40 20% 88% / 0.6)',
                     borderRadius: 9999,
                     padding: '4px 12px',
                     fontSize: 11,
@@ -707,7 +709,7 @@ pointerEvents: 'all',
                     color: isDark ? 'hsl(var(--foreground))' : '#374151',
                     outline: 'none',
                     textAlign: 'center',
-                    boxShadow: '0 4px 16px hsl(var(--foreground) / 0.15)',
+                    boxShadow: '0 1px 3px hsl(40 15% 20% / 0.04), 0 2px 8px hsl(40 15% 20% / 0.03)',
                   }}
                 />
               </div>
@@ -725,8 +727,8 @@ pointerEvents: 'all',
             top: !isNaN(selectionRect.y) ? selectionRect.y : 0,
             width: !isNaN(selectionRect.width) && selectionRect.width > 0 ? selectionRect.width : 0,
             height: !isNaN(selectionRect.height) && selectionRect.height > 0 ? selectionRect.height : 0,
-            backgroundColor: 'rgba(139, 92, 246, 0.08)',
-            border: '2px dashed rgba(139, 92, 246, 0.6)',
+            backgroundColor: 'hsl(40 6% 25% / 0.04)',
+            border: '1.5px dashed hsl(40 6% 25% / 0.3)',
             borderRadius: '8px',
             pointerEvents: 'none',
             zIndex: 9999,
@@ -740,30 +742,30 @@ pointerEvents: 'all',
         <ContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />
       )}
 
-      {/* Minimal empty state hint - only shows when canvas is completely empty */}
-      {nodes.length === 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-[5]">
-          <div className="text-center">
-            <p className="text-sm" style={{ color: '#B0B0B0' }}>
-              Press <kbd className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: '#F2F2F2', color: '#6B6B6B' }}>/</kbd> to add components
-            </p>
-            <p className="text-xs mt-2" style={{ color: '#B0B0B0' }}>
-              or use <kbd className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: '#F2F2F2', color: '#6B6B6B' }}>Cmd + K</kbd>
-            </p>
-          </div>
-          <div className="flex items-center gap-3 mt-6 text-[11px] pointer-events-auto">
-            <button
-              onClick={handleOpenTemplates}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-gray-100"
-              style={{ background: 'white', color: '#6B6B6B', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-            >
-              Browse templates
-            </button>
-            <span className="text-[10px]" style={{ color: '#B0B0B0' }}>or start from scratch</span>
-          </div>
-          <p className="text-[10px] mt-4" style={{ color: '#B0B0B0' }}>Press <kbd className="px-1 py-0.5 rounded" style={{ background: '#F2F2F2' }}>?</kbd> for shortcuts</p>
-        </div>
-      )}
+       {/* Minimal empty state hint - only shows when canvas is completely empty */}
+       {nodes.length === 0 && (
+         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-[5]">
+           <div className="text-center">
+             <p className="text-sm" style={{ color: '#9a9a8e' }}>
+               Press <kbd className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: 'hsl(40 20% 94%)', color: '#6b6b5e' }}>/</kbd> to add components
+             </p>
+             <p className="text-xs mt-2" style={{ color: '#9a9a8e' }}>
+               or use <kbd className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: 'hsl(40 20% 94%)', color: '#6b6b5e' }}>Cmd + K</kbd>
+             </p>
+           </div>
+           <div className="flex items-center gap-3 mt-6 text-[11px] pointer-events-auto">
+             <button
+               onClick={handleOpenTemplates}
+               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/60"
+               style={{ background: 'hsl(60 33% 98%)', color: '#6b6b5e', boxShadow: '0 1px 3px hsl(40 15% 20% / 0.04), 0 2px 8px hsl(40 15% 20% / 0.03)' }}
+             >
+               Browse templates
+             </button>
+             <span className="text-[10px]" style={{ color: '#9a9a8e' }}>or start from scratch</span>
+           </div>
+           <p className="text-[10px] mt-4" style={{ color: '#9a9a8e' }}>Press <kbd className="px-1 py-0.5 rounded" style={{ background: 'hsl(40 20% 94%)' }}>?</kbd> for shortcuts</p>
+         </div>
+       )}
 
       
 

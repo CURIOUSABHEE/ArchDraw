@@ -38,6 +38,7 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
   }, [isEditing]);
   
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditValue(currentLabel || '');
   }, [currentLabel]);
 

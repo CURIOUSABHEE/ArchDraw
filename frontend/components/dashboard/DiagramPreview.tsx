@@ -9,6 +9,7 @@ interface DiagramPreviewProps {
   edges: Edge[];
   width?: number;
   height?: number;
+  simplified?: boolean;
 }
 
 const DEFAULT_NODE_WIDTH = 140;
@@ -86,7 +87,7 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
     if (node.data?.color) return node.data.color;
     if (node.data?.layer) {
       const layerColors: Record<string, string> = {
-        client: '#6366f1',
+        client: '#5A5A5A',
         gateway: '#8B5CF6',
         service: '#3B82F6',
         queue: '#F59E0B',
@@ -343,6 +344,7 @@ export function ReactFlowPreview({ nodes, edges, width = 280, height = 160 }: Re
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -353,6 +355,7 @@ export function ReactFlowPreview({ nodes, edges, width = 280, height = 160 }: Re
   }
 
   // Use dynamic import to avoid SSR issues
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { ReactFlow, Background, BackgroundVariant, ReactFlowProvider } = require('reactflow');
 
   return (
