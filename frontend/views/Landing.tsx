@@ -60,13 +60,13 @@ const DEMO_NODES: Node[] = [
 ];
 
 const DEMO_EDGES: Edge[] = [
-  { id: 'e1', source: 'client',  target: 'apigw',   type: 'smooth', animated: true,  style: { stroke: '#6366f1', strokeWidth: '2px' } },
-  { id: 'e2', source: 'apigw',   target: 'auth',    type: 'smooth', animated: false, style: { stroke: '#6366f1', strokeWidth: '2px' } },
-  { id: 'e3', source: 'apigw',   target: 'backend', type: 'smooth', animated: true,  style: { stroke: '#6366f1', strokeWidth: '2px' } },
-  { id: 'e4', source: 'backend', target: 'db',      type: 'smooth', animated: false, style: { stroke: '#6366f1', strokeWidth: '2px' } },
-  { id: 'e5', source: 'backend', target: 'cache',   type: 'smooth', animated: false, style: { stroke: '#6366f1', strokeWidth: '2px' } },
-  { id: 'e6', source: 'backend', target: 'queue',   type: 'smooth', animated: true,  style: { stroke: '#6366f1', strokeWidth: '2px' } },
-  { id: 'e7', source: 'queue',   target: 'worker',  type: 'smooth', animated: true,  style: { stroke: '#6366f1', strokeWidth: '2px' } },
+  { id: 'e1', source: 'client',  target: 'apigw',   type: 'smooth', animated: true,  style: { stroke: '#6B7280', strokeWidth: '2px' } },
+  { id: 'e2', source: 'apigw',   target: 'auth',    type: 'smooth', animated: false, style: { stroke: '#6B7280', strokeWidth: '2px' } },
+  { id: 'e3', source: 'apigw',   target: 'backend', type: 'smooth', animated: true,  style: { stroke: '#6B7280', strokeWidth: '2px' } },
+  { id: 'e4', source: 'backend', target: 'db',      type: 'smooth', animated: false, style: { stroke: '#6B7280', strokeWidth: '2px' } },
+  { id: 'e5', source: 'backend', target: 'cache',   type: 'smooth', animated: false, style: { stroke: '#6B7280', strokeWidth: '2px' } },
+  { id: 'e6', source: 'backend', target: 'queue',   type: 'smooth', animated: true,  style: { stroke: '#6B7280', strokeWidth: '2px' } },
+  { id: 'e7', source: 'queue',   target: 'worker',  type: 'smooth', animated: true,  style: { stroke: '#6B7280', strokeWidth: '2px' } },
 ];
 
 function CanvasPreview() {
@@ -102,7 +102,7 @@ const cardStyle = {
 };
 
 const buttonPrimaryStyle = {
-  background: '#6366f1',
+  background: '#595959',
   color: '#ffffff' as const,
   padding: '14px 28px',
   borderRadius: 12,
@@ -162,7 +162,7 @@ export default function LandingPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 32, height: 32, borderRadius: 8,
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+            background: 'linear-gradient(135deg, #3b82f6, #0ea5e9)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 16,
           }}>⬡</div>
@@ -225,8 +225,8 @@ export default function LandingPage() {
             display: 'inline-flex', alignItems: 'center', gap: 6,
             background: '#f1f5f9', borderRadius: 999, padding: '6px 14px', marginBottom: 24,
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#6366f1', letterSpacing: '0.04em' }}>NOW IN BETA</span>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#595959', display: 'inline-block' }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#595959', letterSpacing: '0.04em' }}>NOW IN BETA</span>
           </div>
 
           <h1 style={{
@@ -239,7 +239,7 @@ export default function LandingPage() {
           }}>
             Design{' '}
             <span style={{
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              background: 'linear-gradient(135deg, #3b82f6, #0ea5e9)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}>Systems,</span>
@@ -313,7 +313,7 @@ export default function LandingPage() {
             position: 'absolute', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
             width: 380, height: 280,
-            background: 'radial-gradient(ellipse, rgba(139,92,246,0.15) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse, rgba(107,114,128,0.15) 0%, transparent 70%)',
             borderRadius: '50%',
             filter: 'blur(32px)',
             pointerEvents: 'none',
@@ -443,7 +443,7 @@ export default function LandingPage() {
         margin: '0 auto 32px',
         padding: '48px',
         textAlign: 'center',
-        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+        background: 'linear-gradient(135deg, #3b82f6, #0ea5e9)',
       }}>
         <h2 style={{
           fontSize: '1.75rem', fontWeight: 700, color: '#ffffff', marginBottom: 12,
@@ -455,8 +455,8 @@ export default function LandingPage() {
           onClick={() => router.push('/editor')}
           style={{
             background: '#ffffff',
-            color: '#6366f1',
-            padding: '16px 32px',
+color: '#595959',
+             padding: '16px 32px',
             borderRadius: 12,
             border: 'none',
             fontSize: 16,
@@ -491,7 +491,7 @@ export default function LandingPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
             width: 24, height: 24, borderRadius: 6,
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+            background: 'linear-gradient(135deg, #3b82f6, #0ea5e9)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 12,
           }}>⬡</div>

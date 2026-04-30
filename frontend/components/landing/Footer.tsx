@@ -9,7 +9,7 @@ export function Footer() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" style={{ color: '#6366f1' }}>
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" style={{ color: '#595959' }}>
                   <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" />
                 </svg>
                 <span className="font-semibold text-base text-foreground">ArchDraw</span>

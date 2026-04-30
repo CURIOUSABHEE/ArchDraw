@@ -57,7 +57,7 @@ export function CTASection() {
           <h2 className="reveal text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-foreground">
             <span>Start building your</span>
             <br />
-            <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-gray-500 bg-clip-text text-transparent">
               architecture today.
             </span>
           </h2>
@@ -67,7 +67,7 @@ export function CTASection() {
           <button
             ref={btnRef}
             onClick={() => router.push('/editor')}
-            className="reveal reveal-delay-2 will-change-transform text-lg px-10 py-4 rounded-xl hover:opacity-90 transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-purple-500 text-white"
+            className="reveal reveal-delay-2 will-change-transform text-lg px-10 py-4 rounded-xl hover:opacity-90 transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-gray-500 text-white"
           >
             Open the canvas →
           </button>

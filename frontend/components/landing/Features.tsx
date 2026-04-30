@@ -5,9 +5,9 @@ import { Boxes, Zap, LayoutTemplate, Link2, Download, LayoutGrid } from 'lucide-
 import type { LucideIcon } from 'lucide-react';
 
 const features: { Icon: LucideIcon; color: string; title: string; desc: string }[] = [
-  { Icon: Boxes,          color: '#6366f1', title: '150+ Components',    desc: 'Pre-built nodes for every layer — auth, databases, queues, AI services, cloud infra and more.' },
+  { Icon: Boxes,          color: '#595959', title: '150+ Components',    desc: 'Pre-built nodes for every layer — auth, databases, queues, AI services, cloud infra and more.' },
   { Icon: Zap,            color: '#3b82f6', title: 'Smart Auto Layout',  desc: "One click to organize your entire diagram with Dagre's hierarchical layout algorithm." },
-  { Icon: LayoutTemplate, color: '#6366f1', title: 'Real-time Templates', desc: 'Start from battle-tested architectures — ChatGPT, Instagram, Netflix and more.' },
+  { Icon: LayoutTemplate, color: '#595959', title: 'Real-time Templates', desc: 'Start from battle-tested architectures — ChatGPT, Instagram, Netflix and more.' },
   { Icon: Link2,          color: '#10b981', title: 'Share with a Link',  desc: 'Generate a shareable URL for any diagram. Anyone can view and interact — no account needed.' },
   { Icon: Download,       color: '#f59e0b', title: 'Export as PNG',      desc: 'Export high-resolution images for docs, presentations, or Notion pages. 3× resolution.' },
   { Icon: LayoutGrid,     color: '#06b6d4', title: 'Multiple Canvases',  desc: 'Work on different systems simultaneously with tabbed canvases. Switch instantly.' },

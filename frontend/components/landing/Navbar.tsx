@@ -52,7 +52,7 @@ export function Navbar() {
             <button
               onClick={() => router.push('/editor')}
               className="px-4 py-2 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-all shadow-md hover:shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+              style={{ background: 'linear-gradient(135deg, #595959, #8A8A8A)' }}
             >
               Start designing
             </button>
@@ -97,7 +97,7 @@ export function Navbar() {
                 <button
                   onClick={() => router.push('/editor')}
                   className="w-full px-4 py-2.5 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-all"
-                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                  style={{ background: 'linear-gradient(135deg, #595959, #8A8A8A)' }}
                 >
                   Start designing
                 </button>

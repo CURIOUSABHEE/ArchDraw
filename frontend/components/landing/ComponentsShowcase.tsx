@@ -3,11 +3,11 @@
 import { useEffect, useRef } from 'react';
 
 const categories = [
-  { label: 'Client & Entry', chips: ['Client', 'DNS', 'CDN', 'API Gateway', 'Load Balancer', 'Reverse Proxy'], color: '#6366f1' },
+  { label: 'Client & Entry', chips: ['Client', 'DNS', 'CDN', 'API Gateway', 'Load Balancer', 'Reverse Proxy'], color: '#5A5A5A' },
   { label: 'Compute',        chips: ['Server', 'Microservice', 'Serverless', 'Worker', 'Container', 'VM'],     color: '#3b82f6' },
   { label: 'Data Storage',   chips: ['SQL Database', 'NoSQL', 'Redis Cache', 'Object Storage', 'Data Warehouse', 'Time Series DB'], color: '#64748b' },
   { label: 'Messaging',      chips: ['Kafka', 'Message Queue', 'Event Bus', 'Pub/Sub', 'Webhook', 'Stream'],   color: '#f59e0b' },
-  { label: 'AI / ML',        chips: ['LLM API', 'Vector Database', 'RAG Pipeline', 'ML Model', 'Embeddings', 'Fine-tuning'], color: '#6366f1' },
+  { label: 'AI / ML',        chips: ['LLM API', 'Vector Database', 'RAG Pipeline', 'ML Model', 'Embeddings', 'Fine-tuning'], color: '#5A5A5A' },
   { label: 'External',       chips: ['Stripe', 'Resend', 'Twilio', 'OpenAI', 'GitHub', 'Slack'],              color: '#10b981' },
 ];
 
@@ -39,7 +39,7 @@ export function ComponentsShowcase() {
         {/* Floating card container */}
         <div className="bg-white rounded-3xl p-8 md:p-12" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
           <header className="reveal text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#6366f1' }}>Components</p>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#5A5A5A' }}>Components</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: '#1e293b' }}>
               150+ components. Every layer covered.
             </h2>

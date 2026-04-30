@@ -8,12 +8,12 @@ import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const templates: { Icon: LucideIcon; name: string; desc: string; nodes: string; tags: string[]; accent: string }[] = [
-  { Icon: Bot,    name: 'ChatGPT Architecture', desc: 'LLM RAG pipeline, vector DB, streaming',          nodes: '14', tags: ['AI', 'LLM', 'RAG'],        accent: '#6366f1' },
-  { Icon: Camera, name: 'Instagram',            desc: 'Feed service, media pipeline, Kafka, CDN',        nodes: '22', tags: ['Social', 'Kafka'],          accent: '#6366f1' },
+  { Icon: Bot,    name: 'ChatGPT Architecture', desc: 'LLM RAG pipeline, vector DB, streaming',          nodes: '14', tags: ['AI', 'LLM', 'RAG'],        accent: '#5A5A5A' },
+  { Icon: Camera, name: 'Instagram',            desc: 'Feed service, media pipeline, Kafka, CDN',        nodes: '22', tags: ['Social', 'Kafka'],          accent: '#5A5A5A' },
   { Icon: Film,   name: 'Netflix',              desc: 'Video transcoding, CDN, recommendation ML',       nodes: '18', tags: ['Streaming', 'CDN', 'ML'],   accent: '#ef4444' },
   { Icon: Car,    name: 'Uber',                 desc: 'Real-time matching, maps API, location tracking', nodes: '26', tags: ['Real-time', 'Maps'],        accent: '#f59e0b' },
   { Icon: Layers, name: 'ArchFlow itself',      desc: 'The architecture of this very tool',              nodes: '23', tags: ['Next.js', 'Supabase'],      accent: '#10b981' },
-  { Icon: Brain,  name: 'RAG Application',      desc: 'Vector DB, embeddings, LLM, retrieval pipeline', nodes: '10', tags: ['AI', 'Vector', 'RAG'],      accent: '#6366f1' },
+  { Icon: Brain,  name: 'RAG Application',      desc: 'Vector DB, embeddings, LLM, retrieval pipeline', nodes: '10', tags: ['AI', 'Vector', 'RAG'],      accent: '#5A5A5A' },
 ];
 
 export function Templates() {

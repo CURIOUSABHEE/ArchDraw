@@ -105,7 +105,7 @@ export function Hero() {
             <h1 className="hero-headline font-bold text-4xl sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.1] mb-6">
               <span className="text-foreground">Design system architecture</span>
               <br />
-              <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">in minutes.</span>
+              <span className="bg-gradient-to-r from-primary to-gray-500 bg-clip-text text-transparent">in minutes.</span>
             </h1>
 
             {/* Power Line */}
@@ -125,7 +125,7 @@ export function Hero() {
               {initialized && user ? (
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-medium rounded-xl transition-all hover:scale-[1.02] shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-purple-500 text-white"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-medium rounded-xl transition-all hover:scale-[1.02] shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-gray-500 text-white"
                   style={{ boxShadow: '0 4px 20px rgba(99, 102, 241, 0.3)' }}
                 >
                   Go to Dashboard <ArrowRight className="w-4 h-4" />
@@ -133,7 +133,7 @@ export function Hero() {
               ) : (
                 <button
                   onClick={() => router.push('/editor')}
-                  className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-medium rounded-xl transition-all hover:scale-[1.02] shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-purple-500 text-white"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-medium rounded-xl transition-all hover:scale-[1.02] shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-gray-500 text-white"
                   style={{ boxShadow: '0 4px 20px rgba(99, 102, 241, 0.3)' }}
                 >
                   Start designing <ArrowRight className="w-4 h-4" />
@@ -164,7 +164,7 @@ export function Hero() {
               </span>
               <span className="inline-flex items-center gap-2 text-sm" style={{ color: '#6B6B6B' }}>
                 <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#EDE9FE' }}>
-                  <Sparkles className="w-3 h-3" style={{ color: '#6366f1' }} />
+                  <Sparkles className="w-3 h-3" style={{ color: '#595959' }} />
                 </div>
                 AI-powered generation
               </span>
@@ -191,8 +191,8 @@ export function Hero() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ background: '#EDE9FE' }}>
-                  <Sparkles className="w-3 h-3" style={{ color: '#6366f1' }} />
-                  <span className="text-[9px] font-medium" style={{ color: '#6366f1' }}>Live preview</span>
+                  <Sparkles className="w-3 h-3" style={{ color: '#595959' }} />
+                  <span className="text-[9px] font-medium" style={{ color: '#595959' }}>Live preview</span>
                 </div>
               </div>
 

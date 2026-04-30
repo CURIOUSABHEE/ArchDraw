@@ -15,7 +15,7 @@ function SidebarMockup() {
   const [activeCategory, setActiveCategory] = useState(0);
 
   const categories = [
-    { name: 'Client & Entry', color: '#6366f1', Icon: Monitor,  items: ['Client (Web/Mobile)', 'API Gateway', 'Load Balancer', 'CDN'] },
+    { name: 'Client & Entry', color: '#5A5A5A', Icon: Monitor,  items: ['Client (Web/Mobile)', 'API Gateway', 'Load Balancer', 'CDN'] },
     { name: 'Compute',        color: '#3b82f6', Icon: Zap,      items: ['Microservice', 'Serverless Fn', 'Container', 'Worker Job'] },
     { name: 'AI / ML',        color: '#ec4899', Icon: Brain,    items: ['LLM API', 'Vector DB', 'RAG Pipeline', 'Embeddings'] },
     { name: 'Data Storage',   color: '#64748b', Icon: Database, items: ['SQL Database', 'NoSQL DB', 'Object Storage', 'Redis Cache'] },
@@ -77,16 +77,16 @@ function CanvasMockup() {
   }, []);
 
   const messyNodes = [
-    { label: 'Client',      color: '#6366f1', Icon: Monitor,  x: 160, y: 130 },
-    { label: 'API Gateway', color: '#6366f1', Icon: Zap,      x: 40,  y: 240 },
-    { label: 'Auth',        color: '#6366f1', Icon: Shield,   x: 240, y: 40  },
+    { label: 'Client',      color: '#5A5A5A', Icon: Monitor,  x: 160, y: 130 },
+    { label: 'API Gateway', color: '#5A5A5A', Icon: Zap,      x: 40,  y: 240 },
+    { label: 'Auth',        color: '#5A5A5A', Icon: Shield,   x: 240, y: 40  },
     { label: 'Database',    color: '#64748b', Icon: Database, x: 280, y: 260 },
     { label: 'LLM API',    color: '#ec4899', Icon: Brain,    x: 80,  y: 50  },
   ];
   const cleanNodes = [
-    { label: 'Client',      color: '#6366f1', Icon: Monitor,  x: 10,  y: 140 },
-    { label: 'API Gateway', color: '#6366f1', Icon: Zap,      x: 140, y: 140 },
-    { label: 'Auth',        color: '#6366f1', Icon: Shield,   x: 270, y: 60  },
+    { label: 'Client',      color: '#5A5A5A', Icon: Monitor,  x: 10,  y: 140 },
+    { label: 'API Gateway', color: '#5A5A5A', Icon: Zap,      x: 140, y: 140 },
+    { label: 'Auth',        color: '#5A5A5A', Icon: Shield,   x: 270, y: 60  },
     { label: 'LLM API',    color: '#ec4899', Icon: Brain,    x: 270, y: 220 },
     { label: 'Database',    color: '#64748b', Icon: Database, x: 400, y: 140 },
   ];

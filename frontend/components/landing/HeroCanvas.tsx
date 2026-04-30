@@ -11,7 +11,7 @@ import { HeroNode } from './HeroNode';
 const nodeTypes: NodeTypes = { heroNode: HeroNode };
 
 const ES = { 
-  stroke: '#6366f1', 
+  stroke: '#6B7280', 
   strokeWidth: '1.5px', 
   strokeOpacity: 0.7,
   strokeDasharray: '6 4',
@@ -19,9 +19,9 @@ const ES = {
 };
 
 const initialNodes: Node[] = [
-  { id: 'client_web',   type: 'heroNode', position: { x: 0,   y: 140 }, data: { label: 'Web',          category: 'Entry',    icon: 'Monitor',  color: '#6366f1' } },
-  { id: 'api-gateway',  type: 'heroNode', position: { x: 160, y: 140 }, data: { label: 'API Gateway',  category: 'Gateway',  icon: 'Webhook',  color: '#6366f1' } },
-  { id: 'auth-service', type: 'heroNode', position: { x: 340, y: 60  }, data: { label: 'Auth Service', category: 'Security', icon: 'Shield',   color: '#6366f1' } },
+  { id: 'client_web',   type: 'heroNode', position: { x: 0,   y: 140 }, data: { label: 'Web',          category: 'Entry',    icon: 'Monitor',  color: '#5A5A5A' } },
+  { id: 'api-gateway',  type: 'heroNode', position: { x: 160, y: 140 }, data: { label: 'API Gateway',  category: 'Gateway',  icon: 'Webhook',  color: '#5A5A5A' } },
+  { id: 'auth-service', type: 'heroNode', position: { x: 340, y: 60  }, data: { label: 'Auth Service', category: 'Security', icon: 'Shield',   color: '#5A5A5A' } },
   { id: 'chat-service', type: 'heroNode', position: { x: 340, y: 200 }, data: { label: 'Chat Service', category: 'Compute',  icon: 'Boxes',    color: '#3b82f6' } },
   { id: 'llm-api',      type: 'heroNode', position: { x: 540, y: 50  }, data: { label: 'LLM API',      category: 'AI / ML',  icon: 'Brain',    color: '#ec4899' } },
   { id: 'rag-pipeline', type: 'heroNode', position: { x: 540, y: 200 }, data: { label: 'RAG Pipeline', category: 'AI / ML',  icon: 'GitMerge', color: '#ec4899' } },

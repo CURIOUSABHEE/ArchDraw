@@ -5,9 +5,9 @@ import { GraduationCap, FileText, BarChart2, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const cases: { Icon: LucideIcon; color: string; title: string; desc: string }[] = [
-  { Icon: GraduationCap, color: '#6366f1', title: 'System Design Interviews',  desc: 'Practice drawing architectures for FAANG interviews. Use real templates as study guides.' },
+  { Icon: GraduationCap, color: '#595959', title: 'System Design Interviews',  desc: 'Practice drawing architectures for FAANG interviews. Use real templates as study guides.' },
   { Icon: FileText,      color: '#3b82f6', title: 'Engineering Documentation', desc: 'Replace Confluence diagrams with interactive, shareable architecture docs.' },
-  { Icon: BarChart2,     color: '#6366f1', title: 'Technical Presentations',   desc: 'Export clean diagrams for pitch decks, RFCs, and engineering all-hands.' },
+  { Icon: BarChart2,     color: '#595959', title: 'Technical Presentations',   desc: 'Export clean diagrams for pitch decks, RFCs, and engineering all-hands.' },
   { Icon: Users,         color: '#10b981', title: 'Team Onboarding',           desc: 'Help new engineers understand your system architecture from day one.' },
 ];
 
