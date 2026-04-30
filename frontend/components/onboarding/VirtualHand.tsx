@@ -63,7 +63,7 @@ function TapBeacon() {
           position: 'absolute',
           inset: 14,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, #818cf8, #6366f1)',
+          background: 'radial-gradient(circle, #8A8A8A, #6B7280)',
           boxShadow: '0 0 12px rgba(99,102,241,0.9), 0 0 4px rgba(129,140,248,0.6)',
         }}
         animate={{ scale: [1, 1.2, 1] }}
@@ -111,7 +111,7 @@ function DragBeacon() {
           width: 18,
           height: 18,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, #818cf8, #6366f1)',
+          background: 'radial-gradient(circle, #8A8A8A, #6B7280)',
           boxShadow: '0 0 14px rgba(99,102,241,0.95), 0 0 6px rgba(129,140,248,0.7)',
         }}
       />

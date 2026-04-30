@@ -50,11 +50,11 @@ export function StepCard({
         left: position.left,
         width: 320,
         background: 'linear-gradient(135deg, #1a1d2e 0%, #141624 100%)',
-        border: '1px solid rgba(99,102,241,0.35)',
+        border: '1px solid rgba(89,89,89,0.35)',
         borderRadius: 16,
         padding: '22px 26px',
         boxShadow:
-          '0 0 0 1px rgba(99,102,241,0.08), 0 12px 40px rgba(0,0,0,0.55), 0 0 60px rgba(99,102,241,0.06)',
+          '0 0 0 1px rgba(89,89,89,0.08), 0 12px 40px rgba(0,0,0,0.55), 0 0 60px rgba(89,89,89,0.06)',
         zIndex: 10000,
         pointerEvents: 'all',
       }}
@@ -65,7 +65,7 @@ export function StepCard({
           <motion.div
             key={i}
             animate={{
-              background: i < step ? '#6366f1' : i === step - 1 ? '#818cf8' : '#2d3148',
+              background: i < step ? '#595959' : i === step - 1 ? '#8A8A8A' : '#2d3148',
               scale: i === step - 1 ? 1.35 : 1,
             }}
             transition={{ duration: 0.3 }}
@@ -175,13 +175,13 @@ export function StepCard({
           ref={primaryBtnRef}
           onClick={onNext}
           disabled={!!nextDisabled}
-          whileHover={!nextDisabled ? { scale: 1.04, background: '#818cf8' } : {}}
+          whileHover={!nextDisabled ? { scale: 1.04, background: '#8A8A8A' } : {}}
           whileTap={!nextDisabled ? { scale: 0.97 } : {}}
           transition={{ duration: 0.15 }}
           style={{
             background: nextDisabled
               ? '#252840'
-              : 'linear-gradient(135deg, #6366f1, #818cf8)',
+              : 'linear-gradient(135deg, #595959, #8A8A8A)',
             border: 'none',
             color: nextDisabled ? '#4b5563' : '#fff',
             fontSize: 13,

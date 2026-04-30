@@ -75,7 +75,7 @@ export async function GET(
               style={{
                 width: 48,
                 height: 48,
-                background: '#6366f1',
+                background: '#595959',
                 borderRadius: 12,
                 display: 'flex',
                 alignItems: 'center',
@@ -130,7 +130,7 @@ export async function GET(
                 padding: '8px 12px',
                 background: '#334155',
                 borderRadius: 8,
-                border: `1px solid ${node.data?.color || '#6366f1'}40`,
+                border: `1px solid ${node.data?.color || '#6B7280'}40`,
               }}
             >
               <div
@@ -138,7 +138,7 @@ export async function GET(
                   width: 8,
                   height: 8,
                   borderRadius: 4,
-                  background: node.data?.color || '#6366f1',
+                  background: node.data?.color || '#6B7280',
                 }}
               />
               <span style={{ color: '#e2e8f0', fontSize: 12 }}>
