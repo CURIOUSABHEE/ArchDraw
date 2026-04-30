@@ -27,7 +27,7 @@ function TemplateCard({
       <div className="flex items-start justify-between mb-3">
         <div
           className="w-12 h-12 rounded-[14px] flex items-center justify-center text-2xl"
-          style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+          style={{ background: 'linear-gradient(135deg, #595959, #8A8A8A)' }}
         >
           {icon}
         </div>
@@ -45,7 +45,7 @@ function TemplateCard({
           </span>
         ))}
       </div>
-      <div className="flex items-center gap-1 text-sm font-medium" style={{ color: '#6366f1' }}>
+      <div className="flex items-center gap-1 text-sm font-medium" style={{ color: '#595959' }}>
         Use Template <ArrowRight className="w-4 h-4" />
       </div>
     </button>
@@ -59,7 +59,7 @@ export default function TemplatesPage() {
   if (!initialized) {
     return (
       <div className="flex items-center justify-center" style={{ background: '#F4F4F4' }}>
-        <div className="w-8 h-8 border-2 border-[#6366f1] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#595959] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
