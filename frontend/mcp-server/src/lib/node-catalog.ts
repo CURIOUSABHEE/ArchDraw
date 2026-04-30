@@ -113,15 +113,15 @@ export function getTierFromCategory(category: string): TierType | null {
 
 export function getTierColor(tier: TierType): string {
   const tierColors: Record<TierType, string> = {
-    client: '#a855f7',
-    edge: '#8b5cf6',
+    client: '#3b82f6',
+    edge: '#3b82f6',
     compute: '#14b8a6',
     async: '#f59e0b',
-    data: '#3b82f6',
+    data: '#f97316',
     observe: '#6b7280',
     external: '#64748b',
   };
-  return tierColors[tier] || '#6366f1';
+  return tierColors[tier] || '#3b82f6';
 }
 
 export function getLayerFromTier(tier: TierType): string {

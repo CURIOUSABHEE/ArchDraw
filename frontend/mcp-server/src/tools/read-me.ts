@@ -6,12 +6,12 @@ export function getReadMe(): string {
 
 | Tier | Color | Hex | What belongs here |
 |------|-------|-----|-------------------|
-| client | purple | #a855f7 | Browser, Mobile App, Web Client |
-| edge | indigo | #6366f1 | CDN, Load Balancer, API Gateway, WAF |
+| client | blue | #3b82f6 | Browser, Mobile App, Web Client |
+| edge | blue | #3b82f6 | CDN, Load Balancer, API Gateway, WAF |
 | compute | teal | #14b8a6 | API Server, Auth Service, Business Logic, Workers |
 | async | amber | #f59e0b | Message Queue, Event Bus, Task Queue |
-| data | blue | #3b82f6 | Database, Cache, Object Storage |
-| external | orange | #f97316 | Third-party APIs, Payment gateways |
+| data | orange | #f97316 | Database, Cache, Object Storage |
+| external | gray | #64748b | Third-party APIs, Payment gateways |
 | observe | gray | #6b7280 | Monitoring, Logging, Tracing |
 
 ## COMMUNICATION TYPES

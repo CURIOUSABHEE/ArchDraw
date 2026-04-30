@@ -263,7 +263,7 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
     }
 
     let templateNodes = template.nodes;
-    let templateEdges = template.edges;
+    const templateEdges = template.edges;
 
     if (input.customizations) {
       if (input.customizations.renameNodes) {

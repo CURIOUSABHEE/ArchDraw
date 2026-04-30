@@ -56,11 +56,11 @@ const TOOLS: Tool[] = [
 **OUTPUT**: Returns React Flow nodes with x,y positions from ELK layout algorithm, ready to render. IMPORTANT: Check the 'message' and 'diagramUrl' fields in the response and tell the user to open the diagramUrl in their browser.
 
 **TIER SYSTEM**:
-- client (purple): Browser, Mobile App, Web Client
-- edge (indigo): CDN, Load Balancer, API Gateway, WAF
+- client (blue): Browser, Mobile App, Web Client
+- edge (blue): CDN, Load Balancer, API Gateway, WAF
 - compute (teal): API Server, Auth Service, Business Logic, Workers
 - async (amber): Message Queue, Event Bus, Task Queue
-- data (blue): Database, Cache, Object Storage
+- data (orange): Database, Cache, Object Storage
 - observe (gray): Monitoring, Logging, Tracing
 - external (gray): Third-party APIs, Payment gateways`,
     inputSchema: {

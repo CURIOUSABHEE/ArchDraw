@@ -61,11 +61,11 @@ export function generateNodeId(label: string, index: number): string {
 }
 
 export const TIER_COLORS: Record<TierType, string> = {
-  client: '#a855f7',
-  edge: '#8b5cf6',
+  client: '#3b82f6',
+  edge: '#3b82f6',
   compute: '#14b8a6',
   async: '#f59e0b',
-  data: '#3b82f6',
+  data: '#f97316',
   observe: '#6b7280',
   external: '#64748b',
 };

@@ -7,8 +7,8 @@ const DEFAULT_NODE_WIDTH = 220;
 const DEFAULT_NODE_HEIGHT = 80;
 
 const TIER_COLORS: Record<TierType, string> = {
-  client: '#a855f7',
-  edge: '#6366f1',
+  client: '#5A5A5A',
+  edge: '#6B7B8D',
   compute: '#14b8a6',
   async: '#f59e0b',
   data: '#3b82f6',
