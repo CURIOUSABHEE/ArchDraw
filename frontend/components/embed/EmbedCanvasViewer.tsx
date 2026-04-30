@@ -160,6 +160,7 @@ export function EmbedCanvasViewer({ nodes, edges, theme = 'dark', zoom = 1, show
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

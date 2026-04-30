@@ -289,7 +289,7 @@ export function CommandPalette() {
         className="w-8 h-8 rounded-lg flex items-center justify-center"
         style={{ background: '#EDE9FE' }}
       >
-        <ArrowRight className="w-4 h-4" style={{ color: '#6366f1' }} />
+        <ArrowRight className="w-4 h-4" style={{ color: '#595959' }} />
       </div>
     );
   };

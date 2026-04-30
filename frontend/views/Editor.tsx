@@ -394,7 +394,7 @@ export default function EditorPage() {
               id,
               label: data.name,
               category: typeInfo?.label || 'Other',
-              color: typeInfo?.color || '#6366f1',
+              color: typeInfo?.color || '#6B7280',
               description: data.description,
               technology: 'custom',
             });
@@ -407,7 +407,7 @@ export default function EditorPage() {
             componentRegistry.updateCustomComponent(id, {
               label: data.name,
               category: typeInfo?.label || 'Other',
-              color: typeInfo?.color || '#6366f1',
+              color: typeInfo?.color || '#6B7280',
               description: data.description,
             });
             setShowCreateModal(false);

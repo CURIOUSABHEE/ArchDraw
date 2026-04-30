@@ -125,7 +125,7 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
           </button>
           <a
             href="/editor"
-            className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md transition-colors font-medium"
+            className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-3 py-1.5 rounded-md transition-colors font-medium"
           >
             Create your own →
           </a>

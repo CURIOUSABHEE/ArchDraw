@@ -62,7 +62,7 @@ function generateEmbedHTML(nodes: EmbedNode[], edges: EmbedEdge[]): string {
       ...node,
       width,
       height,
-      color: node.data?.color || '#6366f1',
+      color: node.data?.color || '#6B7280',
       label: node.data?.label || node.id,
     };
   });
@@ -145,7 +145,7 @@ function generateEmbedHTML(nodes: EmbedNode[], edges: EmbedEdge[]): string {
       font-weight: 600;
     }
     .badge {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      background: linear-gradient(135deg, #595959, #8A8A8A);
       color: white;
       padding: 4px 10px;
       border-radius: 9999px;
@@ -1007,7 +1007,7 @@ export function Toolbar() {
                 Delete canvas?
               </h3>
               <p className="text-sm mt-2" style={{ color: '#6B7280', lineHeight: 1.5 }}>
-                This will delete <strong>"{currentCanvasForDelete?.name || 'this canvas'}"</strong> and remove {deleteNodeCount} node{deleteNodeCount !== 1 ? 's' : ''} and {deleteEdgeCount} edge{deleteEdgeCount !== 1 ? 's' : ''}.
+                This will delete <strong>&ldquo;{currentCanvasForDelete?.name || 'this canvas'}&rdquo;</strong> and remove {deleteNodeCount} node{deleteNodeCount !== 1 ? 's' : ''} and {deleteEdgeCount} edge{deleteEdgeCount !== 1 ? 's' : ''}.
               </p>
               <p className="text-sm mt-2" style={{ color: '#EF4444' }}>
                 This action cannot be undone.

@@ -63,6 +63,29 @@ function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean
   );
 }
 
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-sm font-semibold mb-1" style={{ color: '#1A1A1A' }}>{children}</h3>;
+}
+
+function SectionDesc({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs mb-3" style={{ color: '#6B6B6B' }}>{children}</p>;
+}
+
+function SettingRow({ icon: Icon, title, desc, children }: { icon?: React.ElementType; title: string; desc?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-3">
+      <div className="flex items-center gap-3">
+        {Icon && <Icon className="w-4 h-4" style={{ color: '#6B6B6B' }} />}
+        <div>
+          <p className="text-sm font-medium" style={{ color: '#1A1A1A' }}>{title}</p>
+          {desc && <p className="text-xs" style={{ color: '#6B6B6B' }}>{desc}</p>}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
   const { user, signOut } = useAuthStore();
   const { userProfile, canvases, showGrid, toggleGrid, edgeAnimations } = useDiagramStore();
@@ -90,6 +113,7 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasChanges(
       displayName !== '' || 
       bio !== '' || 
@@ -109,6 +133,7 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
   }, [open, onOpenChange]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (userProfile?.name) setDisplayName(userProfile.name);
   }, [userProfile]);
 
@@ -131,27 +156,6 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
     { id: 'notifications' as const, label: 'Notifications', icon: Bell },
     { id: 'billing' as const, label: 'Billing', icon: CreditCard },
   ];
-
-  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-    <h3 className="text-sm font-semibold mb-1" style={{ color: '#1A1A1A' }}>{children}</h3>
-  );
-  
-  const SectionDesc = ({ children }: { children: React.ReactNode }) => (
-    <p className="text-xs mb-3" style={{ color: '#6B6B6B' }}>{children}</p>
-  );
-
-  const SettingRow = ({ icon: Icon, title, desc, children }: { icon?: React.ElementType; title: string; desc?: string; children: React.ReactNode }) => (
-    <div className="flex items-center justify-between py-3">
-      <div className="flex items-center gap-3">
-        {Icon && <Icon className="w-4 h-4" style={{ color: '#6B6B6B' }} />}
-        <div>
-          <p className="text-sm font-medium" style={{ color: '#1A1A1A' }}>{title}</p>
-          {desc && <p className="text-xs" style={{ color: '#6B6B6B' }}>{desc}</p>}
-        </div>
-      </div>
-      {children}
-    </div>
-  );
 
   if (!open) return null;
 

@@ -134,7 +134,7 @@ function BestPracticesContent({ best }: { best: BestPractices }) {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <XCircle className="w-4 h-4 text-red-500" />
-            <span className="text-xs font-medium text-red-600 dark:text-red-400">DON'T</span>
+            <span className="text-xs font-medium text-red-600 dark:text-red-400">DON&apos;T</span>
           </div>
           <ul className="space-y-1.5">
             {best.donts.map((item, i) => (
