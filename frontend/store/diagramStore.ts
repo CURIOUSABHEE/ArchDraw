@@ -175,6 +175,7 @@ export interface CanvasTab {
   updatedAt?: number;
   isOpen?: boolean;
   isPinned?: boolean;
+  isFavorite?: boolean;
   lastAccessedAt?: number;
   thumbnail?: string;
 }
@@ -206,14 +207,16 @@ interface DiagramState {
   importSequenceDiagram: (mermaidSyntax: string, title: string) => void;
 
   getRandomAnimalName: () => string;
-  addCanvas: (customName?: string, canvasId?: string) => string;
-  removeCanvas: (id: string) => void;
-  switchCanvas: (id: string) => void;
-  renameCanvas: (id: string, name: string) => void;
-  openCanvas: (id: string) => void;
-  closeCanvas: (id: string) => void;
-  togglePinCanvas: (id: string) => void;
-  getOpenCanvases: () => CanvasTab[];
+       addCanvas: (customName?: string, canvasId?: string) => string;
+       duplicateCanvas: (id: string) => string | undefined;
+       removeCanvas: (id: string) => void;
+       switchCanvas: (id: string) => void;
+       renameCanvas: (id: string, name: string) => void;
+       openCanvas: (id: string) => void;
+       closeCanvas: (id: string) => void;
+       togglePinCanvas: (id: string) => void;
+       toggleFavorite: (id: string) => void;
+       getOpenCanvases: () => CanvasTab[];
   getVisibleCanvases: () => CanvasTab[];
   getOverflowCanvases: () => CanvasTab[];
   getActiveCanvasId: () => string;
@@ -278,6 +281,7 @@ interface DiagramState {
   ungroupNodes: (groupId: string) => void;
   moveToGroup: (nodeId: string, groupId: string | null) => void;
   loadTemplate: (nodes: Node[], edges: Edge[]) => void;
+  loadDefaultArchitecture: () => void;
 
   // ── Fit view ──────────────────────────────────────────────────────────────
   fitView: (options?: FitViewOptions) => void;
@@ -491,33 +495,72 @@ export const useDiagramStore = create<DiagramState>()(
         return `${baseAnimal} ${counter}`;
       },
 
-      addCanvas: (customName?: string, canvasId?: string) => {
-        const { canvases, openCanvasIds, getRandomAnimalName } = get();
-        
-        const baseName = customName || getRandomAnimalName();
-        let newName = baseName;
-        const existingNames = new Set(canvases.map(c => c.name));
-        
-        let counter = 1;
-        while (existingNames.has(newName)) {
-          counter++;
-          newName = `${baseName} ${counter}`;
-        }
-        
-        const newCanvas = makeCanvas(newName, canvasId);
-        const canvasWithMeta = { ...newCanvas, isOpen: true, lastAccessedAt: Date.now() };
-        const newOpenIds = [...openCanvasIds, newCanvas.id];
-        set({ 
-          canvases: [...canvases, canvasWithMeta], 
-          openCanvasIds: newOpenIds,
-          activeCanvasId: newCanvas.id, 
-          nodes: [], 
-          edges: [], 
-          past: [], 
-          future: [] 
-        });
-        return newCanvas.id;
-      },
+       addCanvas: (customName?: string, canvasId?: string) => {
+         const { canvases, openCanvasIds, getRandomAnimalName } = get();
+         
+         const baseName = customName || getRandomAnimalName();
+         let newName = baseName;
+         const existingNames = new Set(canvases.map(c => c.name));
+         
+         let counter = 1;
+         while (existingNames.has(newName)) {
+           counter++;
+           newName = `${baseName} ${counter}`;
+         }
+         
+         const newCanvas = makeCanvas(newName, canvasId);
+         const canvasWithMeta = { ...newCanvas, isOpen: true, lastAccessedAt: Date.now() };
+         const newOpenIds = [...openCanvasIds, newCanvas.id];
+         set({ 
+           canvases: [...canvases, canvasWithMeta], 
+           openCanvasIds: newOpenIds,
+           activeCanvasId: newCanvas.id, 
+           nodes: [], 
+           edges: [], 
+           past: [], 
+           future: [] 
+         });
+         return newCanvas.id;
+       },
+
+       duplicateCanvas: (id: string) => {
+         const { canvases, openCanvasIds } = get();
+         const source = canvases.find(c => c.id === id);
+         if (!source) return;
+         
+         const baseName = `${source.name} Copy`;
+         let newName = baseName;
+         const existingNames = new Set(canvases.map(c => c.name));
+         
+         let counter = 1;
+         while (existingNames.has(newName)) {
+           counter++;
+           newName = `${baseName} ${counter}`;
+         }
+         
+         const newId = `canvas-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+         const duplicated: CanvasTab = {
+           ...source,
+           id: newId,
+           name: newName,
+           isOpen: true,
+           lastAccessedAt: Date.now(),
+           nodes: JSON.parse(JSON.stringify(source.nodes)),
+           edges: JSON.parse(JSON.stringify(source.edges)),
+         };
+         
+         const newOpenIds = [...openCanvasIds, newId];
+         set({
+           canvases: [...canvases, duplicated],
+           openCanvasIds: newOpenIds,
+           activeCanvasId: newId,
+           nodes: duplicated.nodes,
+           edges: duplicated.edges,
+           past: [],
+           future: [],
+         });
+         return newId;
+       },
 
       removeCanvas: (id) => {
         const { canvases, activeCanvasId, openCanvasIds, nodes, edges } = get();
@@ -666,6 +709,13 @@ export const useDiagramStore = create<DiagramState>()(
       togglePinCanvas: (id) => {
         const canvases = get().canvases.map((c) => 
           c.id === id ? { ...c, isPinned: !c.isPinned } : c
+        );
+        set({ canvases });
+      },
+
+      toggleFavorite: (id) => {
+        const canvases = get().canvases.map((c) => 
+          c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
         );
         set({ canvases });
       },
@@ -1346,6 +1396,44 @@ onConnect: (connection) => {
           edges: [],
         }));
         get().saveCanvasToDB(canvasId);
+      },
+
+      loadDefaultArchitecture: () => {
+        const defaultNodes: Node[] = [
+          { id: 'client-1', type: 'system', position: { x: 50, y: 100 }, data: { label: 'Web Client', icon: '🌐' } },
+          { id: 'client-2', type: 'system', position: { x: 50, y: 250 }, data: { label: 'Mobile App', icon: '📱' } },
+          { id: 'gateway', type: 'system', position: { x: 300, y: 175 }, data: { label: 'API Gateway', icon: '🚪' } },
+          { id: 'auth', type: 'system', position: { x: 550, y: 50 }, data: { label: 'Auth Service', icon: '🔐' } },
+          { id: 'core', type: 'system', position: { x: 550, y: 175 }, data: { label: 'Core API', icon: '⚙️' } },
+          { id: 'billing', type: 'system', position: { x: 550, y: 300 }, data: { label: 'Billing Service', icon: '💳' } },
+          { id: 'queue', type: 'message', position: { x: 800, y: 175 }, data: { label: 'Task Queue', icon: '📋' } },
+          { id: 'email', type: 'message', position: { x: 1050, y: 100 }, data: { label: 'Email Service', icon: '📧' } },
+          { id: 'notif', type: 'message', position: { x: 1050, y: 250 }, data: { label: 'Notification Svc', icon: '🔔' } },
+          { id: 'db', type: 'database', position: { x: 1300, y: 175 }, data: { label: 'PostgreSQL', icon: '🐘' } },
+          { id: 'cache', type: 'cache', position: { x: 1300, y: 300 }, data: { label: 'Redis Cache', icon: '⚡' } },
+        ];
+
+        const defaultEdges: Edge[] = [
+          { id: 'e1', source: 'client-1', target: 'gateway', type: 'flow', label: 'HTTPS' },
+          { id: 'e2', source: 'client-2', target: 'gateway', type: 'flow', label: 'HTTPS' },
+          { id: 'e3', source: 'gateway', target: 'auth', type: 'flow', label: 'auth' },
+          { id: 'e4', source: 'gateway', target: 'core', type: 'flow', label: 'API' },
+          { id: 'e5', source: 'gateway', target: 'billing', type: 'flow', label: 'API' },
+          { id: 'e6', source: 'core', target: 'queue', type: 'async', label: 'enqueue' },
+          { id: 'e7', source: 'billing', target: 'queue', type: 'async', label: 'enqueue' },
+          { id: 'e8', source: 'queue', target: 'email', type: 'async', label: 'process' },
+          { id: 'e9', source: 'queue', target: 'notif', type: 'async', label: 'notify' },
+          { id: 'e10', source: 'core', target: 'db', type: 'flow', label: 'read/write' },
+          { id: 'e11', source: 'core', target: 'cache', type: 'flow', label: 'cache' },
+          { id: 'e12', source: 'billing', target: 'db', type: 'flow', label: 'read/write' },
+        ];
+
+        get().pushHistory();
+        const normalizedNodes = normalizeNodes(defaultNodes);
+        const normalizedEdges = normalizeEdges(defaultEdges);
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, normalizedNodes, normalizedEdges);
+        set({ nodes: normalizedNodes, edges: normalizedEdges, canvases, selectedNodeId: null, selectedEdgeId: null });
+        get().saveCanvasToDB(get().activeCanvasId);
       },
     }),
     {
