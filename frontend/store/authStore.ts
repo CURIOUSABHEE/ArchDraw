@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { SupabaseClient, User } from '@supabase/supabase-js';
-import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
+import { getSupabaseClient, isSupabaseConfigured, checkSupabaseReachability } from '@/lib/supabase';
 
 let supabase: SupabaseClient | null = null;
 
@@ -33,6 +33,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setLoading: (loading) => set({ loading }),
 
   sendMagicLink: async (email) => {
+    if (!isSupabaseConfigured) {
+      return { error: new Error('Auth is not configured or offline') };
+    }
     const supabase = getSupabaseInstance();
     const redirectTo = process.env.NEXT_PUBLIC_APP_URL
       ? `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
@@ -50,6 +53,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
+    if (!isSupabaseConfigured) {
+      set({ user: null, email: null });
+      return;
+    }
     const supabase = getSupabaseInstance();
     await supabase.auth.signOut();
     set({ user: null, email: null });
@@ -57,7 +64,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     if (get().initialized) return;
-    // If Supabase isn't properly configured, skip auth and allow access
+
+    // Await reachability check to determine if Supabase is actually accessible
+    await checkSupabaseReachability();
+
+    // If Supabase isn't properly configured or reachable, skip auth and allow access
     if (!isSupabaseConfigured) {
       set({ user: { id: 'guest', email: 'guest@local' } as User, loading: false, initialized: true });
       return;

@@ -9,7 +9,7 @@ export const sortNodesWithParentsFirst = (nodes: Node[]): Node[] => {
     if (visited.has(node.id)) return;
     visited.add(node.id);
 
-    const parentId = (node as Node & { parentNode?: string }).parentNode;
+    const parentId = node.parentId || (node as Node & { parentNode?: string }).parentNode;
     if (parentId && nodeMap.has(parentId)) {
       const parent = nodeMap.get(parentId)!;
       visit(parent);
@@ -23,19 +23,15 @@ export const sortNodesWithParentsFirst = (nodes: Node[]): Node[] => {
 };
 
 export const cleanOrphanedChildren = (nodes: Node[]): Node[] => {
-  const groupIds = new Set(
-    nodes
-      .filter(n => n.type === 'groupNode' || n.type === 'group')
-      .map(n => n.id)
-  );
+  const allNodeIds = new Set(nodes.map(n => n.id));
 
   let hasChanges = false;
   const cleaned = nodes.map(node => {
-    const parentNode = (node as Node & { parentNode?: string }).parentNode;
-    if (parentNode && !groupIds.has(parentNode)) {
-      console.warn(`Cleaning orphaned child ${node.id}: parent ${parentNode} not found`);
+    const parentId = node.parentId || (node as Node & { parentNode?: string }).parentNode;
+    if (parentId && !allNodeIds.has(parentId)) {
+      console.warn(`Cleaning orphaned child ${node.id}: parent ${parentId} not found`);
       hasChanges = true;
-      const { parentNode: _, extent, ...rest } = node as Node & { parentNode?: string };
+      const { parentNode: _, parentId: __, extent, ...rest } = node as Node & { parentNode?: string, parentId?: string };
       return rest as Node;
     }
     return node;
