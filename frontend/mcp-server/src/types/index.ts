@@ -31,6 +31,10 @@ export interface ArchitectureNode {
   layer: LayerType;
   tier?: TierType;
   tierColor?: string;
+  accentColor?: string;
+  groupColor?: string;
+  status?: 'healthy' | 'warning' | 'error' | 'unknown';
+  shape?: string;
   position?: { x: number; y: number };
   width: number;
   height: number;
@@ -40,7 +44,6 @@ export interface ArchitectureNode {
   isGroup?: boolean;
   parentId?: string;
   groupLabel?: string;
-  groupColor?: string;
   serviceType?: string;
 }
 
@@ -75,18 +78,22 @@ export interface ReactFlowNode {
     layer: LayerType;
     tier?: TierType;
     tierColor?: string;
+    accentColor?: string;
     subtitle?: string;
     serviceType?: string;
     isGroup?: boolean;
     parentId?: string;
     groupLabel?: string;
     groupColor?: string;
+    status?: 'healthy' | 'warning' | 'error' | 'unknown';
+    shape?: string;
   };
   width?: number;
   height?: number;
   zIndex?: number;
   extent?: 'parent';
   style?: Record<string, unknown>;
+  parentNode?: string;
 }
 
 export interface ReactFlowEdge {

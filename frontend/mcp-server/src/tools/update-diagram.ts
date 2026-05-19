@@ -4,14 +4,15 @@ import { getDiagramState, setDiagramState } from '../lib/diagram-state.js';
 import { runELKLayout } from '../lib/elk-runner.js';
 import type { ArchitectureNode, ArchitectureEdge } from '../types/index.js';
 
+/** Canonical tier colors — keep in sync with frontend tierColors.ts */
 const TIER_COLORS: Record<string, string> = {
-  client: '#5A5A5A',
-  edge: '#6B7B8D',
-  compute: '#14b8a6',
-  async: '#f59e0b',
-  data: '#3b82f6',
-  external: '#f97316',
-  observe: '#6b7280',
+  client:   '#64748b',
+  edge:     '#6366f1',
+  compute:  '#0d9488',
+  async:    '#d97706',
+  data:     '#3b82f6',
+  external: '#8b5cf6',
+  observe:  '#6b7280',
 };
 
 const COMM_COLORS: Record<string, { color: string; dash: string; animated: boolean }> = {
@@ -76,15 +77,20 @@ export async function updateDiagram(input: UpdateDiagramInput): Promise<{
       position: { x: 0, y: 0 },
       data: {
         label: node.label,
-        icon: node.icon || 'box',
+        icon: node.icon || (node.isGroup ? 'layers' : 'box'),
         layer: node.tier as TierType,
         tier: node.tier as TierType,
-        tierColor: TIER_COLORS[node.tier] || TIER_COLORS.compute,
+        tierColor: node.tierColor || TIER_COLORS[node.tier] || TIER_COLORS.compute,
+        accentColor: node.accentColor,
         subtitle: node.subtitle,
+        status: node.status,
+        isGroup: node.isGroup,
+        parentNode: node.parentId,
+        groupColor: node.groupColor,
       },
-      width: 180,
-      height: 70,
-      zIndex: 1,
+      width: node.isGroup ? (node.width || 500) : (node.width || 200),
+      height: node.isGroup ? (node.height || 280) : (node.height || 70),
+      zIndex: node.isGroup ? 0 : 1,
     }));
     nodes = [...nodes, ...newNodes];
     changes.nodesAdded = input.addNodes.length;
@@ -94,12 +100,17 @@ export async function updateDiagram(input: UpdateDiagramInput): Promise<{
     for (const update of input.updateNodes) {
       const node = nodes.find(n => n.id === update.id);
       if (node) {
-        if (update.label) node.data.label = update.label;
-        if (update.subtitle) node.data.subtitle = update.subtitle;
+        if (update.label !== undefined) node.data.label = update.label;
+        if (update.subtitle !== undefined) node.data.subtitle = update.subtitle;
+        if (update.icon !== undefined) node.data.icon = update.icon;
+        if (update.accentColor !== undefined) node.data.accentColor = update.accentColor;
+        if (update.status !== undefined) node.data.status = update.status;
         if (update.tier) {
           node.data.layer = update.tier as TierType;
           node.data.tier = update.tier as TierType;
-          node.data.tierColor = TIER_COLORS[update.tier] || TIER_COLORS.compute;
+          node.data.tierColor = update.tierColor || TIER_COLORS[update.tier] || TIER_COLORS.compute;
+        } else if (update.tierColor) {
+          node.data.tierColor = update.tierColor;
         }
         changes.nodesUpdated++;
       }

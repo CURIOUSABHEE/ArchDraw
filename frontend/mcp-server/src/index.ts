@@ -30,83 +30,100 @@ import {
 const TOOLS: Tool[] = [
   {
     name: 'generate_diagram',
-    description: `Generate React Flow nodes and edges with ELK auto-layout positions.
+    description: `Generate a rich architecture diagram with groups, labeled edges, and visual hierarchy.
 
-**IMPORTANT**: When this tool returns a 'diagramUrl', you MUST tell the user to open that URL in their browser to view the diagram. The URL format is: http://localhost:3000/editor?session=<sessionId>
+**IMPORTANT**: When this tool returns a 'diagramUrl', tell the user to open that URL in their browser.
 
-**YOUR RESPONSIBILITY**: You are the AI model that generates the architecture diagram. Based on the user's description:
-1. Decide which components/nodes to include (use list_node_types to browse available components)
-2. Assign each node to the correct tier (client, edge, compute, async, data, observe, external)
-3. Create edges between nodes based on data flow
-4. Call this tool with your generated nodes and edges
+**MANDATORY REQUIREMENTS** — diagrams missing these will be flagged:
+1. At least ONE group node (isGroup:true) to cluster related services
+2. Every node MUST have a subtitle describing its specific role
+3. All async/stream/event edges MUST have a label (the event/message name)
+4. Every node MUST have a tier assigned
 
-**INPUT FORMAT**:
-- nodes: Array of node objects you create. Each node needs:
-  - label: Display name (e.g., "API Gateway", "PostgreSQL")
-  - tier: Which tier it belongs to
-  - subtitle: Optional short description
-  - icon: Optional icon name
-  - tierColor: Optional hex color
-   
-- edges: Array of connections between nodes:
-  - source: Node ID that data flows FROM
-  - target: Node ID that data flows TO
-  - communicationType: sync (normal), async (queue), stream (streaming), event (events), dep (dependency)
+**WORKFLOW**:
+1. Call read_me FIRST for the full reference guide
+2. Optionally call list_node_types to find icon names
+3. Design nodes: plan groups first, then place children inside them
+4. Design edges: use correct communicationType and add labels
+5. Call this tool
 
-**OUTPUT**: Returns React Flow nodes with x,y positions from ELK layout algorithm, ready to render. IMPORTANT: Check the 'message' and 'diagramUrl' fields in the response and tell the user to open the diagramUrl in their browser.
+**NODE FIELDS**:
+- id (required): snake_case unique ID
+- label (required): 1-3 word display name
+- tier (required): client | edge | compute | async | data | external | observe
+- subtitle (required): specific description of what this service does
+- isGroup: true = swimlane container wrapping child nodes
+- parentId: ID of parent group (places this node inside that group)
+- groupColor: hex background tint for group containers
+- icon: lucide icon name (box, server, database, zap, shield, globe, etc.)
+- accentColor: override highlight color (15 palette options)
+- status: healthy | warning | error | unknown
+- width/height: pixel size (groups: 400-800px wide, 200-400px tall)
 
-**TIER SYSTEM**:
-- client (blue): Browser, Mobile App, Web Client
-- edge (blue): CDN, Load Balancer, API Gateway, WAF
-- compute (teal): API Server, Auth Service, Business Logic, Workers
-- async (amber): Message Queue, Event Bus, Task Queue
-- data (orange): Database, Cache, Object Storage
-- observe (gray): Monitoring, Logging, Tracing
-- external (gray): Third-party APIs, Payment gateways`,
+**EDGE FIELDS**:
+- source, target (required): node IDs
+- communicationType: sync | async | stream | event | dep
+- label: required for async/stream/event — name the message or event
+- pathType: Smoothstep | bezier | step | straight
+
+**TIER COLORS**:
+- client: #64748b (slate) — browsers, mobile apps
+- edge: #6366f1 (indigo) — API gateways, load balancers, CDN
+- compute: #0d9488 (teal) — microservices, workers, APIs
+- async: #d97706 (amber) — queues, event buses, Kafka
+- data: #3b82f6 (blue) — databases, caches, object storage
+- external: #8b5cf6 (violet) — third-party APIs, payment gateways
+- observe: #6b7280 (gray) — monitoring, logging, tracing`,
     inputSchema: {
       type: 'object',
       properties: {
         nodes: {
           type: 'array',
-          description: 'Array of nodes to position. YOU generate these based on the user request. Each node must have: label (required), tier (required), and optionally: subtitle, icon, tierColor, width, height.',
+          description: 'Array of nodes. RULES: (1) every node needs id+label+tier+subtitle, (2) include at least one isGroup:true node, (3) use parentId to nest nodes inside groups, (4) use accentColor to visually differentiate nodes in the same tier.',
           items: {
             type: 'object',
             properties: {
-              id: { type: 'string', description: 'Unique node identifier' },
-              label: { type: 'string', description: 'Display name (e.g., "API Gateway", "PostgreSQL")' },
-              tier: { type: 'string', description: 'Tier: client, edge, compute, async, data, observe, external' },
-              layer: { type: 'string', description: 'Alternative to tier' },
-              subtitle: { type: 'string', description: 'Short description under label' },
-              icon: { type: 'string', description: 'Icon name' },
-              tierColor: { type: 'string', description: 'Hex color like #3b82f6' },
-              width: { type: 'number', default: 180, description: 'Node width' },
-              height: { type: 'number', default: 70, description: 'Node height' },
+              id: { type: 'string', description: 'Unique snake_case identifier (e.g. "api_gateway", "postgres_db")' },
+              label: { type: 'string', description: 'Short display name (1-3 words)' },
+              tier: { type: 'string', description: 'Tier: client | edge | compute | async | data | external | observe' },
+              layer: { type: 'string', description: 'Alias for tier' },
+              subtitle: { type: 'string', description: 'REQUIRED: Specific description (e.g. "PostgreSQL 15, stores orders and users")' },
+              isGroup: { type: 'boolean', description: 'true = swimlane container. Use to cluster related services.' },
+              parentId: { type: 'string', description: 'ID of parent group — places this node inside that group' },
+              groupColor: { type: 'string', description: 'Background hex for group containers (e.g. "#0f172a")' },
+              icon: { type: 'string', description: 'Lucide icon name (server, database, zap, globe, shield, cpu, activity, box, cloud, layers, user, lock, wifi)' },
+              tierColor: { type: 'string', description: 'Override tier color hex' },
+              accentColor: { type: 'string', description: 'Highlight color: #3b82f6 #0ea5e9 #06b6d4 #14b8a6 #22c55e #f59e0b #f97316 #ef4444 #ec4899 #6b7280 #f43f5e #a855f7 #84cc16 #fb923c' },
+              status: { type: 'string', enum: ['healthy', 'warning', 'error', 'unknown'], description: 'Status dot shown on node' },
+              width: { type: 'number', description: 'Width px. Groups: 400-800. Nodes: 160-260.' },
+              height: { type: 'number', description: 'Height px. Groups: 200-400. Nodes: 60-90.' },
+              shape: { type: 'string', enum: ['rectangle', 'diamond', 'ellipse', 'hexagon'], description: 'Node shape' },
             },
             required: ['label'],
           },
         },
         edges: {
           type: 'array',
-          description: 'Array of edges connecting nodes. YOU decide these based on data flow.',
+          description: 'Array of edges. REQUIRED. Add labels to all async/event/stream edges. Do not connect data tier directly to client tier.',
           items: {
             type: 'object',
             properties: {
               id: { type: 'string', description: 'Unique edge identifier' },
-              source: { type: 'string', description: 'Source node ID (data flows from)' },
-              target: { type: 'string', description: 'Target node ID (data flows to)' },
+              source: { type: 'string', description: 'Source node ID' },
+              target: { type: 'string', description: 'Target node ID' },
               communicationType: {
                 type: 'string',
                 enum: ['sync', 'async', 'stream', 'event', 'dep'],
                 default: 'sync',
-                description: 'Communication pattern',
+                description: 'sync=REST/gRPC, async=queue/kafka, stream=WebSocket/SSE, event=pub-sub, dep=dependency',
               },
               pathType: {
                 type: 'string',
-                enum: ['smooth', 'bezier', 'step', 'straight'],
-                default: 'smooth',
+                enum: ['smooth', 'Smoothstep', 'bezier', 'step', 'straight'],
+                default: 'Smoothstep',
                 description: 'Edge path style',
               },
-              label: { type: 'string', description: 'Optional edge label' },
+              label: { type: 'string', description: 'Edge label. REQUIRED for async/stream/event. Describe the message or event name.' },
             },
             required: ['source', 'target'],
           },
@@ -115,10 +132,12 @@ const TOOLS: Tool[] = [
           type: 'string',
           enum: ['RIGHT', 'DOWN', 'LEFT', 'UP'],
           default: 'RIGHT',
-          description: 'Layout direction: RIGHT (LR), DOWN (TB), LEFT, UP',
+          description: 'Layout direction: RIGHT (LR, default), DOWN (TB for pipelines)',
         },
+        label: { type: 'string', description: 'Diagram title' },
+        diagramDescription: { type: 'string', description: 'One-sentence description of what this architecture does' },
       },
-      required: ['nodes'],
+      required: ['nodes', 'edges'],
     },
   },
   {

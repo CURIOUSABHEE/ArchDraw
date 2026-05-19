@@ -1,71 +1,163 @@
 export function getReadMe(): string {
-  return `# ArchDraw Reference Guide
+  return `# ArchDraw MCP Reference Guide
+
+## ⚡ QUICK START RULES (read before generating)
+1. **ALWAYS use groups** — wrap related nodes in isGroup containers (minimum 1 group per diagram)
+2. **ALWAYS write subtitles** — every node needs a subtitle describing what it does specifically
+3. **ALWAYS label async/stream/event edges** — name the message or event (e.g. "user.created", "order queue")
+4. **Prefer 10-18 nodes** for readable diagrams (8 min, 25 max)
+5. Call \`list_node_types\` first to find real icon names
+
+---
 
 ## TIER SYSTEM
-7 layers in order (left to right in LR layout):
+7 layers in order (left→right in LR layout, top→bottom in DOWN layout):
 
 | Tier | Color | Hex | What belongs here |
 |------|-------|-----|-------------------|
-| client | blue | #3b82f6 | Browser, Mobile App, Web Client |
-| edge | blue | #3b82f6 | CDN, Load Balancer, API Gateway, WAF |
-| compute | teal | #14b8a6 | API Server, Auth Service, Business Logic, Workers |
-| async | amber | #f59e0b | Message Queue, Event Bus, Task Queue |
-| data | orange | #f97316 | Database, Cache, Object Storage |
-| external | gray | #64748b | Third-party APIs, Payment gateways |
-| observe | gray | #6b7280 | Monitoring, Logging, Tracing |
+| client | slate | #64748b | Browser, Mobile App, Web Client, CLI |
+| edge | indigo | #6366f1 | CDN, Load Balancer, API Gateway, WAF, Nginx |
+| compute | teal | #0d9488 | API Server, Auth Service, Business Logic, Workers |
+| async | amber | #d97706 | Message Queue, Event Bus, Task Queue, Kafka, SQS |
+| data | blue | #3b82f6 | PostgreSQL, Redis, MongoDB, S3, Elasticsearch |
+| external | violet | #8b5cf6 | Stripe, Twilio, SendGrid, Maps API, OAuth providers |
+| observe | gray | #6b7280 | Prometheus, Grafana, Jaeger, Datadog, ELK Stack |
+
+---
+
+## GROUPS (REQUIRED)
+Groups are visual containers that cluster related nodes. **Every diagram must have at least one.**
+
+### Group node fields:
+\`\`\`json
+{
+  "id": "backend_group",
+  "label": "Backend Services",
+  "tier": "compute",
+  "subtitle": "Core application API layer",
+  "isGroup": true,
+  "groupColor": "#0f172a",
+  "width": 560,
+  "height": 300,
+  "icon": "layers"
+}
+\`\`\`
+
+### Child node (placed inside a group):
+\`\`\`json
+{
+  "id": "user_api",
+  "label": "User API",
+  "tier": "compute",
+  "subtitle": "CRUD for user accounts",
+  "parentId": "backend_group",
+  "icon": "user",
+  "accentColor": "#0d9488"
+}
+\`\`\`
+
+### Group sizing guide:
+- 2 children → 400×200
+- 3-4 children → 550×280
+- 5-6 children → 700×350
+- Groups do NOT connect to edges — only leaf nodes do
+
+---
+
+## NODE PROPERTIES (full reference)
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| id | YES | Snake_case unique identifier |
+| label | YES | 1-3 word display name |
+| tier | YES | One of 7 tier values |
+| subtitle | YES | Specific description (e.g. "PostgreSQL 15, handles orders table") |
+| isGroup | when grouping | true = renders as swimlane container |
+| parentId | when child | ID of parent group node |
+| groupColor | for groups | Background tint hex (e.g. "#0f172a") |
+| icon | recommended | Lucide icon name (use list_node_types) |
+| accentColor | optional | Override color for visual diff within same tier |
+| status | optional | healthy / warning / error / unknown |
+| width/height | for groups | Set larger than content |
+
+**Available accentColors**: #3b82f6 #0ea5e9 #06b6d4 #14b8a6 #22c55e #f59e0b #f97316 #ef4444 #ec4899 #6b7280 #f43f5e #a855f7 #84cc16 #fb923c #0ea5e9
+
+---
 
 ## COMMUNICATION TYPES
-When to use each:
 
-| Type | Use Case | Style |
-|------|----------|-------|
-| sync | Request/response (REST, gRPC) | Solid slate gray line |
-| async | Message queues, background jobs | Dashed amber, animated |
-| stream | WebSockets, SSE, real-time data | Dashed green, animated |
-| event | Pub/sub, event-driven patterns | Dashed pink, animated |
-| dep | Build-time dependency | Dotted gray |
+| Type | Use Case | Visual |
+|------|----------|--------|
+| sync | REST, gRPC, HTTP request-response | Solid slate gray |
+| async | Kafka, SQS, background jobs | Dashed amber, animated |
+| stream | WebSocket, SSE, real-time feeds | Dashed green, animated |
+| event | Pub/sub, domain events | Dashed pink, animated |
+| dep | Build-time / config dependency | Dotted gray |
 
-## EDGE STYLES
-- sync: solid #94a3b8
-- async: dashed #f59e0b (animated)
-- stream: dashed #10b981 (animated)
-- event: dashed #ec4899 (animated)
-- dep: dotted #94a3b8
+**Edge label rules:**
+- sync: label optional (e.g. "GET /users", "JWT auth")
+- async/event/stream: label REQUIRED (e.g. "order.created", "payment.processed")
+- dep: label optional (e.g. "config", "env vars")
+
+---
 
 ## LAYOUT DIRECTION
-- RIGHT (default): Left-to-right, good for most diagrams
-- DOWN: Top-to-bottom, better for hierarchical/depth-first systems
-- LEFT/RIGHT: Rarely needed
+- **RIGHT** (default): Left-to-right tiers. Best for microservices, API architectures
+- **DOWN**: Top-to-bottom. Best for pipelines, mobile-first, CI/CD flows
+
+---
 
 ## BEST PRACTICES
-1. Always assign every node to a tier
-2. Client tier: 1-2 nodes max (keep it minimal)
-3. Data tier nodes should NEVER connect directly to client tier
-4. Use async/event for Kafka, queues, and pub-sub patterns
-5. Observability nodes connect FROM compute/data, not TO them
-6. Prefer 8-15 nodes for readable diagrams
-7. External tier: third-party services only
-8. Keep edge count reasonable - too many edges = messy diagram
+1. Client tier: 1-2 nodes max
+2. Data tier NEVER connects directly to client tier
+3. Observability nodes use \`dep\` edges FROM them (not TO them)
+4. Use \`accentColor\` to differentiate services within the same compute tier
+5. Add \`status: "warning"\` or \`"error"\` to highlight problem areas
+6. Groups should use their tier's color as \`groupColor\` tinted darker
+7. External tier only for third-party services (not your own microservices)
+8. Prefer \`pathType: "Smoothstep"\` for most edges; \`"step"\` for right-angle flows
 
-## CANONICAL EXAMPLE
-Minimal 5-node diagram showing correct structure:
+---
+
+## CANONICAL FULL EXAMPLE
+A well-structured 12-node diagram with groups:
 
 \`\`\`json
 {
+  "label": "E-Commerce Platform",
+  "direction": "RIGHT",
   "nodes": [
-    { "id": "client", "label": "Web Client", "tier": "client" },
-    { "id": "api-gateway", "label": "API Gateway", "tier": "edge" },
-    { "id": "user-service", "label": "User Service", "tier": "compute" },
-    { "id": "postgres", "label": "PostgreSQL", "tier": "data" },
-    { "id": "monitoring", "label": "Monitoring", "tier": "observe" }
+    { "id": "web_client", "label": "Web App", "tier": "client", "subtitle": "React SPA, Next.js", "icon": "globe" },
+    { "id": "mobile_client", "label": "Mobile App", "tier": "client", "subtitle": "React Native iOS/Android", "icon": "smartphone" },
+    { "id": "api_gateway", "label": "API Gateway", "tier": "edge", "subtitle": "Rate limiting, auth routing, SSL termination", "icon": "shield" },
+
+    { "id": "backend_group", "label": "Core Services", "tier": "compute", "subtitle": "Business logic layer", "isGroup": true, "groupColor": "#042f2e", "width": 600, "height": 320 },
+    { "id": "order_svc", "label": "Order Service", "tier": "compute", "subtitle": "Create & manage orders, inventory check", "parentId": "backend_group", "icon": "shopping-cart", "accentColor": "#0d9488" },
+    { "id": "user_svc", "label": "User Service", "tier": "compute", "subtitle": "Auth, profiles, sessions", "parentId": "backend_group", "icon": "user", "accentColor": "#6366f1" },
+    { "id": "payment_svc", "label": "Payment Service", "tier": "compute", "subtitle": "Stripe integration, refund logic", "parentId": "backend_group", "icon": "credit-card", "accentColor": "#8b5cf6" },
+
+    { "id": "order_queue", "label": "Order Queue", "tier": "async", "subtitle": "Kafka topic: orders.created", "icon": "zap" },
+
+    { "id": "data_group", "label": "Data Layer", "tier": "data", "subtitle": "Persistent storage", "isGroup": true, "groupColor": "#0c1a2e", "width": 440, "height": 240 },
+    { "id": "postgres", "label": "PostgreSQL", "tier": "data", "subtitle": "Primary DB — users, orders, products", "parentId": "data_group", "icon": "database" },
+    { "id": "redis", "label": "Redis Cache", "tier": "data", "subtitle": "Session store, rate limit counters", "parentId": "data_group", "icon": "zap" },
+
+    { "id": "stripe", "label": "Stripe", "tier": "external", "subtitle": "Payment gateway, webhooks", "icon": "credit-card" },
+    { "id": "monitoring", "label": "Grafana", "tier": "observe", "subtitle": "Metrics, dashboards, alerting", "icon": "activity" }
   ],
   "edges": [
-    { "id": "e1", "source": "client", "target": "api-gateway", "communicationType": "sync" },
-    { "id": "e2", "source": "api-gateway", "target": "user-service", "communicationType": "sync" },
-    { "id": "e3", "source": "user-service", "target": "postgres", "communicationType": "sync" },
-    { "id": "e4", "source": "monitoring", "target": "user-service", "communicationType": "dep" }
-  ],
-  "direction": "RIGHT"
+    { "id": "e1", "source": "web_client", "target": "api_gateway", "communicationType": "sync", "label": "HTTPS" },
+    { "id": "e2", "source": "mobile_client", "target": "api_gateway", "communicationType": "sync", "label": "REST API" },
+    { "id": "e3", "source": "api_gateway", "target": "order_svc", "communicationType": "sync", "label": "POST /orders" },
+    { "id": "e4", "source": "api_gateway", "target": "user_svc", "communicationType": "sync", "label": "GET /users" },
+    { "id": "e5", "source": "order_svc", "target": "order_queue", "communicationType": "async", "label": "order.created" },
+    { "id": "e6", "source": "order_queue", "target": "payment_svc", "communicationType": "async", "label": "process payment" },
+    { "id": "e7", "source": "payment_svc", "target": "stripe", "communicationType": "sync", "label": "charge API" },
+    { "id": "e8", "source": "order_svc", "target": "postgres", "communicationType": "sync" },
+    { "id": "e9", "source": "user_svc", "target": "redis", "communicationType": "sync", "label": "session cache" },
+    { "id": "e10", "source": "monitoring", "target": "order_svc", "communicationType": "dep" },
+    { "id": "e11", "source": "monitoring", "target": "postgres", "communicationType": "dep" }
+  ]
 }
 \`\`\`
 `;

@@ -3,41 +3,34 @@ import type { GenerateDiagramInput } from '../lib/schema.js';
 import { runELKLayout, validateLayout } from '../lib/elk-runner.js';
 import { getTierColor } from '../lib/node-catalog.js';
 
-const DEFAULT_NODE_WIDTH = 220;
-const DEFAULT_NODE_HEIGHT = 80;
+const DEFAULT_NODE_WIDTH = 200;
+const DEFAULT_NODE_HEIGHT = 70;
+const DEFAULT_GROUP_WIDTH = 500;
+const DEFAULT_GROUP_HEIGHT = 280;
 
+/** Canonical tier colors — keep in sync with frontend tierColors.ts */
 const TIER_COLORS: Record<TierType, string> = {
-  client: '#5A5A5A',
-  edge: '#6B7B8D',
-  compute: '#14b8a6',
-  async: '#f59e0b',
-  data: '#3b82f6',
-  external: '#f97316',
-  observe: '#6b7280',
+  client:   '#64748b',
+  edge:     '#6366f1',
+  compute:  '#0d9488',
+  async:    '#d97706',
+  data:     '#3b82f6',
+  external: '#8b5cf6',
+  observe:  '#6b7280',
 };
 
-const LAYER_ORDER = [
-  'client',
-  'edge',
-  'compute',
-  'async',
-  'data',
-  'external',
-  'observe',
-];
+const LAYER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'external', 'observe'];
 
 function assignTierFromLayer(layer: string): TierType {
   const normalized = layer.toLowerCase();
-  if (LAYER_ORDER.includes(normalized)) {
-    return normalized as TierType;
-  }
+  if (LAYER_ORDER.includes(normalized)) return normalized as TierType;
   return 'compute';
 }
 
 function validateNodes(nodes: ArchitectureNode[]): string[] {
   const errors: string[] = [];
   const ids = new Set<string>();
-  
+
   for (const node of nodes) {
     if (!node.id) {
       errors.push(`Node missing id: ${node.label}`);
@@ -46,18 +39,43 @@ function validateNodes(nodes: ArchitectureNode[]): string[] {
     } else {
       ids.add(node.id);
     }
-    
-    if (!node.label) {
-      errors.push(`Node missing label`);
-    }
-    
+
+    if (!node.label) errors.push(`Node missing label`);
+
     const layer = node.tier || node.layer;
-    if (!layer) {
-      errors.push(`Node ${node.label || node.id} missing tier/layer`);
+    if (!layer) errors.push(`Node ${node.label || node.id} missing tier/layer`);
+  }
+
+  // Validate parentId references
+  for (const node of nodes) {
+    if (node.parentId && !ids.has(node.parentId)) {
+      errors.push(`Node "${node.id}" has parentId "${node.parentId}" which does not exist`);
+    }
+    if (node.parentId && node.isGroup) {
+      errors.push(`Node "${node.id}" cannot be both a group and a child (parentId + isGroup)`);
     }
   }
-  
+
   return errors;
+}
+
+interface NodeInput {
+  id?: string;
+  label: string;
+  tier?: string;
+  layer?: string;
+  subtitle?: string;
+  icon?: string;
+  tierColor?: string;
+  accentColor?: string;
+  groupColor?: string;
+  status?: 'healthy' | 'warning' | 'error' | 'unknown';
+  shape?: string;
+  width?: number;
+  height?: number;
+  serviceType?: string;
+  isGroup?: boolean;
+  parentId?: string;
 }
 
 export async function generateDiagram(input: GenerateDiagramInput): Promise<{
@@ -70,6 +88,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
     edgeCount: number;
     layoutAlgorithm: string;
     direction: string;
+    groupCount: number;
   };
   diagramUrl?: string;
   sessionId?: string;
@@ -84,44 +103,55 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
 
     if (!input.nodes || input.nodes.length === 0) {
       return {
-        success: false,
-        nodes: [],
-        edges: [],
-        elkPositions: [],
-        metadata: {
-          nodeCount: 0,
-          edgeCount: 0,
-          layoutAlgorithm: 'ELK layered',
-          direction,
-        },
-        errors: ['No nodes provided. You must provide nodes array with at least one node.'],
+        success: false, nodes: [], edges: [], elkPositions: [],
+        metadata: { nodeCount: 0, edgeCount: 0, layoutAlgorithm: 'ELK layered', direction, groupCount: 0 },
+        errors: ['No nodes provided.'],
       };
     }
 
-    const architectureNodes: ArchitectureNode[] = input.nodes.map((node, index) => {
+    // Check if AI used groups — warn if not
+    const groupNodes = input.nodes.filter((n: NodeInput) => n.isGroup);
+    if (groupNodes.length === 0) {
+      errors.push('WARNING: No group nodes provided. Best practice: wrap related nodes in group containers (isGroup:true) for visual clarity.');
+    }
+
+    const architectureNodes: ArchitectureNode[] = input.nodes.map((node: NodeInput, index: number) => {
       const layer = node.layer || node.tier || 'compute';
       const tier = assignTierFromLayer(layer);
+      const isGroup = node.isGroup === true;
+
       return {
         id: node.id || `node-${index}`,
         type: 'architectureNode',
         label: node.label,
-        subtitle: node.subtitle,
+        subtitle: node.subtitle || '',
         layer: tier,
         tier: tier,
         tierColor: node.tierColor || getTierColor(tier) || TIER_COLORS[tier],
-        width: Math.max(node.width || DEFAULT_NODE_WIDTH, 200),
-        height: Math.max(node.height || DEFAULT_NODE_HEIGHT, 70),
-        icon: node.icon || 'box',
+        accentColor: node.accentColor,
+        groupColor: node.groupColor,
+        status: node.status,
+        shape: node.shape,
+        // Groups get larger default dimensions; clamp regular nodes to minimum
+        width: isGroup
+          ? Math.max(node.width || DEFAULT_GROUP_WIDTH, 300)
+          : Math.max(node.width || DEFAULT_NODE_WIDTH, 160),
+        height: isGroup
+          ? Math.max(node.height || DEFAULT_GROUP_HEIGHT, 200)
+          : Math.max(node.height || DEFAULT_NODE_HEIGHT, 60),
+        icon: node.icon || (isGroup ? 'layers' : 'box'),
         metadata: { serviceType: node.serviceType },
-        isGroup: node.isGroup,
+        isGroup,
+        parentId: node.parentId,
         serviceType: node.serviceType,
       };
     });
 
+    // Validate node integrity
     const nodeIdSet = new Set(architectureNodes.map(n => n.id));
-    
     const inputEdgeErrors: string[] = [];
     const inputEdgeIds = new Set<string>();
+
     for (const edge of (input.edges || [])) {
       if (edge.id && inputEdgeIds.has(edge.id)) {
         inputEdgeErrors.push(`Duplicate edge id: ${edge.id}`);
@@ -129,57 +159,32 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         inputEdgeIds.add(edge.id);
       }
       if (!nodeIdSet.has(edge.source)) {
-        inputEdgeErrors.push(`Edge ${edge.id || 'unknown'}: invalid source node ${edge.source}`);
+        inputEdgeErrors.push(`Edge ${edge.id || 'unknown'}: invalid source "${edge.source}"`);
       }
       if (!nodeIdSet.has(edge.target)) {
-        inputEdgeErrors.push(`Edge ${edge.id || 'unknown'}: invalid target node ${edge.target}`);
+        inputEdgeErrors.push(`Edge ${edge.id || 'unknown'}: invalid target "${edge.target}"`);
       }
       if (edge.source === edge.target) {
         inputEdgeErrors.push(`Edge ${edge.id || 'unknown'}: source and target are the same`);
       }
     }
-    
-    const validationErrors = [
-      ...validateNodes(architectureNodes),
-      ...inputEdgeErrors,
-    ];
-    if (validationErrors.length > 0) {
-      errors.push(...validationErrors);
-    }
+
+    errors.push(...validateNodes(architectureNodes), ...inputEdgeErrors);
 
     const commColors: Record<string, { color: string; dash: string }> = {
-      sync: { color: '#94a3b8', dash: '' },
-      async: { color: '#fbbf24', dash: '8,4' },
-      stream: { color: '#4ade80', dash: '4,2' },
-      event: { color: '#f472c6', dash: '2,3' },
-      dep: { color: '#a1a1aa', dash: '6,6' },
+      sync:   { color: '#94a3b8', dash: '' },
+      async:  { color: '#d97706', dash: '8,4' },
+      stream: { color: '#10b981', dash: '4,2' },
+      event:  { color: '#ec4899', dash: '2,3' },
+      dep:    { color: '#6b7280', dash: '6,6' },
     };
-
-    const commLabels: Record<string, string> = {
-      sync: 'sync',
-      async: 'async',
-      stream: 'stream',
-      event: 'event',
-      dep: 'uses',
-    };
-
-    function generateEdgeLabel(edge: { source: string; target: string; communicationType?: string; label?: string }, nodes: ArchitectureNode[]): string {
-      if (edge.label && edge.label.trim()) {
-        return edge.label.trim();
-      }
-      const sourceNode = nodes.find(n => n.id === edge.source);
-      const targetNode = nodes.find(n => n.id === edge.target);
-      const sourceLabel = sourceNode?.label?.toLowerCase() || 'source';
-      const targetLabel = targetNode?.label?.toLowerCase() || 'target';
-      const type = edge.communicationType || 'sync';
-      const suffix = commLabels[type] || type;
-      return `${sourceLabel} → ${targetLabel}`;
-    }
 
     const architectureEdges: ArchitectureEdge[] = (input.edges || []).map((edge, index) => {
       const commType = edge.communicationType || 'sync';
       const commStyle = commColors[commType] || commColors.sync;
-      const label = generateEdgeLabel(edge, architectureNodes);
+      // Use provided label; for async/stream/event, fall back to comm type description
+      const label = edge.label?.trim() ||
+        (commType !== 'sync' && commType !== 'dep' ? commType : '');
 
       return {
         id: edge.id || `edge-${index}`,
@@ -188,7 +193,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         sourceHandle: 'right' as const,
         targetHandle: 'left' as const,
         communicationType: commType as ArchitectureEdge['communicationType'],
-        pathType: 'Smoothstep' as ArchitectureEdge['pathType'],
+        pathType: (edge.pathType ?? 'Smoothstep') as ArchitectureEdge['pathType'],
         label,
         labelPosition: 'center' as const,
         animated: commType !== 'sync' && commType !== 'dep',
@@ -232,11 +237,15 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         const saveData = await saveResponse.json() as { sessionId: string; url: string };
         diagramUrl = `${API_BASE}${saveData.url}`;
         sessionId = saveData.sessionId;
-        message = `✅ Diagram ready! Open this URL to view and edit the diagram:\n\n${diagramUrl}\n\nOr copy and paste this link in your browser. The diagram has ${layoutResult.nodes.length} nodes and ${layoutResult.edges.length} edges.\n\n**To export**: Use the session ID "${sessionId}" with the export_diagram tool (format: json/png/svg).`;
+        const nodeCount = layoutResult.nodes.filter(n => !n.data?.isGroup).length;
+        const groupCount = layoutResult.nodes.filter(n => n.data?.isGroup).length;
+        message = `✅ Diagram ready! Open this URL to view and edit:\n\n${diagramUrl}\n\n📊 ${nodeCount} nodes, ${groupCount} groups, ${layoutResult.edges.length} edges.\n\n**To export**: Use session ID "${sessionId}" with the export_diagram tool.`;
       }
     } catch {
-      message = `Diagram generated with ${layoutResult.nodes.length} nodes and ${layoutResult.edges.length} edges.`;
+      message = `Diagram generated with ${layoutResult.nodes.length} nodes and ${layoutResult.edges.length} edges, but couldn't save to generate a link. Make sure Next.js is running on ${API_BASE}.`;
     }
+
+    const groupCount = architectureNodes.filter(n => n.isGroup).length;
 
     return {
       success: true,
@@ -248,29 +257,19 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         edgeCount: layoutResult.edges.length,
         layoutAlgorithm: 'ELK layered',
         direction,
+        groupCount,
       },
       diagramUrl,
       sessionId,
-      embeddedDiagram: {
-        nodes: layoutResult.nodes,
-        edges: layoutResult.edges,
-      },
+      embeddedDiagram: { nodes: layoutResult.nodes, edges: layoutResult.edges },
       message,
       errors: errors.length > 0 ? errors : undefined,
     };
 
   } catch (error) {
     return {
-      success: false,
-      nodes: [],
-      edges: [],
-      elkPositions: [],
-      metadata: {
-        nodeCount: 0,
-        edgeCount: 0,
-        layoutAlgorithm: 'ELK layered',
-        direction: input.direction,
-      },
+      success: false, nodes: [], edges: [], elkPositions: [],
+      metadata: { nodeCount: 0, edgeCount: 0, layoutAlgorithm: 'ELK layered', direction: input.direction, groupCount: 0 },
       errors: [error instanceof Error ? error.message : 'Unknown error'],
     };
   }
