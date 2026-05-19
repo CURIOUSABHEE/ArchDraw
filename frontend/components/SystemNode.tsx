@@ -51,13 +51,13 @@ const STATUS_COLORS = {
 function getTierColorNormalized(layer?: string): string {
   const tier = (layer || 'compute').toLowerCase();
   const colorMap: Record<string, string> = {
-    client: '#5fa4db',
-    edge: '#5fa4db',
-    compute: '#5fa4db',
-    async: '#d8aa59',
-    data: '#d8aa59',
-    observe: '#bbbbbb',
-    external: '#bbbbbb',
+    client:   '#64748b', // slate
+    edge:     '#6366f1', // indigo
+    compute:  '#0d9488', // teal
+    async:    '#d97706', // amber
+    data:     '#3b82f6', // blue
+    observe:  '#8b5cf6', // violet
+    external: '#ec4899', // rose
   };
   return colorMap[tier] || colorMap.compute;
 }
@@ -139,7 +139,10 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   
   const handleColorChange = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    const colors = ['#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#22c55e', '#f59e0b', '#f97316', '#ef4444', '#ec4899', '#6b7280'];
+    const colors = [
+      '#64748b', '#6366f1', '#0d9488', '#d97706', '#3b82f6', '#8b5cf6', '#ec4899', // tier palette
+      '#0284c7', '#059669', '#c026d3', '#65a30d', '#0891b2', // extra accents
+    ];
     const currentIndex = colors.indexOf(nodeData.accentColor || nodeData.color || '#6B7280');
     const nextColor = colors[(currentIndex + 1) % colors.length];
     useDiagramStore.getState().updateNodeData(id, { accentColor: nextColor });

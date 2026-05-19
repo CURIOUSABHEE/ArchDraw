@@ -310,10 +310,13 @@ export default function EditorPage() {
     }
 
     if (result.nodes && result.edges) {
-      const processedNodes = (result.nodes as Record<string, unknown>[]).map((node) => ({
-        ...node,
-        type: 'systemNode',
-      }));
+      const processedNodes = (result.nodes as Record<string, unknown>[]).map((node) => {
+        const isGroup = node.type === 'groupNode' || (node.data as Record<string, unknown>)?.isGroup;
+        return {
+          ...node,
+          type: isGroup ? 'groupNode' : 'systemNode',
+        };
+      });
 
       const processedEdges = (result.edges as Record<string, unknown>[]).map((edge) => ({
         ...edge,

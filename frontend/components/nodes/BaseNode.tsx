@@ -64,7 +64,10 @@ function BaseNodeComponent({ id, data, selected }: NodeProps<BaseNodeData>) {
 
   const handleColorChange = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    const colors = ['#6B7280', '#8A8A8A', '#6FA8DC', '#D8AA59', '#9A8B7A', '#555555', '#7BA89A', '#A89080', '#999999', '#888888'];
+    const colors = [
+      '#6B7280', '#8A8A8A', '#6FA8DC', '#D8AA59', '#9A8B7A', '#555555', '#7BA89A', '#A89080', '#999999', '#888888',
+      '#f43f5e', '#a855f7', '#84cc16', '#fb923c', '#0ea5e9',
+    ];
     const currentIndex = colors.indexOf(data.accentColor || data.color || '#6B7280');
     const nextColor = colors[(currentIndex + 1) % colors.length];
     useDiagramStore.getState().updateNodeData(id, { accentColor: nextColor });

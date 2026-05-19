@@ -153,7 +153,10 @@ export function PropertiesPanel() {
   };
 
   const handleColorChange = () => {
-    const colors = ['#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#22c55e', '#f59e0b', '#f97316', '#ef4444', '#ec4899', '#6b7280'];
+    const colors = [
+      '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#22c55e', '#f59e0b', '#f97316', '#ef4444', '#ec4899', '#6b7280',
+      '#f43f5e', '#a855f7', '#84cc16', '#fb923c', '#14b8a6',
+    ];
     const currentIndex = colors.indexOf(data.accentColor || data.color || '#3b82f6');
     const nextColor = colors[(currentIndex + 1) % colors.length];
     updateNodeData(node.id, { accentColor: nextColor });

@@ -114,7 +114,10 @@ export function DashboardShell({ children, activePage }: DashboardShellProps) {
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {

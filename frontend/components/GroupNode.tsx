@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { NodeProps } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
+import { NodeResizer } from '@reactflow/node-resizer';
+import '@reactflow/node-resizer/dist/style.css';
 
 export default function GroupNode({ id, data, selected }: NodeProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -36,22 +38,9 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
     }
   }, [isEditing]);
 
-  const handleContainerClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    // If shift is held, add to multi-select
-    if (e.shiftKey) {
-      const currentSelected = useDiagramStore.getState().selectedNodeIds;
-      if (currentSelected.includes(id)) {
-        useDiagramStore.getState().setSelectedNodeIds(currentSelected.filter(nid => nid !== id));
-      } else {
-        useDiagramStore.getState().setSelectedNodeIds([...currentSelected, id]);
-      }
-    } else {
-      // Otherwise select just this group
-      useDiagramStore.getState().setSelectedNodeId(id);
-      useDiagramStore.getState().setSelectedNodeIds([id]);
-    }
+  const handleContainerClick = (_e: React.MouseEvent) => {
+    // Don't stop propagation — let ReactFlow's onNodeClick handle selection.
+    // ReactFlow natively supports shift+click multi-select.
   };
 
   const handleLabelClick = (e: React.MouseEvent) => {
@@ -89,6 +78,12 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
       }}
       onClick={handleContainerClick}
     >
+      <NodeResizer 
+        color="#3b82f6" 
+        isVisible={selected} 
+        minWidth={100} 
+        minHeight={100}
+      />
       {/* Text tag - editable */}
       <div
         style={{

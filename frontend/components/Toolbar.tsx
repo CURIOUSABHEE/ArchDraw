@@ -281,6 +281,56 @@ export function Toolbar() {
   const wasEmailModalDismissed = () =>
     typeof window !== 'undefined' && sessionStorage.getItem('emailModalDismissed') === 'true';
 
+  /**
+   * Injects arrow marker <defs> into the React Flow SVG inside the viewport
+   * so that html-to-image can resolve url(#arrow-*) references during export.
+   * Returns a cleanup function that removes the injected defs.
+   */
+  const injectArrowDefs = (element: HTMLElement): (() => void) => {
+    const flowSvg = element.querySelector('svg') as SVGSVGElement | null;
+    if (!flowSvg) return () => {};
+
+    // Check if we already injected (idempotent)
+    if (flowSvg.querySelector('#__export-defs__')) return () => {};
+
+    const ARROW_MARKERS = [
+      { id: 'arrow-sync',    color: '#3B82F6' },
+      { id: 'arrow-async',   color: '#F59E0B' },
+      { id: 'arrow-stream',  color: '#10B981' },
+      { id: 'arrow-event',   color: '#8B5CF6' },
+      { id: 'arrow-dep',     color: '#6B7280' },
+      { id: 'arrow-default', color: '#6B7280' },
+      { id: 'arrow-error',   color: '#EF4444' },
+    ];
+
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    defs.id = '__export-defs__';
+
+    for (const { id, color } of ARROW_MARKERS) {
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      marker.setAttribute('id', id);
+      marker.setAttribute('markerWidth', '6');
+      marker.setAttribute('markerHeight', '6');
+      marker.setAttribute('refX', '3');
+      marker.setAttribute('refY', '3');
+      marker.setAttribute('orient', 'auto');
+      marker.setAttribute('markerUnits', 'strokeWidth');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M0,0 L0,6 L6,3 z');
+      path.setAttribute('fill', color);
+      marker.appendChild(path);
+      defs.appendChild(marker);
+    }
+
+    // Prepend so it doesn't affect visual stacking
+    flowSvg.insertBefore(defs, flowSvg.firstChild);
+
+    return () => {
+      defs.remove();
+    };
+  };
+
   const downloadFile = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -368,24 +418,29 @@ export function Toolbar() {
           const { toPng } = await import('html-to-image');
           const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
           if (!element) return;
-          const pngDataUrl = await toPng(element, {
-            backgroundColor: bgColor,
-            pixelRatio: 2,
-            cacheBust: true,
-            filter: (node: HTMLElement) => {
-              const cls = node.classList;
-              if (!cls) return true;
-              return (
-                !cls.contains('react-flow__minimap') &&
-                !cls.contains('react-flow__controls') &&
-                !cls.contains('react-flow__panel') &&
-                !cls.contains('react-flow__background')
-              );
-            },
-          });
-          const pngBlob = await dataUrlToBlob(pngDataUrl);
-          downloadFile(pngBlob, 'archdraw-export.png');
-          toast.warning('SVG too large, exported as PNG instead');
+          const cleanupDefs = injectArrowDefs(element);
+          try {
+            const pngDataUrl = await toPng(element, {
+              backgroundColor: bgColor,
+              pixelRatio: 2,
+              cacheBust: true,
+              filter: (node: HTMLElement) => {
+                const cls = node.classList;
+                if (!cls) return true;
+                return (
+                  !cls.contains('react-flow__minimap') &&
+                  !cls.contains('react-flow__controls') &&
+                  !cls.contains('react-flow__panel') &&
+                  !cls.contains('react-flow__background')
+                );
+              },
+            });
+            const pngBlob = await dataUrlToBlob(pngDataUrl);
+            downloadFile(pngBlob, 'archdraw-export.png');
+            toast.warning('SVG too large, exported as PNG instead');
+          } finally {
+            cleanupDefs();
+          }
         } else {
           downloadFile(blob, 'archdraw-export.svg');
           toast.success('Exported as SVG');
@@ -409,22 +464,28 @@ export function Toolbar() {
       
       fitView({ padding: 0.1, duration: 300 });
       await new Promise((r) => setTimeout(r, 350));
-      
-      const dataUrl = await toPng(element, {
-        backgroundColor: bgColor,
-        pixelRatio,
-        cacheBust: true,
-        filter: (node: HTMLElement) => {
-          const cls = node.classList;
-          if (!cls) return true;
-          return (
-            !cls.contains('react-flow__minimap') &&
-            !cls.contains('react-flow__controls') &&
-            !cls.contains('react-flow__panel') &&
-            !cls.contains('react-flow__background')
-          );
-        },
-      });
+
+      const cleanupDefs = injectArrowDefs(element);
+      let dataUrl: string;
+      try {
+        dataUrl = await toPng(element, {
+          backgroundColor: bgColor,
+          pixelRatio,
+          cacheBust: true,
+          filter: (node: HTMLElement) => {
+            const cls = node.classList;
+            if (!cls) return true;
+            return (
+              !cls.contains('react-flow__minimap') &&
+              !cls.contains('react-flow__controls') &&
+              !cls.contains('react-flow__panel') &&
+              !cls.contains('react-flow__background')
+            );
+          },
+        });
+      } finally {
+        cleanupDefs();
+      }
       
       if (format.includes('pdf')) {
         const { jsPDF } = await import('jspdf');

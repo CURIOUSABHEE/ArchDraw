@@ -7,44 +7,44 @@
 
 export const TIER_COLORS = {
   client: {
-    color: '#5A5A5A',
-    bg: 'rgba(90, 90, 90, 0.06)',
+    color: '#64748b',
+    bg: 'rgba(100, 116, 139, 0.06)',
     label: 'Client',
     description: 'Browser, Mobile, Web',
   },
   edge: {
-    color: '#6B7B8D',
-    bg: 'rgba(107, 123, 141, 0.06)',
+    color: '#6366f1',
+    bg: 'rgba(99, 102, 241, 0.06)',
     label: 'Edge / Gateway',
     description: 'CDN, Load Balancer, API Gateway',
   },
   compute: {
-    color: '#6FA8DC',
-    bg: 'rgba(111, 168, 220, 0.07)',
+    color: '#0d9488',
+    bg: 'rgba(13, 148, 136, 0.07)',
     label: 'Compute / Service',
     description: 'Microservices, Business Logic',
   },
   async: {
-    color: '#C4A86C',
-    bg: 'rgba(196, 168, 108, 0.07)',
+    color: '#d97706',
+    bg: 'rgba(217, 119, 6, 0.07)',
     label: 'Async / Queue',
     description: 'Message Queue, Event Bus',
   },
   data: {
-    color: '#D8AA59',
-    bg: 'rgba(216, 170, 89, 0.07)',
+    color: '#3b82f6',
+    bg: 'rgba(59, 130, 246, 0.07)',
     label: 'Data / Storage',
     description: 'Database, Cache, Object Storage',
   },
   observe: {
-    color: '#8A8A8A',
-    bg: 'rgba(138, 138, 138, 0.06)',
+    color: '#8b5cf6',
+    bg: 'rgba(139, 92, 246, 0.06)',
     label: 'Observe',
     description: 'Monitoring, Logging, Tracing',
   },
   external: {
-    color: '#9A8575',
-    bg: 'rgba(154, 133, 117, 0.06)',
+    color: '#ec4899',
+    bg: 'rgba(236, 72, 153, 0.06)',
     label: 'External',
     description: 'Third-party APIs, Payment',
   },
@@ -52,44 +52,44 @@ export const TIER_COLORS = {
 
 export const TIER_COLORS_DARK = {
   client: {
-    color: '#9A9A9A',
-    bg: 'rgba(154, 154, 154, 0.08)',
+    color: '#94a3b8',
+    bg: 'rgba(148, 163, 184, 0.08)',
     label: 'Client',
     description: 'Browser, Mobile, Web',
   },
   edge: {
-    color: '#8B9BAD',
-    bg: 'rgba(139, 155, 173, 0.08)',
+    color: '#818cf8',
+    bg: 'rgba(129, 140, 248, 0.08)',
     label: 'Edge / Gateway',
     description: 'CDN, Load Balancer, API Gateway',
   },
   compute: {
-    color: '#7DB8E8',
-    bg: 'rgba(125, 184, 232, 0.1)',
+    color: '#2dd4bf',
+    bg: 'rgba(45, 212, 191, 0.1)',
     label: 'Compute / Service',
     description: 'Microservices, Business Logic',
   },
   async: {
-    color: '#D4B87C',
-    bg: 'rgba(212, 184, 124, 0.08)',
+    color: '#fbbf24',
+    bg: 'rgba(251, 191, 36, 0.08)',
     label: 'Async / Queue',
     description: 'Message Queue, Event Bus',
   },
   data: {
-    color: '#E0B868',
-    bg: 'rgba(224, 184, 104, 0.08)',
+    color: '#60a5fa',
+    bg: 'rgba(96, 165, 250, 0.08)',
     label: 'Data / Storage',
     description: 'Database, Cache, Object Storage',
   },
   observe: {
-    color: '#A8A8A8',
-    bg: 'rgba(168, 168, 168, 0.08)',
+    color: '#a78bfa',
+    bg: 'rgba(167, 139, 250, 0.08)',
     label: 'Observe',
     description: 'Monitoring, Logging, Tracing',
   },
   external: {
-    color: '#B09E8E',
-    bg: 'rgba(176, 158, 142, 0.08)',
+    color: '#f472b6',
+    bg: 'rgba(244, 114, 182, 0.08)',
     label: 'External',
     description: 'Third-party APIs, Payment',
   },
@@ -166,23 +166,23 @@ export const EDGE_STYLES_DARK = {
 
 /* Zone backgrounds — barely perceptible, warm neutrals */
 export const ZONE_BACKGROUNDS: Record<TierType, string> = {
-  client: '#F6F6F4',
-  edge: '#F5F6F8',
-  compute: '#F4F7FA',
-  async: '#FAF8F2',
-  data: '#FAF6EE',
-  observe: '#F7F7F5',
-  external: '#F8F5F2',
+  client: '#f1f5f9', // slate tint
+  edge: '#eef2ff', // indigo tint
+  compute: '#f0fdfa', // teal tint
+  async: '#fffbeb', // amber tint
+  data: '#eff6ff', // blue tint
+  observe: '#f5f3ff', // violet tint
+  external: '#fdf2f8', // rose tint
 };
 
 export const ZONE_BACKGROUNDS_DARK: Record<TierType, string> = {
-  client: '#181816',
-  edge: '#171819',
-  compute: '#151920',
-  async: '#1A1914',
-  data: '#1C1812',
-  observe: '#181816',
-  external: '#191715',
+  client: '#0f172a',
+  edge: '#1e1b4b',
+  compute: '#042f2e',
+  async: '#451a03',
+  data: '#172554',
+  observe: '#2e1065',
+  external: '#500724',
 };
 
 export function getTierColor(tier?: string, isDark = false): string {
