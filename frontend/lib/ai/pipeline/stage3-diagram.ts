@@ -1,4 +1,4 @@
-import type { RawNode, RawFlow, ParsedDiagram, ReasoningResult, PipelineLayer as LayerType } from './types';
+import type { RawNode, RawFlow, ParsedDiagram, ReasoningResult, PipelineLayer } from './types';
 import { DIAGRAM_PROMPT, MODEL_CONFIG, DIAGRAM_SYSTEM_MESSAGE } from '../constants';
 import { parseNDJSON } from './stage4-parse';
 
@@ -12,7 +12,7 @@ const MIN_NODES = 6;
 const MAX_NODES = 15;
 const MIN_EDGES = 5;
 const REQUIRED_COMPONENTS = [
-  { type: 'gateway', label: 'API Gateway', layer: 'gateway' },
+  { type: 'gateway', label: 'API Gateway', layer: 'application' },
   { type: 'service', label: 'Service', layer: 'application' },
   { type: 'database', label: 'Database', layer: 'data' },
 ];
@@ -74,14 +74,21 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null
 
 /**
  * STAGE 3 — DIAGRAM GENERATION (LLM)
- * Generate a complete, layered architecture graph.
+ * Generate a flexible, well-structured architecture based on user's request.
  * 
- * HARD CONSTRAINTS:
- * - minimum 10-15 nodes
- * - minimum 10-20 edges
- * - must include: entry layer, at least 2 services, async component, cache, database
- * - Nodes: id, label, type, parent group (layer)
- * - Edges: source, target, label (API call, async job, cache read, db write, etc.)
+ * KEY PRINCIPLES:
+ * - NO TEMPLATES - generate based on actual requirements
+ * - Flexible complexity - simple or complex based on user's needs
+ * - Proper spacing - minimum 20px horizontal, 10px vertical
+ * - Layer-based organization - left-to-right flow
+ * - NO ORPHAN NODES - all nodes must be connected
+ * - Beautiful, structured layouts
+ * 
+ * CONSTRAINTS:
+ * - Minimum 6 nodes for simple architectures
+ * - Maximum 15 nodes for complex architectures
+ * - Minimum 5 edges to ensure connectivity
+ * - Nodes organized in layers: presentation → gateway → application → async → data
  */
 function buildDiagramPrompt(reasoning: ReasoningResult): string {
   const layersInfo = reasoning.layers 
@@ -100,7 +107,7 @@ function buildDiagramPrompt(reasoning: ReasoningResult): string {
     ? `ARCHITECTURAL PLAN: ${reasoning.architecturalPlan}`
     : '';
 
-  return `You are an expert systems architect. Generate a clean, flowing architecture diagram in NDJSON format.
+  return `You are an expert systems architect. Generate a clean, well-structured architecture diagram in NDJSON format.
 
 ${architecturalPlan}
 
@@ -110,51 +117,54 @@ ${flowsInfo}
 
 SYSTEM TYPE: ${reasoning.systemType}
 
-REQUIREMENTS:
-1. Generate ${MIN_NODES}-${MAX_NODES} nodes (aim for 8-12 for clarity)
-2. Generate at least ${MIN_EDGES} edges (aim for 8-12)
-3. Create a PRACTICAL, FLOWING architecture - NOT a textbook example
-4. DO NOT create group nodes unless specifically needed for logical boundaries
-5. Focus on the actual data flow and component interactions
+CRITICAL REQUIREMENTS:
+1. Generate ${MIN_NODES}-${MAX_NODES} nodes based on complexity needed
+2. Generate at least ${MIN_EDGES} edges - EVERY node must be connected (NO ORPHANS)
+3. Create a FLEXIBLE architecture that matches the user's request
+4. NO TEMPLATES - design based on actual requirements
+5. Organize nodes in 3 columns (left-to-right flow)
+6. Maintain proper spacing (20px horizontal, 5px vertical minimum, 12px when labels present)
 
-CRITICAL RULES:
-- NO GROUPS unless the architecture genuinely needs logical boundaries (like VPC, security zones)
-- Each node should be a real component (service, database, cache, queue, etc.)
-- Edges should show actual data flow with meaningful labels
-- Keep it simple and practical - avoid over-engineering
+3-COLUMN LAYOUT (left to right):
+- presentation: User-facing clients (web, mobile, desktop, browser) → LEFT COLUMN
+- application: Services, APIs, gateways, workers, queues, auth → MIDDLE COLUMN
+- data: Databases, caches, storage → RIGHT COLUMN
+
+NO GROUPS - Flat structure with proper column assignment:
+- Each node is a real component
+- Edges show actual data flow
+- Simple and practical
 
 OUTPUT FORMAT - NDJSON (one JSON object per line):
 
-EXAMPLE (NO GROUPS - just flowing components):
-{"id": "web-client", "label": "Web App", "layer": "presentation", "type": "client", "icon": "monitor", "subtitle": "React SPA"}
-{"id": "mobile-app", "label": "Mobile App", "layer": "presentation", "type": "client", "icon": "smartphone", "subtitle": "iOS/Android"}
-{"id": "load-balancer", "label": "Load Balancer", "layer": "gateway", "type": "loadbalancer", "icon": "webhook", "subtitle": "Traffic distribution"}
-{"id": "api-gateway", "label": "API Gateway", "layer": "gateway", "type": "gateway", "icon": "webhook", "subtitle": "REST API"}
-{"id": "auth-service", "label": "Auth Service", "layer": "application", "type": "service", "icon": "lock", "subtitle": "JWT/OAuth"}
-{"id": "user-service", "label": "User Service", "layer": "application", "type": "service", "icon": "server", "subtitle": "User management"}
-{"id": "message-queue", "label": "Message Queue", "layer": "async", "type": "queue", "icon": "message-square", "subtitle": "RabbitMQ"}
-{"id": "cache", "label": "Redis Cache", "layer": "data", "type": "cache", "icon": "gauge", "subtitle": "Session cache"}
-{"id": "database", "label": "PostgreSQL", "layer": "data", "type": "database", "icon": "database", "subtitle": "Primary DB"}
+EXAMPLE (Simple E-commerce):
+{"id": "web-app", "label": "Web App", "layer": "presentation", "type": "client", "icon": "monitor", "subtitle": "React"}
+{"id": "api-gateway", "label": "API Gateway", "layer": "application", "type": "gateway", "icon": "webhook", "subtitle": "REST"}
+{"id": "product-service", "label": "Product Service", "layer": "application", "type": "service", "icon": "server", "subtitle": "Catalog"}
+{"id": "order-service", "label": "Order Service", "layer": "application", "type": "service", "icon": "server", "subtitle": "Orders"}
+{"id": "cache", "label": "Redis", "layer": "data", "type": "cache", "icon": "gauge", "subtitle": "Cache"}
+{"id": "database", "label": "PostgreSQL", "layer": "data", "type": "database", "icon": "database", "subtitle": "Main DB"}
 
-FLOWS (show actual data flow):
-{"type": "flow", "path": ["web-client", "load-balancer"], "label": "HTTPS", "async": false}
-{"type": "flow", "path": ["load-balancer", "api-gateway"], "label": "route request", "async": false}
-{"type": "flow", "path": ["api-gateway", "auth-service"], "label": "verify token", "async": false}
-{"type": "flow", "path": ["api-gateway", "user-service"], "label": "API call", "async": false}
-{"type": "flow", "path": ["user-service", "cache"], "label": "check cache", "async": false}
-{"type": "flow", "path": ["user-service", "database"], "label": "query", "async": false}
-{"type": "flow", "path": ["user-service", "message-queue"], "label": "publish event", "async": true}
+FLOWS (ensure ALL nodes are connected):
+{"type": "flow", "path": ["web-app", "api-gateway"], "label": "HTTPS", "async": false}
+{"type": "flow", "path": ["api-gateway", "product-service"], "label": "get products", "async": false}
+{"type": "flow", "path": ["api-gateway", "order-service"], "label": "create order", "async": false}
+{"type": "flow", "path": ["product-service", "cache"], "label": "cache lookup", "async": false}
+{"type": "flow", "path": ["product-service", "database"], "label": "query", "async": false}
+{"type": "flow", "path": ["order-service", "database"], "label": "insert", "async": false}
 
-NODE TYPES: client, gateway, service, queue, cache, database, worker, cdn, loadbalancer
-LAYER VALUES: presentation, gateway, application, async, data, observability, external
+NODE TYPES: client, gateway, service, queue, cache, database, worker, auth, api, cdn, loadbalancer
+LAYER VALUES: presentation, application, data
 
-EDGE LABELS should be specific and describe the actual interaction:
+EDGE LABELS - Be specific:
 - "HTTPS request", "REST API", "gRPC call"
 - "verify token", "check permissions"
 - "query users", "update record", "cache lookup"
 - "publish event", "consume message"
 
-Generate a PRACTICAL, FLOWING architecture. NO GROUPS unless genuinely needed. Output ONLY NDJSON:`;
+CRITICAL: Ensure EVERY node has at least one connection. NO ORPHAN NODES.
+
+Generate a clean 3-column architecture. Output ONLY NDJSON:`;
 }
 
 async function tryGroq(prompt: string, onNode?: (n: RawNode) => void, onFlow?: (f: RawFlow) => void): Promise<ParsedDiagram | null> {
@@ -195,40 +205,32 @@ async function tryGroq(prompt: string, onNode?: (n: RawNode) => void, onFlow?: (
           parser.push(content);
 
           for (const obj of parser.drain()) {
-            if (obj.id && obj.label && (obj.isGroup || obj.parentId || !obj.isGroup)) {
-              const node: RawNode = {
-                id: String(obj.id),
-                label: String(obj.label),
-                subtitle: obj.subtitle ? String(obj.subtitle) : '',
-                layer: (obj.layer as LayerType) || 'application',
-                icon: obj.icon ? String(obj.icon) : 'box',
-                serviceType: obj.serviceType ? String(obj.serviceType) : '',
-                ...(obj.isGroup ? {
-                  isGroup: true,
-                  groupLabel: String(obj.groupLabel || obj.label),
-                  groupColor: String(obj.groupColor || '#e2e8f0'),
-                } : {}),
-                ...(obj.parentId ? {
-                  parentId: String(obj.parentId),
-                } : {}),
-              };
-              nodes.push(node);
-              onNode?.(node);
-            } else if (obj.type === 'flow' || obj.path) {
-              const flowObj = obj as { path: string[]; label?: string; async?: boolean };
-              if (Array.isArray(flowObj.path) && flowObj.path.length >= 2) {
-                const flow: RawFlow = {
-                  path: flowObj.path,
-                  label: flowObj.label,
-                  async: flowObj.async === true,
+              if (obj.id && obj.label && !obj.isGroup && !obj.parentId) {
+                const node: RawNode = {
+                  id: String(obj.id),
+                  label: String(obj.label),
+                  subtitle: obj.subtitle ? String(obj.subtitle) : '',
+                  layer: (obj.layer as PipelineLayer) || 'application',
+                  icon: obj.icon ? String(obj.icon) : 'box',
+                  serviceType: obj.serviceType ? String(obj.serviceType) : '',
                 };
-                flows.push(flow);
-                onFlow?.(flow);
+                nodes.push(node);
+                onNode?.(node);
+              } else if (obj.type === 'flow' || obj.path) {
+                const flowObj = obj as { path: string[]; label?: string; async?: boolean };
+                if (Array.isArray(flowObj.path) && flowObj.path.length >= 2) {
+                  const flow: RawFlow = {
+                    path: flowObj.path,
+                    label: flowObj.label,
+                    async: flowObj.async === true,
+                  };
+                  flows.push(flow);
+                  onFlow?.(flow);
+                }
               }
             }
           }
         }
-      }
 
       // If stream ended with no nodes, try parsing accumulated text
       if (nodes.length === 0 && flows.length === 0) {
@@ -293,31 +295,28 @@ export function parseLLMOutput(rawText: string): ParsedDiagram {
 
 /**
  * Validates that the generated diagram meets minimum constraints.
- * If not, attempts to enrich the diagram by adding missing components.
- * DOES NOT force groups - only adds them if genuinely needed.
+ * Ensures NO ORPHAN NODES - all nodes must be connected.
+ * Adds missing components and connections as needed.
  */
 function enforceMinimumConstraints(
   nodes: RawNode[], 
   flows: RawFlow[], 
   reasoning: ReasoningResult
 ): { nodes: RawNode[]; flows: RawFlow[] } {
-  let enrichedNodes = [...nodes];
-  let enrichedFlows = [...flows];
+  const enrichedNodes = [...nodes];
+  const enrichedFlows = [...flows];
 
-  // Count non-group nodes
-  const nonGroupNodes = enrichedNodes.filter(n => !n.isGroup);
-  
   // Check for required component types
-  const hasGateway = nonGroupNodes.some(n => n.layer === 'gateway' || n.serviceType === 'gateway');
-  const serviceCount = nonGroupNodes.filter(n => n.layer === 'application' || n.serviceType === 'service').length;
-  const hasDatabase = nonGroupNodes.some(n => n.serviceType === 'database');
+  const hasGateway = enrichedNodes.some(n => n.layer === 'application' && (n.serviceType === 'gateway' || n.label.toLowerCase().includes('gateway')));
+  const serviceCount = enrichedNodes.filter(n => n.layer === 'application' || n.serviceType === 'service').length;
+  const hasDatabase = enrichedNodes.some(n => n.serviceType === 'database');
 
-  // Add missing required components (WITHOUT forcing them into groups)
+  // Add missing required components
   if (!hasGateway) {
     enrichedNodes.push({
       id: 'api-gateway',
       label: 'API Gateway',
-      layer: 'gateway',
+      layer: 'application',
       icon: 'webhook',
       serviceType: 'gateway',
       subtitle: 'REST API',
@@ -346,10 +345,9 @@ function enforceMinimumConstraints(
     });
   }
 
-  // Ensure minimum node count (6-10 for practical diagrams)
-  const currentNonGroup = enrichedNodes.filter(n => !n.isGroup);
-  if (currentNonGroup.length < MIN_NODES) {
-    const clients = currentNonGroup.filter(n => n.layer === 'presentation');
+  // Ensure minimum node count
+  if (enrichedNodes.length < MIN_NODES) {
+    const clients = enrichedNodes.filter(n => n.layer === 'presentation');
     if (clients.length === 0) {
       enrichedNodes.push({
         id: 'web-client',
@@ -362,47 +360,110 @@ function enforceMinimumConstraints(
     }
   }
 
-  // Ensure minimum edge count
-  if (enrichedFlows.length < MIN_EDGES) {
-    const allNonGroup = enrichedNodes.filter(n => !n.isGroup);
-    const flowExists = (src: string, tgt: string) => 
-      enrichedFlows.some(f => f.path.includes(src) && f.path.includes(tgt));
+  // Build connectivity map
+  const connectedNodes = new Set<string>();
+  for (const flow of enrichedFlows) {
+    for (const nodeId of flow.path) {
+      connectedNodes.add(nodeId);
+    }
+  }
+
+  // Identify orphan nodes (nodes with no connections)
+  const orphanNodes = enrichedNodes.filter(n => !connectedNodes.has(n.id));
+  
+  if (orphanNodes.length > 0) {
+    console.log(`[Diagram] Found ${orphanNodes.length} orphan nodes - connecting them`);
     
-    // Connect presentation to gateway
-    const presNodes = allNonGroup.filter(n => n.layer === 'presentation');
-    const gwNodes = allNonGroup.filter(n => n.layer === 'gateway');
-    for (const p of presNodes) {
-      for (const g of gwNodes) {
-        if (!flowExists(p.id, g.id)) {
-          enrichedFlows.push({ path: [p.id, g.id], label: 'HTTPS request', async: false });
+    // Connect orphans to appropriate nodes based on column
+    for (const orphan of orphanNodes) {
+      const orphanLayer = orphan.layer as PipelineLayer;
+      const layerIdx = LAYER_ORDER.indexOf(orphanLayer);
+      
+      // Find a node in the previous column to connect to
+      if (layerIdx > 0) {
+        const prevLayer = LAYER_ORDER[layerIdx - 1];
+        const prevLayerNodes = enrichedNodes.filter(n => 
+          n.layer === prevLayer && connectedNodes.has(n.id)
+        );
+        
+        if (prevLayerNodes.length > 0) {
+          const targetNode = prevLayerNodes[0];
+          enrichedFlows.push({
+            path: [targetNode.id, orphan.id],
+            label: 'connects to',
+            async: false,
+          });
+          connectedNodes.add(orphan.id);
+          console.log(`[Diagram] Connected orphan ${orphan.id} to ${targetNode.id}`);
         }
       }
-    }
-
-    // Connect gateway to services
-    const svcNodes = allNonGroup.filter(n => n.layer === 'application');
-    for (const g of gwNodes) {
-      for (const s of svcNodes) {
-        if (!flowExists(g.id, s.id)) {
-          enrichedFlows.push({ path: [g.id, s.id], label: 'API call', async: false });
-        }
-      }
-    }
-
-    // Connect services to data layer
-    const dataNodes = allNonGroup.filter(n => n.layer === 'data');
-    for (const s of svcNodes) {
-      for (const d of dataNodes) {
-        if (!flowExists(s.id, d.id)) {
-          const label = d.serviceType === 'cache' ? 'cache lookup' : 'query';
-          enrichedFlows.push({ path: [s.id, d.id], label, async: false });
+      
+      // If still orphaned, connect to next column
+      if (!connectedNodes.has(orphan.id) && layerIdx < LAYER_ORDER.length - 1) {
+        const nextLayer = LAYER_ORDER[layerIdx + 1];
+        const nextLayerNodes = enrichedNodes.filter(n => 
+          n.layer === nextLayer && connectedNodes.has(n.id)
+        );
+        
+        if (nextLayerNodes.length > 0) {
+          const targetNode = nextLayerNodes[0];
+          enrichedFlows.push({
+            path: [orphan.id, targetNode.id],
+            label: 'connects to',
+            async: false,
+          });
+          connectedNodes.add(orphan.id);
+          console.log(`[Diagram] Connected orphan ${orphan.id} to ${targetNode.id}`);
         }
       }
     }
   }
 
+  // Ensure minimum edge count
+  if (enrichedFlows.length < MIN_EDGES) {
+    const flowExists = (src: string, tgt: string) => 
+      enrichedFlows.some(f => f.path.includes(src) && f.path.includes(tgt));
+    
+    // Connect presentation to application column (gateways, services, etc.)
+    const presNodes = enrichedNodes.filter(n => n.layer === 'presentation');
+    const appNodes = enrichedNodes.filter(n => n.layer === 'application');
+    for (const p of presNodes) {
+      for (const a of appNodes) {
+        if (!flowExists(p.id, a.id)) {
+          enrichedFlows.push({ path: [p.id, a.id], label: 'HTTPS request', async: false });
+        }
+      }
+    }
+
+    // Connect application to data layer
+    const dataNodes = enrichedNodes.filter(n => n.layer === 'data');
+    for (const a of appNodes) {
+      for (const d of dataNodes) {
+        if (!flowExists(a.id, d.id)) {
+          const label = d.serviceType === 'cache' ? 'cache lookup' : 'query';
+          enrichedFlows.push({ path: [a.id, d.id], label, async: false });
+        }
+      }
+    }
+  }
+
+  // Final check for orphans
+  const finalConnectedNodes = new Set<string>();
+  for (const flow of enrichedFlows) {
+    for (const nodeId of flow.path) {
+      finalConnectedNodes.add(nodeId);
+    }
+  }
+  
+  const finalOrphans = enrichedNodes.filter(n => !finalConnectedNodes.has(n.id));
+  if (finalOrphans.length > 0) {
+    console.log(`[Diagram] WARNING: ${finalOrphans.length} nodes still orphaned after enrichment`);
+  }
+
   return { nodes: enrichedNodes, flows: enrichedFlows };
 }
+
+const LAYER_ORDER: PipelineLayer[] = ['presentation', 'application', 'data'];
 
 export async function callDiagramLLM(
   reasoning: ReasoningResult,

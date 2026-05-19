@@ -183,7 +183,7 @@ export async function runArchitecturePipeline(
       rawNodeToArchitectureNode(n as RawNode)
     );
     
-    logger.log(`[Pipeline] Generated ${state.rawNodes.length} nodes (${state.rawNodes.filter(n => !(n as unknown as RawNode).isGroup).length} non-group) and ${diagramResult.flows.length} flows`);
+    logger.log(`[Pipeline] Generated ${state.rawNodes.length} nodes and ${diagramResult.flows.length} flows`);
     
     state.history.push({
       step: 'diagram',
@@ -218,7 +218,7 @@ export async function runArchitecturePipeline(
     });
 
     // Ensure minimum edges
-    const minRequiredEdges = Math.max(10, Math.floor(state.enrichedNodes.filter(n => !(n as unknown as RawNode).isGroup).length * 0.5));
+    const minRequiredEdges = Math.max(10, Math.floor(state.enrichedNodes.length * 0.5));
     if (state.edges.length < minRequiredEdges) {
       logger.warn(`[Pipeline] Low edge count (${state.edges.length} < ${minRequiredEdges}), adding missing edges`);
       const missingEdges = generateMissingEdges(state.enrichedNodes, state.edges);
@@ -232,13 +232,6 @@ export async function runArchitecturePipeline(
     if (connectionFix.fixes.length > 0) {
       logger.log('[Pipeline] Connection fixes applied:', connectionFix.fixes);
       state.edges = connectionFix.edges;
-    }
-
-    // Ensure group connectivity
-    const groupConnectivity = ensureGroupConnectivity(state.enrichedNodes, state.edges);
-    if (groupConnectivity.fixes.length > 0) {
-      logger.log('[Pipeline] Group connectivity fixes:', groupConnectivity.fixes);
-      state.edges = groupConnectivity.edges;
     }
 
     // Ensure connectivity for orphaned nodes
@@ -409,10 +402,6 @@ export async function runArchitecturePipeline(
           layer: n.layer,
           icon: n.icon || 'box',
           serviceType: n.serviceType || '',
-          isGroup: n.isGroup || false,
-          groupLabel: n.groupLabel || '',
-          groupColor: n.groupColor || '',
-          parentId: n.parentId,
         })),
         edges: state.edges.map(e => ({
           id: e.id,
@@ -443,7 +432,6 @@ export async function runArchitecturePipeline(
       {
         nodesRemoved: Math.max(0, nodesForLayout.length - rfNodes.length),
         edgesRemoved: Math.max(0, state.edges.length - rfEdges.length),
-        groupsRemoved: 0, // Non-destructive validation shouldn't remove groups
       }
     );
     
@@ -526,7 +514,7 @@ export async function runArchitecturePipeline(
 function rawNodeToArchitectureNode(raw: RawNode): ArchitectureNode {
   return {
     id: raw.id,
-    type: raw.isGroup ? 'groupNode' : 'architectureNode',
+    type: 'architectureNode',
     position: { x: (raw as { x?: number }).x || 0, y: (raw as { y?: number }).y || 0 },
     data: {
       label: raw.label,
@@ -534,11 +522,7 @@ function rawNodeToArchitectureNode(raw: RawNode): ArchitectureNode {
       layer: raw.layer,
       icon: raw.icon || 'box',
       serviceType: raw.serviceType || '',
-      isGroup: raw.isGroup || false,
-      groupLabel: raw.groupLabel || '',
-      groupColor: raw.groupColor || '',
     },
-    parentNode: raw.parentId,
     width: (raw as { width?: number }).width || 180,
     height: (raw as { height?: number }).height || 70,
   } as unknown as ArchitectureNode;
@@ -554,9 +538,6 @@ function architectureNodeToRawNode(node: ArchitectureNode): RawNode {
     layer?: string; 
     icon?: string; 
     serviceType?: string;
-    isGroup?: boolean;
-    groupLabel?: string;
-    groupColor?: string;
   } }).data || {};
   
   return {
@@ -566,10 +547,6 @@ function architectureNodeToRawNode(node: ArchitectureNode): RawNode {
     layer: (data.layer || 'application') as RawNode['layer'],
     icon: data.icon,
     serviceType: data.serviceType,
-    isGroup: data.isGroup,
-    groupLabel: data.groupLabel,
-    groupColor: data.groupColor,
-    parentId: (node as { parentNode?: string }).parentNode,
   };
 }
 
@@ -638,6 +615,7 @@ function generateFallbackFromIntent(
 ): ArchitectureNode[] {
   const nodes: ArchitectureNode[] = [];
   
+  // Presentation column
   nodes.push({
     id: 'client',
     type: 'architectureNode',
@@ -645,31 +623,15 @@ function generateFallbackFromIntent(
     data: {
       label: 'Client App',
       subtitle: 'web browser',
-      layer: 'client',
-      tier: 'client',
+      layer: 'presentation',
+      tier: 'presentation',
       tierColor: '#6B7B8D',
       icon: 'monitor',
       serviceType: 'client',
     },
   } as unknown as ArchitectureNode);
 
-  if (intent.primary.includes('auth')) {
-    nodes.push({
-      id: 'auth-service',
-      type: 'architectureNode',
-      position: { x: 0, y: 0 },
-      data: {
-        label: 'Auth Service',
-        subtitle: 'authentication & authz',
-        layer: 'compute',
-        tier: 'compute',
-        tierColor: '#14b8a6',
-        icon: 'lock',
-        serviceType: 'auth',
-      },
-    } as unknown as ArchitectureNode);
-  }
-
+  // Application column
   nodes.push({
     id: 'api-gateway',
     type: 'architectureNode',
@@ -677,8 +639,8 @@ function generateFallbackFromIntent(
     data: {
       label: 'API Gateway',
       subtitle: 'REST API entry',
-      layer: 'edge',
-      tier: 'edge',
+      layer: 'application',
+      tier: 'application',
       tierColor: '#6B7B8D',
       icon: 'webhook',
       serviceType: 'gateway',
@@ -692,31 +654,32 @@ function generateFallbackFromIntent(
     data: {
       label: 'Main Service',
       subtitle: 'business logic',
-      layer: 'compute',
-      tier: 'compute',
+      layer: 'application',
+      tier: 'application',
       tierColor: '#14b8a6',
       icon: 'server',
       serviceType: 'api',
     },
   } as unknown as ArchitectureNode);
 
-  if (intent.primary.includes('storage')) {
+  if (intent.primary.includes('auth')) {
     nodes.push({
-      id: 'storage',
+      id: 'auth-service',
       type: 'architectureNode',
       position: { x: 0, y: 0 },
       data: {
-        label: 'Object Storage',
-        subtitle: 'file storage',
-        layer: 'data',
-        tier: 'data',
-        tierColor: '#3b82f6',
-        icon: 'hard-drive',
-        serviceType: 'storage',
+        label: 'Auth Service',
+        subtitle: 'authentication & authz',
+        layer: 'application',
+        tier: 'application',
+        tierColor: '#14b8a6',
+        icon: 'lock',
+        serviceType: 'auth',
       },
     } as unknown as ArchitectureNode);
   }
 
+  // Data column
   nodes.push({
     id: 'database',
     type: 'architectureNode',
@@ -747,19 +710,19 @@ function generateFallbackFromIntent(
     },
   } as unknown as ArchitectureNode);
 
-  if (intent.primary.includes('queue')) {
+  if (intent.primary.includes('storage')) {
     nodes.push({
-      id: 'queue',
+      id: 'storage',
       type: 'architectureNode',
       position: { x: 0, y: 0 },
       data: {
-        label: 'Message Queue',
-        subtitle: 'async messaging',
-        layer: 'async',
-        tier: 'async',
-        tierColor: '#f59e0b',
-        icon: 'message-square',
-        serviceType: 'queue',
+        label: 'Object Storage',
+        subtitle: 'file storage',
+        layer: 'data',
+        tier: 'data',
+        tierColor: '#3b82f6',
+        icon: 'hard-drive',
+        serviceType: 'storage',
       },
     } as unknown as ArchitectureNode);
   }
@@ -769,8 +732,8 @@ function generateFallbackFromIntent(
 
 function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge[] {
   const edges: ArchitectureEdge[] = [];
-  const tierOrder: TierType[] = ['client', 'edge', 'compute', 'async', 'data', 'observe'];
-
+  const columnOrder: string[] = ['presentation', 'application', 'data'];
+  
   const edgeExists = (source: string, target: string) =>
     edges.some((e) => e.source === source && e.target === target);
 
@@ -797,15 +760,15 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
     } as ArchitectureEdge);
   };
 
-  for (let i = 0; i < tierOrder.length - 1; i++) {
-    const sourceTier = tierOrder[i];
-    const targetTier = tierOrder[i + 1];
+  for (let i = 0; i < columnOrder.length - 1; i++) {
+    const sourceLayer = columnOrder[i];
+    const targetLayer = columnOrder[i + 1];
 
-    const sources = nodes.filter(n => ((n.tier || n.layer) === sourceTier && !n.isGroup));
-    const targets = nodes.filter(n => ((n.tier || n.layer) === targetTier && !n.isGroup));
+    const sources = nodes.filter(n => (n.layer || n.tier) === sourceLayer);
+    const targets = nodes.filter(n => (n.layer || n.tier) === targetLayer);
 
     if (sources.length > 0 && targets.length > 0) {
-      const commType: 'sync' | 'async' = targetTier === 'async' ? 'async' : 'sync';
+      const commType: 'sync' | 'async' = 'sync';
 
       for (let s = 0; s < sources.length; s++) {
         const source = sources[s];
@@ -821,20 +784,6 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
           pushEdge(source, target, commType);
         }
       }
-    }
-  }
-
-  const asyncNodes = nodes.filter(n => ((n.tier || n.layer) === 'async' && !n.isGroup));
-  const computeNodes = nodes.filter(n => ((n.tier || n.layer) === 'compute' && !n.isGroup));
-  const observeNodes = nodes.filter(n => ((n.tier || n.layer) === 'observe' && !n.isGroup));
-  
-  for (const asyncNode of asyncNodes) {
-    if (computeNodes.length > 0) {
-      const primaryConsumer = computeNodes[asyncNodes.indexOf(asyncNode) % computeNodes.length];
-      pushEdge(asyncNode, primaryConsumer, 'async');
-    } else if (observeNodes.length > 0) {
-      const observeConsumer = observeNodes[asyncNodes.indexOf(asyncNode) % observeNodes.length];
-      pushEdge(asyncNode, observeConsumer, 'async');
     }
   }
 

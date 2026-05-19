@@ -2,12 +2,8 @@
 
 export type PipelineLayer = 
   | 'presentation' 
-  | 'gateway' 
   | 'application' 
-  | 'data' 
-  | 'async'
-  | 'observability'
-  | 'external';
+  | 'data';
 
 export interface RawNode {
   id: string;
@@ -83,9 +79,9 @@ export interface DiagramScore {
   nodeCount: number;
   edgeCount: number;
   orphanCount: number;
-  hasGroups: boolean;
+  hasGroups?: boolean;
   score: number;
-  // NEW: Preservation metrics
+  // Preservation metrics
   nodesRemoved?: number;
   edgesRemoved?: number;
   groupsRemoved?: number;

@@ -42,13 +42,13 @@ const createTierTheme = (
 });
 
 export const TIER_THEMES: TierThemes = {
-  client: createTierTheme('Client', '#5A5A5A', 'monitor', 'User-facing applications'),
-  edge: createTierTheme('Edge', '#6B7B8D', 'globe', 'CDN, Load Balancer, API Gateway, WAF'),
-  compute: createTierTheme('Compute', '#14b8a6', 'server', 'App Servers, Microservices, Functions'),
-  async: createTierTheme('Async', '#f59e0b', 'message-square', 'Message Queue, Event Bus'),
+  client: createTierTheme('Client', '#64748b', 'monitor', 'User-facing applications'),
+  edge: createTierTheme('Edge', '#6366f1', 'globe', 'CDN, Load Balancer, API Gateway, WAF'),
+  compute: createTierTheme('Compute', '#0d9488', 'server', 'App Servers, Microservices, Functions'),
+  async: createTierTheme('Async', '#d97706', 'message-square', 'Message Queue, Event Bus'),
   data: createTierTheme('Data', '#3b82f6', 'database', 'Database, Cache, Storage'),
-  observe: createTierTheme('Observe', '#6b7280', 'activity', 'Monitoring, Logging, Tracing'),
-  external: createTierTheme('External', '#64748b', 'external-link', 'Third-party services'),
+  observe: createTierTheme('Observe', '#8b5cf6', 'activity', 'Monitoring, Logging, Tracing'),
+  external: createTierTheme('External', '#ec4899', 'external-link', 'Third-party services'),
 };
 
 export const getTierTheme = (tier: TierType): TierTheme => {
