@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { 
   BaseEdge, 
   EdgeLabelRenderer,
@@ -11,13 +11,18 @@ import {
   useStore,
   ReactFlowState,
   Position,
+  useReactFlow,
 } from 'reactflow';
-import { getSimpleEdgePositions, getSimpleHandlePosition } from '@/lib/utils/simpleFloatingEdge';
+import { getSimpleEdgePositions, getSimpleHandlePosition, getEdgeShiftOffset, getNodeCenter } from '@/lib/utils/simpleFloatingEdge';
+import { getPointOnPath, findClosestT } from '@/lib/utils/edgeLabelDrag';
+import { useDiagramStore } from '@/store/diagramStore';
 
 interface SimpleEdgeData {
   connectionType?: 'sync' | 'async' | 'stream' | 'event' | 'dep';
   pathType?: 'smooth' | 'Smoothstep' | 'bezier' | 'step' | 'straight';
   label?: string;
+  /** Fractional position of the label along the edge path (0 = source, 1 = target). Default 0.5 */
+  labelT?: number;
 }
 
 function resolveMarkerEnd(markerEnd: unknown, connectionType?: string): string {
@@ -37,11 +42,11 @@ function resolveMarkerEnd(markerEnd: unknown, connectionType?: string): string {
 }
 
 const EDGE_COLORS: Record<string, string> = {
-  sync: '#6B7280',
-  async: '#6B7280',
-  stream: '#6B7280',
-  event: '#6B7280',
-  dep: '#6B7280',
+  sync: '#3B82F6', // Blue
+  async: '#F59E0B', // Amber
+  stream: '#10B981', // Emerald
+  event: '#8B5CF6', // Purple
+  dep: '#6B7280', // Gray
 };
 
 const STROKE_DASHARRAYS: Record<string, string | undefined> = {
@@ -70,6 +75,7 @@ function getStrokeDasharray(connectionType?: string): string | undefined {
  * - Uses handle offsets to position connection points outside nodes
  * - Clears node shadows and backplates with proper spacing
  * - Works with ConnectionMode.Loose for flexible connections
+ * - Supports draggable label along the edge path
  */
 
 export default function SimpleFloatingEdge({
@@ -91,6 +97,10 @@ export default function SimpleFloatingEdge({
 }: EdgeProps) {
   const sourceNode = useStore((s: ReactFlowState) => s.nodeInternals.get(source));
   const targetNode = useStore((s: ReactFlowState) => s.nodeInternals.get(target));
+  const edges = useStore((s: ReactFlowState) => s.edges);
+  const nodeInternals = useStore((s: ReactFlowState) => s.nodeInternals);
+  const { getViewport } = useReactFlow();
+  const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
 
   const edgeParams = useMemo(() => {
     let sx = sourceX;
@@ -101,27 +111,18 @@ export default function SimpleFloatingEdge({
     let targetPos = targetPosition;
 
     if (sourceNode && targetNode) {
-      sx = sourceNode.positionAbsolute?.x ?? sourceNode.position.x;
-      sy = sourceNode.positionAbsolute?.y ?? sourceNode.position.y;
-      tx = targetNode.positionAbsolute?.x ?? targetNode.position.x;
-      ty = targetNode.positionAbsolute?.y ?? targetNode.position.y;
+      const sCenter = getNodeCenter(sourceNode);
+      const tCenter = getNodeCenter(targetNode);
 
-      const sourceWidth = sourceNode.width ?? 160;
-      const sourceHeight = sourceNode.height ?? 80;
-      const targetWidth = targetNode.width ?? 160;
-      const targetHeight = targetNode.height ?? 80;
-
-      const positions = getSimpleEdgePositions(
-        sx + sourceWidth / 2,
-        sy + sourceHeight / 2,
-        tx + targetWidth / 2,
-        ty + targetHeight / 2
-      );
+      const positions = getSimpleEdgePositions(sCenter.cx, sCenter.cy, tCenter.cx, tCenter.cy);
       sourcePos = positions.sourcePos;
       targetPos = positions.targetPos;
 
-      const sourceHandle = getSimpleHandlePosition(sx, sy, sourceWidth, sourceHeight, sourcePos);
-      const targetHandle = getSimpleHandlePosition(tx, ty, targetWidth, targetHeight, targetPos);
+      const sourceShift = getEdgeShiftOffset(source, id, sourcePos, edges, nodeInternals, 15);
+      const targetShift = getEdgeShiftOffset(target, id, targetPos, edges, nodeInternals, 15);
+
+      const sourceHandle = getSimpleHandlePosition(sCenter.x, sCenter.y, sCenter.width, sCenter.height, sourcePos, sourceShift);
+      const targetHandle = getSimpleHandlePosition(tCenter.x, tCenter.y, tCenter.width, tCenter.height, targetPos, targetShift);
 
       sx = sourceHandle.x;
       sy = sourceHandle.y;
@@ -130,13 +131,13 @@ export default function SimpleFloatingEdge({
     }
 
     return { sx, sy, tx, ty, sourcePos, targetPos };
-  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
+  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, source, target, id, edges, nodeInternals]);
 
   const { sx, sy, tx, ty, sourcePos, targetPos } = edgeParams;
   
   const connectionType = (data as SimpleEdgeData)?.connectionType || 'sync';
   const stroke = getEdgeColor(connectionType);
-  const resolvedMarkerEnd = 'url(#arrow-sync)';
+  const resolvedMarkerEnd = resolveMarkerEnd(markerEnd, connectionType);
   const strokeDasharray = animated || connectionType === 'async' || connectionType === 'stream' || connectionType === 'event' || connectionType === 'dep'
     ? getStrokeDasharray(connectionType)
     : undefined;
@@ -144,6 +145,7 @@ export default function SimpleFloatingEdge({
 
   const pathType = (data as SimpleEdgeData)?.pathType || 'Smoothstep';
   const edgeLabel = (data as SimpleEdgeData)?.label?.trim();
+  const labelT = (data as SimpleEdgeData)?.labelT ?? 0.5;
   
   let edgePath: string;
   if (pathType === 'straight') {
@@ -162,8 +164,45 @@ export default function SimpleFloatingEdge({
     });
   }
 
-  const labelX = (sx + tx) / 2;
-  const labelY = (sy + ty) / 2;
+  // Compute label position from labelT along the SVG path
+  const labelPos = useMemo(() => {
+    if (!edgeLabel) return { x: (sx + tx) / 2, y: (sy + ty) / 2 };
+    return getPointOnPath(edgePath, labelT);
+  }, [edgePath, labelT, edgeLabel, sx, sy, tx, ty]);
+
+  // Drag state
+  const isDragging = useRef(false);
+  const [dragging, setDragging] = useState(false);
+
+  const handleLabelMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      isDragging.current = true;
+      setDragging(true);
+
+      const onMouseMove = (ev: MouseEvent) => {
+        if (!isDragging.current) return;
+        const { x: vpX, y: vpY, zoom } = getViewport();
+        // Convert screen coords to flow canvas coords
+        const flowX = (ev.clientX - vpX) / zoom;
+        const flowY = (ev.clientY - vpY) / zoom;
+        const newT = findClosestT(edgePath, flowX, flowY);
+        updateEdgeData(id, { labelT: newT });
+      };
+
+      const onMouseUp = () => {
+        isDragging.current = false;
+        setDragging(false);
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    },
+    [edgePath, getViewport, id, updateEdgeData]
+  );
 
   return (
     <>
@@ -171,32 +210,44 @@ export default function SimpleFloatingEdge({
         id={id}
         path={edgePath}
         style={{
+          ...style,
           stroke,
           strokeWidth,
           strokeDasharray: strokeDasharray || undefined,
-          ...style,
         }}
         markerEnd={resolvedMarkerEnd}
       />
       {edgeLabel && (
         <EdgeLabelRenderer>
           <div
+            onMouseDown={handleLabelMouseDown}
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              pointerEvents: 'none',
+              transform: `translate(-50%, -50%) translate(${labelPos.x}px, ${labelPos.y}px)`,
+              // Allow pointer events so we can drag
+              pointerEvents: 'all',
+              cursor: dragging ? 'grabbing' : 'grab',
               fontSize: 9,
               fontWeight: 600,
               color: '#6B7280',
-              background: 'hsl(60 33% 98% / 1)',
+              background: dragging
+                ? 'hsl(220 80% 97% / 1)'
+                : 'hsl(60 33% 98% / 1)',
               padding: '2px 6px',
               borderRadius: 4,
-              border: '1px solid hsl(40 20% 88% / 0.8)',
-              boxShadow: '0 1px 3px hsl(40 15% 20% / 0.08)',
+              border: dragging
+                ? '1px solid hsl(220 70% 75% / 0.9)'
+                : '1px solid hsl(40 20% 88% / 0.8)',
+              boxShadow: dragging
+                ? '0 2px 8px rgba(59,130,246,0.18)'
+                : '0 1px 3px hsl(40 15% 20% / 0.08)',
               textTransform: 'uppercase',
               letterSpacing: '0.04em',
               zIndex: 1000,
+              userSelect: 'none',
+              transition: dragging ? 'none' : 'box-shadow 0.15s, background 0.15s, border-color 0.15s',
             }}
+            title="Drag to reposition label"
           >
             {edgeLabel}
           </div>

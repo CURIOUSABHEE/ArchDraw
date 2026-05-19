@@ -11,7 +11,8 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
 } from 'reactflow';
-import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
+import { getSupabaseClient, isSupabaseConfigured, UserCanvasesTable } from '@/lib/supabase';
+import { type Database } from '@/types/supabase';
 import { DEFAULT_EDGE_TYPE, type EdgeType } from '@/data/edgeTypes';
 import { getNodeShape } from '@/lib/nodeShapes';
 import { getStrictPortConfig } from '@/lib/componentPorts';
@@ -434,15 +435,14 @@ const _debouncedSave = debounce(async (canvasId: string, get: () => DiagramState
   state.setSavingState('saving');
   try {
     const supabase = getSupabaseClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from('user_canvases').upsert({
+    await (supabase.from('user_canvases') as unknown as UserCanvasesTable).upsert({
       id: canvasId,
       user_id: state.userProfile.id,
       name: canvas.name,
-      nodes: canvas.nodes,
-      edges: canvas.edges,
+      nodes: canvas.nodes as unknown as import('@/types/supabase').Json,
+      edges: canvas.edges as unknown as import('@/types/supabase').Json,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' });
+    });
     state.setSavingState('saved');
     // Reset to idle after 2s
     setTimeout(() => {
@@ -460,8 +460,7 @@ async function deleteCanvasFromDB(canvasId: string, get: () => DiagramState): Pr
   if (!state.userProfile) return;
   try {
     const supabase = getSupabaseClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from('user_canvases').delete().eq('id', canvasId);
+    await (supabase.from('user_canvases') as unknown as UserCanvasesTable).delete().eq('id', canvasId);
   } catch {
     // Silently fail - canvas is already removed from local state
   }
@@ -618,7 +617,7 @@ export const useDiagramStore = create<DiagramState>()(
           canvases: updatedCanvases, 
           openCanvasIds: newOpenIds,
           activeCanvasId: id, 
-          nodes: normalizeNodes(target.nodes || []), 
+          nodes: validateAndFixNodes(normalizeNodes(target.nodes || [])), 
           edges: normalizeEdges(target.edges || []), 
           past: [], 
           future: [], 
@@ -661,7 +660,7 @@ export const useDiagramStore = create<DiagramState>()(
           canvases: updatedCanvases, 
           openCanvasIds: newOpenIds,
           activeCanvasId: id,
-          nodes: normalizeNodes(target.nodes || []),
+          nodes: validateAndFixNodes(normalizeNodes(target.nodes || [])),
           edges: normalizeEdges(target.edges || []),
           past: [],
           future: [],
@@ -699,7 +698,7 @@ export const useDiagramStore = create<DiagramState>()(
           canvases: updatedCanvases,
           openCanvasIds: newOpenIds,
           activeCanvasId: nextActiveId,
-          nodes: normalizeNodes(nextActive?.nodes || []),
+          nodes: validateAndFixNodes(normalizeNodes(nextActive?.nodes || [])),
           edges: normalizeEdges(nextActive?.edges || []),
           past: [],
           future: [],
@@ -805,34 +804,21 @@ export const useDiagramStore = create<DiagramState>()(
         const { activeCanvasId, canvases: localCanvases } = get();
         try {
           const supabase = getSupabaseClient();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data } = await (supabase as any)
-            .from('user_canvases')
+          const { data } = await (supabase.from('user_canvases') as unknown as UserCanvasesTable)
             .select('*')
             .order('updated_at', { ascending: false });
           if (data && data.length > 0) {
-            const dbCanvases: CanvasTab[] = data.map((d: { id: string; name: string; nodes: Node[]; edges: Edge[]; updated_at: string }) => {
-              const rawNodes = normalizeNodes(d.nodes ?? []);
-              // Sort nodes so parent groups come before their children (using parentNode)
-              const sortedNodes = [...rawNodes].sort((a, b) => {
-                const aIsGroup = a.type === 'groupNode' || a.type === 'group';
-                const bIsGroup = b.type === 'groupNode' || b.type === 'group';
-                // Groups first
-                if (aIsGroup && !bIsGroup) return -1;
-                if (!aIsGroup && bIsGroup) return 1;
-                // Children after parents
-                if (a.parentNode && !b.parentNode) return 1;
-                if (!a.parentNode && b.parentNode) return -1;
-                return 0;
-              });
+            const dbCanvases: CanvasTab[] = data.map((d: Database['public']['Tables']['user_canvases']['Row']) => {
+              const rawNodes = normalizeNodes((d.nodes as unknown as Node[]) ?? []);
+              const sortedNodes = validateAndFixNodes(rawNodes);
               return {
                 id: d.id,
                 name: d.name,
                 nodes: sortedNodes,
-                edges: normalizeEdges(d.edges ?? []),
-                updatedAt: new Date(d.updated_at).getTime(),
+                edges: normalizeEdges((d.edges as unknown as Edge[]) ?? []),
+                updatedAt: d.updated_at ? new Date(d.updated_at).getTime() : Date.now(),
                 isOpen: true,
-                lastAccessedAt: new Date(d.updated_at).getTime(),
+                lastAccessedAt: d.updated_at ? new Date(d.updated_at).getTime() : Date.now(),
               };
             });
 
@@ -845,7 +831,7 @@ export const useDiagramStore = create<DiagramState>()(
               canvases: mergedCanvases,
               openCanvasIds: openIds,
               activeCanvasId: targetCanvas.id,
-              nodes: normalizeNodes(targetCanvas.nodes || []),
+              nodes: validateAndFixNodes(normalizeNodes(targetCanvas.nodes || [])),
               edges: normalizeEdges(targetCanvas.edges || []),
             });
           }
@@ -920,7 +906,10 @@ export const useDiagramStore = create<DiagramState>()(
       onNodesChange: (changes) => {
         const structural = changes.filter((c) => c.type === 'add' || c.type === 'remove');
         if (structural.length) get().pushHistory();
-        const nodes = applyNodeChanges(changes, get().nodes);
+        let nodes = applyNodeChanges(changes, get().nodes);
+        if (structural.length > 0) {
+          nodes = validateAndFixNodes(nodes);
+        }
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
         set({ nodes, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
@@ -1047,14 +1036,14 @@ onConnect: (connection) => {
         if (targetNode?.type === 'groupNode' || targetNode?.type === 'group') {
           const groupPosition = targetNode.position;
           updatedNodes = updatedNodes.map((n) => {
-            if ((n as Node & { parentNode?: string }).parentNode === id) {
-              const child: Node & { parentNode?: string } = n;
+            if (n.parentId === id || (n as Record<string, unknown>).parentNode === id) {
               return {
                 ...n,
                 position: {
                   x: n.position.x + groupPosition.x,
                   y: n.position.y + groupPosition.y,
                 },
+                parentId: undefined,
                 parentNode: undefined,
                 extent: undefined,
               };
@@ -1113,7 +1102,8 @@ onConnect: (connection) => {
         
         const normalizedNodes = normalizeNodes(nodes);
         const cleanedNodes = stripReservedLayerNodes(normalizedNodes);
-        const resolvedNodes = resolveNodeCollisions(cleanedNodes);
+        const validatedNodes = validateAndFixNodes(cleanedNodes);
+        const resolvedNodes = resolveNodeCollisions(validatedNodes);
         const normalizedEdges = normalizeEdges(edges);
         
         const edgesWithHandles = normalizedEdges.map(edge => {
@@ -1183,13 +1173,14 @@ onConnect: (connection) => {
         
         const childIdsOfGroups = new Set(
           groupIdsToDelete.flatMap((gid) =>
-            currentNodes.filter((n) => n.parentId === gid).map((n) => n.id)
+            currentNodes.filter((n) => n.parentId === gid || (n as Record<string, unknown>).parentNode === gid).map((n) => n.id)
           )
         );
         
         const allIdsToDelete = new Set([...idsToDelete, ...Array.from(childIdsOfGroups)]);
         
-        const finalNodes = currentNodes.filter((n) => !allIdsToDelete.has(n.id));
+        let finalNodes = currentNodes.filter((n) => !allIdsToDelete.has(n.id));
+        finalNodes = validateAndFixNodes(finalNodes);
         
         const newEdges = currentEdges.filter((e) => {
           if (allIdsToDelete.has(e.source) || allIdsToDelete.has(e.target)) return false;
@@ -1243,6 +1234,7 @@ onConnect: (connection) => {
           ...nodes.filter((n) => !selectedNodeIds.includes(n.id)),
           ...selected.map((n) => ({
             ...n,
+            parentId: groupId,
             parentNode: groupId,
             extent: 'parent' as const,
             position: { x: n.position.x - minX, y: n.position.y - minY },
@@ -1260,15 +1252,16 @@ onConnect: (connection) => {
         if (!group || group.type !== 'groupNode') return;
         pushHistory();
         
-        const children = nodes.filter((n) => n.parentNode === groupId);
+        const children = nodes.filter((n) => n.parentId === groupId || (n as Record<string, unknown>).parentNode === groupId);
         const parentOffset = { x: group.position.x, y: group.position.y };
         
-        const newNodes = nodes
+        let newNodes = nodes
           .filter((n) => n.id !== groupId)
           .map((n) => {
-            if (n.parentNode === groupId) {
+            if (n.parentId === groupId || (n as Record<string, unknown>).parentNode === groupId) {
               return {
                 ...n,
+                parentId: undefined,
                 parentNode: undefined,
                 extent: undefined,
                 position: { x: n.position.x + parentOffset.x, y: n.position.y + parentOffset.y },
@@ -1276,6 +1269,7 @@ onConnect: (connection) => {
             }
             return n;
           });
+        newNodes = validateAndFixNodes(newNodes);
         
         const newCanvases = syncActiveCanvas(canvases, activeCanvasId, newNodes, edges);
         set({ nodes: newNodes, canvases: newCanvases, selectedNodeIds: children.map((c) => c.id) });
@@ -1316,7 +1310,8 @@ onConnect: (connection) => {
         get().pushHistory();
         const normalizedNodes = normalizeNodes(nodes);
         const cleanedNodes = stripReservedLayerNodes(normalizedNodes);
-        const resolvedNodes = resolveNodeCollisions(cleanedNodes);
+        const validatedNodes = validateAndFixNodes(cleanedNodes);
+        const resolvedNodes = resolveNodeCollisions(validatedNodes);
         const normalizedEdges = normalizeEdges(edges);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, normalizedEdges);
         set({ nodes: resolvedNodes, edges: normalizedEdges, canvases, selectedNodeId: null, selectedEdgeId: null });
@@ -1461,12 +1456,13 @@ onConnect: (connection) => {
             // Strip reserved layer nodes, resolve collisions
             const normalizedNodes = normalizeNodes(active.nodes || []);
             const cleaned = stripReservedLayerNodes(normalizedNodes);
-            state.nodes = resolveNodeCollisions(cleaned);
+            const validated = validateAndFixNodes(cleaned);
+            state.nodes = resolveNodeCollisions(validated);
             state.edges = normalizeEdges(active.edges || []);
             // Normalize node and edge types in all canvases
             state.canvases = state.canvases.map((c: CanvasTab) => ({
               ...c,
-              nodes: normalizeNodes(c.nodes || []),
+              nodes: validateAndFixNodes(normalizeNodes(c.nodes || [])),
               edges: normalizeEdges(c.edges || []),
             }));
           } else {

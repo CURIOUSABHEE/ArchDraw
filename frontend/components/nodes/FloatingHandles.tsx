@@ -29,10 +29,10 @@ interface FloatingHandlesProps {
  */
 export function FloatingHandles({
   nodeId,
-  rightOffset = 30,
-  bottomOffset = 30,
-  leftOffset = -15,
-  topOffset = -15,
+  rightOffset = 6,
+  bottomOffset = 6,
+  leftOffset = -12,
+  topOffset = -6,
 }: FloatingHandlesProps) {
   const updateNodeInternals = useUpdateNodeInternals();
   const { isDark } = useTheme();
@@ -52,49 +52,60 @@ export function FloatingHandles({
 
   return (
     <>
+      {/* Left side */}
       <Handle
         type="target"
         position={Position.Left}
         id="target-left"
-        style={{
-          ...handleStyle,
-          left: leftOffset,
-          top: '50%',
-          transform: 'translateY(-50%)',
-        }}
+        style={{ ...handleStyle, left: leftOffset, top: '50%', transform: 'translateY(-50%)' }}
+      />
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="source-left"
+        style={{ ...handleStyle, left: leftOffset, top: '50%', transform: 'translateY(-50%)' }}
+      />
+
+      {/* Right side */}
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="target-right"
+        style={{ ...handleStyle, right: -rightOffset, top: '50%', transform: 'translateY(-50%)' }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="source-right"
-        style={{
-          ...handleStyle,
-          right: -rightOffset,
-          top: '50%',
-          transform: 'translateY(-50%)',
-        }}
+        style={{ ...handleStyle, right: -rightOffset, top: '50%', transform: 'translateY(-50%)' }}
       />
+
+      {/* Top side */}
       <Handle
         type="target"
         position={Position.Top}
         id="target-top"
-        style={{
-          ...handleStyle,
-          top: topOffset,
-          left: '50%',
-          transform: 'translateX(-50%)',
-        }}
+        style={{ ...handleStyle, top: topOffset, left: '50%', transform: 'translateX(-50%)' }}
+      />
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="source-top"
+        style={{ ...handleStyle, top: topOffset, left: '50%', transform: 'translateX(-50%)' }}
+      />
+
+      {/* Bottom side */}
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="target-bottom"
+        style={{ ...handleStyle, bottom: -bottomOffset, left: '50%', transform: 'translateX(-50%)' }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="source-bottom"
-        style={{
-          ...handleStyle,
-          bottom: -bottomOffset,
-          left: '50%',
-          transform: 'translateX(-50%)',
-        }}
+        style={{ ...handleStyle, bottom: -bottomOffset, left: '50%', transform: 'translateX(-50%)' }}
       />
     </>
   );

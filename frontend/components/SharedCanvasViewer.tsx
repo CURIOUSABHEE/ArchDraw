@@ -59,6 +59,52 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
     const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
     if (!el) return;
     setIsDownloading(true);
+
+    const injectArrowDefs = (element: HTMLElement): (() => void) => {
+      const flowSvg = element.querySelector('svg') as SVGSVGElement | null;
+      if (!flowSvg) return () => {};
+
+      if (flowSvg.querySelector('#__export-defs__')) return () => {};
+
+      const ARROW_MARKERS = [
+        { id: 'arrow-sync',    color: '#3B82F6' },
+        { id: 'arrow-async',   color: '#F59E0B' },
+        { id: 'arrow-stream',  color: '#10B981' },
+        { id: 'arrow-event',   color: '#8B5CF6' },
+        { id: 'arrow-dep',     color: '#6B7280' },
+        { id: 'arrow-default', color: '#6B7280' },
+        { id: 'arrow-error',   color: '#EF4444' },
+      ];
+
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      defs.id = '__export-defs__';
+
+      for (const { id, color } of ARROW_MARKERS) {
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', id);
+        marker.setAttribute('markerWidth', '6');
+        marker.setAttribute('markerHeight', '6');
+        marker.setAttribute('refX', '3');
+        marker.setAttribute('refY', '3');
+        marker.setAttribute('orient', 'auto');
+        marker.setAttribute('markerUnits', 'strokeWidth');
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M0,0 L0,6 L6,3 z');
+        path.setAttribute('fill', color);
+        marker.appendChild(path);
+        defs.appendChild(marker);
+      }
+
+      flowSvg.insertBefore(defs, flowSvg.firstChild);
+
+      return () => {
+        defs.remove();
+      };
+    };
+
+    const cleanupDefs = injectArrowDefs(el);
+
     try {
       const dataUrl = await toPng(el, {
         backgroundColor: '#0f172a',
@@ -87,6 +133,7 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
     } catch {
       toast.error('Download failed');
     } finally {
+      cleanupDefs();
       setIsDownloading(false);
     }
   };

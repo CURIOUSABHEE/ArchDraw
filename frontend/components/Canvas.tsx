@@ -598,16 +598,16 @@ function CanvasInner() {
           <defs>
             {/* Arrow markers — consistent neutral gray with gap before node */}
             <marker id="arrow-sync" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
+              <path d="M0,0 L0,6 L6,3 z" fill="#3B82F6" />
             </marker>
             <marker id="arrow-async" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
+              <path d="M0,0 L0,6 L6,3 z" fill="#F59E0B" />
             </marker>
             <marker id="arrow-stream" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
+              <path d="M0,0 L0,6 L6,3 z" fill="#10B981" />
             </marker>
             <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-              <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
+              <path d="M0,0 L0,6 L6,3 z" fill="#8B5CF6" />
             </marker>
             <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
               <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
