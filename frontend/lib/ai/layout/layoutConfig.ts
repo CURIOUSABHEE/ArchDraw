@@ -149,7 +149,7 @@ export function generateLayoutConfig(
   return {
     direction,
     elkOptions,
-    tierOrder: ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'],
+    tierOrder: ['client', 'edge', 'compute', 'async', 'data', 'infrastructure', 'observe', 'external'],
   };
 }
 
@@ -161,8 +161,9 @@ export function getTierXPosition(tier: TierType, direction: Direction): number {
       compute: 650,
       async: 1000,
       data: 1350,
-      observe: 1700,
-      external: 2050,
+      infrastructure: 1700,
+      observe: 2050,
+      external: 2400,
     },
     DOWN: {
       client: 50,
@@ -170,24 +171,27 @@ export function getTierXPosition(tier: TierType, direction: Direction): number {
       compute: 50,
       async: 50,
       data: 50,
+      infrastructure: 50,
       observe: 50,
       external: 50,
     },
     LEFT: {
-      client: 2050,
-      edge: 1780,
-      compute: 1450,
-      async: 1100,
-      data: 750,
+      client: 2400,
+      edge: 2130,
+      compute: 1800,
+      async: 1450,
+      data: 1100,
+      infrastructure: 750,
       observe: 400,
       external: 50,
     },
     UP: {
-      client: 1700,
-      edge: 1350,
-      compute: 1000,
-      async: 650,
-      data: 320,
+      client: 2050,
+      edge: 1700,
+      compute: 1350,
+      async: 1000,
+      data: 650,
+      infrastructure: 320,
       observe: 50,
       external: 0,
     },
@@ -215,8 +219,9 @@ export function getTierYPosition(
       compute: 450,
       async: 700,
       data: 950,
-      observe: 1200,
-      external: 1450,
+      infrastructure: 1200,
+      observe: 1450,
+      external: 1700,
     };
     return tierYPositions[tier] + nodeIndex * spacing;
   }

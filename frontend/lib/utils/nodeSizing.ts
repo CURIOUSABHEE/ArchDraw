@@ -5,10 +5,11 @@
  * Rule 2: Minimum node width: 180px. No maximum.
  */
 
-const AVG_CHAR_WIDTH = 8; // Approximation for Inter/Roboto at 14px
+const AVG_CHAR_WIDTH = 6.5; // Approximation for Inter/Roboto at 14px
 const LINE_HEIGHT = 20;
 const MIN_WIDTH = 180;
-const PADDING_X = 80; // 40px on each side
+const MAX_WIDTH = 320; // Prevent ridiculously long nodes
+const PADDING_X = 48; // 24px on each side
 const PADDING_Y = 40; // 20px on top/bottom
 
 export interface NodeDimensions {
@@ -25,13 +26,22 @@ export function calculateNodeDimensions(label: string, subtitle?: string): NodeD
   
   // Calculate width
   const calculatedWidth = (longestLineLength * AVG_CHAR_WIDTH) + PADDING_X;
-  const width = Math.max(calculatedWidth, MIN_WIDTH);
+  const width = Math.min(Math.max(calculatedWidth, MIN_WIDTH), MAX_WIDTH);
 
   // Calculate height
+  // Determine if text wraps
+  let wrappedLines = 0;
+  for (const line of lines) {
+    const lineW = (line.length * AVG_CHAR_WIDTH) + PADDING_X;
+    if (lineW > MAX_WIDTH) {
+      wrappedLines += Math.ceil(lineW / MAX_WIDTH);
+    } else {
+      wrappedLines += 1;
+    }
+  }
+
   // Minimum height for 1 line is PADDING_Y + LINE_HEIGHT = 60
-  // But Rule 3 suggests tiered nodes are vertically aligned and Rule 1 suggests rank/node sep.
-  // We'll follow the rule: lines + padding.
-  const calculatedHeight = (lines.length * LINE_HEIGHT) + PADDING_Y;
+  const calculatedHeight = (wrappedLines * LINE_HEIGHT) + PADDING_Y;
   const height = Math.max(calculatedHeight, 110); // Enforcing 110 as seen in SHAPE_CONFIGS for consistency
 
   return { width, height };

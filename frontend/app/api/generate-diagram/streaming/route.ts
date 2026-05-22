@@ -36,6 +36,7 @@ const generateDiagramSchema = z.object({
   complexity: z.enum(['low', 'medium', 'high']).optional(),
   model: z.string().optional(),
   stream: z.boolean().optional().default(true),
+  existingContext: z.any().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { description, systemType, complexity, model, stream: enableStream } = validatedInput.data;
+    const { description, systemType, complexity, model, stream: enableStream, existingContext } = validatedInput.data;
 
     if (enableStream === false) {
       return handleNonStreaming(req, validatedInput.data);
@@ -90,6 +91,7 @@ export async function POST(req: NextRequest) {
             systemType: systemType ?? inferSystemType(description),
             complexity: complexity ?? inferComplexity(description),
             model,
+            existingContext,
           };
 
           sendEvent({ type: 'progress', phase: 'planning', message: 'Analyzing request...', progress: 15 });

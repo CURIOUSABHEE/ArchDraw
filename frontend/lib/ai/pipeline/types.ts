@@ -14,6 +14,7 @@ export type PipelineLayer =
   | 'data'
   | 'observe'
   | 'observability'
+  | 'infrastructure'
   | 'external';
 
 export interface RawNode {
@@ -33,6 +34,8 @@ export interface RawFlow {
   path: string[];
   label?: string;
   async: boolean;
+  communicationType?: string;
+  edgeVariant?: string;
 }
 
 export interface ParsedDiagram {
@@ -46,6 +49,8 @@ export interface DiagramEdge {
   target: string;
   label?: string;
   async: boolean;
+  communicationType?: string;
+  edgeVariant?: string;
 }
 
 export interface ValidatedDiagram {

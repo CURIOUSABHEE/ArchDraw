@@ -44,9 +44,10 @@ class IncrementalParser {
 export async function callDiagramLLM(
   reasoning: ReasoningResult,
   onNode?: (node: RawNode) => void,
-  onFlow?: (flow: RawFlow) => void
+  onFlow?: (flow: RawFlow) => void,
+  existingContext?: { nodes: any[]; edges: any[] }
 ): Promise<ParsedDiagram> {
-  const prompt = buildDiagramPrompt(reasoning);
+  const prompt = buildDiagramPrompt(reasoning, existingContext);
   const parser = new IncrementalParser();
 
   const GROQ_KEY_ENV_VARS = [
@@ -108,8 +109,12 @@ export async function callDiagramLLM(
   return { nodes: [], flows: [] };
 }
 
-function buildDiagramPrompt(reasoning: ReasoningResult): string {
-  return `Create a diagram for: ${reasoning.systemType}.
+import { ARCHITECTURE_RULES } from '../prompts/architectureRules';
+
+function buildDiagramPrompt(reasoning: ReasoningResult, existingContext?: { nodes: any[]; edges: any[] }): string {
+  let prompt = `${ARCHITECTURE_RULES}
+
+Create a diagram for: ${reasoning.systemType}.
 PLAN: ${reasoning.architecturalPlan}
 
 LAYERS:
@@ -117,11 +122,31 @@ ${Object.entries(reasoning.layers || {}).map(([id, l]) => `- ${id}: ${l.descript
 
 FLOWS:
 ${(reasoning.keyFlows || []).map(f => `- ${f.name}: ${f.description} (${f.path.join(' -> ')})`).join('\n')}
+`;
 
+  if (existingContext && existingContext.nodes.length > 0) {
+    prompt += `
+EXISTING DIAGRAM (IMPORTANT: Preserve existing nodes if they are still relevant. Use their exact IDs so custom styling is retained!):
+Nodes:
+${existingContext.nodes.map(n => `- {"id": "${n.id}", "label": "${n.data?.label || n.label}", "layer": "${n.data?.layer || n.layer}", "subtitle": "${n.data?.subtitle || n.subtitle || ''}"}`).join('\n')}
+Edges:
+${existingContext.edges.map(e => `- {"path": ["${e.source}", "${e.target}"], "label": "${e.data?.label || e.label || ''}"}`).join('\n')}
+
+INSTRUCTIONS:
+You are modifying an existing diagram. 
+1. If an existing node should remain, OUTPUT IT AGAIN EXACTLY with its current "id". This is critical!
+2. If you are adding a new node, create a NEW "id" for it.
+3. If an existing node is no longer needed, omit it.
+4. Output edges between the nodes (both old and new).
+`;
+  }
+
+  prompt += `
 OUTPUT NDJSON ONLY. ONE OBJECT PER LINE.
-- {"id": "id", "label": "Service (Concise)", "layer": "client|edge|gateway|application|queue|data", "subtitle": "Tech Stack (Max 3 words)"}
-- {"path": ["src", "dst"], "label": "protocol", "async": false}
-`.trim();
+- {"id": "id", "label": "Service (Concise)", "layer": "client|edge|gateway|application|queue|data|observability|external", "subtitle": "Tech Stack (Max 3 words)"}
+- {"path": ["src", "dst"], "label": "action/explanation (e.g. 'fetches data', 'authenticates')", "async": false}
+`;
+  return prompt.trim();
 }
 
 function enforceMinimumConstraints(

@@ -11,7 +11,7 @@ import type { RawNode, RawFlow, DiagramEdge, ValidatedDiagram, PipelineLayer } f
  * 5. Fix missing node data
  */
 
-const LAYER_ORDER: PipelineLayer[] = ['client', 'edge', 'gateway', 'application', 'queue', 'data'];
+const LAYER_ORDER: PipelineLayer[] = ['client', 'edge', 'gateway', 'application', 'queue', 'data', 'infrastructure', 'observability', 'external'];
 
 /**
  * Main validation function - ensures connectivity and proper layer structure
@@ -53,8 +53,8 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
  * Convert flows to edges
  */
 function flowsToEdges(flows: RawFlow[]): DiagramEdge[] {
-  const edges: DiagramEdge[] = [];
   const seen = new Map<string, DiagramEdge>();
+  let edgeCounter = 0;
 
   for (const flow of flows) {
     if (flow.path.length < 2) continue;
@@ -69,11 +69,13 @@ function flowsToEdges(flows: RawFlow[]): DiagramEdge[] {
       
       if (!seen.has(key)) {
         const edge: DiagramEdge = {
-          id: `edge-${source}-${target}-${i}`,
+          id: `edge-${source}-${target}-${edgeCounter++}`,
           source,
           target,
           label: flow.label || '',
           async: flow.async || false,
+          communicationType: flow.communicationType,
+          edgeVariant: flow.edgeVariant,
         };
         seen.set(key, edge);
       }
@@ -156,137 +158,101 @@ function repairEdges(edges: DiagramEdge[], nodes: RawNode[]): DiagramEdge[] {
 }
 
 /**
- * Connect orphaned nodes (ensure no orphans)
+ * Connect orphaned nodes (ensure no orphans) using a semantic best-effort heuristic
  */
 function connectOrphans(nodes: RawNode[], edges: DiagramEdge[]): DiagramEdge[] {
-  const connectedNodes = new Set<string>();
-  for (const edge of edges) {
-    connectedNodes.add(edge.source);
-    connectedNodes.add(edge.target);
-  }
-
-  const newEdges = [...edges];
-
-  for (const node of nodes) {
-    if (connectedNodes.has(node.id)) continue;
-
-    // Find a node in the same or adjacent layer
-    const nodeLayerIdx = LAYER_ORDER.indexOf(node.layer);
-    let nearest: RawNode | null = null;
-    let nearestDist = Infinity;
-
-    for (const other of nodes) {
-      if (other.id === node.id) continue;
-      if (!connectedNodes.has(other.id) && other.id !== node.id) continue;
-
-      const otherLayerIdx = LAYER_ORDER.indexOf(other.layer);
-      const dist = Math.abs(otherLayerIdx - nodeLayerIdx);
-      if (dist < nearestDist) {
-        nearestDist = dist;
-        nearest = other;
-      }
+  const connectedEdges = [...edges];
+  
+  // 1. Collect all node IDs (excluding groups)
+  const leafNodeIds = new Set(nodes.filter(n => !n.isGroup).map(n => n.id));
+  
+  // 2. Collect all node IDs referenced in edges (source + target)
+  const referencedNodeIds = new Set<string>();
+  connectedEdges.forEach(e => {
+    referencedNodeIds.add(e.source);
+    referencedNodeIds.add(e.target);
+  });
+  
+  // 3. Find the difference — these are orphans
+  const orphans = nodes.filter(n => !n.isGroup && !referencedNodeIds.has(n.id));
+  
+  if (orphans.length === 0) return connectedEdges;
+  
+  console.warn(`[Validate] WARNING: Found ${orphans.length} orphan nodes: ${orphans.map(o => o.id).join(', ')}`);
+  
+  // 4. Connect orphan nodes to the most semantically relevant existing node using best-effort heuristic
+  orphans.forEach(orphan => {
+    const orphanLayer = orphan.layer || 'application';
+    let partnerNode: RawNode | undefined;
+    let isOrphanSource = true; // True if orphan should be source, false if target
+    let edgeLabel = 'connects to';
+    
+    // Heuristic: map layers semantically
+    if (orphanLayer === 'client' || orphanLayer === 'presentation') {
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && (n.layer === 'gateway' || n.layer === 'edge' || n.layer === 'application'));
+      isOrphanSource = true;
+      edgeLabel = 'requests';
+    } else if (orphanLayer === 'edge' || orphanLayer === 'gateway') {
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && n.layer === 'application');
+      isOrphanSource = true;
+      edgeLabel = 'routes to';
+    } else if (orphanLayer === 'data') {
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && (n.layer === 'application' || n.layer === 'queue'));
+      isOrphanSource = false; // Application -> Data
+      edgeLabel = 'queries';
+    } else if (orphanLayer === 'queue' || orphanLayer === 'async') {
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && n.layer === 'application');
+      isOrphanSource = false; // Application -> Queue
+      edgeLabel = 'publishes to';
+    } else if (orphanLayer === 'observability' || orphanLayer === 'observe') {
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && n.layer === 'application');
+      isOrphanSource = false; // Application -> Observability
+      edgeLabel = 'emits logs to';
+    } else if (orphanLayer === 'infrastructure') {
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && n.layer === 'application');
+      isOrphanSource = false; // Application -> Infrastructure
+      edgeLabel = 'deployed on';
+    } else if (orphanLayer === 'external') {
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && n.layer === 'application');
+      isOrphanSource = false; // Application -> External
+      edgeLabel = 'calls API';
     }
-
-    if (!nearest) {
-      // Connect to any other node as last resort
-      for (const other of nodes) {
-        if (other.id !== node.id) {
-          nearest = other;
-          break;
-        }
-      }
+    
+    // Fallback: connect to any node in the list
+    if (!partnerNode) {
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id);
     }
-
-    if (nearest) {
-      const sourceIdx = LAYER_ORDER.indexOf(node.layer);
-      const targetIdx = LAYER_ORDER.indexOf(nearest.layer);
-      const [src, tgt] = sourceIdx <= targetIdx ? [node.id, nearest.id] : [nearest.id, node.id];
-
-      const edgeKey = `${src}->${tgt}`;
-      if (!newEdges.some(e => `${e.source}->${e.target}` === edgeKey)) {
-        newEdges.push({
-          id: `auto-${src}-${tgt}`,
-          source: src,
-          target: tgt,
-          label: 'connects to',
-          async: false,
-        });
-        connectedNodes.add(node.id);
-        console.log(`[Validate] Connected orphan ${node.id} to ${nearest.id}`);
-      }
+    
+    if (partnerNode) {
+      const source = isOrphanSource ? orphan.id : partnerNode.id;
+      const target = isOrphanSource ? partnerNode.id : orphan.id;
+      
+      const newEdgeId = `auto-orphan-${source}-${target}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      connectedEdges.push({
+        id: newEdgeId,
+        source,
+        target,
+        label: edgeLabel,
+        async: orphanLayer === 'queue' || orphanLayer === 'async',
+      });
+      
+      referencedNodeIds.add(orphan.id);
+      referencedNodeIds.add(partnerNode.id);
+      console.log(`[Validate] Connected orphan "${orphan.id}" to "${partnerNode.id}" as ${isOrphanSource ? 'source' : 'target'}`);
+    } else {
+      console.warn(`[Validate] WARNING: No partner node found to connect orphan "${orphan.id}"`);
     }
-  }
-
-  return newEdges;
+  });
+  
+  return connectedEdges;
 }
 
 /**
- * Ensure minimum diagram structure
+ * Ensure minimum diagram structure (non-destructive)
  */
 function enrichDiagram(nodes: RawNode[], edges: DiagramEdge[]): { nodes: RawNode[]; edges: DiagramEdge[] } {
-  let enrichedNodes = [...nodes];
-  let enrichedEdges = [...edges];
-
-  const nodeCount = enrichedNodes.length;
-  const edgeCount = enrichedEdges.length;
-
-  console.log(`[Validate] Enrichment check: ${nodeCount} nodes, ${edgeCount} edges`);
-
-  // Ensure minimum 6 nodes
-  if (nodeCount < 6) {
-    console.log(`[Validate] Adding nodes to reach minimum (currently ${nodeCount})`);
-    enrichedNodes = addMissingNodes(enrichedNodes);
-  }
-
-  // Ensure minimum 5 edges
-  if (enrichedEdges.length < 5) {
-    console.log(`[Validate] Adding edges to reach minimum (currently ${enrichedEdges.length})`);
-    enrichedEdges = addMissingEdges(enrichedNodes, enrichedEdges);
-  }
-
-  // Ensure gateway exists
-  const hasGateway = enrichedNodes.some(n => n.serviceType === 'gateway');
-  if (!hasGateway) {
-    enrichedNodes.push({
-      id: 'api-gateway',
-      label: 'API Gateway',
-      layer: 'application',
-      icon: 'webhook',
-      serviceType: 'gateway',
-      subtitle: 'REST API',
-    });
-    console.log('[Validate] Added missing gateway node');
-  }
-
-  // Ensure at least 1 service
-  const serviceCount = enrichedNodes.filter(n => n.layer === 'application' || n.serviceType === 'service').length;
-  if (serviceCount < 1) {
-    enrichedNodes.push({
-      id: 'main-service',
-      label: 'Main Service',
-      layer: 'application',
-      icon: 'server',
-      serviceType: 'service',
-      subtitle: 'Business logic',
-    });
-    console.log('[Validate] Added missing service node');
-  }
-
-  // Ensure database exists
-  const hasDatabase = enrichedNodes.some(n => n.serviceType === 'database');
-  if (!hasDatabase) {
-    enrichedNodes.push({
-      id: 'database',
-      label: 'Database',
-      layer: 'data',
-      icon: 'database',
-      serviceType: 'database',
-      subtitle: 'PostgreSQL',
-    });
-    console.log('[Validate] Added missing database node');
-  }
-
-  return { nodes: enrichedNodes, edges: enrichedEdges };
+  // Completely non-destructive to avoid injecting unwanted default components
+  return { nodes, edges };
 }
 
 /**

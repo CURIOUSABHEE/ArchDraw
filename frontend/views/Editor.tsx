@@ -36,7 +36,7 @@ function generateCanvasName(prompt: string): string {
 
 export default function EditorPage() {
   const { 
-    selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, 
+    selectedNodeId, selectedEdgeId, nodes, edges, sidebarOpen, setSidebarOpen, 
     importDiagram, importSequenceDiagram, fitView, addCanvas, renameCanvas, 
     activeCanvasId, sequenceDiagrams 
   } = useDiagramStore();
@@ -262,18 +262,26 @@ export default function EditorPage() {
     const isCurrentCanvasEmpty = nodes.length === 0;
     const canvasName = generateCanvasName(description);
 
-    if (!isCurrentCanvasEmpty) {
-      addCanvas(canvasName);
+    // If canvas is empty, we rename the current canvas to the generated name.
+    // If it's not empty, we DO NOT create a new canvas, so the AI can modify the existing one.
+    if (isCurrentCanvasEmpty) {
+      renameCanvas(activeCanvasId, canvasName);
     }
 
     try {
+      // Pass the existing canvas state to the API so the AI can act as a modifier
+      const payload: any = { description, model, stream: true };
+      if (!isCurrentCanvasEmpty) {
+        payload.existingContext = { nodes, edges };
+      }
+
       // Use streaming endpoint for real-time feedback
       const response = await fetch('/api/generate-diagram/streaming', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ description, model, stream: true }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

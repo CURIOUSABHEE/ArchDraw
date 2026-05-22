@@ -71,14 +71,17 @@ export function scoreDiagram(
   let score = 0;
 
   // 1. Node count scoring (30 points max)
-  if (nonGroupNodes.length >= TARGET_NODES) score += 30;
-  else if (nonGroupNodes.length >= MIN_NODES) score += 20;
-  else if (nonGroupNodes.length >= 8) score += 10;
+  // Scaled down targets to avoid penalizing smaller/simpler correct diagrams
+  if (nonGroupNodes.length >= 8) score += 30;
+  else if (nonGroupNodes.length >= 5) score += 25;
+  else if (nonGroupNodes.length >= 3) score += 20;
+  else score += 10;
 
   // 2. Edge count scoring (25 points max)
-  if (edgeCount >= TARGET_EDGES) score += 25;
-  else if (edgeCount >= MIN_EDGES) score += 15;
-  else if (edgeCount >= 5) score += 5;
+  if (edgeCount >= 8) score += 25;
+  else if (edgeCount >= 5) score += 20;
+  else if (edgeCount >= 2) score += 15;
+  else score += 5;
 
   // 3. Orphan scoring (25 points max)
   if (orphanCount === 0) score += 25;
@@ -86,7 +89,15 @@ export function scoreDiagram(
   else if (orphanCount <= 5) score += 5;
 
   // 4. Group scoring (10 points)
-  if (hasGroupsWithChildren) score += 10;
+  // If groups are present, award 10 points if they have children.
+  // If no groups are present, award 10 points (to avoid penalizing non-grouped diagrams).
+  if (groups.length > 0) {
+    if (hasGroupsWithChildren) {
+      score += 10;
+    }
+  } else {
+    score += 10;
+  }
 
   // 5. Layer coverage (5 points)
   score += Math.min(5, requiredLayersPresent);

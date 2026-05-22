@@ -20,6 +20,7 @@ export interface TierThemes {
   async: TierTheme;
   data: TierTheme;
   observe: TierTheme;
+  infrastructure: TierTheme;
   external: TierTheme;
 }
 
@@ -48,6 +49,7 @@ export const TIER_THEMES: TierThemes = {
   async: createTierTheme('Async', '#d97706', 'message-square', 'Message Queue, Event Bus'),
   data: createTierTheme('Data', '#3b82f6', 'database', 'Database, Cache, Storage'),
   observe: createTierTheme('Observe', '#8b5cf6', 'activity', 'Monitoring, Logging, Tracing'),
+  infrastructure: createTierTheme('Infrastructure', '#10b981', 'settings', 'CI/CD, Kubernetes, Registries'),
   external: createTierTheme('External', '#ec4899', 'external-link', 'Third-party services'),
 };
 
@@ -73,4 +75,5 @@ export const COMPUTE_TIER = 'compute';
 export const ASYNC_TIER = 'async';
 export const DATA_TIER = 'data';
 export const OBSERVE_TIER = 'observe';
+export const INFRASTRUCTURE_TIER = 'infrastructure';
 export const EXTERNAL_TIER = 'external';

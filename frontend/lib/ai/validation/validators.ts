@@ -227,7 +227,7 @@ export function validateAndEnrichNode(node: ArchitectureNode): ArchitectureNode 
   
   if (!enriched.tier && enriched.layer) {
     const tier = enriched.layer as TierType;
-    if (['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'].includes(tier)) {
+    if (['client', 'edge', 'compute', 'async', 'data', 'observe', 'external', 'infrastructure'].includes(tier)) {
       enriched.tier = tier;
     }
   }

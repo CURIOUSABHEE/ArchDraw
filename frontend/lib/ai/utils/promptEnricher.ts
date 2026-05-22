@@ -160,7 +160,7 @@ Each line must be exactly one JSON object.
 
 OBJECT TYPES:
 1. Component: {"id": "unique-id", "label": "Service Name", "layer": "presentation|gateway|application|async|data|observability|external", "type": "client|gateway|service|queue|database|cache|worker|auth|api|cdn|loadbalancer", "subtitle": "Tech Stack"}
-2. Connection: {"type": "flow", "path": ["source-id", "target-id"], "label": "protocol/action", "async": true|false}
+2. Connection: {"type": "flow", "path": ["source-id", "target-id"], "label": "action/explanation (e.g. 'fetches data', 'authenticates')", "async": true|false}
 
 CONSTRAINTS:
 - Use 10-15 components for a rich architecture.

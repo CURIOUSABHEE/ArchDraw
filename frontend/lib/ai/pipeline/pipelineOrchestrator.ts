@@ -19,6 +19,7 @@ import { detectDomain } from '../graph/componentValidator';
 import { enforceMinimumConnections } from '../graph/edgeValidator';
 import { applyDomainEdgePatterns } from '../graph/domainEdgePatterns';
 import { findConnectedComponents, bridgeComponents } from '../graph/graphConnectivity';
+import { COMMUNICATION_STYLES } from '../constants';
 
 // NEW: Import redesigned 8-stage pipeline
 import { detectIntent } from './stage1-intent';
@@ -105,7 +106,7 @@ export async function runArchitecturePipeline(
 
     // Check semantic cache before LLM call
     const cached = diagramCache.get(userIntent.description);
-    if (cached) {
+    if (cached && !userIntent.existingContext) {
       logger.log('[Pipeline] Cache hit for prompt, returning cached diagram');
       onProgress?.('Complete', 100);
       return {
@@ -163,7 +164,8 @@ export async function runArchitecturePipeline(
       },
       (flow) => {
         logger.log(`[Pipeline] Generated flow: ${flow.path.join(' → ')}`);
-      }
+      },
+      userIntent.existingContext
     );
 
     // Convert RawNode[] to ArchitectureNode[]
@@ -246,6 +248,8 @@ export async function runArchitecturePipeline(
       path: [e.source, e.target],
       label: e.label || '',
       async: e.communicationType === 'async',
+      communicationType: e.communicationType,
+      edgeVariant: e.edgeVariant,
     }));
 
     // RUN NON-DESTRUCTIVE VALIDATION
@@ -264,25 +268,30 @@ export async function runArchitecturePipeline(
 
     // Update state with validated nodes/edges
     state.enrichedNodes = validationResult.nodes.map(n => rawNodeToArchitectureNode(n));
-    state.edges = validationResult.edges.map(e => ({
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      sourceHandle: 'right',
-      targetHandle: 'left',
-      communicationType: e.async ? 'async' : 'sync',
-      pathType: 'smooth',
-      label: e.label || '',
-      labelPosition: 'center',
-      animated: e.async,
-      style: {
-        stroke: '#94a3b8',
-        strokeDasharray: e.async ? '5,5' : '',
-        strokeWidth: 2,
-      },
-      markerEnd: 'arrowclosed',
-      markerStart: 'none',
-    } as ArchitectureEdge));
+    state.edges = validationResult.edges.map(e => {
+      const commType = (e.communicationType || (e.async ? 'async' : 'sync')) as any;
+      const styleConfig = COMMUNICATION_STYLES[commType] || COMMUNICATION_STYLES.sync;
+      return {
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: 'right',
+        targetHandle: 'left',
+        communicationType: commType,
+        pathType: 'smooth',
+        label: e.label || '',
+        labelPosition: 'center',
+        animated: styleConfig.animated,
+        edgeVariant: (e.edgeVariant || (e.communicationType === 'dotted' ? 'dotted' : (e.async ? 'dashed' : 'solid'))) as any,
+        style: {
+          stroke: styleConfig.color || '#94a3b8',
+          strokeDasharray: styleConfig.strokeDasharray || '',
+          strokeWidth: 2,
+        },
+        markerEnd: styleConfig.markerEnd || 'arrowclosed',
+        markerStart: 'none',
+      } as ArchitectureEdge;
+    });
     
     state.history.push({
       step: 'validate',

@@ -88,8 +88,12 @@ export async function callReasoningLLM(
   return buildFallbackReasoning(intentType);
 }
 
+import { ARCHITECTURE_RULES } from '../prompts/architectureRules';
+
 function buildReasoningPrompt(prompt: string, intentType: string): string {
   return `You are an expert systems architect. Analyze the following system description and produce a structured architectural plan.
+
+${ARCHITECTURE_RULES}
 
 SYSTEM DESCRIPTION: ${prompt}
 DETECTED INTENT: ${intentType}

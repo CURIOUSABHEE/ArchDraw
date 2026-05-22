@@ -46,7 +46,8 @@ export async function generateDiagram(
             progress: 60,
           });
         }
-      }
+      },
+      userIntent.existingContext
     );
 
     logger.log('[Orchestrator] Generation complete. Score:', result.score.score);
@@ -61,7 +62,7 @@ export async function generateDiagram(
         systemType: 'architecture',
         generatedAt: new Date().toISOString(),
         score: result.score.score,
-        grade: result.score.grade === 'F' ? 'D' : result.score.grade as any,
+        grade: (result.score.grade === 'F' ? 'D' : result.score.grade) as 'A' | 'B' | 'C' | 'D',
       },
     };
   } catch (error) {

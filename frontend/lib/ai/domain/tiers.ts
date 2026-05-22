@@ -24,6 +24,7 @@ export type TierType =
   | 'async' 
   | 'data' 
   | 'observe' 
+  | 'infrastructure'
   | 'external';
 
 export const TIER_ORDER: TierType[] = [
@@ -32,6 +33,7 @@ export const TIER_ORDER: TierType[] = [
   'compute',
   'async',
   'data',
+  'infrastructure',
   'observe',
   'external',
 ];
@@ -43,6 +45,7 @@ export const TIER_TO_LAYER: Record<TierType, LayerType> = {
   async: 'async',
   data: 'data',
   observe: 'observe',
+  infrastructure: 'infrastructure',
   external: 'external',
 };
 
@@ -54,9 +57,11 @@ export const LAYER_TO_TIER: Record<Exclude<LayerType, 'group'>, TierType> = {
   compute: 'compute',
   application: 'compute',
   async: 'async',
+  queue: 'async',
   data: 'data',
   observe: 'observe',
   observability: 'observe',
+  infrastructure: 'infrastructure',
   external: 'external',
 };
 

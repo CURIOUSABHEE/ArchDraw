@@ -23,7 +23,8 @@ export interface DiagramResult {
 
 export async function generateDiagramPipeline(
   prompt: string,
-  onStreaming?: StreamingCallback
+  onStreaming?: StreamingCallback,
+  existingContext?: { nodes: any[]; edges: any[] }
 ): Promise<DiagramResult> {
   try {
     // Stage 1: Intent detection
@@ -44,7 +45,8 @@ export async function generateDiagramPipeline(
       parsed = await callDiagramLLM(
         reasoning,
         node => onStreaming?.({ type: 'node', data: node }),
-        flow => onStreaming?.({ type: 'flow', data: flow })
+        flow => onStreaming?.({ type: 'flow', data: flow }),
+        existingContext
       );
     } catch (e) {
       logger.log('[Pipeline] Diagram LLM failed, using fallback');
@@ -89,6 +91,18 @@ export async function generateDiagramPipeline(
     
     logger.log(`[Pipeline] Parsed nodes: ${parsed.nodes.length}, flows: ${parsed.flows.length}`);
 
+    // Check if group-related keywords exist in the prompt
+    const hasGroupKeywords = /group|cluster|zone|region/i.test(prompt);
+    if (!hasGroupKeywords && parsed) {
+      logger.log('[Pipeline] Stripping group/compound nodes from parsed diagram');
+      parsed.nodes = parsed.nodes
+        .filter(n => !n.isGroup)
+        .map(n => {
+          const { parentId, isGroup, groupLabel, groupColor, ...rest } = n;
+          return rest;
+        });
+    }
+
     // Stage 5: Validate and repair
     logger.log('[Pipeline] Stage 5: Validate and repair');
     const validated = validateAndRepair(parsed);
@@ -109,6 +123,50 @@ export async function generateDiagramPipeline(
     const rootNodes = nodes.filter(n => n.type !== 'groupNode' && !n.data?.parentId);
 
     logger.log(`[Pipeline] Node ordering - groups: ${groupNodes.length}, root: ${rootNodes.length}`);
+
+    // Merge manual properties from existingContext
+    if (existingContext && existingContext.nodes) {
+      const existingMap = new Map(existingContext.nodes.map(n => [n.id, n]));
+      for (const node of nodes) {
+        const existingNode = existingMap.get(node.id);
+        if (existingNode) {
+          node.data = {
+            ...node.data,
+            color: existingNode.data?.color || node.data.color,
+            accentColor: existingNode.data?.accentColor || node.data.accentColor,
+            status: existingNode.data?.status || node.data.status,
+            technology: existingNode.data?.technology || node.data.technology,
+            description: existingNode.data?.description || node.data.description,
+            // Only preserve custom dimensions if explicitly set
+            width: existingNode.data?.width || node.data.width,
+            height: existingNode.data?.height || node.data.height,
+          };
+        }
+      }
+    }
+    
+    // Merge manual properties from existingContext for edges
+    if (existingContext && existingContext.edges) {
+      const existingEdgeMap = new Map(existingContext.edges.map(e => [e.id, e]));
+      for (const edge of edges) {
+        const existingEdge = existingEdgeMap.get(edge.id);
+        if (existingEdge) {
+          edge.data = {
+            ...edge.data,
+            label: existingEdge.data?.label || edge.data.label,
+            pathType: existingEdge.data?.pathType || edge.data.pathType,
+            connectionType: existingEdge.data?.connectionType || edge.data.connectionType,
+          };
+          // Also merge style
+          if (existingEdge.style) {
+            edge.style = {
+              ...edge.style,
+              ...existingEdge.style
+            };
+          }
+        }
+      }
+    }
 
     // Stage 8: Score
     logger.log('[Pipeline] Stage 8: Scoring');

@@ -265,9 +265,11 @@ export function generateLayoutHints(
     compute: { x: 400, y: 200 },
     application: { x: 400, y: 200 },
     async: { x: 600, y: 200 },
+    queue: { x: 600, y: 200 },
     data: { x: 800, y: 200 },
     observe: { x: 600, y: 400 },
     observability: { x: 600, y: 400 },
+    infrastructure: { x: 800, y: 400 },
     external: { x: 1000, y: 200 },
     group: { x: 100, y: 100 },
   };

@@ -56,16 +56,26 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
   const activeLayers = Object.keys(layerCounts).length;
   const maxNodesPerLayer = Math.max(...Object.values(layerCounts), 0);
   
-  // Select 'TB' for tall graphs where maxNodesPerLayer > activeLayers and total nodes > 3, otherwise use 'LR'
-  const rankdir = (maxNodesPerLayer > activeLayers && nodes.length > 3) ? 'TB' : 'LR';
-  console.log(`[Layout] Dynamic rankdir: ${rankdir} (activeLayers: ${activeLayers}, maxNodesPerLayer: ${maxNodesPerLayer}, total nodes: ${nodes.length})`);
+  // Use 'LR' (Left-to-Right) to ensure that nodes within the same layer (e.g. services) are always stacked vertically.
+  const rankdir = 'LR';
+  console.log(`[Layout] Rankdir: ${rankdir} (activeLayers: ${activeLayers}, maxNodesPerLayer: ${maxNodesPerLayer}, total nodes: ${nodes.length})`);
+
+  // Check if there are any edges connecting nodes in the same layer (vertical edges)
+  // If so, we need more vertical space so the edges and their labels don't look cramped
+  const hasVerticalEdges = edges.some(edge => {
+    const src = nodes.find(n => n.id === edge.source);
+    const tgt = nodes.find(n => n.id === edge.target);
+    return src && tgt && src.layer === tgt.layer;
+  });
+
+  const dynamicNodeSep = hasVerticalEdges ? 150 : NODE_SEPARATION;
 
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({
     rankdir,
     ranksep: RANK_SEPARATION,
-    nodesep: NODE_SEPARATION,
+    nodesep: dynamicNodeSep,
     marginx: 100,
     marginy: 100,
   });

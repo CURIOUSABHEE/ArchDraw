@@ -30,6 +30,8 @@ function parseFlow(obj: Record<string, unknown>): RawFlow | null {
     path: obj.path.map(String),
     label: obj.label ? String(obj.label) : undefined,
     async: obj.async === true,
+    communicationType: obj.communicationType ? String(obj.communicationType) : undefined,
+    edgeVariant: obj.edgeVariant ? String(obj.edgeVariant) : undefined,
   };
 
   return flow;
