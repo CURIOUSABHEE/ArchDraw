@@ -1,14 +1,12 @@
 'use client';
 
-import { Node, Edge, getSmoothStepPath, getBezierPath, Position } from 'reactflow';
+import { Node, Edge, getSmoothStepPath, getBezierPath, getStraightPath, Position } from 'reactflow';
 import { NodeData } from '@/store/diagramStore';
-import { resolveNodeColor } from '@/components/NodeIcon';
 import { getEdgeConfig, getEffectivePathType, type EdgeData, type EdgeType, type PathType } from '@/data/edgeTypes';
 import { 
-  NODE_WIDTH, NODE_HEIGHT, BORDER_RADIUS, 
-  LIGHT_NODE_STYLES, DARK_NODE_STYLES, STATUS_COLORS, 
-  getTierColorNormalized, FONTS 
+  NODE_WIDTH, NODE_HEIGHT, STATUS_COLORS, FONTS 
 } from '@/lib/theme/stylingConstants';
+import { getSimpleEdgePositions, getSimpleHandlePosition, getEdgeShiftOffset, getNodeCenter } from '@/lib/utils/simpleFloatingEdge';
 
 function escapeXml(str: string): string {
   if (!str) return '';
@@ -41,6 +39,66 @@ interface EdgeRenderData {
   targetPosition: Position;
   data: EdgeData | undefined;
   selected?: boolean;
+  isFloating?: boolean;
+}
+
+function getTierColorNormalized(layer?: string): string {
+  const tier = (layer || 'compute').toLowerCase();
+  const colorMap: Record<string, string> = {
+    client:   '#64748b', // slate
+    edge:     '#6366f1', // indigo
+    compute:  '#0d9488', // teal
+    async:    '#d97706', // amber
+    data:     '#3b82f6', // blue
+    observe:  '#8b5cf6', // violet
+    external: '#ec4899', // rose
+  };
+  return colorMap[tier] || colorMap.compute;
+}
+
+function getDarkCategoryStyle(layer?: string): { border: string; glow: string } {
+  const tier = (layer || 'compute').toLowerCase();
+  const map: Record<string, { border: string; glow: string }> = {
+    client:      { border: '#60A5FA', glow: 'rgba(96,165,250,0.15)' }, // Infrastructure/Client -> blue
+    edge:        { border: '#60A5FA', glow: 'rgba(96,165,250,0.15)' },
+    compute:     { border: '#34D399', glow: 'rgba(52,211,153,0.15)' }, // Services -> green
+    async:       { border: '#FBBF24', glow: 'rgba(251,191,36,0.15)' }, // Async/Queue -> amber
+    data:        { border: '#F87171', glow: 'rgba(248,113,113,0.15)' }, // Databases -> red
+    observe:     { border: '#A78BFA', glow: 'rgba(167,139,250,0.15)' }, // Auth/Security -> purple
+    external:    { border: '#22D3EE', glow: 'rgba(34,211,238,0.15)' }, // Cache/External -> cyan
+  };
+  return map[tier] || map.compute;
+}
+
+function getBezierPathWithOffset(
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+  sourcePosition: Position,
+): { path: string; labelX: number; labelY: number } {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const curveStrength = Math.min(Math.abs(dx) * 0.5, 80);
+
+  let controlOffset1: { x: number; y: number };
+  let controlOffset2: { x: number; y: number };
+
+  if (sourcePosition === Position.Right || sourcePosition === Position.Left) {
+    controlOffset1 = { x: sourceX + Math.sign(dx) * curveStrength, y: sourceY };
+    controlOffset2 = { x: targetX - Math.sign(dx) * curveStrength, y: targetY };
+  } else {
+    controlOffset1 = { x: sourceX, y: sourceY + Math.sign(dy) * curveStrength };
+    controlOffset2 = { x: targetX, y: targetY - Math.sign(dy) * curveStrength };
+  }
+
+  const path = `M ${sourceX} ${sourceY} C ${controlOffset1.x} ${controlOffset1.y}, ${controlOffset2.x} ${controlOffset2.y}, ${targetX} ${targetY}`;
+
+  return {
+    path,
+    labelX: (sourceX + targetX) / 2,
+    labelY: (sourceY + targetY) / 2,
+  };
 }
 
 function getPath(
@@ -50,53 +108,145 @@ function getPath(
   targetX: number,
   targetY: number,
   sourcePosition: Position,
-  targetPosition: Position
-): string {
+  targetPosition: Position,
+  isFloating?: boolean
+): { path: string; labelX: number; labelY: number } {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const minCurveDistance = 100;
 
-  if (pathType === 'bezier') {
-    const [path] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
-    return path;
-  }
-  
-  if (pathType === 'Smoothstep' || pathType === 'smooth') {
-    const [path] = getSmoothStepPath({ 
-      sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
-      borderRadius: pathType === 'smooth' ? 24 : 50
+  const normalizedPathType = (pathType || 'Smoothstep').toLowerCase();
+
+  if (isFloating) {
+    if (normalizedPathType === 'straight') {
+      const [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+      return { path, labelX, labelY };
+    }
+    if (normalizedPathType === 'bezier') {
+      const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+      return { path, labelX, labelY };
+    }
+    // Default: smoothstep/smooth
+    const [path, labelX, labelY] = getSmoothStepPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+      borderRadius: 50,
     });
-    return path;
+    return { path, labelX, labelY };
   }
-  
-  return `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`;
-}
 
-function getMarkerPath(config: { id: string; color: string }): string {
-  return `<marker id="${config.id}" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
-    <path d="M 0 0 L 0 6 L 6 3 z" fill="${config.color}"/>
-  </marker>`;
+  // Non-floating (static) edge path logic
+  if (normalizedPathType === 'bezier') {
+    if (distance < minCurveDistance) {
+      const [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+      return { path, labelX, labelY };
+    }
+    return getBezierPathWithOffset(sourceX, sourceY, targetX, targetY, sourcePosition);
+  }
+
+  if (normalizedPathType === 'smooth') {
+    if (distance < minCurveDistance) {
+      const [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+      return { path, labelX, labelY };
+    }
+    const [path, labelX, labelY] = getSmoothStepPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+      borderRadius: 24,
+    });
+    return { path, labelX, labelY };
+  }
+
+  if (normalizedPathType === 'smoothstep' || normalizedPathType === 'step') {
+    if (distance < minCurveDistance) {
+      const [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+      return { path, labelX, labelY };
+    }
+    const [path, labelX, labelY] = getSmoothStepPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+      borderRadius: 50,
+    });
+    return { path, labelX, labelY };
+  }
+
+  // straight / default
+  const [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+  return { path, labelX, labelY };
 }
 
 function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
   const { x, y, width, height, data, selected } = node;
-  const styles = isDark ? DARK_NODE_STYLES : LIGHT_NODE_STYLES;
   
   const tierColor = getTierColorNormalized(data.layer);
   const accentColor = data.accentColor || data.color || tierColor || '#0D9488';
   
-  const borderColor = selected ? accentColor : styles.border;
-  const borderWidth = selected ? 2 : 1.5;
+  const statusColor = STATUS_COLORS[data.status || 'healthy'] || '#10B981';
+  const showStatus = data.status && data.status !== 'healthy';
   
-  // Render backplates
-  const backplateElements = styles.backplates.map((bp) => `
+  let borderCol: string;
+  let iconColor: string;
+  let fillBg: string;
+  let titleColor: string;
+  let subtitleColor: string;
+  let styleAttr = '';
+  
+  if (isDark) {
+    const catStyle = getDarkCategoryStyle(data.layer);
+    borderCol = catStyle.border;
+    iconColor = catStyle.border;
+    fillBg = 'url(#node-dark-bg)';
+    titleColor = '#F1F5F9';
+    subtitleColor = '#94A3B8';
+    
+    if (selected) {
+      styleAttr = `style="filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5)) drop-shadow(0 0 6px ${borderCol});"`;
+    } else {
+      styleAttr = `style="filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5)) drop-shadow(0 0 3px ${catStyle.glow});"`;
+    }
+  } else {
+    borderCol = selected ? accentColor : '#595959';
+    iconColor = accentColor;
+    fillBg = '#fefefe';
+    titleColor = '#595959';
+    subtitleColor = '#7a7a7a';
+    
+    styleAttr = selected
+      ? `style="filter: drop-shadow(0 3px 8px rgba(0,0,0,0.07));"`
+      : `style="filter: drop-shadow(0 2px 6px rgba(0,0,0,0.06));"`;
+  }
+  
+  const backplateLayers = isDark ? [] : (selected
+    ? [
+        { offset: 10, color: '#ecece5' },
+        { offset: 5, color: '#dfdfd8' },
+      ]
+    : [
+        { offset: 10, color: '#efefe8' },
+        { offset: 5, color: '#e1e1da' },
+      ]);
+      
+  const backplateElements = backplateLayers.map((bp) => `
     <rect
       x="${bp.offset}" y="${bp.offset}"
       width="${width}" height="${height}"
       fill="${bp.color}"
-      rx="${BORDER_RADIUS}" ry="${BORDER_RADIUS}"
+      rx="10" ry="10"
     />
   `).join('');
-
-  const statusColor = STATUS_COLORS[data.status || 'healthy'];
-  const showStatus = data.status && data.status !== 'healthy';
 
   return `
     <g transform="translate(${x}, ${y})">
@@ -104,31 +254,32 @@ function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
       <rect
         x="0" y="0"
         width="${width}" height="${height}"
-        fill="${styles.background}"
-        stroke="${borderColor}"
-        stroke-width="${borderWidth}"
-        rx="${BORDER_RADIUS}" ry="${BORDER_RADIUS}"
+        fill="${fillBg}"
+        stroke="${borderCol}"
+        stroke-width="${selected ? 2.5 : 1.5}"
+        rx="10" ry="10"
+        ${styleAttr}
       />
       <!-- Header Icon Box -->
       <g transform="translate(10, 8)">
-        <rect x="0" y="0" width="24" height="24" rx="6" fill="${accentColor}12" />
-        <rect x="7" y="7" width="10" height="10" rx="2.5" fill="${accentColor}" />
+        <rect x="0" y="0" width="24" height="24" rx="6" fill="${iconColor}12" />
+        <rect x="7" y="7" width="10" height="10" rx="2.5" fill="${iconColor}" />
       </g>
       <!-- Title -->
       <text
         x="40" y="24"
-        fill="${styles.titleColor}"
+        fill="${titleColor}"
         font-family="${FONTS.body}"
-        font-size="12"
-        font-weight="600"
+        font-size="${isDark ? 13 : 12}"
+        font-weight="700"
       >${escapeXml(data.label)}</text>
       <!-- Subtitle -->
       ${data.subtitle ? `
       <text
         x="10" y="${height - 12}"
-        fill="${styles.subtitleColor}"
+        fill="${subtitleColor}"
         font-family="${FONTS.body}"
-        font-size="10"
+        font-size="${isDark ? 11 : 10}"
       >${escapeXml(data.subtitle)}</text>` : ''}
       <!-- Status Indicator -->
       ${showStatus ? `
@@ -140,21 +291,121 @@ function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
 
 function renderTextLabel(node: SystemNodeRenderData, isDark: boolean): string {
   const { x, y, data } = node;
-  const styles = isDark ? DARK_NODE_STYLES : LIGHT_NODE_STYLES;
+  
+  const textVal = (data as any).text || data.label || '';
+  
+  const sizeStr = (data as any).fontSize || 'medium';
+  const sizeMap: Record<string, number> = {
+    small: 14,
+    medium: 18,
+    large: 26,
+    heading: 36,
+  };
+  const fontSize = sizeMap[sizeStr] || 18;
+  const fontWeight = (data as any).bold ? 700 : 500;
+  const color = (data as any).color || (isDark ? '#CBD5E1' : '#1F2937');
+  
+  const lines = textVal.split('\n');
+  const tspanElements = lines.map((line: string, idx: number) => `
+    <tspan x="4" dy="${idx === 0 ? 0 : fontSize * 1.3}">${escapeXml(line)}</tspan>
+  `).join('');
+
+  return `
+    <g transform="translate(${x}, ${y})">
+      <text
+        x="4" y="${fontSize + 4}"
+        fill="${color}"
+        font-family="${FONTS.body}"
+        font-size="${fontSize}"
+        font-weight="${fontWeight}"
+        text-anchor="start"
+      >
+        ${tspanElements}
+      </text>
+    </g>
+  `.trim();
+}
+
+function renderAnnotationNode(node: SystemNodeRenderData, isDark: boolean): string {
+  const { x, y, width, height, data, selected } = node;
+  
+  const bg = isDark ? '#1F2937' : '#ffffff';
+  const border = isDark ? '#374151' : '#e5e7eb';
+  const dividerColor = isDark ? '#374151' : '#e5e7eb';
+  
+  const title = (data as any).title ?? '';
+  const body = (data as any).body ?? '';
+  
+  const titleSizeStr = (data as any).titleSize ?? 'heading';
+  const titleBold = (data as any).titleBold ?? true;
+  const bodySizeStr = (data as any).bodySize ?? 'medium';
+  const bodyBold = (data as any).bodyBold ?? false;
+  
+  const sizeMap: Record<string, number> = {
+    small: 11,
+    medium: 13,
+    large: 15,
+    heading: 18,
+  };
+  
+  const titleSize = sizeMap[titleSizeStr] || 18;
+  const bodySize = sizeMap[bodySizeStr] || 13;
+  
+  const titleWeight = titleBold ? 700 : 500;
+  const bodyWeight = bodyBold ? 700 : 400;
+  
+  const titleColor = isDark ? '#F1F5F9' : '#1F2937';
+  const bodyColor = isDark ? '#CBD5E1' : '#4B5563';
+  
+  const dividerY = 32;
+  
+  const bodyLines = body.split('\n');
+  const bodyTspans = bodyLines.map((line: string, idx: number) => `
+    <tspan x="12" dy="${idx === 0 ? 0 : bodySize * 1.3}">${escapeXml(line)}</tspan>
+  `).join('');
   
   return `
-    <text
-      x="${x}" y="${y}"
-      fill="${styles.subtitleColor}"
-      font-family="${FONTS.body}"
-      font-size="12"
-      text-anchor="start"
-    >${escapeXml(data.label)}</text>
+    <g transform="translate(${x}, ${y})">
+      <!-- Container -->
+      <rect
+        x="0" y="0"
+        width="${width}" height="${height}"
+        fill="${bg}"
+        stroke="${selected ? '#6366F1' : border}"
+        stroke-width="${selected ? 2 : 1}"
+        rx="8" ry="8"
+      />
+      <!-- Title -->
+      <text
+        x="12" y="20"
+        fill="${titleColor}"
+        font-family="${FONTS.body}"
+        font-size="${titleSize}"
+        font-weight="${titleWeight}"
+      >${escapeXml(title)}</text>
+      <!-- Divider -->
+      <line
+        x1="1" y1="${dividerY}"
+        x2="${width - 1}" y2="${dividerY}"
+        stroke="${dividerColor}"
+        stroke-width="1"
+      />
+      <!-- Body -->
+      <text
+        x="12" y="${dividerY + bodySize + 8}"
+        fill="${bodyColor}"
+        font-family="${FONTS.body}"
+        font-size="${bodySize}"
+        font-weight="${bodyWeight}"
+      >
+        ${bodyTspans}
+      </text>
+    </g>
   `.trim();
 }
 
 function renderEdge(edge: EdgeRenderData, isDark: boolean): string {
-  const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected } = edge;
+  const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected, isFloating } = edge;
   
   const edgeType: EdgeType | undefined = data?.edgeType;
   const customPathType: PathType | undefined = data?.pathType;
@@ -162,73 +413,155 @@ function renderEdge(edge: EdgeRenderData, isDark: boolean): string {
   const connectionType = data?.connectionType || edgeType || 'sync';
   const config = getEdgeConfig(connectionType);
   
-  const strokeColor = selected 
-    ? (isDark ? '#9CA3AF' : '#374151')
-    : data?.color || config.color;
+  const lowerLabel = data?.label?.toLowerCase() ?? '';
+  const lowerType = connectionType?.toLowerCase() ?? '';
+  const isAsync = lowerType === 'async' || lowerType === 'publish' || lowerType === 'consume' || ['amqp', 'kafka', 'queue', 'pub/sub', 'event', 'publish', 'consume', 'nats', 'rabbitmq'].some(p => lowerLabel.includes(p));
 
-  const strokeWidth = selected ? 2 : 1.5;
-  const opacity = selected ? 1 : 0.85;
+  // Determine stroke color
+  let strokeColor: string;
+  if (selected) {
+    strokeColor = isDark ? '#9CA3AF' : '#374151';
+  } else if (data?.color) {
+    strokeColor = data.color;
+  } else if (isDark) {
+    if (isAsync) strokeColor = '#FBBF24';
+    else if (lowerType === 'error' || lowerLabel.includes('error') || lowerLabel.includes('failed')) strokeColor = '#EF4444';
+    else if (lowerType === 'success' || lowerLabel.includes('success') || lowerLabel.includes('ok')) strokeColor = '#34D399';
+    else strokeColor = '#60A5FA'; // sync/default bright blue
+  } else {
+    if (isAsync) strokeColor = '#F59E0B';
+    else if (lowerType === 'error' || lowerLabel.includes('error') || lowerLabel.includes('failed')) strokeColor = '#EF4444';
+    else if (lowerType === 'success' || lowerLabel.includes('success') || lowerLabel.includes('ok')) strokeColor = '#10B981';
+    else strokeColor = config.color || '#6B7280';
+  }
+
+  let dashArray = '';
+  let strokeWidth = selected ? 2.5 : 1.5;
+  const edgeVariant = data?.edgeVariant;
+
+  if (isDark) {
+    if (edgeVariant === 'dashed' || isAsync) {
+      dashArray = '8,4';
+    } else if (edgeVariant === 'dotted') {
+      dashArray = '2,2';
+    } else if (edgeVariant === 'feedback') {
+      dashArray = '12,4,4,4';
+      strokeWidth = selected ? 3 : 2;
+    }
+  } else {
+    if (edgeVariant === 'dashed') {
+      dashArray = '8,4';
+    } else if (edgeVariant === 'dotted') {
+      dashArray = '2,2';
+    } else if (edgeVariant === 'feedback') {
+      dashArray = '12,4,4,4';
+      strokeWidth = 2;
+    } else if (isAsync) {
+      dashArray = '8,4';
+    }
+  }
   
-  const d = getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition);
+  const strokeDashArray = dashArray || config.dash || 'none';
+  const opacity = selected ? 1 : (isDark ? 0.8 : 0.85);
   
-  const markerId = `arrow-${id}`;
-  const marker = getMarkerPath({ id: markerId, color: strokeColor });
+  const pathResult = getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, isFloating);
+  const d = pathResult.path;
+  
+  const markerEndId = `arrow-${id}`;
+  const markerStartId = `arrow-start-${id}`;
+  
+  let defsSVG = `<defs>
+    <marker id="${markerEndId}" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 0 6 L 6 3 z" fill="${strokeColor}"/>
+    </marker>`;
+    
+  if (config.markerStart) {
+    defsSVG += `
+    <marker id="${markerStartId}" markerWidth="6" markerHeight="6" refX="0" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+      <path d="M 6 0 L 6 6 L 0 3 z" fill="${strokeColor}"/>
+    </marker>`;
+  }
+  defsSVG += '\n  </defs>';
+
+  const markerEndAttr = config.markerEnd ? `marker-end="url(#${markerEndId})"` : '';
+  const markerStartAttr = config.markerStart ? `marker-start="url(#${markerStartId})"` : '';
   
   let labelSVG = '';
   if (data?.label && !data?.hideLabel) {
-    const labelX = (sourceX + targetX) / 2;
-    const labelY = (sourceY + targetY) / 2 - 12;
-    const styles = isDark ? DARK_NODE_STYLES : LIGHT_NODE_STYLES;
+    const labelX = pathResult.labelX;
+    const labelY = pathResult.labelY;
+    const labelText = data.label;
+    
+    const bg = isDark ? '#1e2235' : '#fefdfa';
+    const fg = isDark ? '#CBD5E1' : '#6B7280';
+    const border = isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2dfd5';
+    
+    const padding = 12;
+    const charWidth = 6.5;
+    const labelWidth = Math.max(50, labelText.length * charWidth + padding);
+    const labelHeight = 16;
     
     labelSVG = `
       <g transform="translate(${labelX}, ${labelY})">
         <rect
-          x="-${Math.max(40, data.label.length * 4)}"
-          y="-8"
-          width="${Math.max(80, data.label.length * 8)}"
-          height="16"
-          fill="${styles.background}"
-          stroke="${styles.border}"
-          stroke-width="0.5"
-          rx="8"
+          x="-${labelWidth / 2}"
+          y="-${labelHeight / 2}"
+          width="${labelWidth}"
+          height="${labelHeight}"
+          fill="${bg}"
+          stroke="${border}"
+          stroke-width="1"
+          rx="4"
         />
         <text
-          x="0" y="4"
-          fill="${styles.subtitleColor}"
+          x="0" y="3"
+          fill="${fg}"
           font-family="${FONTS.body}"
-          font-size="10"
+          font-size="9"
+          font-weight="bold"
           text-anchor="middle"
-        >${escapeXml(data.label)}</text>
+          letter-spacing="0.04em"
+        >${escapeXml(labelText)}</text>
       </g>
     `.trim();
   }
   
   return `
+    ${defsSVG}
     <path
       d="${d}"
       fill="none"
       stroke="${strokeColor}"
       stroke-width="${strokeWidth}"
       stroke-opacity="${opacity}"
-      stroke-dasharray="${config.dash || 'none'}"
-      marker-end="url(#${markerId})"
+      stroke-dasharray="${strokeDashArray}"
+      ${markerEndAttr}
+      ${markerStartAttr}
+      style="opacity: ${opacity}; ${isDark ? `filter: drop-shadow(0 0 3px ${strokeColor});` : ''}"
     />
-    ${marker}
     ${labelSVG}
   `.trim();
 }
 
 function getHandlePosition(node: Node, position: string): { x: number; y: number; pos: Position } {
-  const width = node.data?.nodeWidth || NODE_WIDTH;
-  const height = NODE_HEIGHT;
+  const width = node.width ?? node.data?.nodeWidth ?? NODE_WIDTH;
+  const height = node.height ?? NODE_HEIGHT;
   
-  switch (position) {
-    case 'left': return { x: node.position.x, y: node.position.y + height / 2, pos: Position.Left };
-    case 'right': return { x: node.position.x + width, y: node.position.y + height / 2, pos: Position.Right };
-    case 'top': return { x: node.position.x + width / 2, y: node.position.y, pos: Position.Top };
-    case 'bottom': return { x: node.position.x + width / 2, y: node.position.y + height, pos: Position.Bottom };
-    default: return { x: node.position.x + width, y: node.position.y + height / 2, pos: Position.Right };
+  const posLower = position.toLowerCase();
+  if (posLower.includes('left')) {
+    return { x: node.position.x, y: node.position.y + height / 2, pos: Position.Left };
   }
+  if (posLower.includes('right')) {
+    return { x: node.position.x + width, y: node.position.y + height / 2, pos: Position.Right };
+  }
+  if (posLower.includes('top')) {
+    return { x: node.position.x + width / 2, y: node.position.y, pos: Position.Top };
+  }
+  if (posLower.includes('bottom')) {
+    return { x: node.position.x + width / 2, y: node.position.y + height, pos: Position.Bottom };
+  }
+  
+  return { x: node.position.x + width, y: node.position.y + height / 2, pos: Position.Right };
 }
 
 function calculateBounds(nodes: Node[], edges: Edge[]): { minX: number; minY: number; maxX: number; maxY: number } {
@@ -239,8 +572,8 @@ function calculateBounds(nodes: Node[], edges: Edge[]): { minX: number; minY: nu
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   
   for (const node of nodes) {
-    const width = node.data?.nodeWidth || NODE_WIDTH;
-    const height = NODE_HEIGHT;
+    const width = node.width ?? node.data?.nodeWidth ?? NODE_WIDTH;
+    const height = node.height ?? NODE_HEIGHT;
     minX = Math.min(minX, node.position.x);
     minY = Math.min(minY, node.position.y);
     maxX = Math.max(maxX, node.position.x + width + 20); // include backplates
@@ -262,57 +595,123 @@ export function generatePureSVG(
   isDark: boolean = true,
   backgroundColor: string = '#0f172a'
 ): string {
-  const bounds = calculateBounds(nodes, edges);
+  const preparedNodes = nodes.map(node => {
+    let defaultW = NODE_WIDTH;
+    let defaultH = NODE_HEIGHT;
+    
+    if (node.type === 'textLabelNode') {
+      defaultW = 120;
+      defaultH = 40;
+    } else if (node.type === 'annotationNode') {
+      defaultW = 200;
+      defaultH = 120;
+    } else {
+      defaultW = 160;
+      defaultH = 80;
+    }
+    
+    const w = node.width ?? node.data?.nodeWidth ?? defaultW;
+    const h = node.height ?? node.data?.nodeHeight ?? defaultH;
+    
+    return {
+      ...node,
+      width: w,
+      height: h,
+    };
+  });
+  
+  const nodeInternals = new Map<string, Node>();
+  for (const node of preparedNodes) {
+    nodeInternals.set(node.id, node);
+  }
+
+  const bounds = calculateBounds(preparedNodes, edges);
   const width = bounds.maxX - bounds.minX;
   const height = bounds.maxY - bounds.minY;
   
   const nodeElements: string[] = [];
   const edgeElements: string[] = [];
   
-  for (const node of nodes) {
-    const w = node.data?.nodeWidth || NODE_WIDTH;
-    const h = NODE_HEIGHT;
-    
+  for (const node of preparedNodes) {
     const nodeData: SystemNodeRenderData = {
       id: node.id,
       type: node.type || 'systemNode',
       x: node.position.x - bounds.minX,
       y: node.position.y - bounds.minY,
-      width: w,
-      height: h,
+      width: node.width!,
+      height: node.height!,
       data: node.data as NodeData,
       selected: node.selected,
     };
     
-    if (node.type === 'textLabelNode' || node.type === 'annotationNode') {
+    if (node.type === 'textLabelNode') {
       nodeElements.push(renderTextLabel(nodeData, isDark));
+    } else if (node.type === 'annotationNode') {
+      nodeElements.push(renderAnnotationNode(nodeData, isDark));
     } else {
       nodeElements.push(renderSystemNode(nodeData, isDark));
     }
   }
   
   for (const edge of edges) {
-    const sourceNode = nodes.find(n => n.id === edge.source);
-    const targetNode = nodes.find(n => n.id === edge.target);
+    const sourceNode = preparedNodes.find(n => n.id === edge.source);
+    const targetNode = preparedNodes.find(n => n.id === edge.target);
     
     if (!sourceNode || !targetNode) continue;
     
     const sourcePosStr = edge.sourceHandle || 'right';
     const targetPosStr = edge.targetHandle || 'left';
     
-    const source = getHandlePosition(sourceNode, sourcePosStr);
-    const target = getHandlePosition(targetNode, targetPosStr);
+    const isFloating = edge.type === 'simpleFloating' || (!edge.sourceHandle && !edge.targetHandle);
+    
+    let sourceX: number;
+    let sourceY: number;
+    let targetX: number;
+    let targetY: number;
+    let sourcePos: Position;
+    let targetPos: Position;
+    
+    if (isFloating) {
+      const sCenter = getNodeCenter(sourceNode);
+      const tCenter = getNodeCenter(targetNode);
+      
+      const positions = getSimpleEdgePositions(sCenter.cx, sCenter.cy, tCenter.cx, tCenter.cy);
+      sourcePos = positions.sourcePos;
+      targetPos = positions.targetPos;
+      
+      const sourceShift = getEdgeShiftOffset(edge.source, edge.id, sourcePos, edges, nodeInternals, 15);
+      const targetShift = getEdgeShiftOffset(edge.target, edge.id, targetPos, edges, nodeInternals, 15);
+      
+      const sourceHandle = getSimpleHandlePosition(sCenter.x, sCenter.y, sCenter.width, sCenter.height, sourcePos, sourceShift);
+      const targetHandle = getSimpleHandlePosition(tCenter.x, tCenter.y, tCenter.width, tCenter.height, targetPos, targetShift);
+      
+      sourceX = sourceHandle.x - bounds.minX;
+      sourceY = sourceHandle.y - bounds.minY;
+      targetX = targetHandle.x - bounds.minX;
+      targetY = targetHandle.y - bounds.minY;
+    } else {
+      const source = getHandlePosition(sourceNode, sourcePosStr);
+      const target = getHandlePosition(targetNode, targetPosStr);
+      
+      sourceX = source.x - bounds.minX;
+      sourceY = source.y - bounds.minY;
+      targetX = target.x - bounds.minX;
+      targetY = target.y - bounds.minY;
+      sourcePos = source.pos;
+      targetPos = target.pos;
+    }
     
     const edgeData: EdgeRenderData = {
       id: edge.id,
-      sourceX: source.x - bounds.minX,
-      sourceY: source.y - bounds.minY,
-      targetX: target.x - bounds.minX,
-      targetY: target.y - bounds.minY,
-      sourcePosition: source.pos,
-      targetPosition: target.pos,
+      sourceX,
+      sourceY,
+      targetX,
+      targetY,
+      sourcePosition: sourcePos,
+      targetPosition: targetPos,
       data: edge.data as EdgeData | undefined,
       selected: edge.selected,
+      isFloating,
     };
     
     edgeElements.push(renderEdge(edgeData, isDark));
@@ -320,6 +719,13 @@ export function generatePureSVG(
   
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <defs>
+    <!-- Background Linear Gradient for Dark Mode Nodes -->
+    <linearGradient id="node-dark-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E2235" />
+      <stop offset="100%" stop-color="#141624" />
+    </linearGradient>
+  </defs>
   <rect x="0" y="0" width="${width}" height="${height}" fill="${backgroundColor}"/>
   <g id="edges">
 ${edgeElements.map(e => '    ' + e.replace(/\n/g, '\n    ')).join('\n')}
@@ -331,3 +737,4 @@ ${nodeElements.map(n => '    ' + n.replace(/\n/g, '\n    ')).join('\n')}
   
   return svg;
 }
+
