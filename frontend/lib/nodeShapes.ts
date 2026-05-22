@@ -12,6 +12,15 @@ export type NodeShape =
 
 export type NodeSize = 'small' | 'normal' | 'medium' | 'large';
 
+/**
+ * MANDATORY TIERED STRUCTURE (Rule 3)
+ * Tier 1 → Entry points
+ * Tier 2 → Infrastructure
+ * Tier 3 → Services
+ * Tier 4 → Data Layer
+ */
+export type TierLevel = 1 | 2 | 3 | 4;
+
 export interface ShapeConfig {
   shape: NodeShape;
   size: NodeSize;
@@ -19,56 +28,60 @@ export interface ShapeConfig {
   minWidth: number;
   minHeight: number;
   maxHeight: number;
+  tier: TierLevel;
+  color: string;
 }
 
+/**
+ * Mapped categories to Tiers and Colors as per Rules 3 & 6.
+ * Colors:
+ * Infrastructure → Gray (#6B7280)
+ * Auth/Security  → Purple (#7C3AED)
+ * Services       → Blue (#2563EB)
+ * Async/Queue    → Orange (#D97706)
+ * Databases      → Green (#059669)
+ * Cache          → Teal (#0891B2)
+ */
 export const SHAPE_CONFIGS: Record<string, ShapeConfig> = {
-  // Client & Entry - Pill shape, medium size, normal weight
-  'Client & Entry': { shape: 'pill', size: 'medium', visualWeight: 'normal', minWidth: 200, minHeight: 48, maxHeight: 48 },
-  'CDN & Edge': { shape: 'pill', size: 'medium', visualWeight: 'normal', minWidth: 180, minHeight: 44, maxHeight: 44 },
-  'DNS & Network': { shape: 'pill', size: 'normal', visualWeight: 'normal', minWidth: 160, minHeight: 44, maxHeight: 44 },
-  'API Gateway': { shape: 'pill', size: 'medium', visualWeight: 'normal', minWidth: 180, minHeight: 48, maxHeight: 48 },
-  'Load Balancer': { shape: 'pill', size: 'medium', visualWeight: 'normal', minWidth: 180, minHeight: 48, maxHeight: 48 },
+  // Tier 1: Entry points
+  'Client & Entry': { shape: 'pill', size: 'medium', visualWeight: 'normal', minWidth: 200, minHeight: 110, maxHeight: 110, tier: 1, color: '#6B7280' },
+  'CDN & Edge': { shape: 'pill', size: 'medium', visualWeight: 'normal', minWidth: 180, minHeight: 110, maxHeight: 110, tier: 1, color: '#6B7280' },
+  'DNS & Network': { shape: 'pill', size: 'normal', visualWeight: 'normal', minWidth: 180, minHeight: 110, maxHeight: 110, tier: 1, color: '#6B7280' },
 
-  // Compute - Segmented rectangle, normal size, normal weight
-  'Compute': { shape: 'rounded-square', size: 'normal', visualWeight: 'normal', minWidth: 160, minHeight: 110, maxHeight: 140 },
-  'Serverless': { shape: 'rounded-square', size: 'normal', visualWeight: 'normal', minWidth: 160, minHeight: 110, maxHeight: 140 },
-  
-  // Data Storage - Cylinder, large size, high weight
-  'Data Storage': { shape: 'cylinder', size: 'large', visualWeight: 'high', minWidth: 180, minHeight: 150, maxHeight: 180 },
-  'Database': { shape: 'cylinder', size: 'large', visualWeight: 'high', minWidth: 180, minHeight: 150, maxHeight: 180 },
+  // Tier 2: Infrastructure
+  'API Gateway': { shape: 'pill', size: 'medium', visualWeight: 'normal', minWidth: 180, minHeight: 110, maxHeight: 110, tier: 2, color: '#6B7280' },
+  'Load Balancer': { shape: 'pill', size: 'medium', visualWeight: 'normal', minWidth: 180, minHeight: 110, maxHeight: 110, tier: 2, color: '#6B7280' },
+  'Infrastructure': { shape: 'rounded-square', size: 'normal', visualWeight: 'normal', minWidth: 180, minHeight: 110, maxHeight: 140, tier: 2, color: '#6B7280' },
 
-  // Caching - Stacked layers, normal size, normal weight
-  'Caching': { shape: 'stack', size: 'normal', visualWeight: 'normal', minWidth: 170, minHeight: 120, maxHeight: 150 },
-  'Cache & Storage': { shape: 'stack', size: 'normal', visualWeight: 'normal', minWidth: 170, minHeight: 120, maxHeight: 150 },
+  // Tier 3: Services
+  'Compute': { shape: 'rounded-square', size: 'normal', visualWeight: 'normal', minWidth: 180, minHeight: 110, maxHeight: 140, tier: 3, color: '#2563EB' },
+  'Serverless': { shape: 'rounded-square', size: 'normal', visualWeight: 'normal', minWidth: 180, minHeight: 110, maxHeight: 140, tier: 3, color: '#2563EB' },
+  'Auth & Security': { shape: 'shield', size: 'normal', visualWeight: 'high', minWidth: 180, minHeight: 110, maxHeight: 140, tier: 3, color: '#7C3AED' },
+  'Authentication': { shape: 'shield', size: 'normal', visualWeight: 'high', minWidth: 180, minHeight: 110, maxHeight: 140, tier: 3, color: '#7C3AED' },
+  'AI / ML': { shape: 'gradient-glow', size: 'normal', visualWeight: 'high', minWidth: 180, minHeight: 120, maxHeight: 150, tier: 3, color: '#2563EB' },
+  'Worker': { shape: 'worker', size: 'normal', visualWeight: 'normal', minWidth: 180, minHeight: 110, maxHeight: 140, tier: 3, color: '#2563EB' },
+  'Messaging & Events': { shape: 'queue', size: 'medium', visualWeight: 'normal', minWidth: 200, minHeight: 130, maxHeight: 160, tier: 3, color: '#D97706' },
 
-  // Messaging - Multi-box queue, medium size, normal weight
-  'Messaging & Events': { shape: 'queue', size: 'medium', visualWeight: 'normal', minWidth: 200, minHeight: 130, maxHeight: 160 },
+  // Tier 4: Data Layer
+  'Data Storage': { shape: 'cylinder', size: 'large', visualWeight: 'high', minWidth: 180, minHeight: 150, maxHeight: 180, tier: 4, color: '#059669' },
+  'Database': { shape: 'cylinder', size: 'large', visualWeight: 'high', minWidth: 180, minHeight: 150, maxHeight: 180, tier: 4, color: '#059669' },
+  'Caching': { shape: 'stack', size: 'normal', visualWeight: 'normal', minWidth: 180, minHeight: 120, maxHeight: 150, tier: 4, color: '#0891B2' },
+  'Cache & Storage': { shape: 'stack', size: 'normal', visualWeight: 'normal', minWidth: 180, minHeight: 120, maxHeight: 150, tier: 4, color: '#0891B2' },
 
-  // External Services - Dashed border, normal size, low weight
-  'External Services': { shape: 'dashed-rect', size: 'normal', visualWeight: 'low', minWidth: 160, minHeight: 100, maxHeight: 130 },
-
-  // Auth & Security - Shield, normal size, high weight
-  'Auth & Security': { shape: 'shield', size: 'normal', visualWeight: 'high', minWidth: 160, minHeight: 110, maxHeight: 140 },
-  'Authentication': { shape: 'shield', size: 'normal', visualWeight: 'high', minWidth: 160, minHeight: 110, maxHeight: 140 },
-
-  // Observability - Minimal, small size, low weight
-  'Observability': { shape: 'minimal', size: 'small', visualWeight: 'low', minWidth: 140, minHeight: 80, maxHeight: 100 },
-
-  // AI / ML - Gradient glow, normal size, high weight
-  'AI / ML': { shape: 'gradient-glow', size: 'normal', visualWeight: 'high', minWidth: 170, minHeight: 120, maxHeight: 150 },
-  'AI & ML': { shape: 'gradient-glow', size: 'normal', visualWeight: 'high', minWidth: 170, minHeight: 120, maxHeight: 150 },
-
-  // Worker - Worker shape, normal size, normal weight
-  'Worker': { shape: 'worker', size: 'normal', visualWeight: 'normal', minWidth: 160, minHeight: 110, maxHeight: 140 },
+  // Others
+  'Observability': { shape: 'minimal', size: 'small', visualWeight: 'low', minWidth: 180, minHeight: 110, maxHeight: 110, tier: 3, color: '#6B7280' },
+  'External Services': { shape: 'dashed-rect', size: 'normal', visualWeight: 'low', minWidth: 180, minHeight: 110, maxHeight: 130, tier: 3, color: '#6B7280' },
 };
 
 export const DEFAULT_SHAPE_CONFIG: ShapeConfig = {
   shape: 'rounded-square',
   size: 'normal',
   visualWeight: 'normal',
-  minWidth: 160,
+  minWidth: 180,
   minHeight: 110,
   maxHeight: 140,
+  tier: 3,
+  color: '#2563EB',
 };
 
 export const NODE_SHAPES: Record<string, NodeShape> = Object.fromEntries(
@@ -89,4 +102,8 @@ export function getNodeSize(category: string): NodeSize {
 
 export function getVisualWeight(category: string): 'low' | 'normal' | 'high' {
   return SHAPE_CONFIGS[category]?.visualWeight || 'normal';
+}
+
+export function getTierForCategory(category: string): TierLevel {
+  return SHAPE_CONFIGS[category]?.tier || DEFAULT_SHAPE_CONFIG.tier;
 }

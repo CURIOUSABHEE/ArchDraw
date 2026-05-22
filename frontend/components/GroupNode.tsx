@@ -1,15 +1,15 @@
-'use client';
-
 import { useState, useRef, useEffect } from 'react';
 import { NodeProps } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
 import { NodeResizer } from '@reactflow/node-resizer';
+import { useCanvasTheme } from '@/lib/theme';
 import '@reactflow/node-resizer/dist/style.css';
 
 export default function GroupNode({ id, data, selected }: NodeProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const { isDark } = useCanvasTheme();
   
   const color = (data as { groupColor?: string })?.groupColor || '#3b82f6';
 
@@ -20,11 +20,17 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
     return `rgba(${r},${g},${b},${alpha})`;
   };
 
-  const bg = hexToRgba(color, 0.12);
-  const borderColor = selected ? hexToRgba(color, 0.8) : hexToRgba(color, 0.35);
-  const tagBorder = hexToRgba(color, 0.5);
-  const tagText = hexToRgba(color, 0.9);
-  const tagBg = hexToRgba(color, 0.15);
+  const bg = isDark ? 'rgba(255,255,255,0.02)' : hexToRgba(color, 0.12);
+  const borderColor = isDark 
+    ? (selected ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)')
+    : (selected ? hexToRgba(color, 0.8) : hexToRgba(color, 0.35));
+
+  const borderStyle = isDark ? 'dashed' : (selected ? 'solid' : 'dashed');
+  const borderWidth = isDark ? 1 : 1.5;
+
+  const tagText = isDark ? '#475569' : hexToRgba(color, 0.9);
+  const tagBg = isDark ? 'rgba(15, 17, 23, 0.9)' : 'rgba(255,255,255,0.9)';
+  const tagBorder = isDark ? 'rgba(255,255,255,0.08)' : hexToRgba(color, 0.5);
 
   const label =
     (data as { groupLabel?: string; label?: string })?.groupLabel ||
@@ -70,11 +76,12 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
         width: '100%',
         height: '100%',
         backgroundColor: bg,
-        border: `1.5px ${selected ? 'solid' : 'dashed'} ${borderColor}`,
+        border: `${borderWidth}px ${borderStyle} ${borderColor}`,
         borderRadius: 20,
         position: 'relative',
         boxSizing: 'border-box',
         cursor: 'pointer',
+        boxShadow: isDark ? 'inset 0 4px 12px rgba(0,0,0,0.5)' : 'none',
       }}
       onClick={handleContainerClick}
     >
@@ -94,12 +101,12 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
           alignItems: 'center',
           gap: 6,
           padding: '4px 12px',
-          fontSize: 9,
+          fontSize: isDark ? 12 : 9,
           fontWeight: 600,
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
           color: tagText,
-          background: 'rgba(255,255,255,0.9)',
+          background: tagBg,
           border: `1px solid ${tagBorder}`,
           borderRadius: 999,
           backdropFilter: 'blur(4px)',
@@ -125,7 +132,7 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              fontSize: 10,
+              fontSize: isDark ? 12 : 10,
               fontWeight: 700,
               letterSpacing: '0.1em',
               textTransform: 'uppercase',

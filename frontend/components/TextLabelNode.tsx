@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Handle, Position, NodeProps, useReactFlow, useUpdateNodeInternals } from 'reactflow';
 
 export interface TextLabelNodeData {
@@ -44,10 +44,9 @@ function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
   const fontWeight = isBold ? 700 : FONT_WEIGHT_MAP[currentSize];
   const color = data.color ?? 'hsl(var(--foreground))';
 
-  const SIZE_ORDER: TextSize[] = ['small', 'medium', 'large', 'heading'];
+  const SIZE_ORDER: TextSize[] = useMemo(() => ['small', 'medium', 'large', 'heading'], []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setText(data.text);
     setCurrentSize(data.fontSize ?? 'medium');
     setIsBold(data.bold ?? false);

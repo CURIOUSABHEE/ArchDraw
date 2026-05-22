@@ -2,6 +2,8 @@
 
 import { memo, useEffect } from 'react';
 import { Handle, Position, NodeProps, useUpdateNodeInternals } from 'reactflow';
+import { useCanvasTheme } from '@/lib/theme';
+import { LIGHT_NODE_STYLES, DARK_NODE_STYLES, BORDER_RADIUS } from '@/lib/theme/stylingConstants';
 
 export type ShapeType =
   | 'rectangle'
@@ -61,40 +63,73 @@ function Label({ label, sublabel, color }: { label: string; sublabel?: string; c
   );
 }
 
+function Backplates({ layers, borderRadius }: { layers: { offset: number; color: string }[], borderRadius: number | string }) {
+  return (
+    <>
+      {layers.map((layer, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: borderRadius,
+            transform: `translate(${layer.offset}px, ${layer.offset}px)`,
+            background: layer.color,
+            zIndex: -1,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
 // ── Individual shape renderers ────────────────────────────────────────────────
 
-function Rectangle({ data, selected, rounded }: { data: ShapeNodeData; selected: boolean; rounded: boolean }) {
+function Rectangle({ data, selected, rounded, backplates }: { data: ShapeNodeData; selected: boolean; rounded: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const r = rounded ? 14 : 8;
   return (
-    <div
-      style={{
-        width: 140,
-        height: 72,
-        borderRadius: r,
-        border: 'none',
-        background: 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
-        boxShadow: selected 
-          ? `0 0 0 2px ${color}, 0 8px 32px ${color}30, 0 4px 12px hsl(var(--foreground) / 0.1)`
-          : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}
-    >
-      <Handles color={color} nodeId={`shape-${data.label}`} />
-      <Label label={data.label} sublabel={data.sublabel} color={color} />
+    <div style={{ position: 'relative', zIndex: 2 }}>
+      <Backplates layers={backplates} borderRadius={r} />
+      <div
+        style={{
+          width: 140,
+          height: 72,
+          borderRadius: r,
+          border: 'none',
+          background: 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
+          boxShadow: selected 
+            ? `0 0 0 2px ${color}, 0 8px 32px ${color}30, 0 4px 12px hsl(var(--foreground) / 0.1)`
+            : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        <Handles color={color} nodeId={`shape-${data.label}`} />
+        <Label label={data.label} sublabel={data.sublabel} color={color} />
+      </div>
     </div>
   );
 }
 
-function Diamond({ data, selected }: { data: ShapeNodeData; selected: boolean }) {
+function Diamond({ data, selected, backplates }: { data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 140, H = 80;
   return (
-    <div style={{ width: W, height: H, position: 'relative' }}>
+    <div style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
+      {/* SVG-based backplates for diamond */}
+      {backplates.map((layer, i) => (
+        <svg key={i} width={W} height={H} style={{ position: 'absolute', transform: `translate(${layer.offset}px, ${layer.offset}px)`, zIndex: -1, overflow: 'visible' }}>
+          <polygon
+            points={`${W / 2},4 ${W - 4},${H / 2} ${W / 2},${H - 4} 4,${H / 2}`}
+            fill={layer.color}
+          />
+        </svg>
+      ))}
       <svg width={W} height={H} style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
         <polygon
           points={`${W / 2},4 ${W - 4},${H / 2} ${W / 2},${H - 4} 4,${H / 2}`}
@@ -117,13 +152,26 @@ function Diamond({ data, selected }: { data: ShapeNodeData; selected: boolean })
   );
 }
 
-function Cylinder({ data, selected }: { data: ShapeNodeData; selected: boolean }) {
+function Cylinder({ data, selected, backplates }: { data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 120, H = 90, RY = 14;
   const stroke = selected ? color : `${color}60`;
   const strokeW = selected ? 2 : 1.5;
   return (
-    <div style={{ width: W, height: H, position: 'relative' }}>
+    <div style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
+      {backplates.map((layer, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50% / 15%',
+            transform: `translate(${layer.offset}px, ${layer.offset}px)`,
+            background: layer.color,
+            zIndex: -1,
+          }}
+        />
+      ))}
       <svg width={W} height={H} style={{ position: 'absolute', inset: 0, overflow: 'visible', filter: selected ? `drop-shadow(0 0 8px ${color}30)` : 'none' }}>
         {/* Body */}
         <rect x={2} y={RY} width={W - 4} height={H - RY * 2} fill={`${color}10`} stroke={stroke} strokeWidth={strokeW} />
@@ -145,11 +193,12 @@ function Cylinder({ data, selected }: { data: ShapeNodeData; selected: boolean }
   );
 }
 
-function Circle({ data, selected }: { data: ShapeNodeData; selected: boolean }) {
+function Circle({ data, selected, backplates }: { data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 100, H = 100;
   return (
-    <div style={{ width: W, height: H, position: 'relative' }}>
+    <div style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
+      <Backplates layers={backplates} borderRadius="50%" />
       <svg width={W} height={H} style={{ position: 'absolute', inset: 0, filter: selected ? `drop-shadow(0 0 8px ${color}30)` : 'none' }}>
         <ellipse
           cx={W / 2} cy={H / 2} rx={W / 2 - 2} ry={H / 2 - 2}
@@ -171,12 +220,20 @@ function Circle({ data, selected }: { data: ShapeNodeData; selected: boolean }) 
   );
 }
 
-function Parallelogram({ data, selected }: { data: ShapeNodeData; selected: boolean }) {
+function Parallelogram({ data, selected, backplates }: { data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 150, H = 70, SKEW = 20;
   const pts = `${SKEW},2 ${W - 2},2 ${W - SKEW - 2},${H - 2} 2,${H - 2}`;
   return (
-    <div style={{ width: W, height: H, position: 'relative' }}>
+    <div style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
+       {backplates.map((layer, i) => (
+        <svg key={i} width={W} height={H} style={{ position: 'absolute', transform: `translate(${layer.offset}px, ${layer.offset}px)`, zIndex: -1, overflow: 'visible' }}>
+          <polygon
+            points={pts}
+            fill={layer.color}
+          />
+        </svg>
+      ))}
       <svg width={W} height={H} style={{ position: 'absolute', inset: 0, overflow: 'visible', filter: selected ? `drop-shadow(0 0 8px ${color}30)` : 'none' }}>
         <polygon
           points={pts}
@@ -201,13 +258,17 @@ function Parallelogram({ data, selected }: { data: ShapeNodeData; selected: bool
 // ── Main component ────────────────────────────────────────────────────────────
 
 function ShapeNodeComponent({ data, selected }: NodeProps<ShapeNodeData>) {
+  const { isDark } = useCanvasTheme();
+  const styles = isDark ? DARK_NODE_STYLES : LIGHT_NODE_STYLES;
+  const backplates = styles.backplates;
+
   switch (data.shape) {
-    case 'diamond':          return <Diamond data={data} selected={!!selected} />;
-    case 'cylinder':         return <Cylinder data={data} selected={!!selected} />;
-    case 'circle':           return <Circle data={data} selected={!!selected} />;
-    case 'parallelogram':    return <Parallelogram data={data} selected={!!selected} />;
-    case 'rounded-rectangle': return <Rectangle data={data} selected={!!selected} rounded />;
-    default:                 return <Rectangle data={data} selected={!!selected} rounded={false} />;
+    case 'diamond':          return <Diamond data={data} selected={!!selected} backplates={backplates} />;
+    case 'cylinder':         return <Cylinder data={data} selected={!!selected} backplates={backplates} />;
+    case 'circle':           return <Circle data={data} selected={!!selected} backplates={backplates} />;
+    case 'parallelogram':    return <Parallelogram data={data} selected={!!selected} backplates={backplates} />;
+    case 'rounded-rectangle': return <Rectangle data={data} selected={!!selected} rounded backplates={backplates} />;
+    default:                 return <Rectangle data={data} selected={!!selected} rounded={false} backplates={backplates} />;
   }
 }
 

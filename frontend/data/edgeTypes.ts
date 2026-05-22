@@ -18,7 +18,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
   sync: {
     id: 'sync',
     label: 'Sync',
-    color: '#6B7280',
+    color: '#3B82F6',
     dash: '',
     animated: false,
     markerStart: false,
@@ -28,7 +28,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
   async: {
     id: 'async',
     label: 'Async',
-    color: '#6B7280',
+    color: '#F59E0B',
     dash: '8 6',
     animated: true,
     markerStart: false,
@@ -38,7 +38,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
   stream: {
     id: 'stream',
     label: 'Stream',
-    color: '#6B7280',
+    color: '#10B981',
     dash: '10 4 2 4',
     animated: true,
     markerStart: false,
@@ -48,7 +48,7 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
   event: {
     id: 'event',
     label: 'Event',
-    color: '#6B7280',
+    color: '#8B5CF6',
     dash: '4 4',
     animated: true,
     markerStart: false,
@@ -84,10 +84,16 @@ export interface EdgeData {
   edgeVariant?: 'solid' | 'dashed' | 'dotted' | 'feedback';
   hideLabel?: boolean;
   communicationType?: 'sync' | 'async' | 'stream' | 'event' | 'dep';
+  connectionType?: EdgeType;
+  color?: string;
+  labelT?: number;
 }
 
 export function getEdgeConfig(edgeType: EdgeType | undefined): EdgeTypeConfig {
-  return EDGE_TYPE_CONFIGS[edgeType ?? DEFAULT_EDGE_TYPE];
+  if (!edgeType || !EDGE_TYPE_CONFIGS[edgeType]) {
+    return EDGE_TYPE_CONFIGS[DEFAULT_EDGE_TYPE];
+  }
+  return EDGE_TYPE_CONFIGS[edgeType];
 }
 
 export function getEffectivePathType(edgeType: EdgeType | undefined, pathType: PathType | undefined): PathType {

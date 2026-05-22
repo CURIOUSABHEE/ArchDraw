@@ -9,7 +9,7 @@ import { FloatingHandles } from './nodes/FloatingHandles';
 
 const NODE_WIDTH = 160;
 const NODE_HEIGHT = 80;
-const BORDER_RADIUS = 12;
+const BORDER_RADIUS = 10;
 
 interface NodeStyleConfig {
   background: string;
@@ -19,6 +19,8 @@ interface NodeStyleConfig {
   shadowSelected: string;
   titleColor: string;
   subtitleColor: string;
+  fontSize: number;
+  subFontSize: number;
 }
 
 const LIGHT_STYLES: NodeStyleConfig = {
@@ -29,16 +31,20 @@ const LIGHT_STYLES: NodeStyleConfig = {
   shadowSelected: '0 0 0 2px rgba(95,164,219,0.35), 5px 5px 0 #dfdfd8, 10px 10px 0 #ecece5, 0 2px 5px rgba(0,0,0,0.06)',
   titleColor: '#595959',
   subtitleColor: '#7a7a7a',
+  fontSize: 12,
+  subFontSize: 10,
 };
 
 const DARK_STYLES: NodeStyleConfig = {
-  background: '#1F2937',
-  border: '#374151',
+  background: 'linear-gradient(135deg, #1E2235 0%, #141624 100%)',
+  border: '#1E2130',
   borderHover: '#4B5563',
-  shadow: '0 1px 4px rgba(0,0,0,0.3)',
+  shadow: '0 4px 16px rgba(0,0,0,0.5)',
   shadowSelected: '0 0 0 2px rgba(129,140,248,0.5), 0 4px 12px rgba(129,140,248,0.25)',
-  titleColor: '#F9FAFB',
-  subtitleColor: '#9CA3AF',
+  titleColor: '#F1F5F9', // near white
+  subtitleColor: '#94A3B8', // soft slate
+  fontSize: 13,
+  subFontSize: 11,
 };
 
 const STATUS_COLORS = {
@@ -60,6 +66,20 @@ function getTierColorNormalized(layer?: string): string {
     external: '#ec4899', // rose
   };
   return colorMap[tier] || colorMap.compute;
+}
+
+function getDarkCategoryStyle(layer?: string): { border: string; glow: string } {
+  const tier = (layer || 'compute').toLowerCase();
+  const map: Record<string, { border: string; glow: string }> = {
+    client:      { border: '#60A5FA', glow: 'rgba(96,165,250,0.15)' }, // Infrastructure/Client -> blue
+    edge:        { border: '#60A5FA', glow: 'rgba(96,165,250,0.15)' },
+    compute:     { border: '#34D399', glow: 'rgba(52,211,153,0.15)' }, // Services -> green
+    async:       { border: '#FBBF24', glow: 'rgba(251,191,36,0.15)' }, // Async/Queue -> amber
+    data:        { border: '#F87171', glow: 'rgba(248,113,113,0.15)' }, // Databases -> red
+    observe:     { border: '#A78BFA', glow: 'rgba(167,139,250,0.15)' }, // Auth/Security -> purple
+    external:    { border: '#22D3EE', glow: 'rgba(34,211,238,0.15)' }, // Cache/External -> cyan
+  };
+  return map[tier] || map.compute;
 }
 
 function ToolbarButton({ 
@@ -94,6 +114,7 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     status?: 'healthy' | 'warning' | 'error' | 'unknown';
     color?: string;
     nodeWidth?: number;
+    nodeHeight?: number;
     accentColor?: string;
   };
   
@@ -153,8 +174,8 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     useDiagramStore.getState().setSidebarOpen(true);
   }, []);
 
-  // Backplate layers — separate elements with z-index: 0 (BELOW edges)
-  const backplateLayers = selected
+  // Backplate layers — completely disabled in dark mode for glass/glow effect
+  const backplateLayers = isDark ? [] : (selected
     ? [
         { offset: 10, color: '#ecece5' },
         { offset: 5, color: '#dfdfd8' },
@@ -162,7 +183,26 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     : [
         { offset: 10, color: '#efefe8' },
         { offset: 5, color: '#e1e1da' },
-      ];
+      ]);
+
+  // Dark mode details
+  const catStyle = getDarkCategoryStyle(nodeData.layer);
+  const borderCol = isDark ? catStyle.border : (selected ? accentColor : styles.border);
+  
+  let boxS = '';
+  if (isDark) {
+    boxS = `0 4px 16px rgba(0,0,0,0.5), inset 0 0 12px ${catStyle.glow}`;
+    if (selected) {
+      boxS = `0 0 0 2px ${catStyle.border}, 0 4px 16px rgba(0,0,0,0.5), inset 0 0 12px ${catStyle.glow}`;
+    }
+  } else {
+    boxS = selected
+      ? `0 0 0 2px ${accentColor}, 0 3px 8px rgba(0,0,0,0.07)`
+      : `0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.85)`;
+  }
+
+  // Icon color: match category border at 90% brightness (default hex here is already bright)
+  const iconColor = isDark ? catStyle.border : accentColor;
 
   return (
     <div style={{ position: 'relative', zIndex: 2 /* node above edges */ }}>
@@ -188,24 +228,11 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         style={{
           width: nodeData.nodeWidth || NODE_WIDTH,
           minWidth: nodeData.nodeWidth || NODE_WIDTH,
-          height: NODE_HEIGHT,
+          height: nodeData.nodeHeight || NODE_HEIGHT,
           borderRadius: BORDER_RADIUS,
           background: styles.background,
-          borderTopWidth: 1.5,
-          borderRightWidth: 1.5,
-          borderBottomWidth: 1.5,
-          borderLeftWidth: 1.5,
-          borderTopStyle: 'solid',
-          borderRightStyle: 'solid',
-          borderBottomStyle: 'solid',
-          borderLeftStyle: 'solid',
-          borderTopColor: selected ? accentColor : styles.border,
-          borderRightColor: selected ? accentColor : styles.border,
-          borderBottomColor: selected ? accentColor : styles.border,
-          borderLeftColor: selected ? accentColor : styles.border,
-          boxShadow: selected
-            ? `0 0 0 2px ${accentColor}, 0 3px 8px rgba(0,0,0,0.07)`
-            : `0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.85)`,
+          border: `1.5px solid ${borderCol}`,
+          boxShadow: boxS,
           transition: 'all 150ms ease',
           cursor: 'pointer',
           position: 'relative',
@@ -258,10 +285,18 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px 4px', flex: 1 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 6, background: `${accentColor}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <div style={{ width: 10, height: 10, borderRadius: 2.5, background: accentColor }} />
+          <div style={{ width: 24, height: 24, borderRadius: 6, background: `${iconColor}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 2.5, background: iconColor }} />
           </div>
-          <p style={{ fontSize: 12, fontWeight: 600, color: styles.titleColor, margin: 0, lineHeight: 1.3, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={data.label}>
+          <p style={{ 
+            fontSize: styles.fontSize, 
+            fontWeight: 700, // Bold
+            color: styles.titleColor, 
+            margin: 0, 
+            lineHeight: 1.3, 
+            flex: 1, 
+            wordBreak: 'break-word' 
+          }} title={data.label}>
             {data.label}
           </p>
         </div>
@@ -269,7 +304,14 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         {/* Footer */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 10px 8px' }}>
           {nodeData.subtitle && (
-            <p style={{ fontSize: 10, color: styles.subtitleColor, margin: 0, lineHeight: 1.2, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={nodeData.subtitle}>
+            <p style={{ 
+              fontSize: styles.subFontSize, 
+              color: styles.subtitleColor, 
+              margin: 0, 
+              lineHeight: 1.2, 
+              flex: 1, 
+              wordBreak: 'break-word' 
+            }} title={nodeData.subtitle}>
               {nodeData.subtitle}
             </p>
           )}

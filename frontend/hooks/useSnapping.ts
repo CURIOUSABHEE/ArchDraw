@@ -3,10 +3,9 @@
 import { useCallback, useRef } from 'react';
 import { Node, NodeDragHandler } from 'reactflow';
 import { useDiagramStore, GuideLine } from '@/store/diagramStore';
+import { NODE_WIDTH, NODE_HEIGHT } from '@/lib/theme/stylingConstants';
 
 const ALIGN_THRESHOLD = 8;
-const NODE_WIDTH = 160;
-const NODE_HEIGHT = 110;
 
 function xAnchors(n: Node) {
     const x = n.position.x;
@@ -28,6 +27,7 @@ export function useSnapping() {
 
     const onNodeDrag: NodeDragHandler = useCallback(
         (_event, draggedNode) => {
+            if (!draggedNode) return;
             const allNodes = useDiagramStore.getState().nodes;
             const others = allNodes.filter((n) => n.id !== draggedNode.id);
             const guides: GuideLine[] = [];

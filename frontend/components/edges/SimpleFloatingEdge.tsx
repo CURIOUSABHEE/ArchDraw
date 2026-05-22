@@ -1,8 +1,7 @@
 'use client';
 
-import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
+import { useMemo, useRef, useCallback, useState } from 'react';
 import { 
-  BaseEdge, 
   EdgeLabelRenderer,
   EdgeProps, 
   getSmoothStepPath,
@@ -16,91 +15,74 @@ import {
 import { getSimpleEdgePositions, getSimpleHandlePosition, getEdgeShiftOffset, getNodeCenter } from '@/lib/utils/simpleFloatingEdge';
 import { getPointOnPath, findClosestT } from '@/lib/utils/edgeLabelDrag';
 import { useDiagramStore } from '@/store/diagramStore';
+import { useCanvasTheme } from '@/lib/theme';
+import { getEdgeConfig, type EdgeData, EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
 
-interface SimpleEdgeData {
-  connectionType?: 'sync' | 'async' | 'stream' | 'event' | 'dep';
-  pathType?: 'smooth' | 'Smoothstep' | 'bezier' | 'step' | 'straight';
-  label?: string;
-  /** Fractional position of the label along the edge path (0 = source, 1 = target). Default 0.5 */
-  labelT?: number;
-}
+const EDGE_COLORS = {
+  light: {
+    default: '#6B7280',
+    async: '#F59E0B',
+    error: '#EF4444',
+    success: '#10B981',
+    data: '#3B82F6',
+  },
+  dark: {
+    default: '#6B7280',
+    async: '#F59E0B',
+    error: '#EF4444',
+    success: '#10B981',
+    data: '#3B82F6',
+  },
+};
 
-function resolveMarkerEnd(markerEnd: unknown, connectionType?: string): string {
-  if (typeof markerEnd === 'string' && markerEnd.startsWith('url(')) {
-    return markerEnd;
+function getInferredConnectionStyle(connectionType: string | undefined, label: string | undefined, isDark: boolean): { color?: string; dash?: string } {
+  const lowerLabel = label?.toLowerCase() ?? '';
+  const lowerType = connectionType?.toLowerCase() ?? '';
+  const colors = isDark ? EDGE_COLORS.dark : EDGE_COLORS.light;
+  
+  if (lowerType === 'error' || lowerLabel.includes('error') || lowerLabel.includes('failed')) {
+    return { color: colors.error };
   }
-
-  const markerByType: Record<string, string> = {
-    sync: 'url(#arrow-sync)',
-    async: 'url(#arrow-async)',
-    stream: 'url(#arrow-stream)',
-    event: 'url(#arrow-event)',
-    dep: 'url(#arrow-dep)',
-  };
-
-  return markerByType[connectionType || 'sync'] || 'url(#arrow-default)';
-}
-
-const EDGE_COLORS: Record<string, string> = {
-  sync: '#3B82F6', // Blue
-  async: '#F59E0B', // Amber
-  stream: '#10B981', // Emerald
-  event: '#8B5CF6', // Purple
-  dep: '#6B7280', // Gray
-};
-
-const STROKE_DASHARRAYS: Record<string, string | undefined> = {
-  sync: undefined,
-  async: '8 4',
-  stream: '6 3 2 3',
-  event: '4 2',
-  dep: '6 4',
-};
-
-function getEdgeColor(connectionType?: string): string {
-  return EDGE_COLORS[connectionType || 'sync'] || EDGE_COLORS.sync;
-}
-
-function getStrokeDasharray(connectionType?: string): string | undefined {
-  return STROKE_DASHARRAYS[connectionType || 'sync'];
+  if (lowerType === 'success' || lowerLabel.includes('success') || lowerLabel.includes('ok')) {
+    return { color: colors.success };
+  }
+  if (lowerType === 'async' || lowerType === 'publish' || lowerType === 'consume' || lowerLabel.includes('event') || lowerLabel.includes('publish') || lowerLabel.includes('consume') || lowerLabel.includes('queue')) {
+    return { color: colors.async, dash: '8 4' };
+  }
+  if (lowerType === 'sql' || lowerType === 'data' || lowerLabel.includes('sql') || lowerLabel.includes('query') || lowerLabel.includes('cache')) {
+    return { color: colors.data };
+  }
+  return {};
 }
 
 /**
  * SimpleFloatingEdge - A floating edge implementation that dynamically chooses
  * the correct side based on node geometry. This follows the React Flow "Simple
  * Floating Edges" example pattern.
- * 
- * Key features:
- * - Automatically determines source/target positions based on node centers
- * - Uses handle offsets to position connection points outside nodes
- * - Clears node shadows and backplates with proper spacing
- * - Works with ConnectionMode.Loose for flexible connections
- * - Supports draggable label along the edge path
  */
 
 export default function SimpleFloatingEdge({
   id,
   source,
   target,
-  sourceHandleId,
-  targetHandleId,
   style,
-  markerEnd,
   data,
   animated,
+  selected,
   sourceX = 0,
   sourceY = 0,
   targetX = 0,
   targetY = 0,
   sourcePosition = Position.Right,
   targetPosition = Position.Left,
-}: EdgeProps) {
+}: EdgeProps<EdgeData>) {
   const sourceNode = useStore((s: ReactFlowState) => s.nodeInternals.get(source));
   const targetNode = useStore((s: ReactFlowState) => s.nodeInternals.get(target));
   const edges = useStore((s: ReactFlowState) => s.edges);
   const nodeInternals = useStore((s: ReactFlowState) => s.nodeInternals);
   const { getViewport } = useReactFlow();
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
+  const { isDark } = useCanvasTheme();
 
   const edgeParams = useMemo(() => {
     let sx = sourceX;
@@ -134,18 +116,62 @@ export default function SimpleFloatingEdge({
   }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, source, target, id, edges, nodeInternals]);
 
   const { sx, sy, tx, ty, sourcePos, targetPos } = edgeParams;
+  const [isHovered, setIsHovered] = useState(false);
   
-  const connectionType = (data as SimpleEdgeData)?.connectionType || 'sync';
-  const stroke = getEdgeColor(connectionType);
-  const resolvedMarkerEnd = resolveMarkerEnd(markerEnd, connectionType);
-  const strokeDasharray = animated || connectionType === 'async' || connectionType === 'stream' || connectionType === 'event' || connectionType === 'dep'
-    ? getStrokeDasharray(connectionType)
-    : undefined;
-  const strokeWidth = (style as React.CSSProperties)?.strokeWidth || 2;
+  const connectionType = data?.connectionType || 'sync';
+  const config = getEdgeConfig(connectionType) || EDGE_TYPE_CONFIGS.sync;
+  const inferred = getInferredConnectionStyle(connectionType, data?.label, isDark);
+  
+  const lowerLabel = data?.label?.toLowerCase() ?? '';
+  const lowerType = connectionType?.toLowerCase() ?? '';
+  const isAsync = lowerType === 'async' || lowerType === 'publish' || lowerType === 'consume' || ['amqp', 'kafka', 'queue', 'pub/sub', 'event', 'publish', 'consume', 'nats', 'rabbitmq'].some(p => lowerLabel.includes(p));
 
-  const pathType = (data as SimpleEdgeData)?.pathType || 'Smoothstep';
-  const edgeLabel = (data as SimpleEdgeData)?.label?.trim();
-  const labelT = (data as SimpleEdgeData)?.labelT ?? 0.5;
+  const strokeColor = useMemo(() => {
+    if (selected) {
+      return isDark ? '#9CA3AF' : '#374151';
+    }
+    if (data?.color) {
+      return data.color;
+    }
+    if (isDark) {
+      if (isAsync) return '#FBBF24';
+      if (lowerType === 'error' || lowerLabel.includes('error') || lowerLabel.includes('failed')) return '#EF4444';
+      if (lowerType === 'success' || lowerLabel.includes('success') || lowerLabel.includes('ok')) return '#34D399';
+      return '#60A5FA'; // sync/default bright blue
+    }
+    return inferred.color || (style?.stroke as string) || config.color || '#6B7280';
+  }, [selected, isDark, data?.color, isAsync, lowerType, lowerLabel, inferred.color, style?.stroke, config.color]);
+
+  const strokeWidth = useMemo(() => {
+    if (style?.strokeWidth) return style.strokeWidth as number;
+    return selected ? 2.5 : (isHovered ? 2 : 1.5);
+  }, [style?.strokeWidth, selected, isHovered]);
+
+  const strokeDasharray = useMemo(() => {
+    if (isDark) {
+      if (isAsync) return '8,4';
+      return undefined;
+    }
+    return animated || config.animated || inferred.dash
+      ? inferred.dash || config.dash || undefined
+      : undefined;
+  }, [isDark, isAsync, animated, config.animated, inferred.dash]);
+
+  const edgeStyle: React.CSSProperties = useMemo(() => {
+    const opacity = selected ? 1 : (isHovered ? 1 : (isDark ? 0.8 : 0.85));
+    return {
+      stroke: strokeColor,
+      strokeWidth,
+      strokeDasharray,
+      transition: 'stroke 0.2s, stroke-width 0.2s, opacity 0.2s, filter 0.2s',
+      opacity,
+      filter: isDark ? `drop-shadow(0 0 ${isHovered ? '6px' : '3px'} ${strokeColor})` : undefined,
+    };
+  }, [strokeColor, strokeWidth, strokeDasharray, selected, isHovered, isDark]);
+
+  const pathType = data?.pathType || 'Smoothstep';
+  const edgeLabel = data?.label?.trim();
+  const labelT = data?.labelT ?? 0.5;
   
   let edgePath: string;
   if (pathType === 'straight') {
@@ -206,16 +232,41 @@ export default function SimpleFloatingEdge({
 
   return (
     <>
-      <BaseEdge
+      <defs>
+        <marker
+          id={`arrow-${id}`}
+          markerWidth="6"
+          markerHeight="6"
+          refX="5"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+        >
+          <path d="M 0 0 L 0 6 L 6 3 z" fill={strokeColor} />
+        </marker>
+      </defs>
+
+      {/* Interaction layer */}
+      <path
+        d={edgePath}
+        fill="none"
+        strokeWidth={20}
+        stroke="transparent"
+        className="react-flow__edge-interaction"
+        style={{ cursor: 'pointer' }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      />
+      {/* Visual layer */}
+      <path
         id={id}
-        path={edgePath}
-        style={{
-          ...style,
-          stroke,
-          strokeWidth,
-          strokeDasharray: strokeDasharray || undefined,
-        }}
-        markerEnd={resolvedMarkerEnd}
+        d={edgePath}
+        fill="none"
+        markerEnd={config.markerEnd ? `url(#arrow-${id})` : undefined}
+        className={`react-flow__edge-path ${(animated || config.animated || (isDark && isAsync)) ? `flow-${id}` : ''}`}
+        style={edgeStyle}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       />
       {edgeLabel && (
         <EdgeLabelRenderer>
@@ -227,22 +278,28 @@ export default function SimpleFloatingEdge({
               // Allow pointer events so we can drag
               pointerEvents: 'all',
               cursor: dragging ? 'grabbing' : 'grab',
-              fontSize: 9,
-              fontWeight: 600,
-              color: '#6B7280',
-              background: dragging
+              fontSize: isDark ? 10 : 9,
+              fontWeight: isDark ? 'bold' : 600,
+              color: isDark ? '#CBD5E1' : '#6B7280',
+              background: isDark
+                ? 'rgba(30, 34, 53, 0.9)'
+                : dragging
                 ? 'hsl(220 80% 97% / 1)'
                 : 'hsl(60 33% 98% / 1)',
               padding: '2px 6px',
               borderRadius: 4,
-              border: dragging
+              border: isDark
+                ? '1px solid rgba(255, 255, 255, 0.1)'
+                : dragging
                 ? '1px solid hsl(220 70% 75% / 0.9)'
                 : '1px solid hsl(40 20% 88% / 0.8)',
-              boxShadow: dragging
+              boxShadow: isDark
+                ? '0 2px 8px rgba(0, 0, 0, 0.4)'
+                : dragging
                 ? '0 2px 8px rgba(59,130,246,0.18)'
                 : '0 1px 3px hsl(40 15% 20% / 0.08)',
               textTransform: 'uppercase',
-              letterSpacing: '0.04em',
+              letterSpacing: isDark ? '0.05em' : '0.04em',
               zIndex: 1000,
               userSelect: 'none',
               transition: dragging ? 'none' : 'box-shadow 0.15s, background 0.15s, border-color 0.15s',

@@ -75,6 +75,7 @@ function getNodeParentId(node: Node): string | undefined {
 }
 
 export function resolveNodeCollisions(nodes: Node[], margin: number = COLLISION_MARGIN): Node[] {
+    if (!nodes || !Array.isArray(nodes)) return [];
     const result = nodes.map(n => ({ ...n, position: { ...n.position } }));
     
     for (let iter = 0; iter < 50; iter++) {

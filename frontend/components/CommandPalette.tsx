@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, X, Plus, FileText, LayoutDashboard, Command, Layers, Grid, ArrowRight, Clock } from 'lucide-react';
+import { Search, X, Command, Layers, FileText, ArrowRight } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 import { componentRegistry, type ComponentDefinition } from '@/lib/componentRegistry';
 import { createNode } from '@/lib/nodeFactory';
@@ -348,7 +348,7 @@ export function CommandPalette() {
             </div>
           )}
 
-          {sections.map((section, sectionIdx) => (
+          {sections.map((section) => (
             <div key={section.title} className="pb-2">
               {/* Section header */}
               <div className="sticky top-0 px-5 py-2" style={{ background: 'white' }}>

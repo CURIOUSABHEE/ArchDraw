@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Node, Edge } from 'reactflow';
 import { Toolbar } from '@/components/Toolbar';
 import { ComponentSidebar } from '@/components/ComponentSidebar';
@@ -35,14 +35,16 @@ function generateCanvasName(prompt: string): string {
 }
 
 export default function EditorPage() {
-  const { selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, importDiagram, importSequenceDiagram, fitView, addCanvas, renameCanvas, activeCanvasId, sequenceDiagrams } = useDiagramStore();
+  const { 
+    selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, 
+    importDiagram, importSequenceDiagram, fitView, addCanvas, renameCanvas, 
+    activeCanvasId, sequenceDiagrams 
+  } = useDiagramStore();
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<GenerationProgress | null>(null);
   const [canvasSidebarOpen, setCanvasSidebarOpen] = useState(false);
-  const [infoSidebarOpen, setInfoSidebarOpen] = useState(false);
   
   // Refs for useEffect to avoid dependency issues
   const sidebarOpenRef = useRef(sidebarOpen);
@@ -93,14 +95,13 @@ export default function EditorPage() {
             const supabase2 = getSupabaseClient();
             for (const canvas of guestCanvases) {
               if (canvas.nodes?.length > 0) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                await (supabase2 as any).from('user_canvases').insert({
+                await supabase2.from('user_canvases').insert({
                   id: canvas.id,
                   user_id: u.id,
                   name: canvas.name,
                   nodes: canvas.nodes,
                   edges: canvas.edges,
-                });
+                } as any);
               }
             }
             localStorage.removeItem('guestCanvases');
@@ -192,101 +193,9 @@ export default function EditorPage() {
       window.removeEventListener('close-canvas-sidebar', closeHandler);
       window.removeEventListener('toggle-canvas-sidebar', toggleHandler);
     };
-  }, []);
+  }, [setSidebarOpen]);
 
-  const handleGenerate = async (description: string, model?: string) => {
-    setIsGenerating(true);
-    setProgress(null);
-
-    const isCurrentCanvasEmpty = nodes.length === 0;
-    const canvasName = generateCanvasName(description);
-    let targetCanvasId: string | null = null;
-
-    if (!isCurrentCanvasEmpty) {
-      targetCanvasId = addCanvas(canvasName);
-    }
-
-    try {
-      // Use streaming endpoint for real-time feedback
-      const response = await fetch('/api/generate-diagram/streaming', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ description, model, stream: true }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || errorData.error || 'Generation failed');
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const event = JSON.parse(line.slice(6));
-              
-              if (event.type === 'progress') {
-                setProgress({
-                  phase: event.phase || 'generating',
-                  iteration: 0,
-                  currentAgent: event.phase || 'generating',
-                  score: 0,
-                  message: event.message || 'Generating...',
-                  progress: event.progress || 50,
-                });
-              } else if (event.type === 'complete') {
-                handleGenerationComplete(event.data, canvasName);
-                return;
-              } else if (event.type === 'cached') {
-                handleGenerationComplete(event.data, canvasName, true);
-                return;
-              } else if (event.type === 'error') {
-                throw new Error(event.message);
-              }
-            } catch (parseError) {
-              // Skip invalid JSON
-            }
-          }
-        }
-      }
-
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Generation failed';
-      setProgress({
-        phase: 'error',
-        iteration: 0,
-        currentAgent: 'error',
-        score: 0,
-        message: message,
-        progress: 0,
-      });
-      toast.error(message);
-    } finally {
-      setTimeout(() => {
-        setIsGenerating(false);
-        setProgress(null);
-      }, 2000);
-    }
-  };
-
-  const handleGenerationComplete = (result: { type?: string; nodes?: unknown[]; edges?: unknown[]; metadata?: Record<string, unknown> }, canvasName: string, cached = false) => {
+  const handleGenerationComplete = useCallback((result: { type?: string; nodes?: unknown[]; edges?: unknown[]; metadata?: Record<string, unknown> }, canvasName: string, cached = false) => {
     if (result.type === 'sequence') {
       const mermaidSyntax = result.metadata?.mermaidSyntax as string;
       const title = (result.metadata?.title as string) || canvasName;
@@ -345,11 +254,100 @@ export default function EditorPage() {
       message: `Created ${(result.metadata?.totalNodes as number) || result.nodes?.length || 0} nodes`,
       progress: 100,
     });
+  }, [fitView, importDiagram, importSequenceDiagram, renameCanvas]);
+
+  const handleGenerate = async (description: string, model?: string) => {
+    setProgress(null);
+
+    const isCurrentCanvasEmpty = nodes.length === 0;
+    const canvasName = generateCanvasName(description);
+
+    if (!isCurrentCanvasEmpty) {
+      addCanvas(canvasName);
+    }
+
+    try {
+      // Use streaming endpoint for real-time feedback
+      const response = await fetch('/api/generate-diagram/streaming', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ description, model, stream: true }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || errorData.error || 'Generation failed');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(line.slice(6));
+              
+              if (event.type === 'progress') {
+                setProgress({
+                  phase: event.phase || 'generating',
+                  iteration: 0,
+                  currentAgent: event.phase || 'generating',
+                  score: 0,
+                  message: event.message || 'Generating...',
+                  progress: event.progress || 50,
+                });
+              } else if (event.type === 'complete') {
+                handleGenerationComplete(event.data, canvasName);
+                return;
+              } else if (event.type === 'cached') {
+                handleGenerationComplete(event.data, canvasName, true);
+                return;
+              } else if (event.type === 'error') {
+                throw new Error(event.message);
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Generation failed';
+      setProgress({
+        phase: 'error',
+        iteration: 0,
+        currentAgent: 'error',
+        score: 0,
+        message: message,
+        progress: 0,
+      });
+      toast.error(message);
+    } finally {
+      setTimeout(() => {
+        setProgress(null);
+      }, 2000);
+    }
   };
 
   return (
     <ErrorBoundary>
-      <div className="fixed inset-0 overflow-hidden" style={{ background: '#FFFFFF' }}>
+      <div className="fixed inset-0 overflow-hidden bg-[hsl(var(--canvas-bg))]">
         {sequenceDiagrams[activeCanvasId] ? (
           <SequenceDiagramViewer />
         ) : (
@@ -383,7 +381,6 @@ export default function EditorPage() {
         <GenerationProgressDisplay 
           progress={progress} 
           onCancel={() => {
-            setIsGenerating(false);
             setProgress(null);
           }}
         />

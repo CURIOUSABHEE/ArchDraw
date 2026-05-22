@@ -33,10 +33,6 @@ export function useCanvasInteractions() {
   });
   
   const clipboardRef = useRef<ClipboardData | null>(null);
-  const moveStartPositions = useRef<Map<string, { x: number; y: number }>>(new Map());
-  const isPanningRef = useRef(false);
-  const panStartRef = useRef({ x: 0, y: 0 });
-  const viewportStartRef = useRef({ x: 0, y: 0 });
 
   const {
     nodes,
@@ -47,12 +43,8 @@ export function useCanvasInteractions() {
     setSelectedNodeIds,
     setSelectedEdgeId,
     deleteSelected,
-    selectAll: storeSelectAll,
     pushHistory,
-    removeNode,
-    deleteEdge,
     importDiagram,
-    onConnect,
   } = useDiagramStore();
 
   // Copy selected nodes to clipboard
@@ -60,9 +52,6 @@ export function useCanvasInteractions() {
     if (selectedNodeIds.length === 0 && !selectedEdgeId) return;
     
     const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
-    const selectedEdges = selectedEdgeId 
-      ? edges.filter(e => e.id === selectedEdgeId || e.source === selectedEdgeId || e.target === selectedEdgeId)
-      : [];
     
     // Filter edges that connect selected nodes
     const relevantEdges = selectedEdgeId
@@ -179,26 +168,8 @@ export function useCanvasInteractions() {
 
   // Delete selected nodes and edges
   const deleteSelection = useCallback(() => {
-    pushHistory();
-    
-    // Delete selected nodes
-    if (selectedNodeIds.length > 0) {
-      selectedNodeIds.forEach(id => {
-        const newNodes = nodes.filter(n => n.id !== id);
-        const newEdges = edges.filter(e => e.source !== id && e.target !== id);
-        useDiagramStore.setState({ nodes: newNodes, edges: newEdges });
-      });
-    }
-    
-    // Delete selected edge
-    if (selectedEdgeId) {
-      const newEdges = edges.filter(e => e.id !== selectedEdgeId);
-      useDiagramStore.setState({ edges: newEdges, selectedEdgeId: null });
-    }
-    
-    setSelectedNodeIds([]);
-    setSelectedEdgeId(null);
-  }, [selectedNodeIds, selectedEdgeId, nodes, edges, pushHistory, setSelectedNodeIds, setSelectedEdgeId]);
+    deleteSelected();
+  }, [deleteSelected]);
 
   // Duplicate selection (Cmd+D)
   const duplicateSelection = useCallback(() => {

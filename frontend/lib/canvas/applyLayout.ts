@@ -1,13 +1,11 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type { Node, Edge } from 'reactflow';
 import type { LayoutPreset } from './layoutPresets';
-import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
 import { getNodeShapeConfig } from '@/constants/nodeShapeConfig';
+import logger from '@/lib/logger';
 
 const elk = new ELK();
 
-const DEFAULT_NODE_WIDTH = 200;
-const DEFAULT_NODE_HEIGHT = 100;
 const DEFAULT_GROUP_WIDTH = 400;
 const DEFAULT_GROUP_HEIGHT = 300;
 
@@ -188,7 +186,7 @@ export async function applyLayoutPreset(
       };
     });
   } catch (error) {
-    console.error('[AutoLayout] ELK layout failed:', error);
+    logger.error('[AutoLayout] ELK layout failed:', error);
     return nodes;
   }
 }

@@ -1,8 +1,8 @@
 import dagre from 'dagre';
 import { Node, Edge } from 'reactflow';
-
-const NODE_WIDTH = 160;
-const NODE_HEIGHT = 100;
+import logger from './logger';
+import { calculateNodeDimensions } from './utils/nodeSizing';
+import { getTierForCategory } from './nodeShapes';
 
 export function getLayoutedElements(
   nodes: Node[],
@@ -11,32 +11,59 @@ export function getLayoutedElements(
 ): { nodes: Node[]; edges: Edge[] } {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({
+
+  // Rule 1: Minimum rank separation: 120px between tiers
+  // Rule 1: Minimum node separation: 60px within same tier
+  dagreGraph.setGraph({ 
     rankdir: direction,
-    ranksep: 200,
-    nodesep: 120,
-    marginx: 80,
-    marginy: 80,
+    ranksep: 120,
+    nodesep: 60,
+    align: 'DL', // Alignment for nodes in same rank
   });
 
   nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    const { label, subtitle, category } = node.data || {};
+    const { width, height } = calculateNodeDimensions(label || '', subtitle);
+    
+    // Rule 3: Group all nodes into explicit tiers before rendering
+    const tier = getTierForCategory(category || '');
+
+    dagreGraph.setNode(node.id, { 
+      width, 
+      height,
+      rank: tier // Suggesting rank to dagre based on Tier
+    });
   });
 
   edges.forEach((edge) => {
     dagreGraph.setEdge(edge.source, edge.target);
   });
 
-  dagre.layout(dagreGraph);
+  try {
+    dagre.layout(dagreGraph);
+  } catch (e) {
+    logger.error('[Layout] Dagre layout failed:', e);
+    return { nodes, edges };
+  }
 
   const layoutedNodes = nodes.map((node) => {
-    const { x, y } = dagreGraph.node(node.id);
+    const dagreNode = dagreGraph.node(node.id);
+    const { x, y, width, height } = dagreNode;
+    
     return {
       ...node,
+      width,
+      height,
       position: {
-        x: x - NODE_WIDTH / 2,
-        y: y - NODE_HEIGHT / 2,
+        x: x - width / 2,
+        y: y - height / 2,
       },
+      // Ensure data reflects the new dimensions for rendering
+      data: {
+        ...node.data,
+        nodeWidth: width,
+        nodeHeight: height,
+      }
     };
   });
 

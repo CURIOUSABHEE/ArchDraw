@@ -4,6 +4,7 @@ import { Component, type ReactNode } from 'react';
 import type { Node } from 'reactflow';
 import { validateAndFixNodes } from '@/lib/utils/nodeValidation';
 import { useDiagramStore } from '@/store/diagramStore';
+import logger from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -26,7 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }) {
-    console.error('[Archflow] Uncaught error:', error, info.componentStack);
+    logger.error('[Archflow] Uncaught error:', error, info.componentStack);
     
     // Auto-recover from parentNode errors
     if (error.message.includes('Parent node') && error.message.includes('not found')) {
@@ -40,15 +41,15 @@ export class ErrorBoundary extends Component<Props, State> {
       const match = errorMessage.match(/Parent node ([^\s]+) not found/);
       if (match) {
         const missingParentId = match[1];
-        console.log('[ErrorBoundary] Attempting to recover from missing parent:', missingParentId);
+        logger.log('[ErrorBoundary] Attempting to recover from missing parent:', missingParentId);
         
         // Get current nodes and clean them
         const currentNodes = useDiagramStore.getState().nodes;
         const fixedNodes = currentNodes.map(node => {
           const parentNode = (node as Node & { parentNode?: string }).parentNode;
           if (parentNode === missingParentId) {
-            const { parentNode: _, extent, ...cleanNode } = node as Node & { parentNode?: string };
-            console.log('[ErrorBoundary] Removed invalid parentNode from:', node.id);
+            const { parentNode: _p, extent: _e, ...cleanNode } = node as Node & { parentNode?: string };
+            logger.log('[ErrorBoundary] Removed invalid parentNode from:', node.id);
             return cleanNode as typeof node;
           }
           return node;
@@ -60,7 +61,7 @@ export class ErrorBoundary extends Component<Props, State> {
         // Update store
         useDiagramStore.setState({ nodes: validatedNodes });
         
-        console.log('[ErrorBoundary] Recovery successful');
+        logger.log('[ErrorBoundary] Recovery successful');
         
         // Reset error state after a short delay
         setTimeout(() => {
@@ -68,7 +69,7 @@ export class ErrorBoundary extends Component<Props, State> {
         }, 100);
       }
     } catch (e) {
-      console.error('[ErrorBoundary] Recovery failed:', e);
+      logger.error('[ErrorBoundary] Recovery failed:', e);
     }
   };
 

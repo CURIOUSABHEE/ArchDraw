@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Handle, Position, NodeProps, NodeResizer, useReactFlow, useUpdateNodeInternals } from 'reactflow';
 import type { TextSize } from './TextLabelNode';
 
@@ -57,34 +57,29 @@ function SizeButton({ size, currentSize, onClick }: SizeButtonProps) {
 function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNodeData>) {
   const updateNodeInternals = useUpdateNodeInternals();
   const { setNodes } = useReactFlow();
+  
+  // Use state only for the values being edited, initialized from props
   const [title, setTitle] = useState(data.title ?? '');
   const [body, setBody] = useState(data.body ?? '');
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingBody, setEditingBody] = useState(false);
-  const [titleSize, setTitleSize] = useState<TextSize>(data.titleSize ?? 'heading');
-  const [titleBold, setTitleBold] = useState(data.titleBold ?? true);
-  const [bodySize, setBodySize] = useState<TextSize>(data.bodySize ?? 'medium');
-  const [bodyBold, setBodyBold] = useState(data.bodyBold ?? false);
   const [activeField, setActiveField] = useState<'title' | 'body' | null>(null);
+  
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const SIZE_ORDER: TextSize[] = ['small', 'medium', 'large', 'heading'];
+  const SIZE_ORDER: TextSize[] = useMemo(() => ['small', 'medium', 'large', 'heading'], []);
   
   useEffect(() => {
     updateNodeInternals(id);
   }, [id, updateNodeInternals]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTitle(data.title ?? '');
-    setBody(data.body ?? '');
-    setTitleSize(data.titleSize ?? 'heading');
-    setTitleBold(data.titleBold ?? true);
-    setBodySize(data.bodySize ?? 'medium');
-    setBodyBold(data.bodyBold ?? false);
-  }, [data.title, data.titleSize, data.titleBold, data.body, data.bodySize, data.bodyBold]);
+  // Derived values from data prop (single source of truth)
+  const titleSize = data.titleSize ?? 'heading';
+  const titleBold = data.titleBold ?? true;
+  const bodySize = data.bodySize ?? 'medium';
+  const bodyBold = data.bodyBold ?? false;
 
   const currentSize = activeField === 'title' ? titleSize : bodySize;
   const currentBold = activeField === 'title' ? titleBold : bodyBold;
@@ -113,25 +108,21 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
     ));
   }, [id, setNodes]);
   
-  const setCurrentSize = (size: TextSize) => {
+  const setCurrentSize = useCallback((size: TextSize) => {
     if (activeField === 'title') {
-      setTitleSize(size);
       updateTitleSize(size);
     } else {
-      setBodySize(size);
       updateBodySize(size);
     }
-  };
+  }, [activeField, updateTitleSize, updateBodySize]);
   
-  const setCurrentBold = (bold: boolean) => {
+  const setCurrentBold = useCallback((bold: boolean) => {
     if (activeField === 'title') {
-      setTitleBold(bold);
       updateTitleBold(bold);
     } else {
-      setBodyBold(bold);
       updateBodyBold(bold);
     }
-  };
+  }, [activeField, updateTitleBold, updateBodyBold]);
 
   const increaseSize = useCallback(() => {
     const idx = SIZE_ORDER.indexOf(currentSize);

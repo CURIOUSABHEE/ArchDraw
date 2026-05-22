@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, Fragment } from 'react';
+import { useMemo, useState } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap, ReactFlowProvider,
   ConnectionLineType,
@@ -14,25 +14,24 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
-import { MessageBrokerNode } from '@/components/MessageBrokerNode';
-import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
-import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
 import { EmailCaptureModal } from '@/components/EmailCaptureModal';
+import { EdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
 
 const NODE_TYPES = {
   systemNode:        SystemNode,
   architectureNode:  SystemNode,
-  baseNode:          BaseNode,
-  databaseNode:     DatabaseNode,
-  cacheNode:         CacheNode,
+  baseNode:          SystemNode,
+  databaseNode:      SystemNode,
+  cacheNode:         SystemNode,
   shapeNode:         ShapeNode,
   groupNode:         GroupNode,
   group:             GroupNode,
   textLabelNode:     TextLabelNode,
   annotationNode:    AnnotationNode,
-  messageBrokerNode: MessageBrokerNode,
+  messageBrokerNode: SystemNode,
+  customNode:        SystemNode,
 };
 
 const EDGE_TYPES = {
@@ -59,51 +58,6 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
     const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
     if (!el) return;
     setIsDownloading(true);
-
-    const injectArrowDefs = (element: HTMLElement): (() => void) => {
-      const flowSvg = element.querySelector('svg') as SVGSVGElement | null;
-      if (!flowSvg) return () => {};
-
-      if (flowSvg.querySelector('#__export-defs__')) return () => {};
-
-      const ARROW_MARKERS = [
-        { id: 'arrow-sync',    color: '#3B82F6' },
-        { id: 'arrow-async',   color: '#F59E0B' },
-        { id: 'arrow-stream',  color: '#10B981' },
-        { id: 'arrow-event',   color: '#8B5CF6' },
-        { id: 'arrow-dep',     color: '#6B7280' },
-        { id: 'arrow-default', color: '#6B7280' },
-        { id: 'arrow-error',   color: '#EF4444' },
-      ];
-
-      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      defs.id = '__export-defs__';
-
-      for (const { id, color } of ARROW_MARKERS) {
-        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        marker.setAttribute('id', id);
-        marker.setAttribute('markerWidth', '6');
-        marker.setAttribute('markerHeight', '6');
-        marker.setAttribute('refX', '3');
-        marker.setAttribute('refY', '3');
-        marker.setAttribute('orient', 'auto');
-        marker.setAttribute('markerUnits', 'strokeWidth');
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M0,0 L0,6 L6,3 z');
-        path.setAttribute('fill', color);
-        marker.appendChild(path);
-        defs.appendChild(marker);
-      }
-
-      flowSvg.insertBefore(defs, flowSvg.firstChild);
-
-      return () => {
-        defs.remove();
-      };
-    };
-
-    const cleanupDefs = injectArrowDefs(el);
 
     try {
       const dataUrl = await toPng(el, {
@@ -133,7 +87,6 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
     } catch {
       toast.error('Download failed');
     } finally {
-      cleanupDefs();
       setIsDownloading(false);
     }
   };
@@ -209,25 +162,7 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
           data: { edgeType: 'sync', pathType: 'smooth' },
         }}
       >
-        <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
-          <defs>
-            {Object.values(EDGE_TYPE_CONFIGS).map((cfg) => (
-              <Fragment key={cfg.id}>
-                <marker id={`marker-${cfg.id}-end`} markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L9,3 z" fill={cfg.color} />
-                </marker>
-                {cfg.markerStart && (
-                  <marker id={`marker-${cfg.id}-start`} markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
-                    <path d="M0,0 L0,6 L9,3 z" fill={cfg.color} />
-                  </marker>
-                )}
-              </Fragment>
-            ))}
-            <style>{`
-              @keyframes edgeDash { to { stroke-dashoffset: -20; } }
-            `}</style>
-          </defs>
-        </svg>
+        <EdgeMarkerDefs />
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#334155" />
         <Controls showInteractive={false} className="!bg-card/90 !border !border-border/60 !rounded-lg" />
         <MiniMap zoomable pannable className="!bg-card/90 !border !border-border/60 !rounded-lg" maskColor="rgba(0,0,0,0.04)" />

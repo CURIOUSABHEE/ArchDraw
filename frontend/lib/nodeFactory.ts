@@ -1,132 +1,121 @@
 import { Node } from 'reactflow';
 import { getStrictPortConfig, COMPONENT_PORTS, getComponentLabel } from './componentPorts';
-import { getShapeConfig, SHAPE_CONFIGS, type NodeShape, type ShapeConfig } from './nodeShapes';
+import { getShapeConfig, SHAPE_CONFIGS, type ShapeConfig } from './nodeShapes';
 import type { NodeData } from '@/store/diagramStore';
+import logger from '@/lib/logger';
 
-export type NodeCreationSource = 'sidebar' | 'cmdk' | 'template' | 'drag' | 'unknown';
+export interface NodeFactoryResult {
+  node: Node<NodeData>;
+}
 
-export interface CreateNodeOptions {
+export interface NodeFactoryOptions {
   componentId: string;
-  label: string;
-  category: string;
+  label?: string;
+  category?: string;
   color?: string;
   icon?: string;
   technology?: string;
   position?: { x: number; y: number };
+  parentId?: string;
+  description?: string;
 }
 
-export interface CreatedNodeResult {
-  node: Node<NodeData>;
-  portConfig: ReturnType<typeof getStrictPortConfig>;
-  shapeConfig: ShapeConfig;
-  source: NodeCreationSource;
-}
+const DEFAULT_WIDTH = 160;
+const DEFAULT_HEIGHT = 80;
 
-function sanitizeComponentId(id: string): string {
-  return id.toLowerCase().replace(/[^a-z0-9]/g, '_');
-}
+/**
+ * Node Factory - Unified way to create nodes with correct metadata and configuration.
+ */
+export function createNode(
+  options: NodeFactoryOptions,
+  source: 'drag' | 'cmdk' | 'ai' | 'template' = 'cmdk'
+): NodeFactoryResult {
+  const { 
+    componentId, label, category, color, icon, 
+    technology, position, parentId 
+  } = options;
 
-function getComponentType(componentId: string, category: string): string {
-  const sanitized = sanitizeComponentId(componentId);
-  
-  if (COMPONENT_PORTS[sanitized]) {
-    return sanitized;
-  }
-  
-  const categorySanitized = sanitizeComponentId(category);
-  if (COMPONENT_PORTS[categorySanitized]) {
-    return categorySanitized;
-  }
-  
-  throw new Error(`INVALID COMPONENT: No port config found for "${componentId}" (tried: ${sanitized}, ${categorySanitized})`);
-}
+  let componentType = componentId;
+  let shapeConfig: ShapeConfig | undefined;
 
-export function createNode(options: CreateNodeOptions, source: NodeCreationSource = 'unknown'): CreatedNodeResult {
-  const { componentId, label, category, color, icon, technology, position } = options;
-  
-  // Get component type - if invalid, just use a generic type
-  let componentType: string;
   try {
-    componentType = getComponentType(componentId, category);
-  } catch (error) {
-    // If component not found in COMPONENT_PORTS, create generically without strict ports
-    componentType = componentId.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    console.log(`[NODE FACTORY] Using generic component: ${componentType}`);
+    getStrictPortConfig(componentId);
+    shapeConfig = getShapeConfig(category || 'Compute');
+  } catch {
+    // If specific component not found, try finding by category or use generic
+    const lowerId = componentId.toLowerCase();
+    if (lowerId.includes('service')) componentType = 'service';
+    else if (lowerId.includes('db') || lowerId.includes('database')) componentType = 'database';
+    else if (lowerId.includes('cache')) componentType = 'cache';
+    else if (lowerId.includes('queue')) componentType = 'queue';
+    else componentType = 'service';
+
+    logger.log(`[NODE FACTORY] Using generic component: ${componentType}`);
+    
+    try {
+      getStrictPortConfig(componentType);
+      shapeConfig = getShapeConfig(category || 'Compute');
+    } catch {
+      logger.log(`[NODE FACTORY] Using default config for: ${componentType}`);
+    }
   }
-  
-  // Get port config - if invalid, create permissive defaults
-  let portConfig: ReturnType<typeof getStrictPortConfig>;
-  try {
-    portConfig = getStrictPortConfig(componentType);
-  } catch (error) {
-    // Use permissive port config for unknown components
-    portConfig = {
-      inputs: 1,
-      outputs: 1,
-      label: 'Generic',
-    };
-    console.log(`[NODE FACTORY] Using permissive ports for: ${componentType}`);
-  }
-  
-  const shapeConfig = getShapeConfig(category);
-  
-  const id = `${componentId}-${Date.now()}`;
-  const pos = position ?? { x: 400 + Math.random() * 200 - 100, y: 300 + Math.random() * 200 - 100 };
+
+  const id = `${componentId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   
   const node: Node<NodeData> = {
     id,
-    type: 'customNode',
-    position: pos,
+    type: 'systemNode',
+    position: position || { x: 0, y: 0 },
+    parentId,
     data: {
-      label,
-      category,
+      label: label || getComponentLabel(componentId),
+      category: category || 'Compute',
+      color: color || '#3b82f6',
+      icon: icon || 'box',
+      technology: technology || 'unknown',
+      description: options.description || '',
       componentType,
-      color,
-      icon,
-      technology,
-      shape: shapeConfig.shape,
+      shape: shapeConfig?.shape || 'rounded-square',
     },
+    width: DEFAULT_WIDTH,
+    height: DEFAULT_HEIGHT,
   };
-  
-  console.log(`[NODE CREATED]`, {
-    id,
-    componentType,
-    category,
-    label,
-    inputs: portConfig.inputs,
-    outputs: portConfig.outputs,
-    shape: shapeConfig.shape,
-    source,
+
+  logger.log(`[NODE CREATED]`, {
+    id: node.id,
+    label: node.data.label,
+    source
   });
-  
-  return {
-    node,
-    portConfig,
-    shapeConfig,
-    source,
-  };
+
+  return { node };
 }
 
-export function validateNode(node: Node<NodeData>): void {
-  const { componentType, category } = node.data;
-  
-  if (!componentType) {
-    throw new Error(`NODE VALIDATION FAILED: Missing componentType for node ${node.id}`);
-  }
-  
-  const portConfig = getStrictPortConfig(componentType);
-  const shapeConfig = getShapeConfig(category);
-  
-  if (node.data.shape !== shapeConfig.shape) {
-    console.warn(`NODE SHAPE MISMATCH: Expected ${shapeConfig.shape}, got ${node.data.shape}`);
+/**
+ * Validate that a node matches its intended category configuration.
+ */
+export function validateNodeConfig(node: Node<NodeData>): boolean {
+  const { category, componentType } = node.data;
+  if (!category || !componentType) return false;
+
+  try {
+    const ports = COMPONENT_PORTS[componentType];
+    const shapeConfig = SHAPE_CONFIGS[category];
+    
+    if (shapeConfig && node.data.shape !== shapeConfig.shape) {
+      logger.warn(`NODE SHAPE MISMATCH: Expected ${shapeConfig.shape}, got ${node.data.shape}`);
+    }
+
+    return !!ports;
+  } catch {
+    return false;
   }
 }
 
-export function getNodeDefaults(componentId: string, category: string) {
-  const componentType = sanitizeComponentId(componentId);
-  const categorySanitized = sanitizeComponentId(category);
-  
-  const ports = COMPONENT_PORTS[componentType] || COMPONENT_PORTS[categorySanitized];
+/**
+ * Resolve the layout metadata for a component.
+ */
+export function getComponentLayoutMetadata(componentId: string, category: string) {
+  const ports = COMPONENT_PORTS[componentId] || COMPONENT_PORTS[category.toLowerCase()];
   const shape = SHAPE_CONFIGS[category];
   
   if (!ports) {

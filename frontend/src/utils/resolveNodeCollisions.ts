@@ -1,10 +1,29 @@
 import type { Node } from 'reactflow';
+import logger from '@/lib/logger';
 
-export function resolveNodeCollisions(nodes: Node[], margin: number = 20): Node[] {
+interface FlowNode extends Node {
+  dragging?: boolean;
+  measured?: {
+    width?: number;
+    height?: number;
+  };
+}
+
+export function resolveNodeCollisions(nodes: Node[], margin: number = 40): Node[] {
+  if (!nodes || !Array.isArray(nodes)) {
+    logger.warn('[Collision] resolveNodeCollisions received invalid nodes parameter:', nodes);
+    return [];
+  }
+
+  if (nodes.length > 50) {
+    logger.warn('[Collision] Skipping collision resolve - too many nodes');
+    return nodes;
+  }
+
   const clonedNodes = nodes.map((n) => ({
     ...n,
     position: { ...n.position },
-  }));
+  })) as FlowNode[];
 
   let overlapFound = true;
   let iterations = 0;
@@ -19,7 +38,7 @@ export function resolveNodeCollisions(nodes: Node[], margin: number = 20): Node[
         const A = clonedNodes[i];
         const B = clonedNodes[j];
 
-        if ((A as Node & { dragging?: boolean }).dragging || (B as Node & { dragging?: boolean }).dragging) {
+        if (A.dragging || B.dragging) {
           continue;
         }
 
@@ -27,10 +46,10 @@ export function resolveNodeCollisions(nodes: Node[], margin: number = 20): Node[
           continue;
         }
 
-        const aWidth = (A as Node & { measured?: { width: number; height: number } }).measured?.width ?? A.width ?? 150;
-        const aHeight = (A as Node & { measured?: { width: number; height: number } }).measured?.height ?? A.height ?? 50;
-        const bWidth = (B as Node & { measured?: { width: number; height: number } }).measured?.width ?? B.width ?? 150;
-        const bHeight = (B as Node & { measured?: { width: number; height: number } }).measured?.height ?? B.height ?? 50;
+        const aWidth = A.measured?.width ?? A.width ?? 150;
+        const aHeight = A.measured?.height ?? A.height ?? 50;
+        const bWidth = B.measured?.width ?? B.width ?? 150;
+        const bHeight = B.measured?.height ?? B.height ?? 50;
 
         const aLeft = A.position.x - margin / 2;
         const aRight = A.position.x + aWidth + margin / 2;
@@ -42,14 +61,15 @@ export function resolveNodeCollisions(nodes: Node[], margin: number = 20): Node[
         const bTop = B.position.y - margin / 2;
         const bBottom = B.position.y + bHeight + margin / 2;
 
-        const overlapX = Math.min(aRight, bRight) - Math.max(aLeft, bLeft);
-        const overlapY = Math.min(aBottom, bBottom) - Math.max(aTop, bTop);
+        const isOverlapping = !(aRight < bLeft || aLeft > bRight || aBottom < bTop || aTop > bBottom);
 
-        if (overlapX > 0 && overlapY > 0) {
+        if (isOverlapping) {
           overlapFound = true;
+          const overlapX = Math.min(aRight, bRight) - Math.max(aLeft, bLeft);
+          const overlapY = Math.min(aBottom, bBottom) - Math.max(aTop, bTop);
 
           if (overlapX < overlapY) {
-            const moveX = overlapX / 2;
+            const moveX = overlapX / 2 + 1;
             if (A.position.x < B.position.x) {
               A.position.x -= moveX;
               B.position.x += moveX;
@@ -58,7 +78,7 @@ export function resolveNodeCollisions(nodes: Node[], margin: number = 20): Node[
               B.position.x -= moveX;
             }
           } else {
-            const moveY = overlapY / 2;
+            const moveY = overlapY / 2 + 1;
             if (A.position.y < B.position.y) {
               A.position.y -= moveY;
               B.position.y += moveY;

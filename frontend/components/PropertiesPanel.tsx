@@ -54,9 +54,8 @@ function EdgePropertiesPanel() {
   const [localLabel, setLocalLabel] = useState(edge?.data?.label ?? '');
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (edge) setLocalLabel(edge.data?.label ?? '');
-  }, [edge?.data?.label, edge]);
+  }, [edge]);
 
   if (!edge) return null;
 
@@ -116,9 +115,8 @@ export function PropertiesPanel() {
   const [localLabel, setLocalLabel] = useState(node?.data?.label ?? '');
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (node) setLocalLabel(node.data.label ?? '');
-  }, [node?.id, node]);
+  }, [node]);
 
   if (selectedEdgeId && !node) {
     return <EdgePropertiesPanel />;

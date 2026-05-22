@@ -1,13 +1,13 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { generatePureSVG } from '@/lib/svgExport';
 import {
-  Download, Trash2, Upload, ChevronDown,
+  Download, Trash2, Upload,
   Undo2, Redo2, Share2, Loader2, Check,
   GraduationCap, Sparkles, MoreHorizontal, HelpCircle,
-  Plus, X, PanelLeftClose, LayoutTemplate, Pin, FolderOpen,
-  LayoutDashboard, LayoutGrid,
+  PanelLeftClose, LayoutTemplate, FolderOpen,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
@@ -16,13 +16,13 @@ import { toast } from 'sonner';
 import { ShareModal } from '@/components/ShareModal';
 import { TemplateModal } from '@/components/TemplateModal';
 import { EmailCaptureModal, type EmailCaptureReason } from '@/components/EmailCaptureModal';
+import logger from '@/lib/logger';
 
-import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { DiagramPagination } from '@/components/editor/DiagramPagination';
-import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
+import { type PathType } from '@/data/edgeTypes';
 import {
   Select,
   SelectContent,
@@ -45,8 +45,17 @@ interface EmbedEdge {
   source: string;
   target: string;
   data?: Record<string, unknown>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  style?: any;
+  style?: React.CSSProperties;
+}
+
+function escapeXml(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 function generateEmbedHTML(nodes: EmbedNode[], edges: EmbedEdge[]): string {
@@ -62,15 +71,15 @@ function generateEmbedHTML(nodes: EmbedNode[], edges: EmbedEdge[]): string {
       ...node,
       width,
       height,
-      color: node.data?.color || '#6B7280',
-      label: node.data?.label || node.id,
+      color: (node.data?.color as string) || '#6B7280',
+      label: (node.data?.label as string) || node.id,
     };
   });
   
   const renderedEdges = edges.map(edge => ({
     source: edge.source,
     target: edge.target,
-    label: edge.data?.label || '',
+    label: (edge.data?.label as string) || '',
     color: edge.style?.stroke || '#64748b',
   }));
   
@@ -80,7 +89,7 @@ function generateEmbedHTML(nodes: EmbedNode[], edges: EmbedEdge[]): string {
     <g transform="translate(${x}, ${y})" class="node">
       <rect width="${width}" height="${height}" rx="8" fill="#1e293b" stroke="${color}" stroke-width="2"/>
       <rect width="${width}" height="4" rx="2" fill="${color}"/>
-      <text x="${width/2}" y="${height/2 + 5}" text-anchor="middle" fill="#f1f5f9" font-family="system-ui,sans-serif" font-size="12" font-weight="500">${label}</text>
+      <text x="${width/2}" y="${height/2 + 5}" text-anchor="middle" fill="#f1f5f9" font-family="system-ui,sans-serif" font-size="12" font-weight="500">${escapeXml(label)}</text>
     </g>`;
   }).join('');
   
@@ -102,7 +111,7 @@ function generateEmbedHTML(nodes: EmbedNode[], edges: EmbedEdge[]): string {
     return `
     <g class="edge">
       <path d="${path}" fill="none" stroke="${edge.color}" stroke-width="2" marker-end="url(#arrowhead)"/>
-      ${edge.label ? `<text x="${labelX}" y="${labelY}" text-anchor="middle" fill="#94a3b8" font-family="system-ui,sans-serif" font-size="10">${edge.label}</text>` : ''}
+      ${edge.label ? `<text x="${labelX}" y="${labelY}" text-anchor="middle" fill="#94a3b8" font-family="system-ui,sans-serif" font-size="10">${escapeXml(edge.label)}</text>` : ''}
     </g>`;
   }).join('');
   
@@ -182,21 +191,13 @@ function generateEmbedHTML(nodes: EmbedNode[], edges: EmbedEdge[]): string {
 </html>`;
 }
 
-function formatRelative(ts: number): string {
-  const diff = Math.floor((Date.now() - ts) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
 export function Toolbar() {
   const router = useRouter();
   const {
     clearDiagram, nodes, edges, importDiagram,
     undo, redo, past, future,
-    canvases, activeCanvasId, addCanvas, removeCanvas, switchCanvas, renameCanvas,
-    openCanvas, closeCanvas, togglePinCanvas, getVisibleCanvases, getOverflowCanvases, openCanvasIds,
+    canvases, activeCanvasId, removeCanvas, renameCanvas,
+    getVisibleCanvases,
     savingState, userProfile, setSidebarOpen, sidebarOpen,
   } = useDiagramStore();
 
@@ -208,7 +209,6 @@ export function Toolbar() {
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
-  const [embedUrl, setEmbedUrl] = useState('');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareSessionId, setShareSessionId] = useState('');
   const [shareAccessType, setShareAccessType] = useState<'restricted' | 'anyone'>('anyone');
@@ -218,17 +218,11 @@ export function Toolbar() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState('');
-  const editInputRef = useRef<HTMLInputElement>(null);
   const [selectedEdgeType, setSelectedEdgeType] = useState<string>('smooth');
-  const [overflowOpen, setOverflowOpen] = useState(false);
 
   const openGuide = useOnboardingStore((s) => s.open);
 
-  const visibleCanvases = getVisibleCanvases();
-  const overflowCanvases = getOverflowCanvases();
-  const overflowCount = overflowCanvases.length;
+  useCallback(getVisibleCanvases, [getVisibleCanvases])();
 
   // Count nodes/edges in current canvas for delete confirmation
   const currentCanvasForDelete = canvases.find(c => c.id === activeCanvasId);
@@ -237,13 +231,6 @@ export function Toolbar() {
 
   const handleDeleteCanvas = () => {
     setConfirmDeleteId(activeCanvasId);
-  };
-
-  const confirmDelete = () => {
-    if (confirmDeleteId) {
-      removeCanvas(confirmDeleteId);
-      setConfirmDeleteId(null);
-    }
   };
 
   const normalizePathType = (type: string): string => {
@@ -280,56 +267,6 @@ export function Toolbar() {
 
   const wasEmailModalDismissed = () =>
     typeof window !== 'undefined' && sessionStorage.getItem('emailModalDismissed') === 'true';
-
-  /**
-   * Injects arrow marker <defs> into the React Flow SVG inside the viewport
-   * so that html-to-image can resolve url(#arrow-*) references during export.
-   * Returns a cleanup function that removes the injected defs.
-   */
-  const injectArrowDefs = (element: HTMLElement): (() => void) => {
-    const flowSvg = element.querySelector('svg') as SVGSVGElement | null;
-    if (!flowSvg) return () => {};
-
-    // Check if we already injected (idempotent)
-    if (flowSvg.querySelector('#__export-defs__')) return () => {};
-
-    const ARROW_MARKERS = [
-      { id: 'arrow-sync',    color: '#3B82F6' },
-      { id: 'arrow-async',   color: '#F59E0B' },
-      { id: 'arrow-stream',  color: '#10B981' },
-      { id: 'arrow-event',   color: '#8B5CF6' },
-      { id: 'arrow-dep',     color: '#6B7280' },
-      { id: 'arrow-default', color: '#6B7280' },
-      { id: 'arrow-error',   color: '#EF4444' },
-    ];
-
-    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-    defs.id = '__export-defs__';
-
-    for (const { id, color } of ARROW_MARKERS) {
-      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-      marker.setAttribute('id', id);
-      marker.setAttribute('markerWidth', '6');
-      marker.setAttribute('markerHeight', '6');
-      marker.setAttribute('refX', '3');
-      marker.setAttribute('refY', '3');
-      marker.setAttribute('orient', 'auto');
-      marker.setAttribute('markerUnits', 'strokeWidth');
-
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', 'M0,0 L0,6 L6,3 z');
-      path.setAttribute('fill', color);
-      marker.appendChild(path);
-      defs.appendChild(marker);
-    }
-
-    // Prepend so it doesn't affect visual stacking
-    flowSvg.insertBefore(defs, flowSvg.firstChild);
-
-    return () => {
-      defs.remove();
-    };
-  };
 
   const downloadFile = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
@@ -375,7 +312,7 @@ export function Toolbar() {
       return;
     }
     if (format === 'html-embed') {
-      const htmlContent = generateEmbedHTML(nodes, edges);
+      const htmlContent = generateEmbedHTML(nodes as EmbedNode[], edges as EmbedEdge[]);
       const iframeCode = `<iframe 
   src="data:text/html,${encodeURIComponent(htmlContent)}" 
   width="100%" 
@@ -389,12 +326,8 @@ export function Toolbar() {
     }
     
     const isSvg = format.startsWith('svg-');
-    const isPng = format.startsWith('png-');
-    
     const bgType = format.includes('dark') ? 'dark' : format.includes('light') ? 'light' : 'transparent';
     const bgColor = bgType === 'dark' ? '#0f172a' : bgType === 'light' ? '#ffffff' : undefined;
-    
-    const isFullDiagram = true;
     
     const { fitView } = useDiagramStore.getState();
     
@@ -418,7 +351,6 @@ export function Toolbar() {
           const { toPng } = await import('html-to-image');
           const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
           if (!element) return;
-          const cleanupDefs = injectArrowDefs(element);
           try {
             const pngDataUrl = await toPng(element, {
               backgroundColor: bgColor,
@@ -438,8 +370,9 @@ export function Toolbar() {
             const pngBlob = await dataUrlToBlob(pngDataUrl);
             downloadFile(pngBlob, 'archdraw-export.png');
             toast.warning('SVG too large, exported as PNG instead');
-          } finally {
-            cleanupDefs();
+          } catch (error) {
+            logger.error('PNG export failed:', error);
+            toast.error('Export failed');
           }
         } else {
           downloadFile(blob, 'archdraw-export.svg');
@@ -465,27 +398,22 @@ export function Toolbar() {
       fitView({ padding: 0.1, duration: 300 });
       await new Promise((r) => setTimeout(r, 350));
 
-      const cleanupDefs = injectArrowDefs(element);
       let dataUrl: string;
-      try {
-        dataUrl = await toPng(element, {
-          backgroundColor: bgColor,
-          pixelRatio,
-          cacheBust: true,
-          filter: (node: HTMLElement) => {
-            const cls = node.classList;
-            if (!cls) return true;
-            return (
-              !cls.contains('react-flow__minimap') &&
-              !cls.contains('react-flow__controls') &&
-              !cls.contains('react-flow__panel') &&
-              !cls.contains('react-flow__background')
-            );
-          },
-        });
-      } finally {
-        cleanupDefs();
-      }
+      dataUrl = await toPng(element, {
+        backgroundColor: bgColor,
+        pixelRatio,
+        cacheBust: true,
+        filter: (node: HTMLElement) => {
+          const cls = node.classList;
+          if (!cls) return true;
+          return (
+            !cls.contains('react-flow__minimap') &&
+            !cls.contains('react-flow__controls') &&
+            !cls.contains('react-flow__panel') &&
+            !cls.contains('react-flow__background')
+          );
+        },
+      });
       
       if (format.includes('pdf')) {
         const { jsPDF } = await import('jspdf');
@@ -507,7 +435,7 @@ export function Toolbar() {
       }
     } catch (err) {
       toast.error('Export failed. Please try again.');
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsExporting(false);
     }
@@ -541,11 +469,11 @@ export function Toolbar() {
   };
 
   const doShare = async () => {
-    // Get user info for owner
-    const user = useAuthStore.getState().user;
-    const userEmail = user?.email || 'owner@local';
-    const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Owner';
+    const currentUser = useAuthStore.getState().user;
+    const userEmail = currentUser?.email || 'owner@local';
+    const userName = currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || 'Owner';
     
+    setIsSharing(true);
     try {
       const response = await fetch('/api/diagram/load', {
         method: 'POST',
@@ -574,23 +502,17 @@ export function Toolbar() {
         setShareSessionId(data.sessionId);
         setShareAccessType('anyone');
         setShareLinkPermission('viewer');
-        
-        // Capture users from response if exists
-        const user = useAuthStore.getState().user;
-        const userEmail = user?.email || 'owner@local';
-        const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Owner';
         setSharePeople([{ email: userEmail, name: userName, role: 'owner' }]);
-        
         setShareModalOpen(true);
       } else {
         toast.error('Could not generate share link');
       }
     } catch (err) {
-      console.error('Share error:', err);
+      logger.error('Share error:', err);
       toast.error('Could not generate share link');
+    } finally {
+      setIsSharing(false);
     }
-    
-    setIsSharing(false);
   };
 
   const handleShare = () => {
@@ -606,29 +528,6 @@ export function Toolbar() {
     if (window.confirm('Clear all nodes and edges from the canvas?')) {
       clearDiagram();
       toast.success('Canvas cleared');
-    }
-  };
-
-  const startRename = (id: string, currentName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingId(id);
-    setEditDraft(currentName);
-  };
-
-  const commitRename = () => {
-    if (editingId && editDraft.trim()) {
-      renameCanvas(editingId, editDraft.trim());
-    }
-    setEditingId(null);
-  };
-
-  const handleCloseClick = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const canvas = canvases.find((c) => c.id === id);
-    if (canvas && canvas.nodes.length > 0) {
-      setConfirmDeleteId(id);
-    } else {
-      removeCanvas(id);
     }
   };
 
@@ -659,7 +558,6 @@ export function Toolbar() {
             <PanelLeftClose className="w-4 h-4" />
           </button>
 
-          {/* This button now toggles the canvas sidebar directly */}
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('toggle-canvas-sidebar'))}
             className="floating-icon-btn !w-9 !h-9"
@@ -991,7 +889,7 @@ export function Toolbar() {
                 accessType,
                 linkPermission,
               }),
-            }).catch(console.error);
+            }).catch((err) => logger.error('Access change error:', err));
           }}
           onInvite={(email, role) => {
             const userName = email.split('@')[0];
@@ -1006,7 +904,7 @@ export function Toolbar() {
                 name: userName,
                 role: role === 'can edit' ? 'editor' : 'viewer',
               }),
-            }).catch(console.error);
+            }).catch((err) => logger.error('Invite error:', err));
           }}
           onRemove={(userId) => {
             setSharePeople(prev => prev.filter(p => p.email !== userId));
@@ -1018,7 +916,7 @@ export function Toolbar() {
                 sessionId: shareSessionId,
                 email: userId,
               }),
-            }).catch(console.error);
+            }).catch((err) => logger.error('Remove user error:', err));
           }}
           onRoleChange={(userId, newRole) => {
             setSharePeople(prev => prev.map(p => 
@@ -1034,7 +932,7 @@ export function Toolbar() {
                 name: sharePeople.find(p => p.email === userId)?.name || userId,
                 role: newRole === 'can edit' ? 'editor' : 'viewer',
               }),
-            }).catch(console.error);
+            }).catch((err) => logger.error('Role change error:', err));
           }}
         />
       )}

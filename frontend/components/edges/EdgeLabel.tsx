@@ -47,13 +47,6 @@ function parseColorToRgb(color: string): { r: number; g: number; b: number } | n
   return null;
 }
 
-function getReadableTextColor(bgColor: string): string {
-  const rgb = parseColorToRgb(bgColor);
-  if (!rgb) return '#ffffff';
-  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-  return luminance > 0.6 ? '#111827' : '#ffffff';
-}
-
 function blendWithBase(color: string, base: string, baseWeight: number): string {
   const rgb = parseColorToRgb(color);
   const baseRgb = parseColorToRgb(base);
@@ -67,7 +60,7 @@ function blendWithBase(color: string, base: string, baseWeight: number): string 
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-export function EdgeLabel({ edgeId, label, labelX, labelY, edgeColor }: EdgeLabelProps) {
+export function EdgeLabel({ edgeId, label, edgeColor }: EdgeLabelProps) {
   const updateEdgeLabel = useDiagramStore((s) => s.updateEdgeLabel);
   const { isDark } = useCanvasTheme();
 
@@ -114,16 +107,14 @@ export function EdgeLabel({ edgeId, label, labelX, labelY, edgeColor }: EdgeLabe
 
   const styles = isDark 
     ? {
-        bg: '#374151',
-        border: '#4B5563',
-        text: '#E5E7EB',
-        placeholder: '#9CA3AF',
+        bg: '#111322',
+        border: 'rgba(255, 255, 255, 0.08)',
+        text: '#94A3B8',
       }
     : {
         bg: '#F3F4F6',
         border: '#E5E7EB',
         text: '#374151',
-        placeholder: '#9CA3AF',
       };
 
   const softenedColor = edgeColor
@@ -157,11 +148,12 @@ export function EdgeLabel({ edgeId, label, labelX, labelY, edgeColor }: EdgeLabe
             width: inputWidth,
             background: labelBg,
             border: `1px solid ${labelBorder}`,
-            borderRadius: 4,
+            borderRadius: 12,
             color: labelText,
             fontSize: 10,
             fontFamily: 'Inter, -apple-system, sans-serif',
-            padding: '2px 6px',
+            fontStyle: 'italic',
+            padding: '3px 8px',
             outline: 'none',
             textAlign: 'center',
             boxShadow: isDark 
@@ -187,12 +179,13 @@ export function EdgeLabel({ edgeId, label, labelX, labelY, edgeColor }: EdgeLabe
             display: 'inline-block',
             background: labelBg,
             color: labelText,
-            borderRadius: 4,
+            borderRadius: 12,
             border: `1px solid ${labelBorder}`,
             fontSize: 10,
             fontFamily: 'Inter, -apple-system, sans-serif',
+            fontStyle: 'italic',
             fontWeight: 500,
-            padding: '2px 6px',
+            padding: '3px 8px',
             cursor: 'text',
             userSelect: 'none',
             whiteSpace: 'nowrap',

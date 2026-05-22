@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import {
-  Server, Database, Radio, Globe, Monitor, Cpu, Brain, Shield,
-  HardDrive, Box, X, Plus, Zap, Cloud, Lock, Webhook,
+  Server, Database, Radio, Globe, Monitor, Brain, Shield,
+  HardDrive, Box, X, Plus, Zap, Cloud, Webhook,
 } from 'lucide-react';
 
 export interface ComponentType {
@@ -32,13 +32,6 @@ export const COMPONENT_TYPES: ComponentType[] = [
   { id: 'security', label: 'Security', icon: Shield, color: '#ef4444', group: 'external' },
   { id: 'other', label: 'Other', icon: Webhook, color: '#3b82f6', group: 'external' },
 ];
-
-const TYPE_GROUPS = {
-  compute: { label: 'Compute', types: COMPONENT_TYPES.filter(t => t.group === 'compute') },
-  data: { label: 'Data', types: COMPONENT_TYPES.filter(t => t.group === 'data') },
-  infra: { label: 'Infra', types: COMPONENT_TYPES.filter(t => t.group === 'infra') },
-  external: { label: 'External', types: COMPONENT_TYPES.filter(t => t.group === 'external') },
-};
 
 export interface CreateComponentData {
   name: string;
@@ -70,8 +63,6 @@ export function CreateComponentModal({
   existingNames,
   editComponent,
 }: CreateComponentModalProps) {
-  const [modalKey, setModalKey] = useState(0);
-
   if (!isOpen) return null;
 
   const isEditing = !!editComponent;
@@ -103,7 +94,6 @@ export function CreateComponentModal({
 
         {/* Content */}
         <ModalContent
-          key={modalKey}
           existingNames={existingNames}
           editComponent={editComponent}
           onCreate={(data) => {

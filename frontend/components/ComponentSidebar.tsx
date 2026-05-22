@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, PanelLeft, Blocks, Layers, Square, Search } from 'lucide-react';
-import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData, type ComponentToEdit } from './CreateComponentModal';
+import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData } from './CreateComponentModal';
 import { componentRegistry } from '@/lib/componentRegistry';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ interface ComponentEntry {
   isCustom?: boolean;
 }
 
-function makeDragGhost(label: string, color: string) {
+function makeDragGhost(label: string) {
   const ghost = document.createElement('div');
   ghost.style.cssText = `position:fixed;top:-100px;left:-100px;background:white;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:500;color:#374151;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.12);pointer-events:none;`;
   ghost.textContent = label;
@@ -84,13 +84,10 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
   const [customComponents, setCustomComponents] = useState<ComponentEntry[]>([]);
   const [activeSection, setActiveSection] = useState<string>('general');
-  const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCustomComponents(componentRegistry.getCustomComponents() as ComponentEntry[]);
   }, []);
 
@@ -256,7 +253,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
                     onDragStart={(e) => {
                       e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
                       e.dataTransfer.effectAllowed = 'move';
-                      const ghost = makeDragGhost(comp.label, comp.color);
+                      const ghost = makeDragGhost(comp.label);
                       document.body.appendChild(ghost);
                       e.dataTransfer.setDragImage(ghost, 0, 0);
                       setTimeout(() => document.body.removeChild(ghost), 0);
@@ -284,7 +281,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
                 onDragStart={(e) => {
                   e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
                   e.dataTransfer.effectAllowed = 'move';
-                  const ghost = makeDragGhost(comp.label, comp.color);
+                  const ghost = makeDragGhost(comp.label);
                   document.body.appendChild(ghost);
                   e.dataTransfer.setDragImage(ghost, 0, 0);
                   setTimeout(() => document.body.removeChild(ghost), 0);
@@ -310,7 +307,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
             <Button
               className="w-full justify-center gap-2 h-10 rounded-[12px] text-sm font-medium"
               style={{ background: '#F2F2F2', color: '#1A1A1A' }}
-              onClick={() => { setEditComponent(null); setShowCreateModal(true); }}
+              onClick={() => { setShowCreateModal(true); }}
             >
               <Plus className="w-4 h-4" />
               New component
@@ -321,7 +318,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
 
       <CreateComponentModal
         isOpen={showCreateModal}
-        onClose={() => { setShowCreateModal(false); setEditComponent(null); }}
+        onClose={() => { setShowCreateModal(false); }}
         onCreate={(data: CreateComponentData) => {
           const typeInfo = COMPONENT_TYPES.find(t => t.id === data.type);
           const id = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -335,11 +332,9 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
           });
           setCustomComponents(componentRegistry.getCustomComponents() as ComponentEntry[]);
           setShowCreateModal(false);
-          setEditComponent(null);
           window.dispatchEvent(new CustomEvent('custom-component-added'));
         }}
         existingNames={componentRegistry.getAll().map(c => c.label)}
-        editComponent={editComponent}
       />
     </>
   );

@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+'use client';
+
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { EdgeLabelRenderer } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
-import { Trash2, Edit3, Check, X, ChevronDown, GitBranch, Spline } from 'lucide-react';
+import { Trash2, Edit3, Check, X, ChevronDown, Spline } from 'lucide-react';
 import { EDGE_TYPE_CONFIGS, type EdgeType, type PathType } from '@/data/edgeTypes';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
@@ -37,17 +39,20 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
     }
   }, [isEditing]);
   
+  // Use state reset only when not editing, to follow prop changes
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEditValue(currentLabel || '');
-  }, [currentLabel]);
+    if (!isEditing) {
+      setEditValue(currentLabel || '');
+    }
+  }, [currentLabel, isEditing]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (typeMenuRef.current && !typeMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (typeMenuRef.current && !typeMenuRef.current.contains(target)) {
         setShowTypeMenu(false);
       }
-      if (pathMenuRef.current && !pathMenuRef.current.contains(e.target as Node)) {
+      if (pathMenuRef.current && !pathMenuRef.current.contains(target)) {
         setShowPathMenu(false);
       }
     };
@@ -55,36 +60,40 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
   
-  const handleSaveLabel = () => {
+  const handleSaveLabel = useCallback(() => {
     updateEdgeData(edgeId, { label: editValue });
     setIsEditing(false);
-  };
+  }, [edgeId, editValue, updateEdgeData]);
   
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditValue(currentLabel || '');
     setIsEditing(false);
-  };
+  }, [currentLabel]);
   
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     setConfirmDelete(true);
-  };
+  }, []);
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = useCallback(() => {
     deleteEdge(edgeId);
     setConfirmDelete(false);
-  };
+  }, [edgeId, deleteEdge]);
 
-  const handleEdgeTypeChange = (type: EdgeType) => {
+  const handleEdgeTypeChange = useCallback((type: EdgeType) => {
     updateEdgeData(edgeId, { edgeType: type });
     setShowTypeMenu(false);
-  };
+  }, [edgeId, updateEdgeData]);
 
-  const handlePathTypeChange = (type: PathType) => {
+  const handlePathTypeChange = useCallback((type: PathType) => {
     updateEdgeData(edgeId, { pathType: type });
     setShowPathMenu(false);
-  };
+  }, [edgeId, updateEdgeData]);
 
-  const activeConfig = EDGE_TYPE_CONFIGS[currentEdgeType || 'sync'];
+  const activeConfig = useMemo(() => 
+    EDGE_TYPE_CONFIGS[currentEdgeType || 'sync'],
+    [currentEdgeType]
+  );
+  
   const activePathType = currentPathType || activeConfig.pathType;
 
   return (

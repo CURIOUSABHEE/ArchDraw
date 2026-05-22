@@ -11,7 +11,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useAuthStore } from '@/store/authStore';
-import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 const ICON: Record<string, string> = {
   Client: '🖥️',
@@ -88,7 +88,13 @@ function CanvasPreview() {
         proOptions={{ hideAttribution: true }}
         style={{ background: '#f8fafc' }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#cbd5e1" />
+        <Background 
+          variant={BackgroundVariant.Dots} 
+          gap={20} 
+          size={1} 
+          color="#cbd5e1" 
+          style={{ opacity: 0.5 }}
+        />
       </ReactFlow>
     </div>
   );
