@@ -119,7 +119,7 @@ FLOWS:
 ${(reasoning.keyFlows || []).map(f => `- ${f.name}: ${f.description} (${f.path.join(' -> ')})`).join('\n')}
 
 OUTPUT NDJSON ONLY. ONE OBJECT PER LINE.
-- {"id": "id", "label": "Service", "layer": "client|edge|gateway|application|queue|data", "subtitle": "Tech"}
+- {"id": "id", "label": "Service (Concise)", "layer": "client|edge|gateway|application|queue|data", "subtitle": "Tech Stack (Max 3 words)"}
 - {"path": ["src", "dst"], "label": "protocol", "async": false}
 `.trim();
 }

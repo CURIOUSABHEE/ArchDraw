@@ -22,15 +22,19 @@ const PADDING_Y = 40; // 20px on each side
 const RANK_SEPARATION = 120;
 const NODE_SEPARATION = 60;
 
+const SUBTITLE_CHAR_WIDTH = 6.5; // 11px font for subtitles
+
 /**
  * Calculate required node width based on label and subtitle
  */
 function calculateNodeDimensions(node: RawNode): { width: number; height: number } {
   const labelLen = node.label.length;
   const subtitleLen = node.subtitle?.length || 0;
-  const maxChars = Math.max(labelLen, subtitleLen);
   
-  const calculatedWidth = (maxChars * CHAR_WIDTH) + PADDING_X;
+  const labelWidth = (labelLen * CHAR_WIDTH) + PADDING_X;
+  const subtitleWidth = (subtitleLen * SUBTITLE_CHAR_WIDTH) + PADDING_X;
+  
+  const calculatedWidth = Math.max(labelWidth, subtitleWidth);
   const width = Math.max(MIN_NODE_WIDTH, calculatedWidth);
   
   // Height adapts if there is a subtitle
@@ -43,10 +47,23 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
   const { nodes, edges } = validated;
   console.log(`[Layout] Processing ${nodes.length} nodes, ${edges.length} edges using Dagre`);
 
+  // Dynamic layout direction based on aspect ratio/tier structure
+  const layerCounts: Record<string, number> = {};
+  nodes.forEach(node => {
+    const layer = node.layer || 'application';
+    layerCounts[layer] = (layerCounts[layer] || 0) + 1;
+  });
+  const activeLayers = Object.keys(layerCounts).length;
+  const maxNodesPerLayer = Math.max(...Object.values(layerCounts), 0);
+  
+  // Select 'TB' for tall graphs where maxNodesPerLayer > activeLayers and total nodes > 3, otherwise use 'LR'
+  const rankdir = (maxNodesPerLayer > activeLayers && nodes.length > 3) ? 'TB' : 'LR';
+  console.log(`[Layout] Dynamic rankdir: ${rankdir} (activeLayers: ${activeLayers}, maxNodesPerLayer: ${maxNodesPerLayer}, total nodes: ${nodes.length})`);
+
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({
-    rankdir: 'LR',
+    rankdir,
     ranksep: RANK_SEPARATION,
     nodesep: NODE_SEPARATION,
     marginx: 100,

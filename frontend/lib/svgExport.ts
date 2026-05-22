@@ -218,11 +218,11 @@ function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
       styleAttr = `style="filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5)) drop-shadow(0 0 3px ${catStyle.glow});"`;
     }
   } else {
-    borderCol = selected ? accentColor : '#595959';
+    borderCol = selected ? accentColor : '#e5e7eb';
     iconColor = accentColor;
-    fillBg = '#fefefe';
-    titleColor = '#595959';
-    subtitleColor = '#7a7a7a';
+    fillBg = '#ffffff';
+    titleColor = '#1f2937';
+    subtitleColor = '#6b7280';
     
     styleAttr = selected
       ? `style="filter: drop-shadow(0 3px 8px rgba(0,0,0,0.07));"`
