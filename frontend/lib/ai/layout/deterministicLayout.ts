@@ -95,6 +95,7 @@ function nodesOverlap(
 export function resolveNodeCollisions(
   nodes: ReactFlowNode[]
 ): ReactFlowNode[] {
+  if (!nodes || !Array.isArray(nodes)) return [];
   const fixed = [...nodes];
   let changed = true;
   let iterations = 0;

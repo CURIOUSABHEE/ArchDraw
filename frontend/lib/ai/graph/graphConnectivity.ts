@@ -1,128 +1,89 @@
 import type { ArchitectureNode, ArchitectureEdge } from '../types';
+import logger from '@/lib/logger';
 
+/**
+ * Finds all connected components (islands) in the diagram.
+ */
 export function findConnectedComponents(
   nodes: ArchitectureNode[],
   edges: ArchitectureEdge[]
 ): string[][] {
-  const adjacency = new Map<string, Set<string>>();
-
-  for (const node of nodes) {
-    if (!node.isGroup) {
-      adjacency.set(node.id, new Set());
+  const leafNodes = nodes.filter(n => !n.isGroup);
+  const nodeIds = leafNodes.map(n => n.id);
+  const adj = new Map<string, string[]>();
+  
+  nodeIds.forEach(id => adj.set(id, []));
+  edges.forEach(e => {
+    if (adj.has(e.source) && adj.has(e.target)) {
+      adj.get(e.source)!.push(e.target);
+      adj.get(e.target)!.push(e.source);
     }
-  }
-
-  for (const edge of edges) {
-    if (!adjacency.has(edge.source) || !adjacency.has(edge.target)) {
-      continue;
-    }
-    adjacency.get(edge.source)!.add(edge.target);
-    adjacency.get(edge.target)!.add(edge.source);
-  }
+  });
 
   const visited = new Set<string>();
   const components: string[][] = [];
 
-  for (const nodeId of adjacency.keys()) {
-    if (visited.has(nodeId)) continue;
+  nodeIds.forEach(id => {
+    if (!visited.has(id)) {
+      const component: string[] = [];
+      const queue = [id];
+      visited.add(id);
 
-    const component: string[] = [];
-    const queue: string[] = [nodeId];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (visited.has(current)) continue;
-
-      visited.add(current);
-      component.push(current);
-
-      for (const neighbor of adjacency.get(current) || []) {
-        if (!visited.has(neighbor)) {
-          queue.push(neighbor);
-        }
+      while (queue.length > 0) {
+        const u = queue.shift()!;
+        component.push(u);
+        (adj.get(u) || []).forEach(v => {
+          if (!visited.has(v)) {
+            visited.add(v);
+            queue.push(v);
+          }
+        });
       }
-    }
-
-    if (component.length > 0) {
       components.push(component);
     }
-  }
+  });
 
   return components;
 }
 
-function chooseMainAnchor(mainComponent: string[], nodesById: Map<string, ArchitectureNode>): string {
-  const preferred = mainComponent.find((id) => {
-    const node = nodesById.get(id);
-    const tier = node?.tier || node?.layer;
-    return tier === 'edge' || tier === 'compute';
-  });
-
-  return preferred || mainComponent[0];
-}
-
-function chooseComponentAnchor(component: string[], nodesById: Map<string, ArchitectureNode>): string {
-  const preferred = component.find((id) => {
-    const node = nodesById.get(id);
-    const tier = node?.tier || node?.layer;
-    return tier === 'edge' || tier === 'client' || tier === 'compute';
-  });
-
-  return preferred || component[0];
-}
-
+/**
+ * Bridges disconnected components with logical edges.
+ */
 export function bridgeComponents(
   components: string[][],
   nodes: ArchitectureNode[],
-  existingEdges: ArchitectureEdge[]
+  _edges: ArchitectureEdge[]
 ): ArchitectureEdge[] {
   if (components.length <= 1) return [];
 
-  const sorted = [...components].sort((a, b) => b.length - a.length);
-  const [main, ...isolated] = sorted;
-
-  if (!main || main.length === 0) return [];
-
-  const nodesById = new Map(nodes.map((n) => [n.id, n]));
-  const mainAnchor = chooseMainAnchor(main, nodesById);
-  const existingPairs = new Set(
-    existingEdges.map((e) => `${e.source}->${e.target}`)
-  );
-
   const bridges: ArchitectureEdge[] = [];
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
 
-  for (const component of isolated) {
-    if (!component || component.length === 0) continue;
-    const componentAnchor = chooseComponentAnchor(component, nodesById);
+  logger.log(`[GraphConnectivity] Bridging ${components.length} components`);
 
-    const edgeKey = `${componentAnchor}->${mainAnchor}`;
-    const reverseKey = `${mainAnchor}->${componentAnchor}`;
-    if (existingPairs.has(edgeKey) || existingPairs.has(reverseKey)) {
-      continue;
+  for (let i = 0; i < components.length - 1; i++) {
+    const c1 = components[i];
+    const c2 = components[i+1];
+    
+    // Find best nodes to bridge
+    const n1Id = c1[0];
+    const n2Id = c2[0];
+    
+    if (n1Id && n2Id) {
+      bridges.push({
+        id: `bridge-${n1Id}-${n2Id}`,
+        source: n1Id,
+        target: n2Id,
+        sourceHandle: 'right',
+        targetHandle: 'left',
+        communicationType: 'sync',
+        pathType: 'smooth',
+        label: '',
+        animated: false,
+        style: { stroke: '#94a3b8', strokeWidth: 2 },
+        markerEnd: 'arrowclosed',
+      } as ArchitectureEdge);
     }
-
-    bridges.push({
-      id: `bridge-${componentAnchor}-${mainAnchor}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      source: componentAnchor,
-      target: mainAnchor,
-      sourceHandle: 'right',
-      targetHandle: 'left',
-      communicationType: 'sync',
-      pathType: 'smooth',
-      label: '',
-      labelPosition: 'center',
-      animated: false,
-      style: {
-        stroke: '#94a3b8',
-        strokeDasharray: '',
-        strokeWidth: 2,
-      },
-      markerEnd: 'arrowclosed',
-      markerStart: 'none',
-      edgeVariant: 'feedback',
-    });
-
-    existingPairs.add(edgeKey);
   }
 
   return bridges;

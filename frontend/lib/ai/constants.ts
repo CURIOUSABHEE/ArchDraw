@@ -1,4 +1,4 @@
-export const LAYER_ORDER = ['presentation', 'gateway', 'application', 'async', 'data', 'observability', 'external'];
+export const LAYER_ORDER = ['client', 'edge', 'gateway', 'application', 'queue', 'data'];
 
 export const MAX_ITERATIONS = 3;
 export const SCORE_THRESHOLD = 75;
@@ -58,7 +58,7 @@ RULES:
 
 ANALYZE (5 steps, be concise — output feeds a diagram generator):
 1. BOUNDARIES: entryPoints[], exitPoints[], trustZones[]
-2. LAYERS: {ComponentName: LayerName} — Valid: presentation|gateway|application|data|observability
+2. LAYERS: {ComponentName: LayerName} — Valid: client|edge|gateway|application|queue|data
 3. PATTERNS: [monolith|microservices|event-driven|cqrs|circuit-breaker|saga]
 4. STRESS TESTS (5 scenarios, mark safe:true/false):
    - DB down → mitigation
@@ -146,13 +146,14 @@ FLOW RULES:
 - Each source→target pair appears at most once across ALL flows
 - Every non-group node must appear in at least one flow
 
-LAYER ORDER (left → right in final diagram):
-1. presentation — Web/Mobile clients (leftmost)
-2. gateway — API Gateway, Load Balancer, CDN
-3. application — Business logic services
-4. async — Message queues, event bus, workers (optional)
-5. data — Databases, Cache, Object Storage (rightmost)
-6. observability — Monitoring, Logging (optional, standalone ok)
+LAYER_ORDER (left → right in final diagram):
+1. client — Web/Mobile/Desktop apps (leftmost)
+2. edge — CDN, Load Balancer, DNS, WAF
+3. gateway — API Gateway, Reverse Proxy
+4. application — Microservices, Serverless, Auth
+5. queue — Message Bus, Kafka, SQS (optional)
+6. data — Databases, Cache, Storage (rightmost)
+
 
 OUTPUT ORDER:
 1. All group nodes first

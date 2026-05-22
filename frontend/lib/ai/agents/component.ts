@@ -592,11 +592,7 @@ function getFallbackGenericComponents(): ArchitectureNode[] {
   return components;
 }
 
-function getFallbackAWSComponents(): ArchitectureNode[] {
-  return getFallbackAWSComponentsWithContext({ description: '', systemType: 'Microservices', complexity: 'medium' });
-}
-
-function getFallbackAWSComponentsWithContext(userIntent: SharedState['userIntent']): ArchitectureNode[] {
+export function getFallbackAWSComponentsWithContext(userIntent: SharedState['userIntent']): ArchitectureNode[] {
   const components: ArchitectureNode[] = [];
   const systemLower = userIntent.description.toLowerCase();
 

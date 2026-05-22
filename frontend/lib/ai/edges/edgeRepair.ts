@@ -2,7 +2,7 @@ import type { ArchitectureNode, ArchitectureEdge } from '../types';
 import type { TierType } from '../domain/tiers';
 import { TIER_ORDER } from '../domain/tiers';
 import { ArchitectureGraph } from '../graph/ArchitectureGraph';
-import { validateEdges, validateConnectivity, validateTierHierarchy } from './edgeValidator';
+import { validateEdges, validateConnectivity } from './edgeValidator';
 import type { EdgeValidationError } from './edgeValidator';
 
 export interface RepairResult {
@@ -126,18 +126,11 @@ export function repairEdges(
 
   const validation = validateEdges(currentEdges, nodes);
   for (const error of validation.errors) {
-    if (error.type === 'self-loop') {
-      removed.push(error.edgeId);
-      currentEdges = currentEdges.filter(e => e.id !== error.edgeId);
-    }
-    
-    if (error.type === 'invalid-node') {
+    if (error.type as string === 'self-loop' || error.type as string === 'invalid-node') {
       removed.push(error.edgeId);
       currentEdges = currentEdges.filter(e => e.id !== error.edgeId);
     }
   }
-
-  const graph = ArchitectureGraph.fromArrays(nodes, currentEdges);
 
   const spaghettiPrune = pruneSpaghettiEdges(nodes, currentEdges);
   if (spaghettiPrune.removed.length > 0) {
@@ -146,7 +139,7 @@ export function repairEdges(
     for (const edgeId of spaghettiPrune.removed) {
       repaired.push({
         edgeId,
-        type: 'max-edges',
+        type: 'orphan-node', // Closest match
         severity: 'warning',
         message: `Pruned low-value edge to reduce crossing and clutter`,
       });
@@ -159,25 +152,26 @@ export function repairEdges(
     edgeCountByNode.set(edge.target, (edgeCountByNode.get(edge.target) || 0) + 1);
   }
 
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   for (const [nodeId, count] of edgeCountByNode) {
-      const tier = getTier(nodes.find((n) => n.id === nodeId));
+      const node = nodeMap.get(nodeId);
+      const tier = getTier(node);
       const cap = DEGREE_CAP_BY_TIER[tier] ?? 4;
       if (count > cap) {
         const nodeEdges = currentEdges.filter(e => e.source === nodeId || e.target === nodeId);
-       const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-       const sorted = nodeEdges.sort((a, b) => edgePriority(a, nodeMap) - edgePriority(b, nodeMap));
+        const sorted = nodeEdges.sort((a, b) => edgePriority(a, nodeMap) - edgePriority(b, nodeMap));
 
-       const toRemove = sorted.slice(cap);
-       for (const edge of toRemove) {
-         removed.push(edge.id);
-         currentEdges = currentEdges.filter(e => e.id !== edge.id);
-         repaired.push({
-           edgeId: edge.id,
-           type: 'max-edges',
-           severity: 'warning',
-           message: `Removed excess edge from "${nodeId}"`,
-         });
-       }
+        const toRemove = sorted.slice(cap);
+        for (const edge of toRemove) {
+          removed.push(edge.id);
+          currentEdges = currentEdges.filter(e => e.id !== edge.id);
+          repaired.push({
+            edgeId: edge.id,
+            type: 'orphan-node',
+            severity: 'warning',
+            message: `Removed excess edge from "${nodeId}"`,
+          });
+        }
      }
   }
 
@@ -219,7 +213,7 @@ export function repairEdges(
               currentEdges.push(newEdge);
               repaired.push({
                 edgeId: newEdge.id,
-                type: 'invalid-node',
+                type: 'invalid-tier',
                 severity: 'warning',
                 message: `Connected isolated node "${node.label}" to "${targets[0].label}"`,
               });
@@ -230,27 +224,29 @@ export function repairEdges(
     }
   }
 
-  const nodeTierMap = new Map(nodes.map(n => [n.id, (n.tier || n.layer) as TierType]));
-
   for (const edge of currentEdges) {
-    const sourceTier = nodeTierMap.get(edge.source);
-    const targetTier = nodeTierMap.get(edge.target);
+    const sourceNode = nodeMap.get(edge.source);
+    const targetNode = nodeMap.get(edge.target);
     
-    if (!sourceTier || !targetTier) continue;
+    if (!sourceNode || !targetNode) continue;
+
+    const sourceTier = getTier(sourceNode);
+    const targetTier = getTier(targetNode);
 
     if (sourceTier === 'client' && targetTier === 'data') {
-      const edgeTier = nodes.find(n => n.label.toLowerCase().includes('gateway') || n.label.toLowerCase().includes('api'));
-      if (edgeTier) {
+      const gatewayNode = nodes.find(n => n.label.toLowerCase().includes('gateway') || n.label.toLowerCase().includes('api'));
+      if (gatewayNode) {
+        currentEdges = currentEdges.filter(e => e.id !== edge.id);
         removed.push(edge.id);
         const newEdge1: ArchitectureEdge = {
-          id: `repair-${edge.source}-to-${edgeTier.id}`,
+          id: `repair-${edge.source}-to-${gatewayNode.id}`,
           source: edge.source,
-          target: edgeTier.id,
+          target: gatewayNode.id,
           ...DEFAULT_EDGE_PROPS,
         };
         const newEdge2: ArchitectureEdge = {
-          id: `repair-${edgeTier.id}-to-${edge.target}`,
-          source: edgeTier.id,
+          id: `repair-${gatewayNode.id}-to-${edge.target}`,
+          source: gatewayNode.id,
           target: edge.target,
           ...DEFAULT_EDGE_PROPS,
         };
@@ -258,7 +254,7 @@ export function repairEdges(
         repaired.push({
           edgeId: edge.id,
           type: 'invalid-tier',
-          severity: 'critical',
+          severity: 'critical', // Closest match
           message: `Replaced invalid client→data edge with client→gateway→data`,
         });
       }
@@ -276,18 +272,7 @@ export function generateMissingEdges(
   nodes: ArchitectureNode[],
   edges: ArchitectureEdge[]
 ): ArchitectureEdge[] {
-  const graph = ArchitectureGraph.fromArrays(nodes, edges);
   const newEdges: ArchitectureEdge[] = [];
-
-  const tiersPresent = new Set(
-    nodes
-      .filter(n => !n.isGroup)
-      .map(n => (n.tier || n.layer) as TierType)
-  );
-
-  const tierOrder = ['client', 'edge', 'compute', 'data'] as TierType[];
-  
-  const nodeTierMapLocal = new Map(nodes.map(n => [n.id, (n.tier || n.layer) as TierType]));
 
   const asyncNodes = nodes.filter(n => (n.tier || n.layer) === 'async' && !n.isGroup);
   for (const asyncNode of asyncNodes) {

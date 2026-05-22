@@ -45,7 +45,9 @@ export const GenerateDiagramInputSchema = z.object({
     '  4. Group example: { id:"backend_group", label:"Backend Services", tier:"compute", subtitle:"Core API layer", isGroup:true, width:500, height:300 }\n' +
     '  5. Child nodes use parentId to sit inside a group: { id:"api", parentId:"backend_group", ... }\n' +
     '  6. Assign meaningful icons — use list_node_types to find them\n' +
-    '  7. Use accentColor to differentiate nodes within the same tier'
+    '  7. Use accentColor to differentiate nodes within the same tier\n' +
+    '  8. MANDATORY: Width must be >= 180px and auto-fit to longest text (NO TRUNCATION)\n' +
+    '  9. MANDATORY: Nodes in same tier must vertically align with no overlap (60px min separation)'
   ),
   edges: z.array(EdgeInputSchema).min(1).describe(
     'Array of edges. RULES:\n' +
@@ -53,7 +55,8 @@ export const GenerateDiagramInputSchema = z.object({
     '  2. Use correct communicationType for each connection\n' +
     '  3. Add labels to async/event/stream edges describing the message/event name\n' +
     '  4. Do NOT connect data tier directly to client tier\n' +
-    '  5. Observability nodes should use "dep" edges FROM them, not TO them'
+    '  5. Observability nodes should use "dep" edges FROM them, not TO them\n' +
+    '  6. Edges MUST NOT cross nodes and MUST NOT overlap (use orthogonal/bezier routing)'
   ),
   direction: z.enum(['RIGHT', 'DOWN', 'LEFT', 'UP']).default('RIGHT').describe('Layout direction. RIGHT (left-to-right) works for most architectures. DOWN for hierarchical/mobile-first views.'),
   label: z.string().optional().describe('Diagram title shown in the header'),

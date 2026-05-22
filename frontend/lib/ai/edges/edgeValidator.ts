@@ -11,7 +11,7 @@ export interface EdgeValidationResult {
 
 export interface EdgeValidationError {
   edgeId: string;
-  type: 'self-loop' | 'duplicate' | 'invalid-node' | 'backward-flow' | 'max-edges' | 'invalid-tier';
+  type: 'self-loop' | 'duplicate' | 'invalid-node' | 'backward-flow' | 'max-edges' | 'invalid-tier' | 'orphan-node' | 'spaghetti' | 'disconnected-node';
   severity: 'critical' | 'warning';
   message: string;
 }

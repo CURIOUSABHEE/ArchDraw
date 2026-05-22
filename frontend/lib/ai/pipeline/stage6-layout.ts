@@ -1,134 +1,127 @@
-import type { LayoutedNode, ValidatedDiagram, PipelineLayer, RawNode, DiagramEdge } from './types';
+import dagre from 'dagre';
+import type { LayoutedNode, ValidatedDiagram, RawNode } from './types';
+import { resolveNodeCollisions } from '@/lib/collision';
 
-const NODE_WIDTH = 180;
-const NODE_HEIGHT = 70;
-const COLUMN_SPACING = 20; // Horizontal spacing between columns
-const MIN_VERTICAL_SPACING = 5; // Minimum vertical spacing between nodes
-const LABEL_SPACING = 12; // Spacing when edge label is present
-const START_X = 100;
-const START_Y = 100;
+/**
+ * STAGE 6 — LAYOUT ENGINE
+ * 
+ * Mandates from GEMINI.md:
+ * 1. Use Dagre for layered layout (rankdir=LR)
+ * 2. Adaptive node sizing (no truncation)
+ * 3. Min rank separation: 120px
+ * 4. Min node separation: 60px
+ * 5. Collision detection pass
+ */
 
-const COLUMN_ORDER = ['presentation', 'application', 'data'] as const;
-type ColumnType = typeof COLUMN_ORDER[number];
+const MIN_NODE_WIDTH = 180;
+const NODE_HEIGHT = 80;
+const CHAR_WIDTH = 8.5; // Estimated width per character at 14px bold
+const PADDING_X = 80; // 40px on each side
+const PADDING_Y = 40; // 20px on each side
 
-// Map PipelineLayer to 3 columns
-function getNodeColumn(node: RawNode): ColumnType {
-  const layer = node.layer as PipelineLayer;
-  switch (layer) {
-    case 'presentation':
-      return 'presentation';
-    case 'application':
-      return 'application';
-    case 'data':
-      return 'data';
-    default:
-      return 'application';
-  }
+const RANK_SEPARATION = 120;
+const NODE_SEPARATION = 60;
+
+/**
+ * Calculate required node width based on label and subtitle
+ */
+function calculateNodeDimensions(node: RawNode): { width: number; height: number } {
+  const labelLen = node.label.length;
+  const subtitleLen = node.subtitle?.length || 0;
+  const maxChars = Math.max(labelLen, subtitleLen);
+  
+  const calculatedWidth = (maxChars * CHAR_WIDTH) + PADDING_X;
+  const width = Math.max(MIN_NODE_WIDTH, calculatedWidth);
+  
+  // Height adapts if there is a subtitle
+  const height = node.subtitle ? NODE_HEIGHT + 20 : NODE_HEIGHT;
+  
+  return { width, height };
 }
 
 export async function applyLayout(validated: ValidatedDiagram): Promise<LayoutedNode[]> {
   const { nodes, edges } = validated;
-  console.log(`[Layout] Processing ${nodes.length} nodes, ${edges.length} edges`);
-  return applyThreeColumnLayout(nodes, edges);
+  console.log(`[Layout] Processing ${nodes.length} nodes, ${edges.length} edges using Dagre`);
+
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  dagreGraph.setGraph({
+    rankdir: 'LR',
+    ranksep: RANK_SEPARATION,
+    nodesep: NODE_SEPARATION,
+    marginx: 100,
+    marginy: 100,
+  });
+
+  // 1. Add nodes with adaptive sizes
+  const nodeDimensions = new Map<string, { width: number; height: number }>();
+  
+  nodes.forEach((node) => {
+    const { width, height } = calculateNodeDimensions(node);
+    nodeDimensions.set(node.id, { width, height });
+    
+    dagreGraph.setNode(node.id, { width, height });
+  });
+
+  // 2. Add edges
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  // 3. Execute Dagre layout
+  try {
+    dagre.layout(dagreGraph);
+  } catch (e) {
+    console.error('[Layout] Dagre failed, falling back to basic layout:', e);
+    return fallbackLayout(nodes);
+  }
+
+  // 4. Map positions back and create LayoutedNodes
+  const layoutedNodes: LayoutedNode[] = nodes.map((node) => {
+    const dagreNode = dagreGraph.node(node.id);
+    const { width, height } = nodeDimensions.get(node.id)!;
+    
+    return {
+      ...node,
+      x: dagreNode.x - width / 2,
+      y: dagreNode.y - height / 2,
+      width,
+      height,
+    };
+  });
+
+  // 5. Final collision resolution pass (as mandated by GEMINI.md)
+  // Convert to Node format for collision resolver
+  const rfNodes = layoutedNodes.map(ln => ({
+    id: ln.id,
+    position: { x: ln.x, y: ln.y },
+    width: ln.width,
+    height: ln.height,
+    data: ln
+  })) as any[];
+
+  const resolvedRfNodes = resolveNodeCollisions(rfNodes, 40);
+
+  // Map back to LayoutedNode
+  return layoutedNodes.map(ln => {
+    const resolved = resolvedRfNodes.find(rn => rn.id === ln.id);
+    if (resolved) {
+      return {
+        ...ln,
+        x: resolved.position.x,
+        y: resolved.position.y
+      };
+    }
+    return ln;
+  });
 }
 
-function applyThreeColumnLayout(nodes: RawNode[], edges: DiagramEdge[]): LayoutedNode[] {
-  // Build adjacency map
-  const adjacencyMap = new Map<string, Set<string>>();
-  for (const node of nodes) {
-    adjacencyMap.set(node.id, new Set());
-  }
-  for (const edge of edges) {
-    adjacencyMap.get(edge.source)?.add(edge.target);
-    adjacencyMap.get(edge.target)?.add(edge.source);
-  }
-
-  // Group nodes by column
-  const columnGroups = new Map<ColumnType, RawNode[]>();
-  for (const node of nodes) {
-    const col = getNodeColumn(node);
-    if (!columnGroups.has(col)) {
-      columnGroups.set(col, []);
-    }
-    columnGroups.get(col)!.push(node);
-  }
-
-  // Sort nodes within each column by connectivity
-  for (const [, nodesInCol] of columnGroups.entries()) {
-    nodesInCol.sort((a, b) => {
-      const aConnections = adjacencyMap.get(a.id)?.size || 0;
-      const bConnections = adjacencyMap.get(b.id)?.size || 0;
-      return bConnections - aConnections;
-    });
-  }
-
-  // Calculate x positions for each column
-  const columnX: Record<ColumnType, number> = {
-    presentation: START_X,
-    application: START_X + NODE_WIDTH + COLUMN_SPACING,
-    data: START_X + 2 * (NODE_WIDTH + COLUMN_SPACING),
-  };
-
-  // Calculate total height for each column
-  const columnTotalHeights = new Map<ColumnType, number>();
-  let maxTotalHeight = 0;
-  for (const col of COLUMN_ORDER) {
-    const nodesInCol = columnGroups.get(col) || [];
-    const totalH = nodesInCol.length * NODE_HEIGHT + (nodesInCol.length - 1) * MIN_VERTICAL_SPACING;
-    columnTotalHeights.set(col, totalH);
-    maxTotalHeight = Math.max(maxTotalHeight, totalH);
-  }
-
-  const result: LayoutedNode[] = [];
-
-  // Position nodes column by column
-  COLUMN_ORDER.forEach((col) => {
-    const nodesInCol = columnGroups.get(col) || [];
-    if (nodesInCol.length === 0) return;
-
-    const x = columnX[col];
-    const totalHeight = columnTotalHeights.get(col) || 0;
-    const startY = START_Y + (maxTotalHeight - totalHeight) / 2;
-    let currentY = startY;
-
-    nodesInCol.forEach((node, nodeIdx) => {
-      result.push({
-        ...node,
-        x,
-        y: currentY,
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-      });
-
-      // Determine vertical spacing for next node
-      const nextNode = nodesInCol[nodeIdx + 1];
-      if (nextNode) {
-        let spacing = MIN_VERTICAL_SPACING;
-        const hasEdgeLabel = edges.some(edge => {
-          return edge.label && edge.label.trim() !== '' && 
-            (edge.source === node.id || edge.target === node.id ||
-             edge.source === nextNode.id || edge.target === nextNode.id);
-        });
-        if (hasEdgeLabel) {
-          spacing = LABEL_SPACING;
-        }
-        currentY += NODE_HEIGHT + spacing;
-      } else {
-        currentY += NODE_HEIGHT;
-      }
-    });
-  });
-
-  // Handle orphan nodes
-  const orphanNodes = result.filter(node => {
-    const connections = adjacencyMap.get(node.id);
-    return !connections || connections.size === 0;
-  });
-
-  if (orphanNodes.length > 0) {
-    console.log(`[Layout] Found ${orphanNodes.length} orphan nodes`);
-  }
-
-  console.log(`[Layout] Positioned ${result.length} nodes in 3 columns`);
-  return result;
+function fallbackLayout(nodes: RawNode[]): LayoutedNode[] {
+  return nodes.map((node, idx) => ({
+    ...node,
+    x: 100 + (idx % 3) * 250,
+    y: 100 + Math.floor(idx / 3) * 150,
+    width: MIN_NODE_WIDTH,
+    height: NODE_HEIGHT,
+  }));
 }

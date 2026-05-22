@@ -1,9 +1,20 @@
+import type { ServiceType } from '../types';
+
 // Pipeline internal types
 
 export type PipelineLayer = 
-  | 'presentation' 
+  | 'client'
+  | 'presentation'
+  | 'edge'
+  | 'gateway'
+  | 'compute'
   | 'application' 
-  | 'data';
+  | 'async'
+  | 'queue'
+  | 'data'
+  | 'observe'
+  | 'observability'
+  | 'external';
 
 export interface RawNode {
   id: string;
@@ -11,7 +22,7 @@ export interface RawNode {
   subtitle?: string;
   layer: PipelineLayer;
   icon?: string;
-  serviceType?: string;
+  serviceType?: ServiceType;
   isGroup?: boolean;
   groupLabel?: string;
   groupColor?: string;
@@ -86,15 +97,4 @@ export interface DiagramScore {
   edgesRemoved?: number;
   groupsRemoved?: number;
   preservationPenalty?: number;
-}
-
-export interface StreamingData {
-  type: 'node' | 'flow';
-  data: RawNode | RawFlow;
-}
-
-export interface PipelineResult {
-  nodes: unknown[];
-  edges: unknown[];
-  score: DiagramScore;
 }

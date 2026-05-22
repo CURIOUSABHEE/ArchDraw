@@ -46,13 +46,6 @@ function checkGenerateRateLimit(key: string): boolean {
   return true;
 }
 
-interface GenerateRequestBody {
-  description: string;
-  systemType?: string;
-  complexity?: 'low' | 'medium' | 'high';
-  model?: string;
-}
-
 export async function POST(req: NextRequest) {
   // Rate limiting
   const rateKey = getGenerateRateKey(req);

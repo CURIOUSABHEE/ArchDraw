@@ -48,11 +48,15 @@ export const TIER_TO_LAYER: Record<TierType, LayerType> = {
 
 export const LAYER_TO_TIER: Record<Exclude<LayerType, 'group'>, TierType> = {
   client: 'client',
+  presentation: 'client',
   edge: 'edge',
+  gateway: 'edge',
   compute: 'compute',
+  application: 'compute',
   async: 'async',
   data: 'data',
   observe: 'observe',
+  observability: 'observe',
   external: 'external',
 };
 

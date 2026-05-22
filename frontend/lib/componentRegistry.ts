@@ -2,6 +2,7 @@ import componentsData from '@/data/components.json';
 import awsData from '@/data/aws-components.json';
 import dbData from '@/data/db-components.json';
 import servicesData from '@/data/services-components.json';
+import logger from '@/lib/logger';
 
 export interface ComponentDefinition {
   id: string;
@@ -9,259 +10,104 @@ export interface ComponentDefinition {
   category: string;
   color: string;
   icon?: string;
-  description?: string;
   technology?: string;
-  sublabel?: string;
-  layer?: string;
+  description?: string;
   isCustom?: boolean;
 }
 
-export interface ComponentCategory {
-  name: string;
-  components: ComponentDefinition[];
-  count: number;
-}
-
-const CUSTOM_COMPONENTS_KEY = 'archdraw-custom-components';
+const ALL_COMPONENTS: ComponentDefinition[] = [
+  ...(componentsData as ComponentDefinition[]),
+  ...(awsData as ComponentDefinition[]),
+  ...(dbData as ComponentDefinition[]),
+  ...(servicesData as ComponentDefinition[]),
+];
 
 class ComponentRegistry {
-  private components: Map<string, ComponentDefinition> = new Map();
-  private categories: Map<string, ComponentDefinition[]> = new Map();
-  private allComponents: ComponentDefinition[] = [];
-  private customComponents: ComponentDefinition[] = [];
+  private components = new Map<string, ComponentDefinition>();
+  private customComponents = new Map<string, ComponentDefinition>();
 
   constructor() {
-    this.registerComponents(componentsData, 'Built-in');
-    this.registerComponents(awsData, 'AWS');
-    this.registerComponents(dbData, 'Database');
-    this.registerComponents(servicesData, 'Services');
+    ALL_COMPONENTS.forEach(comp => this.components.set(comp.id, comp));
     this.loadCustomComponents();
   }
 
-  private loadCustomComponents(): void {
+  private loadCustomComponents() {
     if (typeof window === 'undefined') return;
     try {
-      const stored = localStorage.getItem(CUSTOM_COMPONENTS_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as ComponentDefinition[];
-        this.customComponents = parsed.map(c => ({ ...c, isCustom: true }));
-        this.customComponents.forEach(component => {
-          this.components.set(component.id, component);
-          this.allComponents.push(component);
-          const category = component.category || 'Other';
-          if (!this.categories.has(category)) {
-            this.categories.set(category, []);
-          }
-          this.categories.get(category)!.push(component);
-        });
+      const saved = localStorage.getItem('archdraw_custom_components');
+      if (saved) {
+        const custom = JSON.parse(saved) as ComponentDefinition[];
+        custom.forEach(comp => this.customComponents.set(comp.id, { ...comp, isCustom: true }));
       }
     } catch (e) {
-      console.error('Failed to load custom components:', e);
+      logger.error('Failed to load custom components:', e);
     }
   }
 
-  private saveCustomComponents(): void {
+  private saveCustomComponents() {
     if (typeof window === 'undefined') return;
     try {
-      const toSave = this.customComponents.map(c => ({
-        id: c.id,
-        label: c.label,
-        category: c.category,
-        color: c.color,
-        icon: c.icon,
-        description: c.description,
-        technology: c.technology,
-      }));
-      localStorage.setItem(CUSTOM_COMPONENTS_KEY, JSON.stringify(toSave));
+      const custom = Array.from(this.customComponents.values());
+      localStorage.setItem('archdraw_custom_components', JSON.stringify(custom));
     } catch (e) {
-      console.error('Failed to save custom components:', e);
-    }
-  }
-
-  private registerComponents(
-    data: ComponentDefinition[], 
-    _source: string
-  ): void {
-    for (const component of data) {
-      // Skip if ID already exists to prevent duplicates from multiple JSON files
-      if (this.components.has(component.id)) {
-        continue;
-      }
-      this.components.set(component.id, component);
-      this.allComponents.push(component);
-      
-      const category = component.category || 'Other';
-      if (!this.categories.has(category)) {
-        this.categories.set(category, []);
-      }
-      this.categories.get(category)!.push(component);
+      logger.error('Failed to save custom components:', e);
     }
   }
 
   get(id: string): ComponentDefinition | undefined {
-    return this.components.get(id);
+    return this.customComponents.get(id) || this.components.get(id);
   }
 
   getAll(): ComponentDefinition[] {
-    return this.allComponents;
+    return [...Array.from(this.customComponents.values()), ...Array.from(this.components.values())];
   }
 
-  getByCategory(category: string): ComponentDefinition[] {
-    return this.categories.get(category) || [];
+  getCustomComponents(): ComponentDefinition[] {
+    return Array.from(this.customComponents.values());
   }
 
-  getCategories(): ComponentCategory[] {
-    return Array.from(this.categories.entries())
-      .map(([name, components]) => ({
-        name,
-        components,
-        count: components.length,
-      }))
-      .sort((a, b) => b.count - a.count);
+  addCustomComponent(comp: ComponentDefinition) {
+    this.customComponents.set(comp.id, { ...comp, isCustom: true });
+    this.saveCustomComponents();
+  }
+
+  updateCustomComponent(id: string, updates: Partial<ComponentDefinition>) {
+    const existing = this.customComponents.get(id);
+    if (existing) {
+      this.customComponents.set(id, { ...existing, ...updates });
+      this.saveCustomComponents();
+    }
+  }
+
+  deleteCustomComponent(id: string) {
+    this.customComponents.delete(id);
+    this.saveCustomComponents();
   }
 
   search(query: string): ComponentDefinition[] {
     const q = query.toLowerCase().trim();
-    if (!q) return this.allComponents;
+    if (!q) return [];
     
-    return this.allComponents.filter((c) => {
-      const label = c.label.toLowerCase();
-      const category = c.category.toLowerCase();
-      const id = c.id.toLowerCase();
-      const desc = (c.description || '').toLowerCase();
-      
-      return (
-        label.includes(q) ||
-        category.includes(q) ||
-        id.includes(q) ||
-        desc.includes(q)
-      );
-    });
-  }
-
-  matches(componentId: string, query: string): boolean {
-    const component = this.components.get(componentId);
-    if (!component) return false;
-    
-    const q = query.toLowerCase();
-    return (
-      component.label.toLowerCase().includes(q) ||
-      component.category.toLowerCase().includes(q) ||
-      component.id.toLowerCase().includes(q)
+    return this.getAll().filter(comp => 
+      comp.label.toLowerCase().includes(q) || 
+      comp.category.toLowerCase().includes(q) ||
+      comp.technology?.toLowerCase().includes(q)
     );
-  }
-
-  getIcon(componentId: string): string | undefined {
-    return this.components.get(componentId)?.icon;
-  }
-
-  getColor(componentId: string): string {
-    return this.components.get(componentId)?.color || '#6B7280';
-  }
-
-  getCategory(componentId: string): string {
-    return this.components.get(componentId)?.category || 'Other';
-  }
-
-  has(componentId: string): boolean {
-    return this.components.has(componentId);
-  }
-
-  addCustomComponent(component: Omit<ComponentDefinition, 'isCustom'>): ComponentDefinition {
-    const newComponent: ComponentDefinition = { ...component, isCustom: true };
-    this.customComponents.push(newComponent);
-    this.components.set(newComponent.id, newComponent);
-    this.allComponents.push(newComponent);
-    const category = newComponent.category || 'Other';
-    if (!this.categories.has(category)) {
-      this.categories.set(category, []);
-    }
-    this.categories.get(category)!.push(newComponent);
-    this.saveCustomComponents();
-    return newComponent;
-  }
-
-  getCustomComponents(): ComponentDefinition[] {
-    return [...this.customComponents];
-  }
-
-  updateCustomComponent(id: string, updates: Partial<Omit<ComponentDefinition, 'id' | 'isCustom'>>): ComponentDefinition | null {
-    const index = this.customComponents.findIndex(c => c.id === id);
-    if (index === -1) return null;
-    
-    const component = this.customComponents[index];
-    const oldCategory = component.category || 'Other';
-    
-    const updatedComponent: ComponentDefinition = { ...component, ...updates, isCustom: true };
-    this.customComponents[index] = updatedComponent;
-    this.components.set(id, updatedComponent);
-    
-    const allIndex = this.allComponents.findIndex(c => c.id === id);
-    if (allIndex !== -1) this.allComponents[allIndex] = updatedComponent;
-    
-    const newCategory = updatedComponent.category || 'Other';
-    if (oldCategory !== newCategory) {
-      const oldCatComponents = this.categories.get(oldCategory);
-      if (oldCatComponents) {
-        const idx = oldCatComponents.findIndex(c => c.id === id);
-        if (idx !== -1) oldCatComponents.splice(idx, 1);
-      }
-      if (!this.categories.has(newCategory)) {
-        this.categories.set(newCategory, []);
-      }
-      this.categories.get(newCategory)!.push(updatedComponent);
-    } else {
-      const catComponents = this.categories.get(newCategory);
-      if (catComponents) {
-        const idx = catComponents.findIndex(c => c.id === id);
-        if (idx !== -1) catComponents[idx] = updatedComponent;
-      }
-    }
-    
-    this.saveCustomComponents();
-    return updatedComponent;
-  }
-
-  deleteCustomComponent(id: string): boolean {
-    const index = this.customComponents.findIndex(c => c.id === id);
-    if (index === -1) return false;
-    const component = this.customComponents[index];
-    this.customComponents.splice(index, 1);
-    this.components.delete(id);
-    this.allComponents = this.allComponents.filter(c => c.id !== id);
-    const category = component.category || 'Other';
-    const catComponents = this.categories.get(category);
-    if (catComponents) {
-      const catIndex = catComponents.findIndex(c => c.id === id);
-      if (catIndex !== -1) catComponents.splice(catIndex, 1);
-    }
-    this.saveCustomComponents();
-    return true;
-  }
-
-  count(): number {
-    return this.allComponents.length;
-  }
-
-  getCategoryCount(): number {
-    return this.categories.size;
   }
 }
 
 export const componentRegistry = new ComponentRegistry();
 
-export function getComponentsByLayer(layer: 'A' | 'B' | 'C' | 'D'): ComponentDefinition[] {
-  const layerCategories: Record<string, string[]> = {
-    A: ['Client & Entry', 'CDN & Edge', 'DNS & Network'],
-    B: ['Compute', 'AI & ML', 'Analytics'],
-    C: ['Database', 'Cache & Storage', 'Messaging'],
-    D: ['External Services', 'Authentication'],
-  };
-  
-  const categories = layerCategories[layer] || [];
-  return componentRegistry.getAll().filter(c => 
-    categories.some(cat => c.category.includes(cat))
-  );
+export function getTierFromLayer(layer: string): string {
+  const l = layer.toLowerCase();
+  if (l.includes('client') || l.includes('presentation')) return 'client';
+  if (l.includes('gateway') || l.includes('edge')) return 'edge';
+  if (l.includes('service') || l.includes('compute') || l.includes('application')) return 'compute';
+  if (l.includes('async') || l.includes('queue') || l.includes('broker')) return 'async';
+  if (l.includes('data') || l.includes('db') || l.includes('cache')) return 'data';
+  if (l.includes('observe') || l.includes('monitor') || l.includes('log')) return 'observe';
+  if (l.includes('external')) return 'external';
+  return 'compute';
 }
 
 export function getLayerColor(layer: 'A' | 'B' | 'C' | 'D'): string {

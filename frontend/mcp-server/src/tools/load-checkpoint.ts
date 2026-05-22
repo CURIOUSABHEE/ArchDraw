@@ -31,7 +31,7 @@ export async function loadCheckpoint(input: LoadCheckpointInput): Promise<{
 
   const state = getCheckpointState(input.name);
   if (state) {
-    setDiagramState(state);
+    setDiagramState(state as any);
   }
 
   return result;

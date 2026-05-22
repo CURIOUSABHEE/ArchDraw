@@ -9,7 +9,7 @@ function parseNode(obj: Record<string, unknown>): RawNode | null {
     subtitle: obj.subtitle ? String(obj.subtitle) : '',
     layer: (obj.layer as LayerType) || 'application',
     icon: obj.icon ? String(obj.icon) : 'box',
-    serviceType: obj.serviceType ? String(obj.serviceType) : '',
+    serviceType: obj.serviceType ? (String(obj.serviceType) as any) : 'generic',
     ...(obj.isGroup ? {
       isGroup: true,
       groupLabel: String(obj.groupLabel || obj.label),

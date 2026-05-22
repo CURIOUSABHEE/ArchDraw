@@ -11,7 +11,7 @@ import type { RawNode, RawFlow, DiagramEdge, ValidatedDiagram, PipelineLayer } f
  * 5. Fix missing node data
  */
 
-const LAYER_ORDER: PipelineLayer[] = ['presentation', 'application', 'data'];
+const LAYER_ORDER: PipelineLayer[] = ['client', 'edge', 'gateway', 'application', 'queue', 'data'];
 
 /**
  * Main validation function - ensures connectivity and proper layer structure
@@ -41,7 +41,7 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
   // STEP 6: Ensure minimum structure
   const { nodes: enrichedNodes, edges: enrichedEdges } = enrichDiagram(nodes, connectedEdges);
 
-  // STEP 7: Enforce 3-column layer structure
+  // STEP 7: Enforce granular layer structure
   const finalNodes = enforceHierarchy(enrichedNodes);
 
   console.log(`[Validate] Final: ${finalNodes.length} nodes and ${enrichedEdges.length} edges`);
@@ -304,13 +304,25 @@ function enforceHierarchy(nodes: RawNode[]): RawNode[] {
 
 // Helper functions
 
-function inferLayerFromLabel(label: string): string {
+function inferLayerFromLabel(label: string): PipelineLayer {
   const l = label.toLowerCase();
-  // Presentation column
-  if (l.includes('client') || l.includes('web') || l.includes('mobile') || l.includes('browser') || l.includes('desktop') || l.includes('user')) return 'presentation';
-  // Data column
-  if (l.includes('database') || l.includes('db') || l.includes('cache') || l.includes('redis') || l.includes('storage') || l.includes('postgres') || l.includes('mysql') || l.includes('mongo')) return 'data';
-  // Application column (default for gateway, service, queue, worker, auth, api, etc.)
+  
+  // Client tier
+  if (l.includes('client') || l.includes('web') || l.includes('mobile') || l.includes('browser') || l.includes('desktop') || l.includes('user') || l.includes('app')) return 'client';
+  
+  // Edge tier
+  if (l.includes('cdn') || l.includes('load balancer') || l.includes('lb') || l.includes('waf') || l.includes('route 53') || l.includes('dns') || l.includes('cloudfront')) return 'edge';
+  
+  // Gateway tier
+  if (l.includes('gateway') || l.includes('proxy') || l.includes('ingress') || l.includes('api gateway') || l.includes('nginx') || l.includes('kong')) return 'gateway';
+  
+  // Data tier
+  if (l.includes('database') || l.includes('db') || l.includes('storage') || l.includes('s3') || l.includes('postgres') || l.includes('mysql') || l.includes('mongo') || l.includes('dynamo') || l.includes('rds') || l.includes('bucket')) return 'data';
+  
+  // Queue tier
+  if (l.includes('queue') || l.includes('kafka') || l.includes('rabbitmq') || l.includes('pubsub') || l.includes('event') || l.includes('topic') || l.includes('sqs') || l.includes('sns') || l.includes('redis')) return 'queue';
+  
+  // Application tier (default)
   return 'application';
 }
 
@@ -326,7 +338,7 @@ function generateLabelFromId(id: string): string {
 function getIconForType(type: string): string {
   const iconMap: Record<string, string> = {
     'client': 'monitor',
-    'presentation': 'monitor',
+    'edge': 'globe',
     'gateway': 'webhook',
     'service': 'server',
     'application': 'server',
@@ -345,9 +357,9 @@ function getIconForType(type: string): string {
 function addMissingNodes(nodes: RawNode[]): RawNode[] {
   const result = [...nodes];
   
-  const columns: PipelineLayer[] = ['presentation', 'application', 'data'];
+  const essentialLayers: PipelineLayer[] = ['client', 'gateway', 'application', 'data'];
   
-  for (const layer of columns) {
+  for (const layer of essentialLayers) {
     const count = result.filter(n => n.layer === layer).length;
     if (count === 0) {
       const newNode: RawNode = {
@@ -355,11 +367,11 @@ function addMissingNodes(nodes: RawNode[]): RawNode[] {
         label: `${layer.charAt(0).toUpperCase() + layer.slice(1)} Component`,
         layer,
         icon: getIconForType(layer),
-        serviceType: layer === 'application' ? 'service' : layer,
+        serviceType: layer === 'application' ? 'service' : (layer === 'data' ? 'database' : layer) as any,
         subtitle: '',
       };
       result.push(newNode);
-      console.log(`[Validate] Added missing node for column: ${layer}`);
+      console.log(`[Validate] Added missing node for layer: ${layer}`);
     }
   }
 

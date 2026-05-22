@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { redis, redisKeys } from '@/lib/redis';
 import fs from 'fs';
 import path from 'path';
+import logger from '@/lib/logger';
 
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -104,7 +105,7 @@ export async function GET(
 
   // Return from session store if found
   if (sessionData) {
-    console.log(`[Embed] SESSION-STORE-HIT: ${id}`);
+    logger.log(`[Embed] SESSION-STORE-HIT: ${id}`);
     const response: DiagramResponse = {
       id,
       canvas_name: sessionData.label || 'Shared Diagram',

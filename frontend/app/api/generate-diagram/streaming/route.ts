@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateDiagram, StreamingCallback } from '@/lib/ai/services/orchestrator';
+import { generateDiagram } from '@/lib/ai/services/orchestrator';
 import type { UserIntent, GenerationProgress } from '@/lib/ai/types';
 import logger from '@/lib/logger';
 import { z } from 'zod';
@@ -96,20 +96,13 @@ export async function POST(req: NextRequest) {
 
           const progressEvents: GenerationProgress[] = [];
 
-          const streamingCallback: StreamingCallback = (event) => {
-            if (controllerClosed) return;
-            const { type, ...rest } = event;
-            sendEvent({ type: `llm_${type}`, ...rest });
-          };
-
           const result = await generateDiagram(
             userIntent,
             (progress) => {
               if (controllerClosed) return;
               progressEvents.push(progress);
               sendEvent({ type: 'progress', ...progress });
-            },
-            streamingCallback
+            }
           );
 
           // Disabled: Writing to diagramCache was causing repeated diagrams

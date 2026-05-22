@@ -3,20 +3,20 @@ import type { GenerateDiagramInput } from '../lib/schema.js';
 import { runELKLayout, validateLayout } from '../lib/elk-runner.js';
 import { getTierColor } from '../lib/node-catalog.js';
 
-const DEFAULT_NODE_WIDTH = 200;
-const DEFAULT_NODE_HEIGHT = 70;
+const DEFAULT_NODE_WIDTH = 160;
+const DEFAULT_NODE_HEIGHT = 80;
 const DEFAULT_GROUP_WIDTH = 500;
 const DEFAULT_GROUP_HEIGHT = 280;
 
-/** Canonical tier colors — keep in sync with frontend tierColors.ts */
+/** Canonical tier colors — keep in sync with frontend stylingConstants.ts */
 const TIER_COLORS: Record<TierType, string> = {
-  client:   '#64748b',
-  edge:     '#6366f1',
-  compute:  '#0d9488',
-  async:    '#d97706',
-  data:     '#3b82f6',
-  external: '#8b5cf6',
-  observe:  '#6b7280',
+  client:   '#64748b', // slate
+  edge:     '#6366f1', // indigo
+  compute:  '#0d9488', // teal
+  async:    '#d97706', // amber
+  data:     '#3b82f6', // blue
+  external: '#ec4899', // rose
+  observe:  '#8b5cf6', // violet
 };
 
 const LAYER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'external', 'observe'];
@@ -122,7 +122,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
 
       return {
         id: node.id || `node-${index}`,
-        type: 'architectureNode',
+        type: isGroup ? 'groupNode' : 'systemNode',
         label: node.label,
         subtitle: node.subtitle || '',
         layer: tier,
@@ -172,11 +172,11 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
     errors.push(...validateNodes(architectureNodes), ...inputEdgeErrors);
 
     const commColors: Record<string, { color: string; dash: string }> = {
-      sync:   { color: '#94a3b8', dash: '' },
-      async:  { color: '#d97706', dash: '8,4' },
-      stream: { color: '#10b981', dash: '4,2' },
-      event:  { color: '#ec4899', dash: '2,3' },
-      dep:    { color: '#6b7280', dash: '6,6' },
+      sync:   { color: '#3B82F6', dash: '' },
+      async:  { color: '#F59E0B', dash: '8,6' },
+      stream: { color: '#10B981', dash: '10,4,2,4' },
+      event:  { color: '#8B5CF6', dash: '4,4' },
+      dep:    { color: '#6B7280', dash: '6,6' },
     };
 
     const architectureEdges: ArchitectureEdge[] = (input.edges || []).map((edge, index) => {

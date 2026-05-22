@@ -1,267 +1,138 @@
 import type { ArchitectureNode, ArchitectureEdge } from '../types';
+import type { TierType } from '../domain/tiers';
+import { TIER_ORDER } from '../domain/tiers';
+import logger from '@/lib/logger';
 
-const NODE_CONNECTION_RULES: Record<string, {
-  minOutgoing: number;
-  minIncoming: number;
-  mustConnectTo: string[];
-  preferredSource: string[];
-}> = {
-  gateway: {
-    minOutgoing: 1,
-    minIncoming: 1,
-    mustConnectTo: ['api', 'compute'],
-    preferredSource: ['client', 'loadbalancer'],
-  },
-  loadbalancer: {
-    minOutgoing: 1,
-    minIncoming: 1,
-    mustConnectTo: ['compute', 'api'],
-    preferredSource: ['client', 'gateway'],
-  },
-  database: {
-    minOutgoing: 0,
-    minIncoming: 1,
-    mustConnectTo: ['compute', 'api'],
-    preferredSource: ['compute', 'api'],
-  },
-  cache: {
-    minOutgoing: 1,
-    minIncoming: 1,
-    mustConnectTo: ['compute', 'api'],
-    preferredSource: ['compute', 'api'],
-  },
-  storage: {
-    minOutgoing: 0,
-    minIncoming: 1,
-    mustConnectTo: ['compute'],
-    preferredSource: ['compute', 'api'],
-  },
-  queue: {
-    minOutgoing: 1,
-    minIncoming: 1,
-    mustConnectTo: ['compute', 'async'],
-    preferredSource: ['compute'],
-  },
-  client: {
-    minOutgoing: 1,
-    minIncoming: 0,
-    mustConnectTo: ['gateway', 'loadbalancer'],
-    preferredSource: [],
-  },
-  compute: {
-    minOutgoing: 1,
-    minIncoming: 1,
-    mustConnectTo: ['database', 'cache', 'storage'],
-    preferredSource: ['gateway', 'loadbalancer'],
-  },
-  api: {
-    minOutgoing: 1,
-    minIncoming: 1,
-    mustConnectTo: ['database', 'cache'],
-    preferredSource: ['gateway', 'loadbalancer'],
-  },
-};
-
-export function getNodeConnectionRules(serviceType: string) {
-  return NODE_CONNECTION_RULES[serviceType] || NODE_CONNECTION_RULES['compute'];
+export interface EdgeValidationResult {
+  valid: boolean;
+  errors: EdgeValidationError[];
+  warnings: EdgeValidationError[];
 }
 
-export function detectOrphans(
-  nodes: ArchitectureNode[],
-  edges: ArchitectureEdge[]
-): { orphans: ArchitectureNode[]; partiallyConnected: ArchitectureNode[]; wellConnected: ArchitectureNode[] } {
-  const orphans: ArchitectureNode[] = [];
-  const partiallyConnected: ArchitectureNode[] = [];
-  const wellConnected: ArchitectureNode[] = [];
-  
-  for (const node of nodes) {
-    if (node.isGroup) continue;
-    
-    const outgoing = edges.filter(e => e.source === node.id);
-    const incoming = edges.filter(e => e.target === node.id);
-    const total = outgoing.length + incoming.length;
-    
-    if (total === 0) {
-      orphans.push(node);
-    } else if (total < 2) {
-      partiallyConnected.push(node);
-    } else {
-      wellConnected.push(node);
+export interface EdgeValidationError {
+  edgeId: string;
+  type: 'invalid-tier' | 'cycle' | 'orphan-node' | 'missing-essential';
+  severity: 'error' | 'warning';
+  message: string;
+}
+
+/**
+ * Validates generated edges against architectural best practices.
+ */
+export function validateEdges(
+  edges: ArchitectureEdge[],
+  nodes: ArchitectureNode[]
+): EdgeValidationResult {
+  const errors: EdgeValidationError[] = [];
+  const warnings: EdgeValidationError[] = [];
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+  // Check 1: No cycles in primary flow
+  // (Simplified for now)
+
+  // Check 2: Tier violations (e.g., Data → Client)
+  for (const edge of edges) {
+    const source = nodeMap.get(edge.source);
+    const target = nodeMap.get(edge.target);
+
+    if (!source || !target) continue;
+
+    const sourceTier = source.layer as TierType;
+    const targetTier = target.layer as TierType;
+
+    const sourceIdx = TIER_ORDER.indexOf(sourceTier);
+    const targetIdx = TIER_ORDER.indexOf(targetTier);
+
+    // Allowing some backward edges for async feedback/replies
+    if (sourceIdx > targetIdx && edge.communicationType !== 'async') {
+      warnings.push({
+        edgeId: edge.id,
+        type: 'invalid-tier',
+        severity: 'warning',
+        message: `Backward edge "${source.label}" → "${target.label}" should ideally be async`,
+      });
     }
   }
-  
-  return { orphans, partiallyConnected, wellConnected };
-}
 
-function createEdge(source: string, target: string, isAsync: boolean = false): ArchitectureEdge {
+  // Check 3: Essential components are connected
+  const essentialViolations = checkEssentialConnections(nodes, edges);
+  errors.push(...essentialViolations);
+
   return {
-    id: `fix-${source}-${target}-${Date.now()}`,
-    source,
-    target,
-    sourceHandle: 'right' as const,
-    targetHandle: 'left' as const,
-    communicationType: isAsync ? 'async' : 'sync',
-    pathType: 'smooth' as const,
-    label: '',
-    labelPosition: 'center' as const,
-    animated: isAsync,
-    style: {
-      stroke: isAsync ? '#f59e0b' : '#94a3b8',
-      strokeDasharray: isAsync ? '8,4' : '',
-      strokeWidth: 2,
-    },
-    markerEnd: 'arrowclosed' as const,
-    markerStart: 'none' as const,
+    valid: errors.length === 0,
+    errors,
+    warnings,
   };
 }
 
+function checkEssentialConnections(
+  nodes: ArchitectureNode[],
+  edges: ArchitectureEdge[]
+): EdgeValidationError[] {
+  const errors: EdgeValidationError[] = [];
+  
+  // Rule: Async nodes (Queues/Streams) must have a consumer
+  const asyncNodes = nodes.filter(n => n.layer === 'async');
+  for (const asyncNode of asyncNodes) {
+    const outgoing = edges.filter(e => e.source === asyncNode.id);
+    if (outgoing.length === 0) {
+      errors.push({
+        edgeId: '',
+        type: 'invalid-tier',
+        severity: 'warning',
+        message: `Async node "${asyncNode.label}" has no consumer`,
+      });
+    }
+  }
+
+  if (errors.length > 0) {
+    logger.log(`[EdgeValidator] Found ${errors.length} validation issues`);
+  }
+
+  return errors;
+}
+
+/**
+ * Enforces minimum connections per node.
+ */
 export function enforceMinimumConnections(
   nodes: ArchitectureNode[],
   edges: ArchitectureEdge[]
 ): { edges: ArchitectureEdge[]; fixes: string[] } {
+  const resultEdges = [...edges];
   const fixes: string[] = [];
-  const enhancedEdges = [...edges];
-  
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
   for (const node of nodes) {
     if (node.isGroup) continue;
-    
-    const rules = getNodeConnectionRules(node.serviceType || 'compute');
-    
-    const outgoing = enhancedEdges.filter(e => e.source === node.id);
-    const incoming = enhancedEdges.filter(e => e.target === node.id);
-    
-    if (outgoing.length < rules.minOutgoing && rules.minOutgoing > 0) {
-      const needed = rules.minOutgoing - outgoing.length;
-      const candidates = nodes.filter(n => 
-        n.id !== node.id && 
-        !n.isGroup &&
-        rules.mustConnectTo.some(t => n.serviceType === t || n.layer === t)
-      );
-      
-      for (let i = 0; i < needed && i < candidates.length; i++) {
-        const isAsync = candidates[i].serviceType === 'queue' || candidates[i].layer === 'async';
-        enhancedEdges.push(createEdge(node.id, candidates[i].id, isAsync));
-        fixes.push(`Added outgoing: ${node.label} → ${candidates[i].label}`);
-        console.log(`[EdgeValidator] Adding missing edge: ${node.label} → ${candidates[i].label}`);
-      }
-    }
-    
-    if (incoming.length < rules.minIncoming && rules.minIncoming > 0) {
-      const needed = rules.minIncoming - incoming.length;
-      const candidates = nodes.filter(n => 
-        n.id !== node.id && 
-        !n.isGroup &&
-        rules.preferredSource.some(t => n.serviceType === t || n.layer === t)
-      );
-      
-      for (let i = 0; i < needed && i < candidates.length; i++) {
-        enhancedEdges.push(createEdge(candidates[i].id, node.id, false));
-        fixes.push(`Added incoming: ${candidates[i].label} → ${node.label}`);
-        console.log(`[EdgeValidator] Adding missing edge: ${candidates[i].label} → ${node.label}`);
-      }
-    }
-  }
-  
-  return { edges: enhancedEdges, fixes };
-}
 
-export function detectDisconnectedGroups(
-  nodes: ArchitectureNode[],
-  edges: ArchitectureEdge[]
-): { groupId: string; label: string }[] {
-  const groupsWithIssues: { groupId: string; label: string }[] = [];
-  
-  const groups = nodes.filter(n => n.isGroup);
-  const childNodes = nodes.filter(n => !n.isGroup && n.parentId);
-  
-  for (const group of groups) {
-    const children = childNodes.filter(n => n.parentId === group.id);
-    const hasConnections = children.some(childId => 
-      edges.some(e => e.source === childId.id || e.target === childId.id)
+    const connections = resultEdges.filter(
+      e => e.source === node.id || e.target === node.id
     );
-    
-    if (!hasConnections && children.length > 0) {
-      groupsWithIssues.push({ groupId: group.id, label: group.label });
-    }
-  }
-  
-  return groupsWithIssues;
-}
 
-export function ensureGroupConnectivity(
-  nodes: ArchitectureNode[],
-  edges: ArchitectureEdge[]
-): { edges: ArchitectureEdge[]; fixes: string[] } {
-  const fixes: string[] = [];
-  const enhancedEdges = [...edges];
-  
-  const groups = nodes.filter(n => n.isGroup);
-  const children = nodes.filter(n => !n.isGroup && n.parentId);
-  
-  for (const group of groups) {
-    const groupChildren = children.filter(c => c.parentId === group.id);
-    
-    if (groupChildren.length === 0) {
-      continue;
-    }
-    
-    let hasConnection = false;
-    let connectedChild: string | null = null;
-    
-    for (const child of groupChildren) {
-      const hasEdge = enhancedEdges.some(
-        e => e.source === child.id || e.target === child.id
-      );
-      if (hasEdge) {
-        hasConnection = true;
-        connectedChild = child.id;
-        break;
-      }
-    }
-    
-    if (!hasConnection && groupChildren.length > 0) {
-      const firstChild = groupChildren[0];
-      const externalTargets = nodes.filter(n => 
-        !n.isGroup && 
-        n.id !== firstChild.id &&
-        (n.layer === 'compute' || n.serviceType === 'compute')
-      );
-      
-      if (externalTargets.length > 0) {
-        const target = externalTargets[0];
-        enhancedEdges.push(createEdge(firstChild.id, target.id, false));
-        fixes.push(`Connected group child: ${firstChild.label} → ${target.label}`);
-        console.log(`[EdgeValidator] Connecting group: ${firstChild.label} → ${target.label}`);
+    if (connections.length === 0) {
+      const candidate = nodes.find(n => !n.isGroup && n.id !== node.id && n.layer === 'application');
+      if (candidate) {
+        const newEdge: ArchitectureEdge = {
+          id: `auto-fix-${node.id}`,
+          source: node.id,
+          target: candidate.id,
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          communicationType: 'sync',
+          pathType: 'smooth',
+          label: '',
+          animated: false,
+          style: { stroke: '#94a3b8', strokeWidth: 2 },
+          markerEnd: 'arrowclosed',
+        } as ArchitectureEdge;
+
+        resultEdges.push(newEdge);
+        fixes.push(`Connected orphan node: ${node.label}`);
+        logger.log(`[EdgeValidator] Adding missing edge: ${node.label} → ${candidate.label}`);
       }
     }
   }
-  
-  return { edges: enhancedEdges, fixes };
-}
 
-export function validateEdgeConnectivity(
-  nodes: ArchitectureNode[],
-  edges: ArchitectureEdge[]
-): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
-  
-  for (const edge of edges) {
-    const sourceNode = nodeMap.get(edge.source);
-    const targetNode = nodeMap.get(edge.target);
-    
-    if (!sourceNode) {
-      errors.push(`Edge "${edge.id}" has invalid source: ${edge.source}`);
-    }
-    if (!targetNode) {
-      errors.push(`Edge "${edge.id}" has invalid target: ${edge.target}`);
-    }
-  }
-  
-  const { orphans } = detectOrphans(nodes, edges);
-  if (orphans.length > 0) {
-    errors.push(`${orphans.length} orphaned node(s): ${orphans.map(n => n.label).join(', ')}`);
-  }
-  
-  return { valid: errors.length === 0, errors };
+  return { edges: resultEdges, fixes };
 }

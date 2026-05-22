@@ -1,33 +1,30 @@
-import type { ArchitectureNode, ArchitectureEdge, UserIntent, ReactFlowNode } from '../types';
-import type { TierType } from '../domain/tiers';
+import { Node, Edge } from 'reactflow';
+import type { ArchitectureNode, ArchitectureEdge, UserIntent, ReactFlowNode, LayerType, ServiceType } from '../types';
 import { detectSystemIntent } from '../graph/ArchitectureGraph';
 import { detectAWSInPrompt, enrichNodes } from '../agents/component';
 import { ArchitectureGraph } from '../graph/ArchitectureGraph';
-import { validateEdges, validateConnectivity, validateTierHierarchy } from '../edges/edgeValidator';
+import { validateEdges } from '../edges/edgeValidator';
 import { repairEdges, generateMissingEdges } from '../edges/edgeRepair';
 import { allocatePorts, assignHandlesToEdges } from '../edges/portAllocator';
-import { runDeterministicLayout, type DeterministicLayoutResult } from '../layout/deterministicLayout';
-import { computeLayoutMetrics } from '../layout/layoutConfig';
 import { apiKeyManager } from '../utils/apiKeyManager';
 import logger from '@/lib/logger';
 import {
-  buildComponentPrompt,
   buildEdgePrompt,
 } from '../prompts/promptBuilder';
 import { ensureConnectivity } from '../graph/connectivityEnforcer';
 import { autoAddCompensatingComponents } from '../graph/compensatingComponents';
 import { validateDiagramQuality, type DiagramQualityReport } from '../validation/diagramQualityValidator';
 import * as diagramCache from '../services/diagramCache';
-import { detectDomain, validateAndFixComponents } from '../graph/componentValidator';
-import { enforceMinimumConnections, detectOrphans, ensureGroupConnectivity } from '../graph/edgeValidator';
+import { detectDomain } from '../graph/componentValidator';
+import { enforceMinimumConnections } from '../graph/edgeValidator';
 import { applyDomainEdgePatterns } from '../graph/domainEdgePatterns';
 import { findConnectedComponents, bridgeComponents } from '../graph/graphConnectivity';
 
 // NEW: Import redesigned 8-stage pipeline
-import { detectIntent, getLayerForNode, getLayerIndex } from './stage1-intent';
+import { detectIntent } from './stage1-intent';
 import { callReasoningLLM, type ReasoningResult } from './stage2-reasoning';
-import { callDiagramLLM, parseLLMOutput } from './stage3-diagram';
-import { validateAndRepair, getLayerIndex as validateGetLayerIndex } from './stage5-validate';
+import { callDiagramLLM } from './stage3-diagram';
+import { validateAndRepair } from './stage5-validate';
 import { applyLayout } from './stage6-layout';
 import { convertToReactFlow } from './stage7-convert';
 import { scoreDiagram } from './stage8-score';
@@ -81,15 +78,6 @@ const SCORE_THRESHOLD = 75;
 
 /**
  * MAIN PIPELINE ORCHESTRATOR
- * 
- * 8-Stage Pipeline:
- * STAGE 1 - Intent Detection (improved with confidence scoring)
- * STAGE 2 - Reasoning (structured architectural plan)
- * STAGE 3 - Diagram Generation (LLM with minimum constraints)
- * STAGE 4/5 - Validation (NON-DESTRUCTIVE: repair, don't remove)
- * STAGE 6 - Layout (hierarchy-aware, left-to-right flow)
- * STAGE 7 - React Flow Conversion (never remove nodes)
- * STAGE 8 - Quality Scoring (with preservation penalties)
  */
 export async function runArchitecturePipeline(
   userIntent: UserIntent,
@@ -180,7 +168,7 @@ export async function runArchitecturePipeline(
 
     // Convert RawNode[] to ArchitectureNode[]
     state.rawNodes = diagramResult.nodes.map(n => 
-      rawNodeToArchitectureNode(n as RawNode)
+      rawNodeToArchitectureNode(n)
     );
     
     logger.log(`[Pipeline] Generated ${state.rawNodes.length} nodes and ${diagramResult.flows.length} flows`);
@@ -256,8 +244,8 @@ export async function runArchitecturePipeline(
     // Convert ArchitectureEdge[] to RawFlow[]
     const rawFlows: RawFlow[] = state.edges.map(e => ({
       path: [e.source, e.target],
-      label: (e as { label?: string }).label || '',
-      async: (e as { communicationType?: string }).communicationType === 'async',
+      label: e.label || '',
+      async: e.communicationType === 'async',
     }));
 
     // RUN NON-DESTRUCTIVE VALIDATION
@@ -294,7 +282,7 @@ export async function runArchitecturePipeline(
       },
       markerEnd: 'arrowclosed',
       markerStart: 'none',
-    } as unknown as ArchitectureEdge));
+    } as ArchitectureEdge));
     
     state.history.push({
       step: 'validate',
@@ -361,10 +349,10 @@ export async function runArchitecturePipeline(
       const raw = architectureNodeToRawNode(n);
       return {
         ...raw,
-        x: (n as { position?: { x: number } }).position?.x || 0,
-        y: (n as { position?: { y: number } }).position?.y || 0,
-        width: (n as { width?: number }).width || 180,
-        height: (n as { height?: number }).height || 70,
+        x: n.position?.x || 0,
+        y: n.position?.y || 0,
+        width: n.width || 180,
+        height: n.height || 70,
       };
     });
 
@@ -374,14 +362,14 @@ export async function runArchitecturePipeline(
         id: e.id,
         source: e.source,
         target: e.target,
-        label: (e as { label?: string }).label || '',
-        async: (e as { communicationType?: string }).communicationType === 'async',
+        label: e.label || '',
+        async: e.communicationType === 'async',
       }))
     });
     
     // Convert layout result back to ArchitectureNode[]
     state.reactFlowNodes = layoutResult.map(n => rawNodeToArchitectureNode(n as RawNode) as unknown as ReactFlowNode);
-    state.graph = null; // TODO: Convert to ArchitectureGraph if needed
+    state.graph = null; 
     
     state.history.push({
       step: 'layout',
@@ -401,20 +389,20 @@ export async function runArchitecturePipeline(
           subtitle: n.subtitle || '',
           layer: n.layer,
           icon: n.icon || 'box',
-          serviceType: n.serviceType || '',
+          serviceType: (n.serviceType || 'generic') as ServiceType,
         })),
         edges: state.edges.map(e => ({
           id: e.id,
           source: e.source,
           target: e.target,
-          label: (e as { label?: string })?.label || '',
-          async: (e as { communicationType?: string })?.communicationType === 'async',
+          label: e.label || '',
+          async: e.communicationType === 'async',
         }))
       }
     );
 
     // Use the converted nodes/edges
-    state.reactFlowNodes = rfNodes as unknown as ReactFlowNode[];
+    state.reactFlowNodes = rfNodes as ReactFlowNode[];
     state.edges = rfEdges as unknown as ArchitectureEdge[];
 
     state.history.push({
@@ -427,8 +415,8 @@ export async function runArchitecturePipeline(
     onProgress?.('Scoring output', 95);
     
     const diagramScore = scoreDiagram(
-      rfNodes,
-      rfEdges,
+      rfNodes as Node[],
+      rfEdges as Edge[],
       {
         nodesRemoved: Math.max(0, nodesForLayout.length - rfNodes.length),
         edgesRemoved: Math.max(0, state.edges.length - rfEdges.length),
@@ -445,11 +433,7 @@ export async function runArchitecturePipeline(
 
     // Log quality report
     const qualityReport = validateDiagramQuality(
-      state.enrichedNodes.map(n => ({
-        ...n,
-        layer: n.layer,
-        serviceType: n.serviceType,
-      })),
+      state.enrichedNodes,
       state.edges
     );
     logger.log('[ArchDraw Quality Gate]', qualityReport);
@@ -516,37 +500,28 @@ function rawNodeToArchitectureNode(raw: RawNode): ArchitectureNode {
     id: raw.id,
     type: 'architectureNode',
     position: { x: (raw as { x?: number }).x || 0, y: (raw as { y?: number }).y || 0 },
-    data: {
-      label: raw.label,
-      subtitle: raw.subtitle || '',
-      layer: raw.layer,
-      icon: raw.icon || 'box',
-      serviceType: raw.serviceType || '',
-    },
+    label: raw.label,
+    layer: raw.layer as LayerType,
     width: (raw as { width?: number }).width || 180,
     height: (raw as { height?: number }).height || 70,
-  } as unknown as ArchitectureNode;
+    icon: raw.icon || 'box',
+    metadata: {},
+    subtitle: raw.subtitle || '',
+    serviceType: raw.serviceType,
+  };
 }
 
 /**
  * Convert ArchitectureNode to RawNode
  */
 function architectureNodeToRawNode(node: ArchitectureNode): RawNode {
-  const data = (node as { data?: { 
-    label?: string; 
-    subtitle?: string; 
-    layer?: string; 
-    icon?: string; 
-    serviceType?: string;
-  } }).data || {};
-  
   return {
     id: node.id,
-    label: data.label || node.id,
-    subtitle: data.subtitle,
-    layer: (data.layer || 'application') as RawNode['layer'],
-    icon: data.icon,
-    serviceType: data.serviceType,
+    label: node.label,
+    subtitle: node.subtitle,
+    layer: node.layer as RawNode['layer'],
+    icon: node.icon,
+    serviceType: node.serviceType,
   };
 }
 
@@ -554,11 +529,11 @@ async function generateEdges(state: PipelineState): Promise<ArchitectureEdge[]> 
   const { userIntent, enrichedNodes } = state;
 
   const nodeSummaries = enrichedNodes
-    .filter(n => !((n as { data?: { isGroup?: boolean } }).data?.isGroup))
+    .filter(n => !n.isGroup)
     .map(n => ({
       id: n.id,
-      label: ((n as { data?: { label?: string } }).data?.label || n.id),
-      tier: (((n as { data?: { layer?: string } }).data?.layer || 'application') as string),
+      label: n.label,
+      tier: n.layer,
     }));
 
   const prompt = buildEdgePrompt(userIntent.description, nodeSummaries);
@@ -609,127 +584,6 @@ async function generateEdges(state: PipelineState): Promise<ArchitectureEdge[]> 
   }
 }
 
-function generateFallbackFromIntent(
-  userIntent: UserIntent,
-  intent: ReturnType<typeof detectSystemIntent>
-): ArchitectureNode[] {
-  const nodes: ArchitectureNode[] = [];
-  
-  // Presentation column
-  nodes.push({
-    id: 'client',
-    type: 'architectureNode',
-    position: { x: 0, y: 0 },
-    data: {
-      label: 'Client App',
-      subtitle: 'web browser',
-      layer: 'presentation',
-      tier: 'presentation',
-      tierColor: '#6B7B8D',
-      icon: 'monitor',
-      serviceType: 'client',
-    },
-  } as unknown as ArchitectureNode);
-
-  // Application column
-  nodes.push({
-    id: 'api-gateway',
-    type: 'architectureNode',
-    position: { x: 0, y: 0 },
-    data: {
-      label: 'API Gateway',
-      subtitle: 'REST API entry',
-      layer: 'application',
-      tier: 'application',
-      tierColor: '#6B7B8D',
-      icon: 'webhook',
-      serviceType: 'gateway',
-    },
-  } as unknown as ArchitectureNode);
-
-  nodes.push({
-    id: 'main-service',
-    type: 'architectureNode',
-    position: { x: 0, y: 0 },
-    data: {
-      label: 'Main Service',
-      subtitle: 'business logic',
-      layer: 'application',
-      tier: 'application',
-      tierColor: '#14b8a6',
-      icon: 'server',
-      serviceType: 'api',
-    },
-  } as unknown as ArchitectureNode);
-
-  if (intent.primary.includes('auth')) {
-    nodes.push({
-      id: 'auth-service',
-      type: 'architectureNode',
-      position: { x: 0, y: 0 },
-      data: {
-        label: 'Auth Service',
-        subtitle: 'authentication & authz',
-        layer: 'application',
-        tier: 'application',
-        tierColor: '#14b8a6',
-        icon: 'lock',
-        serviceType: 'auth',
-      },
-    } as unknown as ArchitectureNode);
-  }
-
-  // Data column
-  nodes.push({
-    id: 'database',
-    type: 'architectureNode',
-    position: { x: 0, y: 0 },
-    data: {
-      label: 'Database',
-      subtitle: 'primary data store',
-      layer: 'data',
-      tier: 'data',
-      tierColor: '#3b82f6',
-      icon: 'database',
-      serviceType: 'database',
-    },
-  } as unknown as ArchitectureNode);
-
-  nodes.push({
-    id: 'cache',
-    type: 'architectureNode',
-    position: { x: 0, y: 0 },
-    data: {
-      label: 'Cache',
-      subtitle: 'Redis cache',
-      layer: 'data',
-      tier: 'data',
-      tierColor: '#3b82f6',
-      icon: 'gauge',
-      serviceType: 'cache',
-    },
-  } as unknown as ArchitectureNode);
-
-  if (intent.primary.includes('storage')) {
-    nodes.push({
-      id: 'storage',
-      type: 'architectureNode',
-      position: { x: 0, y: 0 },
-      data: {
-        label: 'Object Storage',
-        subtitle: 'file storage',
-        layer: 'data',
-        tier: 'data',
-        tierColor: '#3b82f6',
-        icon: 'hard-drive',
-        serviceType: 'storage',
-      },
-    } as unknown as ArchitectureNode);
-  }
-
-  return nodes;
-}
-
 function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge[] {
   const edges: ArchitectureEdge[] = [];
   const columnOrder: string[] = ['presentation', 'application', 'data'];
@@ -764,8 +618,8 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
     const sourceLayer = columnOrder[i];
     const targetLayer = columnOrder[i + 1];
 
-    const sources = nodes.filter(n => (n.layer || n.tier) === sourceLayer);
-    const targets = nodes.filter(n => (n.layer || n.tier) === targetLayer);
+    const sources = nodes.filter(n => n.layer === sourceLayer);
+    const targets = nodes.filter(n => n.layer === targetLayer);
 
     if (sources.length > 0 && targets.length > 0) {
       const commType: 'sync' | 'async' = 'sync';
@@ -788,28 +642,4 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
   }
 
   return edges;
-}
-
-function computeScore(
-  nodeCount: number,
-  edgeCount: number,
-  errors: PipelineError[]
-): number {
-  let score = 100;
-
-  if (nodeCount < 8) score -= (8 - nodeCount) * 5;
-  if (nodeCount > 25) score -= (nodeCount - 25) * 3;
-
-  if (edgeCount === 0) score -= 40;
-  else if (nodeCount > 0) {
-    const expectedEdges = Math.floor(nodeCount * 0.8);
-    const edgeRatio = edgeCount / expectedEdges;
-    if (edgeRatio < 0.5) score -= 20;
-    if (edgeRatio > 2) score -= 10;
-  }
-
-  const criticalErrors = errors.filter(e => e.severity === 'critical');
-  score -= criticalErrors.length * 15;
-
-  return Math.max(0, Math.min(100, score));
 }

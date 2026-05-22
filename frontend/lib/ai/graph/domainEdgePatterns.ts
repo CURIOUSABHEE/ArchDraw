@@ -1,187 +1,49 @@
 import type { ArchitectureNode, ArchitectureEdge } from '../types';
+import logger from '@/lib/logger';
 
-interface EdgePattern {
-  from: string[];
-  to: string[];
-  type: 'sync' | 'async' | 'stream' | 'event';
-  path: 'smooth' | 'bezier' | 'step';
-  priority: number;
-}
-
-const DOMAIN_EDGE_PATTERNS: Record<string, EdgePattern[]> = {
-  chat: [
-    { from: ['client'], to: ['gateway', 'loadbalancer'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['gateway'], to: ['compute'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['gateway'], to: ['api'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['compute'], to: ['database'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['compute'], to: ['cache'], type: 'sync', path: 'smooth', priority: 8 },
-    { from: ['compute'], to: ['queue'], type: 'async', path: 'step', priority: 7 },
-    { from: ['queue'], to: ['storage'], type: 'async', path: 'step', priority: 6 },
-    { from: ['compute'], to: ['storage'], type: 'sync', path: 'smooth', priority: 5 },
-  ],
-  'video streaming': [
-    { from: ['client'], to: ['cdn'], type: 'stream', path: 'bezier', priority: 10 },
-    { from: ['client'], to: ['gateway'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['gateway'], to: ['compute'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['compute'], to: ['storage'], type: 'sync', path: 'smooth', priority: 8 },
-    { from: ['storage'], to: ['cdn'], type: 'stream', path: 'bezier', priority: 8 },
-    { from: ['cdn'], to: ['client'], type: 'stream', path: 'bezier', priority: 10 },
-    { from: ['compute'], to: ['cache'], type: 'sync', path: 'smooth', priority: 6 },
-  ],
-  ecommerce: [
-    { from: ['client'], to: ['gateway'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['client'], to: ['cdn'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['gateway'], to: ['loadbalancer'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['loadbalancer'], to: ['compute'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['loadbalancer'], to: ['api'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['compute'], to: ['database'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['api'], to: ['database'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['compute'], to: ['cache'], type: 'sync', path: 'smooth', priority: 8 },
-    { from: ['compute'], to: ['queue'], type: 'async', path: 'step', priority: 7 },
-    { from: ['queue'], to: ['compute'], type: 'async', path: 'step', priority: 7 },
-  ],
-  'social media': [
-    { from: ['client'], to: ['gateway'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['gateway'], to: ['compute'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['gateway'], to: ['api'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['compute'], to: ['database'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['compute'], to: ['cache'], type: 'sync', path: 'smooth', priority: 8 },
-    { from: ['compute'], to: ['storage'], type: 'sync', path: 'smooth', priority: 7 },
-    { from: ['compute'], to: ['queue'], type: 'async', path: 'step', priority: 6 },
-  ],
-  'ml ai': [
-    { from: ['client'], to: ['gateway'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['gateway'], to: ['compute'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['compute'], to: ['storage'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['compute'], to: ['queue'], type: 'async', path: 'step', priority: 8 },
-    { from: ['queue'], to: ['compute'], type: 'async', path: 'step', priority: 8 },
-    { from: ['storage'], to: ['compute'], type: 'sync', path: 'smooth', priority: 7 },
-  ],
-  general: [
-    { from: ['client'], to: ['gateway'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['client'], to: ['loadbalancer'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['gateway'], to: ['compute'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['gateway'], to: ['api'], type: 'sync', path: 'smooth', priority: 10 },
-    { from: ['loadbalancer'], to: ['compute'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['loadbalancer'], to: ['api'], type: 'sync', path: 'smooth', priority: 9 },
-    { from: ['compute'], to: ['database'], type: 'sync', path: 'smooth', priority: 8 },
-    { from: ['api'], to: ['database'], type: 'sync', path: 'smooth', priority: 8 },
-    { from: ['compute'], to: ['cache'], type: 'sync', path: 'smooth', priority: 7 },
-    { from: ['compute'], to: ['storage'], type: 'sync', path: 'smooth', priority: 6 },
-    { from: ['compute'], to: ['queue'], type: 'async', path: 'step', priority: 5 },
-  ],
-};
-
-const EDGE_COLORS: Record<string, string> = {
-  sync: '#6B7280',
-  async: '#6B7280',
-  stream: '#6B7280',
-  event: '#6B7280',
-};
-
-export function getDomainEdgePatterns(domain: string): EdgePattern[] {
-  return DOMAIN_EDGE_PATTERNS[domain] || DOMAIN_EDGE_PATTERNS['general'];
-}
-
-function getEdgeColor(type: string): string {
-  return EDGE_COLORS[type] || EDGE_COLORS['sync'];
-}
-
-function hasEdge(nodes: ArchitectureNode[], edges: ArchitectureEdge[], sourceId: string, targetId: string): boolean {
-  return edges.some(e => e.source === sourceId && e.target === targetId);
-}
-
-function getNodesByServiceType(nodes: ArchitectureNode[], serviceTypes: string[]): ArchitectureNode[] {
-  return nodes.filter(n => 
-    !n.isGroup && 
-    serviceTypes.some(t => n.serviceType === t || n.layer === t)
-  );
-}
-
+/**
+ * Applies domain-specific edge patterns (e.g., standard RAG flows, e-commerce flows)
+ */
 export function applyDomainEdgePatterns(
   nodes: ArchitectureNode[],
   domain: string,
-  existingEdges: ArchitectureEdge[] = []
+  currentEdges: ArchitectureEdge[]
 ): { edges: ArchitectureEdge[]; added: number } {
-  const patterns = getDomainEdgePatterns(domain);
-  const newEdges: ArchitectureEdge[] = [];
-  const sorted = [...patterns].sort((a, b) => b.priority - a.priority);
+  const addedEdges: ArchitectureEdge[] = [];
+  const leafNodes = nodes.filter(n => !n.isGroup);
   
-  for (const pattern of sorted) {
-    const sources = getNodesByServiceType(nodes, pattern.from);
-    const targets = getNodesByServiceType(nodes, pattern.to);
-    
-    if (sources.length === 0 || targets.length === 0) {
-      continue;
-    }
-    
-    const source = sources[0];
-    const target = targets[0];
-    
-    if (!hasEdge(nodes, existingEdges, source.id, target.id) && 
-        !hasEdge(nodes, newEdges, source.id, target.id)) {
-      const isAsync = pattern.type === 'async' || pattern.type === 'stream';
-      newEdges.push({
-        id: `domain-${source.id}-${target.id}-${Date.now()}`,
-        source: source.id,
-        target: target.id,
-        sourceHandle: 'right' as const,
-        targetHandle: 'left' as const,
-        communicationType: pattern.type,
-        pathType: pattern.path,
-        label: '',
-        labelPosition: 'center' as const,
-        animated: isAsync,
-        style: {
-          stroke: getEdgeColor(pattern.type),
-          strokeDasharray: isAsync ? '8,4' : '',
-          strokeWidth: 2,
-        },
-        markerEnd: 'arrowclosed' as const,
-        markerStart: 'none' as const,
-      });
-    }
-  }
-  
-  const added = newEdges.length;
-  if (added > 0) {
-    console.log(`[DomainEdgePatterns] Added ${added} domain-specific edges for ${domain}`);
-  }
-  
-  return { edges: newEdges, added };
-}
+  const edgeExists = (source: string, target: string) => 
+    [...currentEdges, ...addedEdges].some(e => e.source === source && e.target === target);
 
-export function getTotalConnections(
-  nodeId: string,
-  edges: ArchitectureEdge[]
-): { incoming: number; outgoing: number } {
-  return {
-    incoming: edges.filter(e => e.target === nodeId).length,
-    outgoing: edges.filter(e => e.source === nodeId).length,
+  const pushEdge = (sourceId: string, targetId: string, label: string = '', async = false) => {
+    if (edgeExists(sourceId, targetId)) return;
+    addedEdges.push({
+      id: `domain-${sourceId}-${targetId}`,
+      source: sourceId,
+      target: targetId,
+      sourceHandle: 'right',
+      targetHandle: 'left',
+      communicationType: async ? 'async' : 'sync',
+      pathType: 'smooth',
+      label,
+      animated: async,
+      style: { stroke: '#94a3b8', strokeWidth: 2 },
+      markerEnd: 'arrowclosed',
+    } as ArchitectureEdge);
   };
-}
 
-export function getNodeWithMostConnections(
-  nodes: ArchitectureNode[],
-  edges: ArchitectureEdge[],
-  direction: 'incoming' | 'outgoing' | 'both' = 'both'
-): ArchitectureNode | null {
-  let bestNode: ArchitectureNode | null = null;
-  let bestCount = 0;
-  
-  for (const node of nodes) {
-    if (node.isGroup) continue;
+  if (domain === 'rag') {
+    const vectorDb = leafNodes.find(n => n.label.toLowerCase().includes('vector'));
+    const llm = leafNodes.find(n => n.label.toLowerCase().includes('llm') || n.label.toLowerCase().includes('model'));
+    const api = leafNodes.find(n => n.layer === 'application' && !n.label.toLowerCase().includes('llm'));
     
-    const { incoming, outgoing } = getTotalConnections(node.id, edges);
-    const total = direction === 'incoming' ? incoming : 
-                direction === 'outgoing' ? outgoing : 
-                incoming + outgoing;
-    
-    if (total > bestCount) {
-      bestCount = total;
-      bestNode = node;
-    }
+    if (api && vectorDb) pushEdge(api.id, vectorDb.id, 'semantic search');
+    if (vectorDb && llm) pushEdge(vectorDb.id, llm.id, 'context injection');
+  }
+
+  if (addedEdges.length > 0) {
+    logger.log(`[DomainEdgePatterns] Added ${addedEdges.length} domain-specific edges for ${domain}`);
   }
   
-  return bestNode;
+  return { edges: addedEdges, added: addedEdges.length };
 }

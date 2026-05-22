@@ -17,8 +17,6 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
-import { MessageBrokerNode } from '@/components/MessageBrokerNode';
-import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
@@ -26,15 +24,16 @@ import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
 const NODE_TYPES = {
   systemNode:        SystemNode,
   architectureNode:  SystemNode,
-  baseNode:          BaseNode,
-  databaseNode:     DatabaseNode,
-  cacheNode:         CacheNode,
+  baseNode:          SystemNode,
+  databaseNode:      SystemNode,
+  cacheNode:         SystemNode,
   shapeNode:         ShapeNode,
   groupNode:         GroupNode,
   group:             GroupNode,
   textLabelNode:     TextLabelNode,
   annotationNode:    AnnotationNode,
-  messageBrokerNode: MessageBrokerNode,
+  messageBrokerNode: SystemNode,
+  customNode:        SystemNode,
 };
 
 const EDGE_TYPES = {
@@ -63,12 +62,12 @@ function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls
   const controlBg = isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)';
   const controlBorder = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.8)';
   
-  const pathTypeConfig: Record<string, { borderRadius?: number }> = {
+  const pathTypeConfig: Record<string, { borderRadius?: number }> = useMemo(() => ({
     smooth: { borderRadius: 24 },
     bezier: {},
     step: { borderRadius: 0 },
     straight: {},
-  };
+  }), []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -160,7 +159,6 @@ export function EmbedCanvasViewer({ nodes, edges, theme = 'dark', zoom = 1, show
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

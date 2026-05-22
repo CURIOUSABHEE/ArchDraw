@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import logger from '@/lib/logger';
 
 export interface DiagramData {
   nodes: unknown[];
@@ -26,18 +27,16 @@ function loadStore(): Map<string, DiagramData> {
       return map;
     }
   } catch (e) {
-    console.error('Failed to load diagram store:', e);
+    logger.error('Failed to load diagram store:', e);
   }
   return new Map();
 }
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   const { sessionId } = await params;
-
-  // Reload from disk on every request to pick up new MCP-generated sessions
   const diagramStore = loadStore();
   const diagram = diagramStore.get(sessionId);
 

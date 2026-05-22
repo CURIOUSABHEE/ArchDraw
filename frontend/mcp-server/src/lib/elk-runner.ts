@@ -43,28 +43,28 @@ const LAYER_ORDER: string[] = [
   'observe',
 ];
 
-const DEFAULT_NODE_WIDTH = 220;
+const DEFAULT_NODE_WIDTH = 160;
 const DEFAULT_NODE_HEIGHT = 80;
 const MIN_VERTICAL_GAP = 80;
 const COLLISION_BUFFER = 20;
 const MIN_CANVAS_HEIGHT = 1200;
 
 const TIER_COLORS: Record<TierType, string> = {
-  client: '#5A5A5A',
-  edge: '#6B7B8D',
-  compute: '#14b8a6',
-  async: '#f59e0b',
-  data: '#3b82f6',
-  external: '#f97316',
-  observe: '#6b7280',
+  client:   '#64748b', // slate
+  edge:     '#6366f1', // indigo
+  compute:  '#0d9488', // teal
+  async:    '#d97706', // amber
+  data:     '#3b82f6', // blue
+  external: '#ec4899', // rose
+  observe:  '#8b5cf6', // violet
 };
 
 const COMM_COLORS: Record<string, { color: string; dash: string; animated: boolean }> = {
-  sync: { color: '#94a3b8', dash: '', animated: false },
-  async: { color: '#f59e0b', dash: '8,4', animated: true },
-  stream: { color: '#10b981', dash: '4,2', animated: true },
-  event: { color: '#ec4899', dash: '2,3', animated: true },
-  dep: { color: '#94a3b8', dash: '6,6', animated: true },
+  sync:   { color: '#3B82F6', dash: '', animated: false },
+  async:  { color: '#F59E0B', dash: '8,6', animated: true },
+  stream: { color: '#10B981', dash: '10,4,2,4', animated: true },
+  event:  { color: '#8B5CF6', dash: '4,4', animated: true },
+  dep:    { color: '#6B7280', dash: '6,6', animated: true },
 };
 
 interface PlacedNode {
@@ -219,7 +219,7 @@ function createReactFlowEdge(
       strokeWidth: 2,
       strokeDasharray: commStyle.dash,
     },
-    markerEnd: { type: 'arrowclosed', color: commStyle.color },
+    markerEnd: { type: 'arrowclosed' as string, color: commStyle.color }, // Will be overridden or ignored by frontend components
     data: {
       communicationType: commType as 'sync' | 'async' | 'stream' | 'event' | 'dep',
       pathType,
@@ -355,7 +355,7 @@ export async function runELKLayout(
       
       return {
         id: node.id,
-        type: node.isGroup ? 'group' : 'systemNode',
+        type: node.isGroup ? 'groupNode' : 'systemNode',
         position: {
           x: pos?.x ?? TIER_X_POSITIONS_LR[tier],
           y: pos?.y ?? 200,
@@ -474,7 +474,7 @@ export function runFallbackLayout(
     
     return {
       id: node.id,
-      type: node.isGroup ? 'group' : 'systemNode',
+      type: node.isGroup ? 'groupNode' : 'systemNode',
       position: {
         x: placed?.x ?? TIER_X_POSITIONS_LR[tier],
         y: placed?.y ?? 200,

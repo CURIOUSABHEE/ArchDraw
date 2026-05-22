@@ -1,7 +1,3 @@
-import type { TierType } from '../domain/tiers';
-import { TIER_ORDER, getTierFromLayer } from '../domain/tiers';
-import { TIER_THEMES } from '../domain/designSystem';
-
 export interface PromptModule {
   name: string;
   content: string;

@@ -12,6 +12,9 @@ export interface ComponentKnowledge {
   bestPractices: BestPractices;
   relatedConcepts: string[];
   commonPatterns: string[];
+  whyItMatters?: string;
+  concepts?: string[];
+  realWorldFact?: string;
 }
 
 export interface LearningResource {

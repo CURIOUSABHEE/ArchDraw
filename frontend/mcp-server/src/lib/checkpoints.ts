@@ -3,8 +3,8 @@ export interface Checkpoint {
   description?: string;
   savedAt: string;
   state: {
-    nodes: any[];
-    edges: any[];
+    nodes: unknown[];
+    edges: unknown[];
   };
 }
 
@@ -13,7 +13,7 @@ const checkpoints = new Map<string, Checkpoint>();
 export function saveCheckpoint(
   name: string,
   description: string | undefined,
-  state: { nodes: any[]; edges: any[] }
+  state: { nodes: unknown[]; edges: unknown[] }
 ): { success: boolean; name: string; savedAt: string; nodeCount: number; edgeCount: number; overwritten?: boolean } {
   const savedAt = new Date().toISOString();
   const overwritten = checkpoints.has(name);
@@ -69,7 +69,7 @@ export function loadCheckpoint(name: string): {
   };
 }
 
-export function getCheckpointState(name: string): { nodes: any[]; edges: any[] } | null {
+export function getCheckpointState(name: string): { nodes: unknown[]; edges: unknown[] } | null {
   const checkpoint = checkpoints.get(name);
   return checkpoint ? {
     nodes: JSON.parse(JSON.stringify(checkpoint.state.nodes)),

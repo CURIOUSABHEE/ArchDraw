@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
+import logger from '@/lib/logger';
 
 export interface DiagramData {
   nodes: unknown[];
@@ -27,7 +28,7 @@ function loadStore(): Map<string, DiagramData> {
       return map;
     }
   } catch (e) {
-    console.error('Failed to load diagram store:', e);
+    logger.error('Failed to load diagram store:', e);
   }
   return new Map();
 }

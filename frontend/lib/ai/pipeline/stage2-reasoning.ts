@@ -1,5 +1,6 @@
 import type { ReasoningResult } from './types';
-import { REASONING_PROMPT, MODEL_CONFIG } from '../constants';
+import { MODEL_CONFIG } from '../constants';
+import logger from '@/lib/logger';
 
 // Re-export ReasoningResult for other modules
 export type { ReasoningResult };
@@ -78,7 +79,7 @@ export async function callReasoningLLM(
         };
       }
     } catch (error) {
-      console.log(`[Reasoning] Groq key ${envVar} failed:`, error instanceof Error ? error.message : 'unknown error');
+      logger.log(`[Reasoning] Groq key ${envVar} failed:`, error instanceof Error ? error.message : 'unknown error');
       continue;
     }
   }
@@ -154,7 +155,7 @@ REQUIREMENTS:
 Analyze and output JSON now:`;
 }
 
-function buildDefaultLayers(systemType: string): Record<string, { description: string; components: string[] }> {
+function buildDefaultLayers(_systemType: string): Record<string, { description: string; components: string[] }> {
   return {
     clients: {
       description: 'Client-facing components',
@@ -204,11 +205,4 @@ function buildFallbackReasoning(intentType: string): ReasoningResult {
     ],
     architecturalPlan: `A ${intentType || 'system'} architecture with standard layered structure.`,
   };
-}
-
-// Extend ReasoningResult type (this is for documentation, the actual type update is in types.ts)
-export interface ExtendedReasoningResult extends ReasoningResult {
-  layers?: Record<string, { description: string; components: string[] }>;
-  keyFlows?: Array<{ name: string; description: string; path: string[] }>;
-  architecturalPlan?: string;
 }

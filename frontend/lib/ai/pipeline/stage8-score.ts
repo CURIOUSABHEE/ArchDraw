@@ -23,14 +23,12 @@ const TARGET_NODES = 15;
 const MIN_EDGES = 10;
 const TARGET_EDGES = 15;
 
-const REQUIRED_LAYERS = ['presentation', 'gateway', 'application', 'async', 'data'];
+const REQUIRED_LAYERS = ['client', 'gateway', 'application', 'data'];
 
 export function scoreDiagram(
   nodes: Node[],
   edges: Edge[],
   options?: {
-    originalNodeCount?: number;
-    originalEdgeCount?: number;
     nodesRemoved?: number;
     edgesRemoved?: number;
     groupsRemoved?: number;

@@ -1,11 +1,12 @@
 import type { RawNode, RawFlow, DiagramScore } from './types';
 import { detectIntent } from './stage1-intent';
 import { callReasoningLLM } from './stage2-reasoning';
-import { callDiagramLLM, parseLLMOutput } from './stage3-diagram';
+import { callDiagramLLM } from './stage3-diagram';
 import { validateAndRepair } from './stage5-validate';
 import { applyLayout } from './stage6-layout';
 import { convertToReactFlow } from './stage7-convert';
 import { scoreDiagram } from './stage8-score';
+import logger from '@/lib/logger';
 
 export interface StreamingEvent {
   type: 'node' | 'flow' | 'thinking' | 'complete' | 'error';
@@ -26,18 +27,18 @@ export async function generateDiagramPipeline(
 ): Promise<DiagramResult> {
   try {
     // Stage 1: Intent detection
-    console.log('[Pipeline] Stage 1: Intent detection');
+    logger.log('[Pipeline] Stage 1: Intent detection');
     const intent = detectIntent(prompt);
-    console.log('[Pipeline] Intent type:', intent.type, 'confidence:', intent.confidence);
+    logger.log('[Pipeline] Intent type:', intent.type, 'confidence:', intent.confidence);
 
     // Stage 2: Reasoning LLM
-    console.log('[Pipeline] Stage 2: Reasoning LLM');
+    logger.log('[Pipeline] Stage 2: Reasoning LLM');
     const reasoning = await callReasoningLLM(prompt, intent.type);
     onStreaming?.({ type: 'thinking', data: JSON.stringify(reasoning) });
-    console.log('[Pipeline] Reasoning:', reasoning.systemType);
+    logger.log('[Pipeline] Reasoning:', reasoning.systemType);
 
     // Stage 3: Diagram LLM (includes streaming parse)
-    console.log('[Pipeline] Stage 3: Diagram LLM');
+    logger.log('[Pipeline] Stage 3: Diagram LLM');
     let parsed;
     try {
       parsed = await callDiagramLLM(
@@ -46,12 +47,12 @@ export async function generateDiagramPipeline(
         flow => onStreaming?.({ type: 'flow', data: flow })
       );
     } catch (e) {
-      console.log('[Pipeline] Diagram LLM failed, using fallback');
+      logger.log('[Pipeline] Diagram LLM failed, using fallback');
     }
     
     // If no parsed diagram, use comprehensive fallback
     if (!parsed || parsed.nodes.length === 0) {
-      console.log('[Pipeline] Using fallback diagram');
+      logger.log('[Pipeline] Using fallback diagram');
       parsed = {
         nodes: [
           // Groups with ALL CAPS short zone names
@@ -86,41 +87,39 @@ export async function generateDiagramPipeline(
       };
     }
     
-    console.log('[Pipeline] Parsed nodes:', parsed.nodes.length, 'flows:', parsed.flows.length);
+    logger.log(`[Pipeline] Parsed nodes: ${parsed.nodes.length}, flows: ${parsed.flows.length}`);
 
     // Stage 5: Validate and repair
-    console.log('[Pipeline] Stage 5: Validate and repair');
+    logger.log('[Pipeline] Stage 5: Validate and repair');
     const validated = validateAndRepair(parsed);
-    console.log('[Pipeline] Validated nodes:', validated.nodes.length, 'edges:', validated.edges.length);
+    logger.log(`[Pipeline] Validated nodes: ${validated.nodes.length}, edges: ${validated.edges.length}`);
 
     // Stage 6: Layout
-    console.log('[Pipeline] Stage 6: Layout');
+    logger.log('[Pipeline] Stage 6: Layout');
     const layouted = await applyLayout(validated);
-    console.log('[Pipeline] Layouted nodes:', layouted.length);
+    logger.log(`[Pipeline] Layouted nodes: ${layouted.length}`);
 
     // Stage 7: Convert to React Flow
-    console.log('[Pipeline] Stage 7: Convert to React Flow');
+    logger.log('[Pipeline] Stage 7: Convert to React Flow');
     const { nodes, edges } = convertToReactFlow(layouted, validated);
-    console.log('[Pipeline] RF nodes:', nodes.length, 'edges:', edges.length);
+    logger.log(`[Pipeline] RF nodes: ${nodes.length}, edges: ${edges.length}`);
 
     // Check ordering: groups first
     const groupNodes = nodes.filter(n => n.type === 'groupNode');
-    const childNodes = nodes.filter(n => n.data?.parentId);
     const rootNodes = nodes.filter(n => n.type !== 'groupNode' && !n.data?.parentId);
 
-    console.log('[Pipeline] Node ordering - groups:', groupNodes.length, 'children:', childNodes.length, 'root:', rootNodes.length);
-    console.log('[Pipeline] Group nodes appear first:', nodes.indexOf(groupNodes[0]) < nodes.indexOf(rootNodes[0]));
+    logger.log(`[Pipeline] Node ordering - groups: ${groupNodes.length}, root: ${rootNodes.length}`);
 
     // Stage 8: Score
-    console.log('[Pipeline] Stage 8: Scoring');
+    logger.log('[Pipeline] Stage 8: Scoring');
     const score = scoreDiagram(nodes, edges);
-    console.log('[Pipeline] Score:', score.score, 'grade:', score.grade);
+    logger.log(`[Pipeline] Score: ${score.score}, grade: ${score.grade}`);
 
     onStreaming?.({ type: 'complete' });
 
     return { nodes, edges, score };
   } catch (error) {
-    console.error('[Pipeline] Error:', error);
+    logger.error('[Pipeline] Error:', error);
     onStreaming?.({ type: 'error', data: error instanceof Error ? error.message : 'Unknown error' });
     throw error;
   }

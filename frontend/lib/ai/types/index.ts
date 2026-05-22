@@ -275,11 +275,15 @@ export interface GenerationResult {
 
 export type LayerType = 
   | 'client' 
+  | 'presentation'
   | 'edge' 
+  | 'gateway'
   | 'compute' 
+  | 'application'
   | 'async' 
   | 'data' 
   | 'observe' 
+  | 'observability'
   | 'external' 
   | 'group';
 
@@ -296,6 +300,7 @@ export type ServiceType =
   | 'monitor'
   | 'gateway'
   | 'client'
+  | 'service'
   | 'generic';
 
 export type CommunicationType = 'sync' | 'async' | 'stream' | 'event' | 'dep';
@@ -336,7 +341,7 @@ export interface ScoreResult {
 }
 
 export interface GenerationProgress {
-  phase: 'planning' | 'components' | 'layout' | 'edges' | 'validating' | 'scoring' | 'complete' | 'error';
+  phase: 'planning' | 'reasoning' | 'generating' | 'components' | 'layout' | 'edges' | 'validating' | 'scoring' | 'complete' | 'error';
   iteration: number;
   currentAgent: string;
   score: number;

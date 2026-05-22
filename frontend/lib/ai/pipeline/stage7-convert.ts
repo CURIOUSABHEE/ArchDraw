@@ -1,6 +1,7 @@
 import { Node, Edge } from 'reactflow';
-import type { LayoutedNode, DiagramEdge, ValidatedDiagram } from './types';
-import { EDGE_COLORS, EDGE_MARKER_IDS } from '../constants';
+import type { LayoutedNode, ValidatedDiagram } from './types';
+import { EDGE_MARKER_IDS } from '../constants';
+import { EDGE_STYLES } from '@/lib/theme/stylingConstants';
 
 /**
  * STAGE 7 — REACT FLOW CONVERSION
@@ -37,7 +38,7 @@ function deduplicateIds(nodes: LayoutedNode[]): LayoutedNode[] {
  */
 function sortNodesForRendering(nodes: LayoutedNode[]): LayoutedNode[] {
   // First layer sort
-  const layerOrder = ['presentation', 'application', 'data'];
+  const layerOrder = ['client', 'edge', 'gateway', 'application', 'queue', 'data'];
   const sorted = [...nodes].sort((a, b) => {
     const aLayerIdx = layerOrder.indexOf(a.layer || 'application');
     const bLayerIdx = layerOrder.indexOf(b.layer || 'application');
@@ -89,6 +90,8 @@ export function convertToReactFlow(
         isGroup,
         groupLabel: node.groupLabel,
         groupColor: node.groupColor,
+        nodeWidth: node.width,
+        nodeHeight: node.height,
       },
       width: node.width,
       height: node.height,
@@ -124,8 +127,8 @@ export function convertToReactFlow(
     })
     .map((edge, idx) => {
       const connectionType = edge.async ? 'async' : 'sync';
-      const style = '#94a3b8';
-      const strokeDash = connectionType === 'async' ? '8 6' : '';
+      const edgeStyle = EDGE_STYLES[connectionType as keyof typeof EDGE_STYLES] || EDGE_STYLES.sync;
+      const strokeDash = edgeStyle.dash || '';
       const markerId = EDGE_MARKER_IDS[connectionType] || EDGE_MARKER_IDS.sync;
       const edgeLabel = edge.label?.trim();
 
@@ -135,7 +138,7 @@ export function convertToReactFlow(
         target: edge.target,
         type: 'simpleFloating',
         animated: edge.async,
-        style: { stroke: style, strokeWidth: 2, strokeDasharray: strokeDash },
+        style: { stroke: edgeStyle.color, strokeWidth: 2, strokeDasharray: strokeDash },
         markerEnd: `url(#${markerId})`,
         data: {
           connectionType,
