@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { ONBOARDING_STEPS } from './useOnboarding';
@@ -28,25 +28,25 @@ function computeCardPosition(
   switch (cardPosition) {
     case 'center':
       return {
-        top: window.innerHeight / 2 - CARD_HEIGHT / 2,
-        left: window.innerWidth / 2 - CARD_WIDTH / 2,
+        top: typeof window !== 'undefined' ? window.innerHeight / 2 - CARD_HEIGHT / 2 : 0,
+        left: typeof window !== 'undefined' ? window.innerWidth / 2 - CARD_WIDTH / 2 : 0,
       };
     case 'right':
       if (!rect) return { top: 100, left: 100 };
       return {
-        top: Math.min(Math.max(rect.top, 20), window.innerHeight - CARD_HEIGHT - 20),
-        left: Math.min(rect.right + pad, window.innerWidth - CARD_WIDTH - 20),
+        top: typeof window !== 'undefined' ? Math.min(Math.max(rect.top, 20), window.innerHeight - CARD_HEIGHT - 20) : 100,
+        left: typeof window !== 'undefined' ? Math.min(rect.right + pad, window.innerWidth - CARD_WIDTH - 20) : 100,
       };
     case 'below':
       if (!rect) return { top: 100, left: 100 };
       return {
-        top: Math.min(rect.bottom + pad, window.innerHeight - CARD_HEIGHT - 20),
-        left: Math.max(Math.min(rect.left, window.innerWidth - CARD_WIDTH - 20), 20),
+        top: typeof window !== 'undefined' ? Math.min(rect.bottom + pad, window.innerHeight - CARD_HEIGHT - 20) : 100,
+        left: typeof window !== 'undefined' ? Math.max(Math.min(rect.left, window.innerWidth - CARD_WIDTH - 20), 20) : 100,
       };
     case 'below-left':
       if (!rect) return { top: 100, left: 100 };
       return {
-        top: Math.min(rect.bottom + pad, window.innerHeight - CARD_HEIGHT - 20),
+        top: typeof window !== 'undefined' ? Math.min(rect.bottom + pad, window.innerHeight - CARD_HEIGHT - 20) : 100,
         left: Math.max(rect.right - CARD_WIDTH, 20),
       };
     default:
@@ -68,7 +68,6 @@ function useTargetRect(selector: string | null) {
 
   useEffect(() => {
     if (!selector) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRect(null);
       return;
     }
@@ -101,8 +100,10 @@ function OnboardingOverlayInner() {
   const { isOpen, currentStep, stepCompleted, nextStep, skip } = useOnboardingStore();
   const step = ONBOARDING_STEPS[currentStep];
   const rect = useTargetRect(isOpen ? step.targetSelector : null);
-  const cardPos = computeCardPosition(rect, step.cardPosition);
-  const handPos = computeHandPosition(rect, step.handAnimation);
+  
+  const cardPos = useMemo(() => computeCardPosition(rect, step.cardPosition), [rect, step.cardPosition]);
+  const handPos = useMemo(() => computeHandPosition(rect, step.handAnimation), [rect, step.handAnimation]);
+  
   const isInteractiveStep = step.isInteractive;
   const nextDisabled = isInteractiveStep && !stepCompleted;
 
@@ -196,8 +197,9 @@ function OnboardingOverlayInner() {
 
 export function OnboardingOverlay() {
   const [mounted, setMounted] = useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   if (!mounted || typeof document === 'undefined') return null;
   return ReactDOM.createPortal(<OnboardingOverlayInner />, document.body);
 }

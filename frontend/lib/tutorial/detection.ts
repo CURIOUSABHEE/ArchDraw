@@ -1,170 +1,128 @@
 import type { Node, Edge } from 'reactflow';
 import type { ValidationRule } from './schema';
-
-const DEV_MODE = process.env.NODE_ENV === 'development';
+import logger from '@/lib/logger';
 
 function normalize(str: string): string {
   return str
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s]/g, '')
-    .replace(/\s+/g, ' ');
+    .replace(/[^a-z0-9]/g, '');
 }
 
-function fuzzyMatch(nodeLabel: string, pattern: string): boolean {
-  const normalizedLabel = normalize(nodeLabel);
-  const normalizedPattern = normalize(pattern);
-  
-  if (normalizedLabel === normalizedPattern) return true;
-  if (normalizedLabel.includes(normalizedPattern)) return true;
-  if (normalizedPattern.split(' ').every(word => word.length > 0 && normalizedLabel.includes(word))) return true;
-  
-  return false;
-}
-
-function getNodeLabel(node: Node): string {
-  return node.data?.label ?? '';
-}
-
-function getNodeType(node: Node): string {
-  return node.type ?? node.data?.type ?? '';
-}
-
-function findMatchingNodes(
-  nodes: Node[],
-  nodeType: string,
-  label?: string
-): Node[] {
-  return nodes.filter(node => {
-    const matchesType = nodeType ? fuzzyMatch(getNodeType(node), nodeType) : true;
-    const matchesLabel = label ? fuzzyMatch(getNodeLabel(node), label) : true;
-    const matchesComponentType = node.data?.componentType 
-      ? fuzzyMatch(node.data.componentType, nodeType) 
-      : true;
-    
-    return matchesType && (matchesLabel || matchesComponentType);
-  });
-}
-
-function findEdge(
-  edges: Edge[],
-  sourceNode: Node,
-  targetNode: Node
-): Edge | undefined {
-  return edges.find(
-    edge => edge.source === sourceNode.id && edge.target === targetNode.id
-  );
-}
-
+/**
+ * Checks if a rule passes given the current canvas state.
+ */
 export function evaluateValidationRule(
   rule: ValidationRule,
   nodes: Node[],
   edges: Edge[]
 ): boolean {
-  if (DEV_MODE) {
-    console.log('[Detection] Evaluating rule:', rule);
-  }
+  logger.log('[Detection] Evaluating rule:', rule);
 
   switch (rule.type) {
     case 'node_exists': {
-      const matches = findMatchingNodes(nodes, rule.nodeType, rule.label);
-      const result = matches.length > 0;
-      if (DEV_MODE) {
-        console.log('[Detection] node_exists:', { rule, matches: matches.length, result });
-      }
+      const targetLabel = rule.label ? normalize(rule.label) : '';
+      const targetType = normalize(rule.nodeType);
+      const result = nodes.some(n => {
+        const matchesLabel = !rule.label || normalize(n.data?.label || '') === targetLabel;
+        const matchesType = normalize(n.data?.componentType || n.type || '') === targetType || normalize(n.data?.category || '') === targetType;
+        return matchesLabel && matchesType;
+      });
+      logger.log('[Detection] node_exists:', { label: rule.label, nodeType: rule.nodeType, result });
       return result;
     }
 
     case 'node_count': {
-      const matches = findMatchingNodes(nodes, rule.nodeType);
+      const target = normalize(rule.nodeType);
+      const matches = nodes.filter(n => {
+        const nType = n.data?.componentType || n.type || '';
+        const nCategory = n.data?.category || '';
+        return normalize(nType) === target || normalize(nCategory) === target;
+      });
       const result = matches.length >= rule.min;
-      if (DEV_MODE) {
-        console.log('[Detection] node_count:', { rule, found: matches.length, required: rule.min, result });
-      }
+      logger.log('[Detection] node_count:', { nodeType: rule.nodeType, found: matches.length, required: rule.min, result });
       return result;
     }
 
     case 'edge_exists': {
-      const sourceNodes = findMatchingNodes(nodes, rule.source);
-      const targetNodes = findMatchingNodes(nodes, rule.target);
-      
+      const srcTarget = normalize(rule.source);
+      const tgtTarget = normalize(rule.target);
+
+      const sourceNodes = nodes.filter(n => 
+        n.id === rule.source ||
+        normalize(n.data?.componentType || n.type || '') === srcTarget ||
+        normalize(n.data?.label || '') === srcTarget
+      );
+      const targetNodes = nodes.filter(n => 
+        n.id === rule.target ||
+        normalize(n.data?.componentType || n.type || '') === tgtTarget ||
+        normalize(n.data?.label || '') === tgtTarget
+      );
+
       if (sourceNodes.length === 0 || targetNodes.length === 0) {
-        if (DEV_MODE) {
-          console.log('[Detection] edge_exists: no matching nodes found', { sourceMatches: sourceNodes.length, targetMatches: targetNodes.length });
-        }
+        logger.log('[Detection] edge_exists: source or target not found');
         return false;
       }
 
-      for (const source of sourceNodes) {
-        for (const target of targetNodes) {
-          if (findEdge(edges, source, target)) {
-            if (DEV_MODE) {
-              console.log('[Detection] edge_exists: found edge', { source: source.id, target: target.id });
-            }
-            return true;
-          }
-        }
-      }
+      const result = edges.some(e => {
+        const hasSource = sourceNodes.some(sn => sn.id === e.source);
+        const hasTarget = targetNodes.some(tn => tn.id === e.target);
+        return hasSource && hasTarget;
+      });
 
-      if (DEV_MODE) {
-        console.log('[Detection] edge_exists: no edge found between any matching nodes');
-      }
-      return false;
+      logger.log('[Detection] edge_exists:', { source: rule.source, target: rule.target, result });
+      return result;
     }
 
     case 'edge_from_type': {
-      const sourceNodes = findMatchingNodes(nodes, rule.sourceType);
-      const targetNodes = findMatchingNodes(nodes, rule.targetType);
-      
+      const srcType = normalize(rule.sourceType);
+      const tgtType = normalize(rule.targetType);
+
+      const sourceNodes = nodes.filter(n => normalize(n.data?.componentType || n.type || '') === srcType);
+      const targetNodes = nodes.filter(n => normalize(n.data?.componentType || n.type || '') === tgtType);
+
       if (sourceNodes.length === 0 || targetNodes.length === 0) {
         return false;
       }
 
-      for (const source of sourceNodes) {
-        for (const target of targetNodes) {
-          if (findEdge(edges, source, target)) {
-            return true;
-          }
-        }
-      }
-      return false;
+      const result = edges.some(e => {
+        const hasSource = sourceNodes.some(sn => sn.id === e.source);
+        const hasTarget = targetNodes.some(tn => tn.id === e.target);
+        return hasSource && hasTarget;
+      });
+
+      logger.log('[Detection] edge_from_type:', { sourceType: rule.sourceType, targetType: rule.targetType, result });
+      return result;
     }
 
     case 'all_of': {
-      const results = rule.rules.map(r => evaluateValidationRule(r, nodes, edges));
-      const result = results.every(Boolean);
-      if (DEV_MODE) {
-        console.log('[Detection] all_of:', { results, result });
-      }
+      const result = rule.rules.every(r => evaluateValidationRule(r, nodes, edges));
+      logger.log('[Detection] all_of result:', result);
       return result;
     }
 
     case 'any_of': {
-      const results = rule.rules.map(r => evaluateValidationRule(r, nodes, edges));
-      const result = results.some(Boolean);
-      if (DEV_MODE) {
-        console.log('[Detection] any_of:', { results, result });
-      }
+      const result = rule.rules.some(r => evaluateValidationRule(r, nodes, edges));
+      logger.log('[Detection] any_of result:', result);
       return result;
     }
 
     default:
-      if (DEV_MODE) {
-        console.log('[Detection] Unknown rule type:', rule);
-      }
       return false;
   }
 }
 
-export function validateAllRules(
+/**
+ * Validates a list of rules and returns those that failed.
+ */
+export function validateRules(
   rules: ValidationRule[],
   nodes: Node[],
   edges: Edge[]
 ): { passed: boolean; unmetRules: ValidationRule[] } {
-  const passed = rules.every(rule => evaluateValidationRule(rule, nodes, edges));
-  const unmetRules = passed 
-    ? [] 
-    : rules.filter(rule => !evaluateValidationRule(rule, nodes, edges));
-  
-  return { passed, unmetRules };
+  const unmetRules = rules.filter(rule => !evaluateValidationRule(rule, nodes, edges));
+  return {
+    passed: unmetRules.length === 0,
+    unmetRules,
+  };
 }

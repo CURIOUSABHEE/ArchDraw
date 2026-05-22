@@ -33,7 +33,6 @@ function PhaseRenderer({
   const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShowContinueAnyway(false);
     setShowHint(false);
     
@@ -98,7 +97,7 @@ function PhaseRenderer({
 }
 
 export function GuidePanel() {
-  const { activeTutorial, session, advancePhase, advanceManually, isLoading, exitTutorial, nodes, edges } = useTutorialStore();
+  const { session, advancePhase, advanceManually, isLoading, activeTutorial, exitTutorial, nodes, edges } = useTutorialStore();
   const { currentStep, currentPhase, progress, isComplete } = useTutorialHelpers();
   const [validationError, setValidationError] = useState<string | null>(null);
 

@@ -74,6 +74,51 @@ interface CacheEntry {
   explainCount: number;
 }
 
+interface CacheStep {
+  id: string | number;
+  title: string;
+  explanation?: string;
+  action?: unknown;
+  requiredNodes?: string[];
+  validation?: unknown;
+  phases?: {
+    teaching?: { body?: string };
+    action?: { body?: string };
+  };
+}
+
+function getRequiredNodeName(step: CacheStep): string {
+  if (step.requiredNodes && step.requiredNodes.length > 0) {
+    return step.requiredNodes[0];
+  }
+  if (Array.isArray(step.validation)) {
+    const existsRule = (step.validation as unknown[]).find(
+      (r: unknown) => typeof r === 'object' && r !== null && 'type' in r && (r as { type: string }).type === 'node_exists'
+    ) as { label?: string } | undefined;
+    if (existsRule?.label) {
+      return existsRule.label;
+    }
+    for (const rule of (step.validation as unknown[])) {
+      if (
+        typeof rule === 'object' &&
+        rule !== null &&
+        'type' in rule &&
+        ((rule as { type: string }).type === 'all_of' || (rule as { type: string }).type === 'any_of') &&
+        'rules' in rule &&
+        Array.isArray((rule as { rules: unknown }).rules)
+      ) {
+        const nested = ((rule as { rules: unknown[] }).rules).find(
+          (r: unknown) => typeof r === 'object' && r !== null && 'type' in r && (r as { type: string }).type === 'node_exists'
+        ) as { label?: string } | undefined;
+        if (nested?.label) {
+          return nested.label;
+        }
+      }
+    }
+  }
+  return step.title;
+}
+
 // Generate all teaching iterations (0, 1, 2) + wrong_component per step
 const PHASES_TO_GENERATE: CacheEntry[] = [
   { phase: 'intro', explainCount: 0 },
@@ -175,8 +220,7 @@ async function main() {
     const isLeveled = isLeveledTutorial(tutorial.id);
 
     // Get steps array — leveled tutorials have levels[].steps, others have steps directly
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let allSteps: any[] = [];
+    let allSteps: unknown[] = [];
     let totalSteps = 0;
 
     if (isLeveled) {
@@ -184,11 +228,11 @@ async function main() {
       totalSteps = leveled.levels?.reduce((sum, l) => sum + l.steps.length, 0) ?? 0;
       console.log(`\n── ${tutorial.id} (${totalSteps} steps across ${leveled.levels?.length ?? 0} levels) ──`);
       for (const level of leveled.levels ?? []) {
-        allSteps.push(...level.steps);
+        allSteps.push(...(level.steps as unknown[]));
       }
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      allSteps = ((tutorial as any).steps ?? (tutorial as Tutorial).levels?.[0]?.steps) ?? [];
+      const flat = tutorial as TutorialData;
+      allSteps = flat.steps ?? [];
       totalSteps = allSteps.length;
       console.log(`\n── ${tutorial.id} (${totalSteps} steps) ──`);
     }
@@ -197,20 +241,31 @@ async function main() {
     // Netflix: generate all phases for all steps
     const isNetflix = tutorial.id === 'netflix-architecture';
 
-    for (const step of allSteps) {
+    for (const rawStep of allSteps) {
+      const step = rawStep as CacheStep;
+      let stepNum = 0;
+      if (typeof step.id === 'number') {
+        stepNum = step.id;
+      } else if (typeof step.id === 'string') {
+        const match = step.id.match(/\d+/);
+        if (match) {
+          stepNum = parseInt(match[0], 10);
+        }
+      }
+
       // Skip steps 4+ for non-Netflix tutorials
-      if (!isNetflix && step.id > 3) {
+      if (!isNetflix && stepNum > 3) {
         process.stdout.write(`  SKIP  ${tutorial.id}:${step.id} (non-live, step>3)\n`);
         continue;
       }
 
-      const requiredNode = step.validation?.requiredNodes?.[0] ?? step.title;
+      const requiredNode = getRequiredNodeName(step);
 
       // Non-Netflix: only generate intro phase
       const phasesToRun = isNetflix ? PHASES_TO_GENERATE : PHASES_TO_GENERATE.filter(p => p.phase === 'intro' && p.explainCount === 0);
 
       for (const { phase, explainCount } of phasesToRun) {
-        const key = cacheKey(tutorial.id, step.id, phase, explainCount);
+        const key = cacheKey(tutorial.id, stepNum, phase, explainCount);
 
         if (cache[key]) {
           process.stdout.write(`  SKIP  ${key}\n`);
@@ -218,13 +273,18 @@ async function main() {
           continue;
         }
 
+        const explanationText = step.explanation ?? step.phases?.teaching?.body ?? '';
+        const actionText = typeof step.action === 'string'
+          ? step.action
+          : (step.phases?.action?.body ?? '');
+
         const prompt = buildPrompt(
           tutorial.id,
-          step.id,
+          stepNum,
           totalSteps,
           step.title,
-          step.explanation,
-          step.action,
+          explanationText,
+          actionText,
           phase,
           explainCount,
           requiredNode,

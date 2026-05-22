@@ -166,6 +166,7 @@ export interface Tutorial {
   levels: TutorialLevel[];
   tags: string[];
   
+  icon?: string;
   contextMessage?: string;
   category?: string;
   color?: string;

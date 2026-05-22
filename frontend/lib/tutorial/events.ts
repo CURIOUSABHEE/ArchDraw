@@ -2,10 +2,9 @@ import type { Node, Edge } from 'reactflow';
 import type { 
   CanvasEvent, 
   CanvasEventType,
-  EventHandler,
-  TutorialState,
 } from './types';
 import { createGraph, type ArchitectureGraph } from './graph';
+import logger from '@/lib/logger';
 
 export type CanvasEventListener = (
   event: CanvasEvent,
@@ -44,7 +43,7 @@ export class EventBus {
         try {
           listener(event, graph);
         } catch (error) {
-          console.error(`[EventBus] Error in listener for ${event.type}:`, error);
+          logger.error(`[EventBus] Error in listener for ${event.type}:`, error);
         }
       }
     }
@@ -53,7 +52,7 @@ export class EventBus {
       try {
         listener(event, graph);
       } catch (error) {
-        console.error(`[EventBus] Error in global listener:`, error);
+        logger.error(`[EventBus] Error in global listener:`, error);
       }
     }
   }

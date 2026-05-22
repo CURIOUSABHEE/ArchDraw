@@ -5,7 +5,7 @@ import type { Node, Edge } from 'reactflow';
 import type { TutorialDefinition, TutorialSession, PhaseName } from '@/lib/tutorial/schema';
 import type { AnyTutorial } from '@/data/tutorials';
 import * as engine from '@/lib/tutorial/engine';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured, type TutorialProgressTable } from '@/lib/supabase';
 
 function migrateEdgesToSmoothstep(edges: Edge[]): SanitizedEdge[] {
   return edges.map((edge) => {
@@ -203,11 +203,11 @@ export const useTutorialStore = create<TutorialStoreState>()(
         let restoredNodes: Node[] = [];
         let restoredEdges: Edge[] = [];
         
-        const totalSteps = tutorial.levels.reduce((acc, l) => acc + l.steps.length, 0);
+        const totalStepsCount = tutorial.levels.reduce((acc, l) => acc + l.steps.length, 0);
         
         if (saved) {
           restoredNodes = saved.canvasNodes as unknown as Node[];
-          restoredEdges = migrateEdgesToSmoothstep(saved.canvasEdges as unknown as Edge[]);
+          restoredEdges = migrateEdgesToSmoothstep(saved.canvasEdges as unknown as Edge[]) as unknown as Edge[];
           
           session = engine.restoreSession(tutorial, {
             levelIndex: saved.currentLevel,
@@ -232,7 +232,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
           isLoading: false,
           error: null,
           currentStep: saved?.currentStep ?? 1,
-          totalSteps,
+          totalSteps: totalStepsCount,
           currentLevel: saved?.currentLevel ?? 1,
           completedLevels: saved?.completedLevels ?? [],
           activeTutorialId: tutorial.id,
@@ -241,17 +241,17 @@ export const useTutorialStore = create<TutorialStoreState>()(
         });
       },
 
-      startTutorial: (id, totalSteps) => {
+      startTutorial: (id, totalStepsCount) => {
         set({ 
           currentStep: 1, 
-          totalSteps,
+          totalSteps: totalStepsCount,
           activeTutorialId: id,
           currentLevel: 1,
         });
       },
 
       advancePhase: () => {
-        const { session, activeTutorial, totalSteps } = get();
+        const { session, activeTutorial } = get();
         if (session && activeTutorial) {
           const newSession = engine.advancePhase(session, activeTutorial);
           set({ 
@@ -359,7 +359,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
       startTutorialFresh: async (tutorialInput): Promise<{ success: boolean; error?: string }> => {
         // All tutorials in the TUTORIALS array are TutorialDefinition instances
         const tutorial = tutorialInput as unknown as TutorialDefinition;
-        const totalSteps = tutorial.levels.reduce((acc, l) => acc + l.steps.length, 0);
+        const totalStepsCount = tutorial.levels.reduce((acc, l) => acc + l.steps.length, 0);
         
         // Step 1: Clear local state
         const { clearProgress } = get();
@@ -397,8 +397,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
               const { getSupabaseClient } = await import('@/lib/supabase');
               const supabase = getSupabaseClient();
               
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const { error } = await (supabase.from('tutorial_progress') as any)
+              const { error } = await (supabase.from('tutorial_progress') as unknown as TutorialProgressTable)
                 .upsert({
                   user_id: (user as { id: string }).id,
                   tutorial_id: tutorial.id,
@@ -409,6 +408,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
                   canvas_nodes: [],
                   canvas_edges: [],
                   explain_count: 0,
+                  updated_at: new Date().toISOString(),
                 }, { onConflict: 'user_id,tutorial_id' })
                 .select()
                 .single();
@@ -431,7 +431,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
           currentStep: 1,
           currentLevel: 1,
           completedLevels: [],
-          totalSteps,
+          totalSteps: totalStepsCount,
           activeTutorialId: tutorial.id,
           isComplete: false,
           isLevelComplete: false,
@@ -520,8 +520,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
 
           const { getSupabaseClient } = await import('@/lib/supabase');
           const supabase = getSupabaseClient();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (supabase.from('tutorial_progress') as any).upsert({
+          await (supabase.from('tutorial_progress') as unknown as TutorialProgressTable).upsert({
             user_id: user.id,
             tutorial_id: tutorialId,
             current_level: progress.currentLevel,
@@ -536,6 +535,8 @@ export const useTutorialStore = create<TutorialStoreState>()(
         } catch (e) {
           console.error('[tutorialStore] Sync to Supabase failed:', e);
           return;
+        } finally {
+          set({ isSyncing: false });
         }
       },
 
@@ -548,8 +549,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
 
           const { getSupabaseClient } = await import('@/lib/supabase');
           const supabase = getSupabaseClient();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data, error } = await (supabase.from('tutorial_progress') as any)
+          const { data, error } = await (supabase.from('tutorial_progress') as unknown as TutorialProgressTable)
             .select('*')
             .eq('user_id', user.id)
             .eq('tutorial_id', tutorialId)
@@ -568,10 +568,10 @@ export const useTutorialStore = create<TutorialStoreState>()(
             currentStep: data.current_step,
             currentPhase: data.current_phase,
             completedLevels: data.completed_levels,
-            canvasNodes: data.canvas_nodes,
-            canvasEdges: migrateEdgesToSmoothstep(data.canvas_edges),
+            canvasNodes: (data.canvas_nodes as unknown as SanitizedNode[]) ?? [],
+            canvasEdges: migrateEdgesToSmoothstep(data.canvas_edges as unknown as Edge[]),
             explainCount: data.explain_count,
-            updatedAt: data.updated_at,
+            updatedAt: data.updated_at ?? new Date().toISOString(),
           };
 
           get().saveProgress(tutorialId, progress);
@@ -631,8 +631,6 @@ export const useTutorialStore = create<TutorialStoreState>()(
 export const useTutorialHelpers = () => {
   const activeTutorial = useTutorialStore((s) => s.activeTutorial);
   const session = useTutorialStore((s) => s.session);
-  const nodes = useTutorialStore((s) => s.nodes);
-  const edges = useTutorialStore((s) => s.edges);
 
   if (!activeTutorial || !session) {
     return {

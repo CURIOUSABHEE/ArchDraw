@@ -42,7 +42,6 @@ export function ComponentPalette({ onAddComponent, forceOpen, initialQuery, onCl
 
   useEffect(() => {
     if (forceOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery(initialQuery ?? '');
       setSelectedIndex(0);
       setOpen(true);
@@ -50,7 +49,7 @@ export function ComponentPalette({ onAddComponent, forceOpen, initialQuery, onCl
   }, [forceOpen, initialQuery]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDownGlobal = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setOpen((prev) => {
@@ -65,19 +64,13 @@ export function ComponentPalette({ onAddComponent, forceOpen, initialQuery, onCl
         onClose?.();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDownGlobal);
+    return () => window.removeEventListener('keydown', handleKeyDownGlobal);
   }, [onClose]);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1)); }
-    if (e.key === 'ArrowUp')   { e.preventDefault(); setSelectedIndex((i) => Math.max(i - 1, 0)); }
-    if (e.key === 'Enter')     { e.preventDefault(); if (filtered[selectedIndex]) handleSelect(filtered[selectedIndex]); }
-  };
 
   const handleSelect = useCallback(
     (component: Component) => {
@@ -88,6 +81,12 @@ export function ComponentPalette({ onAddComponent, forceOpen, initialQuery, onCl
     },
     [onAddComponent, onClose]
   );
+
+  const handleKeyDownLocal = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1)); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); setSelectedIndex((i) => Math.max(i - 1, 0)); }
+    if (e.key === 'Enter')     { e.preventDefault(); if (filtered[selectedIndex]) handleSelect(filtered[selectedIndex]); }
+  };
 
   useEffect(() => {
     const item = listRef.current?.children[selectedIndex] as HTMLElement;
@@ -112,7 +111,7 @@ export function ComponentPalette({ onAddComponent, forceOpen, initialQuery, onCl
               ref={inputRef}
               value={query}
               onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
-              onKeyDown={handleKeyDown}
+              onKeyDown={handleKeyDownLocal}
               placeholder="Search components..."
               className="flex-1 bg-transparent text-white text-sm placeholder-slate-600 outline-none"
             />

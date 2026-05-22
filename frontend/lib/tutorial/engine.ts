@@ -1,7 +1,7 @@
 import type { Node, Edge } from 'reactflow';
 import type { TutorialDefinition, TutorialSession, PhaseName, ValidationRule, TutorialStep, PhaseContent } from './schema';
 import { PHASE_ORDER, getNextPhase } from './schema';
-import { validateAllRules } from './detection';
+import { validateRules } from './detection';
 
 export function initSession(tutorial: TutorialDefinition): TutorialSession {
   return {
@@ -150,7 +150,7 @@ export function checkValidation(
     return { passed: false, unmetRules: [], shouldAdvance: false };
   }
 
-  const result = validateAllRules(step.validation, nodes, edges);
+  const result = validateRules(step.validation, nodes, edges);
   
   if (result.passed) {
     return { 

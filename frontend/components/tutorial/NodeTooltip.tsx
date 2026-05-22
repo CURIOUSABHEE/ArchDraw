@@ -38,7 +38,6 @@ export function NodeTooltip({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -60,13 +59,12 @@ export function NodeTooltip({
   useEffect(() => {
     if (isDragging) {
       if (timerRef.current) clearTimeout(timerRef.current);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisible(false);
     }
   }, [isDragging]);
 
   const tooltipWidth = 320;
-  const flipLeft = pos.x > window.innerWidth - tooltipWidth - 20;
+  const flipLeft = typeof window !== 'undefined' && pos.x > window.innerWidth - tooltipWidth - 20;
   const flipDown = pos.y < 150;
 
   const hasRichContent = role || whyItMatters || realWorldFact || tradeoff || interviewTip || concepts.length > 0;
@@ -142,7 +140,7 @@ export function NodeTooltip({
                 key={idx}
                 className="text-[10px] px-2 py-0.5 rounded-md font-medium"
                 style={{ 
-background: 'rgba(107, 114, 128, 0.15)', 
+                   background: 'rgba(107, 114, 128, 0.15)', 
                    color: '#9ca3af',
                    border: '1px solid rgba(107, 114, 128, 0.25)'
                 }}

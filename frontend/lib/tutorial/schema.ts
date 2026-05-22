@@ -50,6 +50,7 @@ export interface TutorialDefinition {
   tags?: string[];
   icon?: string;
   color?: string;
+  category?: string;
 }
 
 /**

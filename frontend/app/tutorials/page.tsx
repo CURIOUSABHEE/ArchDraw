@@ -2,17 +2,17 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ArrowLeft, Clock, Layers, Brain, Image, BarChart2, Video, ArrowRight,
   CheckCircle, Share2, Check, Car, MessageCircle, Twitter, CreditCard,
   Github, Link as LinkIcon, Bot, FileText, Home, Music, Linkedin, 
   PenTool, ShoppingBag, Bike, RotateCcw, X, Sparkles, Zap, BookOpen,
-  ChevronRight,
+  Camera, Users, Play, BarChart, ShoppingCart,
 } from 'lucide-react';
-import { TUTORIALS, isLiveTutorial } from '@/data/tutorials';
+import { TUTORIALS, isLiveTutorial, type AnyTutorial } from '@/data/tutorials';
 import { useTutorialStore } from '@/store/tutorialStore';
-import type { TutorialData } from '@/data/tutorials';
+import type { Tutorial } from '@/lib/tutorial/types';
 import { toast } from 'sonner';
 
 const ICON_MAP: Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>> = {
@@ -34,6 +34,11 @@ const ICON_MAP: Record<string, React.FC<{ className?: string; style?: React.CSSP
   PenTool,
   ShoppingBag,
   Bike,
+  Camera,
+  Users,
+  Play,
+  BarChart,
+  ShoppingCart,
 };
 
 const DIFFICULTY_CONFIG = {
@@ -42,23 +47,26 @@ const DIFFICULTY_CONFIG = {
   Advanced: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', label: 'Advanced' },
 };
 
-function getTutorialMeta(tutorial: TutorialData): { nodeCount: number; stepCount: number } {
-  const t = tutorial as Record<string, unknown>;
-  if (t.stepCount != null && t.nodeCount != null) {
-    return { nodeCount: t.nodeCount as number, stepCount: t.stepCount as number };
+function getTutorialMeta(tutorial: AnyTutorial): { nodeCount: number; stepCount: number } {
+  if ('stepCount' in tutorial && 'nodeCount' in tutorial) {
+    return { nodeCount: tutorial.nodeCount, stepCount: tutorial.stepCount };
   }
-  const levels = (t.levels ?? []) as Array<{ steps?: Array<{ requiredNodes?: string[] }>; stepCount?: number }>;
-  const firstLevel = levels[0];
-  const steps = firstLevel?.steps ?? [];
-  const stepCount = firstLevel?.stepCount ?? steps.length;
-  const nodeCount = steps.reduce(
-    (acc, s) => acc + (s.requiredNodes?.length ?? 0),
-    0
-  );
-  return { nodeCount, stepCount };
+  
+  if ('levels' in tutorial) {
+    const levels = tutorial.levels ?? [];
+    const stepCount = levels.reduce((acc, l) => acc + l.steps.length, 0);
+    const nodeCount = levels.reduce((acc, l) => 
+      acc + l.steps.reduce((sAcc: number, s: any) => sAcc + (s.requiredNodes?.length ?? 0), 0), 
+      0
+    );
+
+    return { nodeCount, stepCount };
+  }
+
+  return { nodeCount: 0, stepCount: 0 };
 }
 
-function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
+function TutorialCard({ tutorial }: { tutorial: AnyTutorial }) {
   const router = useRouter();
   const { tutorialProgress, completedTutorials, clearProgress } = useTutorialStore();
   const [copied, setCopied] = useState(false);
@@ -69,8 +77,8 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
   const { nodeCount, stepCount } = getTutorialMeta(tutorial);
   const isCompleted = completedTutorials.includes(tutorial.id);
   const isInProgress = progress > 0 && !isCompleted;
-  const diffConfig = DIFFICULTY_CONFIG[tutorial.difficulty] ?? DIFFICULTY_CONFIG.Intermediate;
-  const IconComp = ICON_MAP[tutorial.icon];
+  const diffConfig = DIFFICULTY_CONFIG[(tutorial as any).difficulty as keyof typeof DIFFICULTY_CONFIG] ?? DIFFICULTY_CONFIG.Intermediate;
+  const IconComp = tutorial.icon ? ICON_MAP[tutorial.icon] : undefined;
   const completionPercent = stepCount > 0 ? Math.round((progress / stepCount) * 100) : 0;
 
   // Get richProgress for more accurate progress tracking
@@ -79,18 +87,18 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
   const hasRichProgress = savedProgress && (savedProgress.currentStep > 0 || savedProgress.currentLevel > 1);
   
   // Calculate accurate progress from richProgress if available
-  let accuratePercent = completionPercent;
-  let accurateStep = progress;
-  if (savedProgress) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const levels = (tutorial as any).levels as Array<{ steps: unknown[] }> | undefined;
-    if (levels) {
-      const totalSteps = levels.reduce((acc: number, l: { steps: unknown[] }) => acc + l.steps.length, 0);
-      const currentOverallStep = savedProgress.currentLevel * (levels[0]?.steps.length ?? 0) + savedProgress.currentStep;
-      accuratePercent = totalSteps > 0 ? Math.round((currentOverallStep / totalSteps) * 100) : 0;
-      accurateStep = currentOverallStep;
+  const accuratePercent = useMemo(() => {
+    let percent = completionPercent;
+    if (savedProgress && 'levels' in tutorial) {
+      const levels = (tutorial as Tutorial).levels;
+      if (levels) {
+        const totalSteps = levels.reduce((acc, l) => acc + l.steps.length, 0);
+        const currentOverallStep = (savedProgress.currentLevel - 1) * (levels[0]?.steps.length ?? 0) + savedProgress.currentStep;
+        percent = totalSteps > 0 ? Math.round((currentOverallStep / totalSteps) * 100) : 0;
+      }
     }
-  }
+    return percent;
+  }, [completionPercent, savedProgress, tutorial]);
 
   function handleReset(e: React.MouseEvent) {
     e.stopPropagation();
@@ -108,6 +116,12 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
       setTimeout(() => setCopied(false), 2000);
     });
   }
+
+  const estimatedTime = ('estimatedTime' in tutorial) 
+    ? tutorial.estimatedTime 
+    : ('estimatedMinutes' in tutorial)
+      ? `${tutorial.estimatedMinutes} mins`
+      : '~30 mins';
 
   return (
     <div
@@ -250,7 +264,7 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
           </div>
 
           <div className="flex flex-wrap gap-1.5 mb-4 max-h-20 overflow-hidden">
-            {tutorial.tags.slice(0, 3).map((tag: string) => (
+            {tutorial.tags?.slice(0, 3).map((tag: string) => (
               <span
                 key={tag}
                 className="text-[11px] px-2 py-1 rounded-md font-medium"
@@ -264,7 +278,7 @@ function TutorialCard({ tutorial }: { tutorial: TutorialData }) {
           <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
             <span className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
-              {tutorial.estimatedTime}
+              {estimatedTime}
             </span>
             <span className="flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5" />
@@ -491,7 +505,7 @@ export default function TutorialsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {TUTORIALS.map((tutorial) => (
-            <TutorialCard key={tutorial.id} tutorial={tutorial as TutorialData} />
+            <TutorialCard key={tutorial.id} tutorial={tutorial} />
           ))}
         </div>
 

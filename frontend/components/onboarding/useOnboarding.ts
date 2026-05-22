@@ -71,15 +71,15 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
 export function useOnboarding() {
   const store = useOnboardingStore();
   const initialNodeCount = useRef(0);
+  const { open: storeOpen, setStepCompleted } = store;
 
   // Auto-open on first visit
   useEffect(() => {
     const dismissed = localStorage.getItem('archdraw_guide_dismissed');
     if (!dismissed) {
-      store.open();
+      storeOpen();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [storeOpen]);
 
   // Step 4 drag detection via Zustand subscribe (v5 subscribe takes one fn)
   useEffect(() => {
@@ -90,11 +90,11 @@ export function useOnboarding() {
 
     const unsub = useDiagramStore.subscribe((state) => {
       if (state.nodes.length > initialNodeCount.current) {
-        store.setStepCompleted(true);
+        setStepCompleted(true);
       }
     });
     return unsub;
-  }, [store.currentStep, store.isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [store.currentStep, store.isOpen, setStepCompleted]);
 
   return store;
 }

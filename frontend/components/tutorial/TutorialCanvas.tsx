@@ -11,11 +11,10 @@ import ReactFlow, {
   type NodeProps,
   type Node,
   type Edge,
-  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
-import { Search, RotateCcw, SkipForward, BookOpen, ChevronRight } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { SystemNode } from '@/components/SystemNode';
 import type { NodeData } from '@/store/diagramStore';
@@ -23,11 +22,10 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
-import { MessageBrokerNode } from '@/components/MessageBrokerNode';
-import { BaseNode, DatabaseNode, CacheNode } from '@/components/nodes';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
+import { EdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
 
 const EDGE_TYPES = {
   custom: FlowEdge,
@@ -38,7 +36,6 @@ import { ComponentPalette } from '@/components/tutorial/ComponentPalette';
 import { NodeTooltip } from '@/components/tutorial/NodeTooltip';
 import components from '@/data/components.json';
 import { COMPONENT_TOOLTIPS } from '@/data/componentTooltips';
-import { TUTORIALS } from '@/data/tutorials';
 
 type ComponentEntry = { id: string; label: string; category: string; color: string; description?: string };
 const componentMap = new Map<string, ComponentEntry>(
@@ -111,14 +108,15 @@ function TutorialSystemNodeWrapper(props: NodeProps<NodeData>) {
 const NODE_TYPES = {
   systemNode:        TutorialSystemNodeWrapper,
   architectureNode:  TutorialSystemNodeWrapper,
-  baseNode:          BaseNode,
-  databaseNode:     DatabaseNode,
-  cacheNode:         CacheNode,
+  baseNode:          TutorialSystemNodeWrapper,
+  databaseNode:      TutorialSystemNodeWrapper,
+  cacheNode:         TutorialSystemNodeWrapper,
   shapeNode:         ShapeNode,
   groupNode:         GroupNode,
   textLabelNode:     TextLabelNode,
   annotationNode:    AnnotationNode,
-  messageBrokerNode: MessageBrokerNode,
+  messageBrokerNode: TutorialSystemNodeWrapper,
+  customNode:        TutorialSystemNodeWrapper,
 };
 
 interface TutorialCanvasInnerProps {
@@ -136,13 +134,6 @@ interface TutorialCanvasInnerProps {
 function TutorialCanvasInner({ 
   theme, 
   tutorialId, 
-  tutorialTitle,
-  currentStep = 1,
-  totalSteps = 1,
-  currentLevel,
-  totalLevels,
-  onRestart,
-  onSkip,
 }: TutorialCanvasInnerProps) {
   const nodeTypes = useMemo(() => NODE_TYPES, []);
   const edgeTypes = useMemo(() => EDGE_TYPES, []);
@@ -159,12 +150,11 @@ function TutorialCanvasInner({
   const controlsClass = isDark
     ? '!bg-[#0d1117]/90 !backdrop-blur-sm !border !border-white/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-white/10 [&>button:hover]:!bg-white/5'
     : '!bg-white/90 !backdrop-blur-sm !border !border-black/10 !rounded-lg [&>button]:!border-0 [&>button]:!border-b [&>button]:!border-black/10 [&>button]:hover:!bg-black/5';
-  const { nodes, edges, setNodes, setEdges, setTutorialNodes, setTutorialEdges, saveProgress, getProgress, hasHydrated, isSwitchingTutorial, tutorialProgress, completedTutorials } = useTutorialStore();
+  const { nodes, edges, setNodes, setEdges, setTutorialNodes, setTutorialEdges, saveProgress, getProgress, hasHydrated, isSwitchingTutorial } = useTutorialStore();
   const reactFlowInstance = useReactFlow();
   const [isMac, setIsMac] = useState(false);
   const [paletteForceOpen, setPaletteForceOpen] = useState(false);
   const [paletteInitialQuery, setPaletteInitialQuery] = useState('');
-  const restoredRef = useRef(false);
   const canvasSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -172,11 +162,7 @@ function TutorialCanvasInner({
   }, []);
 
   // Restore canvas from richProgress on mount and when tutorialId changes.
-  // tutorialId comes from the URL — always correct, never stale.
-  // Skip if nodes are already populated (restored by startTutorialByDef in store)
   const initialNodesLoadedRef = useRef(false);
-  const nodesLengthRef = useRef(nodes.length);
-  nodesLengthRef.current = nodes.length;
   
   // Reset the ref when tutorialId changes
   useEffect(() => {
@@ -189,13 +175,11 @@ function TutorialCanvasInner({
     if (initialNodesLoadedRef.current) return;
     
     // Nodes were already restored from store via startTutorialByDef
-    if (nodesLengthRef.current > 0) {
-      restoredRef.current = true;
+    if (nodes.length > 0) {
       initialNodesLoadedRef.current = true;
       setTimeout(() => reactFlowInstance.fitView({ maxZoom: 0.7 }), 100);
       return;
     }
-    restoredRef.current = false;
 
     const progress = getProgress(tutorialId);
     const savedNodes = progress?.canvasNodes as Node[] | undefined;
@@ -209,13 +193,10 @@ function TutorialCanvasInner({
       toast.success('Canvas restored', { duration: 2000, position: 'bottom-center' });
       setTimeout(() => reactFlowInstance.fitView({ maxZoom: 0.7 }), 100);
     }
-    restoredRef.current = true;
     initialNodesLoadedRef.current = true;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasHydrated, tutorialId, getProgress]);
+  }, [hasHydrated, tutorialId, getProgress, setNodes, setEdges, setTutorialNodes, setTutorialEdges, reactFlowInstance]);
 
   // Save canvas nodes/edges to richProgress on change (debounced 1s).
-  // Uses tutorialId from URL — never the store's activeTutorialId.
   useEffect(() => {
     if (!tutorialId) return;
     if (isSwitchingTutorial) return;
@@ -282,6 +263,7 @@ function TutorialCanvasInner({
       const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
       const id = `${comp.id}-${Date.now()}`;
       const updated = [
+        ...nodes,
         {
           id,
           type: 'systemNode',
@@ -298,9 +280,8 @@ function TutorialCanvasInner({
       ];
       setNodes(updated);
       setTutorialNodes(updated);
-      setTutorialEdges([]);
     },
-    [setNodes, setTutorialNodes, setTutorialEdges, reactFlowInstance]
+    [nodes, setNodes, setTutorialNodes, reactFlowInstance]
   );
 
   const handleAddComponent = useCallback(
@@ -346,12 +327,9 @@ function TutorialCanvasInner({
     return () => { delete (window as Window & { __tutorialOpenPalette?: typeof openPaletteWithQuery }).__tutorialOpenPalette; };
   }, [openPaletteWithQuery]);
 
-  const progress = tutorialProgress[tutorialId] ?? 0;
-  const isCompleted = completedTutorials.includes(tutorialId);
-  const progressPercent = totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0;
-
   return (
     <div className="flex-1 relative flex flex-col">
+      <EdgeMarkerDefs />
       <div className="flex-1 relative">
         <ReactFlow
           nodes={nodes}
@@ -390,28 +368,6 @@ function TutorialCanvasInner({
 
         {nodes.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-10">
-            <svg width="0" height="0">
-              <defs>
-                <marker id="arrow-sync" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L6,3 z" fill="#3B82F6" />
-                </marker>
-                <marker id="arrow-async" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L6,3 z" fill="#F59E0B" />
-                </marker>
-                <marker id="arrow-stream" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L6,3 z" fill="#10B981" />
-                </marker>
-                <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L6,3 z" fill="#8B5CF6" />
-                </marker>
-                <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
-                </marker>
-                <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L6,3 z" fill="#6B7280" />
-                </marker>
-              </defs>
-            </svg>
             <div className="flex flex-col items-center gap-3">
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center"

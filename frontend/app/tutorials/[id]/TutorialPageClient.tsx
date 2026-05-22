@@ -1,19 +1,20 @@
 'use client';
 
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft, PenSquare, RotateCcw, Moon, Sun } from 'lucide-react';
 import { toast } from 'sonner';
-import { getTutorialById, isLiveTutorial, isLeveledTutorial, TUTORIALS } from '@/data/tutorials';
+import { getTutorialById, isLeveledTutorial } from '@/data/tutorials';
 import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
 import { validateStep } from '@/lib/tutorialValidation';
 import { GuidePanel } from '@/components/tutorial/GuidePanel';
 import { IntroCardFlow } from '@/components/tutorial/IntroCardFlow';
 import { CompletionCardFlow } from '@/components/tutorial/CompletionCardFlow';
+import logger from '@/lib/logger';
 import type { TutorialData } from '@/data/tutorials';
-import type { Tutorial, TutorialLevel } from '@/lib/tutorial/types';
+import type { Tutorial, TutorialLevel, TutorialStep } from '@/lib/tutorial/types';
 import type { Node, Edge } from 'reactflow';
 
 // Dynamic import to avoid SSR issues with ReactFlow
@@ -103,21 +104,23 @@ export default function TutorialPage() {
   const isLeveled = tutorial ? isLeveledTutorial(tutorial.id) : false;
 
   const {
-    currentStep, totalSteps, nodes, edges, setNodes, setEdges,
-    messages, isTyping, validationStatus, validationError,
+    currentStep, totalSteps, nodes, edges,
     isComplete, isLevelComplete,
-    currentLevel, completedLevels,
-    startTutorialByDef, startTutorialFresh, setValidationStatus,
-    addMessage, advanceStep, skipStep, resetTutorial,
+    currentLevel,
+    startTutorialFresh, setValidationStatus,
+    addMessage, advanceStep, skipStep,
     completeTutorial, advanceLevel, dismissLevelComplete,
-    activeTutorialId, clearTutorialCanvas,
-    loadFromSupabase, getProgress, saveProgress, getLevelCanvasState,
-    isSwitchingTutorial, setSwitchingTutorial,
+    activeTutorialId,
+    saveProgress,
+    setSwitchingTutorial,
   } = useTutorialStore();
 
   const hasStarted = useRef(false);
   const mountedRef = useRef(true);
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+  useEffect(() => { 
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; }; 
+  }, []);
 
   const [headerRestartConfirm, setHeaderRestartConfirm] = useState(false);
   const headerRestartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -125,14 +128,12 @@ export default function TutorialPage() {
   const [canvasTheme, setCanvasTheme] = useState<'dark' | 'light'>('light');
   const [showIntro, setShowIntro] = useState(false);
   const [introSkipped, setIntroSkipped] = useState(false);
-  const [completionCardIndex, setCompletionCardIndex] = useState(0);
 
   // If navigating to a different tutorial, save the current canvas and switch.
   // Uses refs to capture nodes/edges at the moment the effect fires —
   // prevents stale closures after startTutorial clears them.
   const prevNodesRef = useRef<Node[]>([]);
   const prevEdgesRef = useRef<Edge[]>([]);
-  const prevIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!tutorial) return;
@@ -152,28 +153,43 @@ export default function TutorialPage() {
     });
     useTutorialStore.setState({ activeTutorialId: tutorial.id });
     setTimeout(() => setSwitchingTutorial(false), 50);
-  }, [tutorial, activeTutorialId, clearTutorialCanvas, saveProgress, nodes, edges, setSwitchingTutorial]);
+  }, [tutorial, activeTutorialId, saveProgress, setSwitchingTutorial]);
 
   // Keep refs in sync with current canvas state at render time
   useEffect(() => {
     prevNodesRef.current = nodes;
     prevEdgesRef.current = edges;
-    prevIdRef.current = activeTutorialId;
   });
 
-  const levels: TutorialLevel[] = isLeveled && tutorial ? (tutorial as Tutorial).levels ?? [] : [];
+  const levels: TutorialLevel[] = useMemo(() => 
+    isLeveled && tutorial && 'levels' in tutorial ? (tutorial as Tutorial).levels ?? [] : [],
+    [isLeveled, tutorial]
+  );
+  
   // Handle both old flat format (tutorial.steps) and new factory format (tutorial.levels[].steps)
   // Also handle case where tutorial has levels but wasn't detected as leveled yet
-  const hasLevelsArray = tutorial && 'levels' in tutorial && (tutorial as Tutorial).levels?.length > 0;
-  const allSteps = tutorial
-    ? (isLeveled || hasLevelsArray
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? (tutorial as any).levels?.flatMap((l: { steps: unknown[] }) => l.steps) ?? []
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      : ((tutorial as any).steps ?? []))
-    : [];
-  const currentLevelData = levels[currentLevel - 1] ?? null;
-  const currentLevelSteps = currentLevelData?.steps ?? allSteps;
+  const hasLevelsArray = useMemo(() => 
+    tutorial && 'levels' in tutorial && (tutorial as Tutorial).levels?.length > 0,
+    [tutorial]
+  );
+  
+  const allSteps: TutorialStep[] = useMemo(() => {
+    if (!tutorial) return [];
+    if (isLeveled || hasLevelsArray) {
+      return (tutorial as Tutorial).levels?.flatMap((l) => l.steps) ?? [];
+    }
+    return (tutorial as TutorialData).steps ?? [];
+  }, [tutorial, isLeveled, hasLevelsArray]);
+
+  const currentLevelData = useMemo(() => 
+    levels[currentLevel - 1] ?? null,
+    [levels, currentLevel]
+  );
+
+  const currentLevelSteps = useMemo(() => 
+    currentLevelData?.steps ?? allSteps,
+    [currentLevelData, allSteps]
+  );
 
   // FIX: Start tutorial - always from DB first to avoid stale cache
   useEffect(() => {
@@ -188,7 +204,7 @@ export default function TutorialPage() {
       const result = await startTutorialFresh(tutorial);
       
       if (!result.success) {
-        console.error('[tutorial] Failed to start fresh:', result.error);
+        logger.error('[tutorial] Failed to start fresh:', result.error);
         toast.error('Failed to load tutorial progress');
         return;
       }
@@ -198,39 +214,7 @@ export default function TutorialPage() {
     };
 
     start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorial]);
-
-  const handleValidate = useCallback(() => {
-    if (!tutorial) return;
-  const step = currentLevelSteps?.[currentStep - 1] ?? null;
-    if (!step) return;
-
-    const result = validateStep(step, nodes, edges);
-    if (result.valid) {
-      setValidationStatus('success');
-      addMessage('success', result.message);
-      setTimeout(() => {
-        if (!mountedRef.current) return;
-        if (isLeveled && currentStep >= totalSteps) {
-          const nextLevelData = levels[currentLevel]; // 0-indexed, so currentLevel = next
-          if (nextLevelData) {
-            useTutorialStore.setState({ isLevelComplete: true });
-          } else {
-            completeTutorial();
-          }
-        } else if (!isLeveled && currentStep >= totalSteps) {
-          completeTutorial();
-        } else {
-          advanceStep();
-        }
-      }, 1500);
-    } else {
-      setValidationStatus('error', result.message);
-      addMessage('error', result.message);
-    }
-  }, [tutorial, currentStep, nodes, edges, setValidationStatus, addMessage, advanceStep,
-    completeTutorial, totalSteps, isLeveled, currentLevel, levels, currentLevelSteps]);
+  }, [tutorial, startTutorialFresh]);
 
   const handleSkip = useCallback(() => {
     setValidationStatus('idle');
@@ -271,18 +255,12 @@ export default function TutorialPage() {
 
   const handleGoToCanvas = useCallback(() => { router.push('/editor'); }, [router]);
 
-  const handleNextTutorial = useCallback(() => {
-    const currentIndex = TUTORIALS.findIndex((t) => t.id === id);
-    const next = TUTORIALS[(currentIndex + 1) % TUTORIALS.length];
-    router.push(`/tutorials/${next.id}`);
-  }, [id, router]);
-
   const handleContinueToNextLevel = useCallback(() => {
     if (!tutorial || !levels.length) return;
     const nextLevelData = levels[currentLevel]; // currentLevel is 1-indexed, levels is 0-indexed
     if (!nextLevelData) return;
     advanceLevel(nextLevelData.steps.length);
-  }, [tutorial, levels, currentLevel, advanceLevel]);
+  }, [levels, currentLevel, advanceLevel, tutorial]);
 
   const handleSaveAndLeave = useCallback(() => {
     dismissLevelComplete();
@@ -312,8 +290,10 @@ export default function TutorialPage() {
   }, []);
 
   // Calculate component count for intro
-  const componentCount = (allSteps as Array<{ requiredNodes?: unknown[] }>)
-    .filter((s) => s.requiredNodes && s.requiredNodes.length > 0).length;
+  const componentCount = useMemo(() => 
+    allSteps.filter((s) => s.requiredNodes && s.requiredNodes.length > 0).length,
+    [allSteps]
+  );
 
   if (!tutorial) {
     return (
@@ -389,13 +369,6 @@ export default function TutorialPage() {
         <div className="shrink-0 overflow-hidden flex flex-col h-full transition-all duration-300" style={{ width: panelRatio === '3:7' ? '30%' : '40%' }}>
           <GuidePanel />
         </div>
-        <div className="shrink-0 flex items-center justify-center cursor-pointer group z-10" style={{ width: 20, background: 'white', borderLeft: '1px solid rgba(0,0,0,0.06)', borderRight: '1px solid rgba(0,0,0,0.06)' }} onClick={() => setPanelRatio((r) => r === '3:7' ? '4:6' : '3:7')} title={panelRatio === '3:7' ? 'Expand chat (4:6)' : 'Shrink chat (3:7)'}>
-          <div className="flex flex-col gap-1 opacity-30 group-hover:opacity-80 transition-opacity">
-            <div className="w-0.5 h-3 rounded-full bg-slate-400" />
-            <div className="w-0.5 h-3 rounded-full bg-slate-400" />
-            <div className="w-0.5 h-3 rounded-full bg-slate-400" />
-          </div>
-        </div>
         <div className="flex flex-1 overflow-hidden">
           <TutorialCanvas
             theme={canvasTheme}
@@ -446,7 +419,7 @@ export default function TutorialPage() {
           levelTitle={currentLevelData?.title}
           levelDescription={currentLevelData?.description}
           stepCount={totalSteps}
-          estimatedTime={'estimatedMinutes' in tutorial ? String(tutorial.estimatedMinutes) + ' mins' : String(tutorial.estimatedTime)}
+          estimatedTime={'estimatedMinutes' in tutorial ? String(tutorial.estimatedMinutes) + ' mins' : String((tutorial as TutorialData).estimatedTime)}
           componentCount={componentCount}
           onStart={handleStartFromIntro}
           onSkip={handleIntroSkip}

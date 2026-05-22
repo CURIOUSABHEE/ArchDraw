@@ -6,9 +6,8 @@ import {
   getCached,
   setCache,
   compressHistory,
-  type CompressedMessage,
 } from '@/lib/tutorialCache';
-import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
+import { getSupabaseClient, isSupabaseConfigured, type TutorialResponseCacheTable } from '@/lib/supabase';
 import { redis, redisKeys } from '@/lib/redis';
 import staticCacheData from '@/data/tutorialCache.json';
 import { z } from 'zod';
@@ -151,11 +150,9 @@ function persistToSupabase(questionHash: string, response: string): void {
   if (!isSupabaseConfigured) return;
   try {
     const supabase = getSupabaseClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
-      .from('tutorial_response_cache')
+    (supabase.from('tutorial_response_cache') as unknown as TutorialResponseCacheTable)
       .upsert({ question_hash: questionHash, response })
-      .then(({ error }: { error: { message: string } | null }) => {
+      .then(({ error }) => {
         if (error) logger.error('[API] Supabase persist error:', error.message);
       });
   } catch {
@@ -168,14 +165,12 @@ async function lookupSupabase(questionHash: string): Promise<string | null> {
   if (!isSupabaseConfigured) return null;
   try {
     const supabase = getSupabaseClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
-      .from('tutorial_response_cache')
+    const { data, error } = await (supabase.from('tutorial_response_cache') as unknown as TutorialResponseCacheTable)
       .select('response')
       .eq('question_hash', questionHash)
       .single();
     if (error || !data) return null;
-    return (data as { response: string }).response ?? null;
+    return data.response ?? null;
   } catch {
     return null;
   }
