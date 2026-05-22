@@ -7,6 +7,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 let reachabilityPromise: Promise<boolean> | null = null;
+let reachabilityResolvedAt: number | null = null;
+const REACHABILITY_CACHE_MS = 30_000; // Re-check after 30s if previously failed
 export let isReachable = true;
 
 // Singleton for browser usage
@@ -14,10 +16,22 @@ let _client: SupabaseClient<Database> | null = null;
 
 export function checkSupabaseReachability(): Promise<boolean> {
   if (!isSupabaseConfigured) return Promise.resolve(false);
-  if (reachabilityPromise) return reachabilityPromise;
+
+  // If we have a cached result, return it unless it was a failure older than REACHABILITY_CACHE_MS
+  // (successful reachability is cached permanently; failures are retried after the grace period)
+  if (reachabilityPromise && reachabilityResolvedAt !== null) {
+    const cacheAge = Date.now() - reachabilityResolvedAt;
+    if (isReachable || cacheAge < REACHABILITY_CACHE_MS) {
+      return reachabilityPromise;
+    }
+    // Reset so we try again
+    reachabilityPromise = null;
+    reachabilityResolvedAt = null;
+  }
 
   reachabilityPromise = new Promise<boolean>((resolve) => {
     if (typeof window === 'undefined') {
+      reachabilityResolvedAt = Date.now();
       resolve(true); // default to true on server-side
       return;
     }
@@ -25,7 +39,7 @@ export function checkSupabaseReachability(): Promise<boolean> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 1000); // 1s timeout is enough for a health check
+    }, 5000); // 5s timeout to handle slow connections
 
     fetch(`${supabaseUrl}/auth/v1/health`, {
       method: 'GET',
@@ -36,6 +50,7 @@ export function checkSupabaseReachability(): Promise<boolean> {
       .then((res) => {
         clearTimeout(timeoutId);
         isReachable = res.ok;
+        reachabilityResolvedAt = Date.now();
         if (!isReachable) {
           _client = null;
         }
@@ -43,11 +58,12 @@ export function checkSupabaseReachability(): Promise<boolean> {
       })
       .catch((err) => {
         clearTimeout(timeoutId);
+        reachabilityResolvedAt = Date.now();
         // Silently log and fallback to guest mode
         if (err.name === 'AbortError') {
-          logger.info('[Supabase] Health check timed out, entering offline mode');
+          logger.info('[Supabase] Health check timed out, operating in guest mode');
         } else {
-          logger.info('[Supabase] Connection failed, entering offline mode');
+          logger.info('[Supabase] Connection check failed, operating in guest mode');
         }
         isReachable = false;
         _client = null;
@@ -71,19 +87,9 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
     const isOffline = typeof window !== 'undefined' && !window.navigator.onLine;
     
     if (isOffline || !isReachable) {
-      // Use 404 as a "definitively not found/offline" status to stop GoTrue-js retries.
-      // GoTrue-js retries on 5xx and network errors, but 4xx are treated as final.
-      return new Response(
-        JSON.stringify({
-          error: 'offline',
-          message: 'Application is operating in offline mode',
-        }),
-        {
-          status: 404,
-          statusText: 'Not Found',
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      // Throw a plain network error — GoTrue-js catches it as AuthRetryableFetchError
+      // which the authStore handles silently. Avoid returning 4xx which surfaces as AuthApiError.
+      throw new TypeError('Application is operating in guest mode (network unavailable)');
     }
 
     logger.warn('Supabase fetch failed, intercepting and degrading gracefully:', error);
