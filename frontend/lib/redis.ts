@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import logger from '@/lib/logger';
 
 /**
  * Upstash Redis client — initialized once, shared across all API routes.
@@ -73,7 +74,7 @@ export async function checkRateLimit(
 
     return { allowed, remaining, resetAt };
   } catch (error) {
-    console.error('[RateLimit] Redis error, allowing request:', error);
+    logger.error('[RateLimit] Redis error, allowing request:', error);
     return { allowed: true, remaining: limit, resetAt: now + windowSeconds };
   }
 }

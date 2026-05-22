@@ -31,7 +31,7 @@ export const cleanOrphanedChildren = (nodes: Node[]): Node[] => {
     if (parentId && !allNodeIds.has(parentId)) {
       console.warn(`Cleaning orphaned child ${node.id}: parent ${parentId} not found`);
       hasChanges = true;
-      const { parentNode: _, parentId: __, extent, ...rest } = node as Node & { parentNode?: string, parentId?: string };
+      const { parentNode: _p, parentId: __p, extent: _e, ...rest } = node as Node & { parentNode?: string, parentId?: string };
       return rest as Node;
     }
     return node;

@@ -33,7 +33,9 @@ export function RecentCanvases() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [popoverPos, setPopoverPos] = useState({ x: 0, y: 0 });
 
-  const recentCanvases = canvases
+  const recentCanvases = Array.from(
+    new Map(canvases.map((c) => [c.id, c])).values()
+  )
     .sort((a, b) => (b.lastAccessedAt || 0) - (a.lastAccessedAt || 0))
     .slice(0, 5);
 

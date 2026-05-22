@@ -11,19 +11,20 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
 } from 'reactflow';
-import { getSupabaseClient, isSupabaseConfigured, UserCanvasesTable } from '@/lib/supabase';
+import { getSupabaseClient, isSupabaseConfigured, type UserCanvasesTable } from '@/lib/supabase';
 import { type Database } from '@/types/supabase';
 import { DEFAULT_EDGE_TYPE, type EdgeType } from '@/data/edgeTypes';
 import { getNodeShape } from '@/lib/nodeShapes';
 import { getStrictPortConfig } from '@/lib/componentPorts';
 import { validateAndFixNodes } from '@/lib/utils/nodeValidation';
+import logger from '@/lib/logger';
 
 const NODE_PADDING = 10;
 const MIN_NODE_SPACING = 20;
 
 function resolveNodeCollisions(nodes: Node[]): Node[] {
+  if (!nodes || !Array.isArray(nodes)) return [];
   const result = [...nodes];
-  const nodeMap = new Map(result.map(n => [n.id, n] as [string, Node]));
   
   const getExtent = (node: Node) => {
     const w = node.width ?? 180;
@@ -95,7 +96,6 @@ const RESERVED_LAYER_LABELS = new Set([
 function stripReservedLayerNodes(nodes: Node[]): Node[] {
   const result: Node[] = [];
   const labelMap = new Map<string, Node>();
-  const groupIds = new Set(nodes.filter(n => n.data?.isGroup === true).map(n => n.id));
   
   for (const node of nodes) {
     const data = node.data as Record<string, unknown> | undefined;
@@ -108,13 +108,13 @@ function stripReservedLayerNodes(nodes: Node[]): Node[] {
     }
     
     if (RESERVED_LAYER_LABELS.has(label)) {
-      console.log(`[Store] Stripping reserved layer node: "${data?.label}" (${node.id})`);
+      logger.log(`[Store] Stripping reserved layer node: "${data?.label}" (${node.id})`);
       continue;
     }
     
     const existing = labelMap.get(label);
     if (existing && existing.id !== node.id) {
-      console.log(`[Store] Duplicate label "${data?.label}" — keeping ${node.id}, removing ${existing.id}`);
+      logger.log(`[Store] Duplicate label "${data?.label}" — keeping ${node.id}, removing ${existing.id}`);
       continue;
     }
     
@@ -150,6 +150,7 @@ export interface GuideLine {
 export interface NodeData {
   label: string;
   category: string;
+  layer?: string;
   componentType?: string;
   color?: string;
   icon?: string;
@@ -160,6 +161,7 @@ export interface NodeData {
   isExternal?: boolean;
   hideTierTag?: boolean;
   sublabel?: string;
+  subtitle?: string;
   hasError?: boolean;
   accentColor?: string;
   technology?: string;
@@ -359,8 +361,22 @@ const KNOWN_NODE_TYPES = new Set([
 const KNOWN_EDGE_TYPES = new Set(['custom', 'simpleFloating', 'default']);
 
 function normalizeNodeType(type?: string): string {
-  if (!type || !KNOWN_NODE_TYPES.has(type)) return 'systemNode';
-  if (type === 'architectureNode') return 'systemNode';
+  if (!type) return 'systemNode';
+  
+  // These types are all unified to systemNode to follow the global 'plate' style
+  if ([
+    'architectureNode', 
+    'baseNode', 
+    'databaseNode', 
+    'cacheNode', 
+    'customNode', 
+    'messageBrokerNode',
+    'system'
+  ].includes(type)) {
+    return 'systemNode';
+  }
+  
+  if (!KNOWN_NODE_TYPES.has(type)) return 'systemNode';
   return type;
 }
 
@@ -374,13 +390,11 @@ function normalizeNodes(nodes: Node[]): Node[] {
 function normalizeEdge(edge: Edge): Edge {
   const edgeType = edge.type as string | undefined;
   const normalizedType = edgeType && KNOWN_EDGE_TYPES.has(edgeType) ? edgeType : 'simpleFloating';
-  const markerEnd = edge.markerEnd ?? (edge.animated ? 'url(#arrow-async)' : 'url(#arrow-default)');
 
   if (normalizedType === 'simpleFloating') {
     return {
       ...edge,
       type: normalizedType,
-      markerEnd,
       sourceHandle: undefined,
       targetHandle: undefined,
     };
@@ -389,7 +403,6 @@ function normalizeEdge(edge: Edge): Edge {
   return {
     ...edge,
     type: normalizedType,
-    markerEnd,
   };
 }
 
@@ -400,14 +413,16 @@ function normalizeEdges(edges: Edge[]): Edge[] {
 
 function mergeCanvases(localCanvases: CanvasTab[], dbCanvases: CanvasTab[]): CanvasTab[] {
   const merged = new Map<string, CanvasTab>();
-  
+
   // Add all DB canvases first
   for (const c of dbCanvases) {
+    if (!c.id) continue;
     merged.set(c.id, c);
   }
-  
+
   // Merge local canvases, keeping the more recently updated version
   for (const local of localCanvases) {
+    if (!local.id) continue;
     const existing = merged.get(local.id);
     if (!existing) {
       // New canvas not in DB yet - keep it
@@ -421,10 +436,9 @@ function mergeCanvases(localCanvases: CanvasTab[], dbCanvases: CanvasTab[]): Can
       }
     }
   }
-  
+
   return Array.from(merged.values()).sort((a, b) => (b.lastAccessedAt || 0) - (a.lastAccessedAt || 0));
 }
-
 // ── Debounced DB save (module-level so it's shared across calls) ──────────────
 const _debouncedSave = debounce(async (canvasId: string, get: () => DiagramState) => {
   if (!isSupabaseConfigured) return;
@@ -497,6 +511,14 @@ export const useDiagramStore = create<DiagramState>()(
        addCanvas: (customName?: string, canvasId?: string) => {
          const { canvases, openCanvasIds, getRandomAnimalName } = get();
          
+         if (canvasId) {
+           const existing = canvases.find(c => c.id === canvasId);
+           if (existing) {
+             get().switchCanvas(canvasId);
+             return canvasId;
+           }
+         }
+
          const baseName = customName || getRandomAnimalName();
          let newName = baseName;
          const existingNames = new Set(canvases.map(c => c.name));
@@ -1131,16 +1153,8 @@ onConnect: (connection) => {
           return { ...edge, sourceHandle, targetHandle };
         });
         
-        // Add markerEnd to edges if missing
-        const edgesWithMarkers = edgesWithHandles.map(edge => {
-          if (!edge.markerEnd) {
-            return { ...edge, markerEnd: edge.animated ? 'url(#arrow-async)' : 'url(#arrow-default)' };
-          }
-          return edge;
-        });
-        
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, edgesWithMarkers);
-        set({ nodes: resolvedNodes, edges: edgesWithMarkers, canvases });
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, edgesWithHandles);
+        set({ nodes: resolvedNodes, edges: edgesWithHandles, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 

@@ -2,7 +2,7 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import type { Node, Edge } from 'reactflow';
-import { getBezierPath, getSmoothStepPath, getStraightPath, Position } from 'reactflow';
+import { getBezierPath, ReactFlow, Background, ReactFlowProvider, BackgroundVariant } from 'reactflow';
 
 interface DiagramPreviewProps {
   nodes: Node[];
@@ -14,13 +14,12 @@ interface DiagramPreviewProps {
 
 const DEFAULT_NODE_WIDTH = 140;
 const DEFAULT_NODE_HEIGHT = 72;
-const PADDING = 20;
 
 export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: DiagramPreviewProps) {
   const nodeCount = nodes?.length || 0;
 
   // Calculate bounding box INCLUDING full node dimensions
-  const { minX, minY, maxX, maxY, diagramWidth, diagramHeight, scale, offsetX, offsetY } = useMemo(() => {
+  const { scale, offsetX, offsetY } = useMemo(() => {
     if (nodeCount === 0) {
       return { minX: 0, minY: 0, maxX: 400, maxY: 300, diagramWidth: 400, diagramHeight: 300, scale: 1, offsetX: 0, offsetY: 0 };
     }
@@ -181,17 +180,10 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
     const tSource = transform(sourceX, sourceY);
     const tTarget = transform(targetX, targetY);
 
-    // Determine source/target positions for React Flow path functions
-    const sourcePos = (sourceHandle as Position) || Position.Right;
-    const targetPos = (targetHandle as Position) || Position.Left;
-
     const pathType = edge.data?.pathType as string || 'bezier';
 
     // Simple path generation for each type
     if (pathType === 'straight') {
-      const dx = tTarget.x - tSource.x;
-      const dy = tTarget.y - tSource.y;
-      // For straight lines, just use direct line
       return `M ${tSource.x} ${tSource.y} L ${tTarget.x} ${tTarget.y}`;
     }
 
@@ -344,7 +336,6 @@ export function ReactFlowPreview({ nodes, edges, width = 280, height = 160 }: Re
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -353,10 +344,6 @@ export function ReactFlowPreview({ nodes, edges, width = 280, height = 160 }: Re
       <div className="w-full h-full bg-gray-100 animate-pulse" style={{ background: '#FAFAFA' }} />
     );
   }
-
-  // Use dynamic import to avoid SSR issues
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { ReactFlow, Background, BackgroundVariant, ReactFlowProvider } = require('reactflow');
 
   return (
     <div className="w-full h-full" style={{ width, height }}>
@@ -373,10 +360,19 @@ export function ReactFlowPreview({ nodes, edges, width = 280, height = 160 }: Re
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
-          panInteractive={false}
-          zoomInteractive={false}
+          panOnDrag={false}
+          panOnScroll={false}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          zoomOnDoubleClick={false}
         >
-          <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#E5E7EB" />
+          <Background 
+            variant={BackgroundVariant.Dots} 
+            gap={15} 
+            size={1} 
+            color="#cbd5e1" 
+            style={{ opacity: 0.4 }}
+          />
         </ReactFlow>
       </ReactFlowProvider>
     </div>

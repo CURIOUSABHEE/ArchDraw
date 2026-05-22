@@ -159,13 +159,13 @@ body {
 
 /* Technical drafting grid */
 .react-flow__background pattern circle {
-  fill: hsl(var(--grid-color));
-  opacity: 0.25;
+  fill: currentColor;
+  opacity: 1;
 }
 
 .dark .react-flow__background pattern circle {
-  fill: hsl(var(--grid-color));
-  opacity: 0.12;
+  fill: currentColor;
+  opacity: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════

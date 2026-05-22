@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Plus,
   Search,
   Bell,
   LayoutDashboard,
-  FileText,
   LayoutTemplate,
   GraduationCap,
   FolderOpen,
@@ -107,24 +106,16 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, activePage }: DashboardShellProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const { user, initialized } = useAuthStore();
+  const { initialized } = useAuthStore();
   const { addCanvas, canvases } = useDiagramStore();
+  
+  // Use state with initial value from a ref or just skip setMounted if not needed
   const [mounted, setMounted] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-
+  
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMounted(true);
-    }, 0);
-    return () => clearTimeout(timer);
+    setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (mounted && initialized && !user) {
-      router.push('/');
-    }
-  }, [mounted, initialized, user, router]);
 
   const handleNewCanvas = () => {
     addCanvas();

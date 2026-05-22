@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { SupabaseClient, User } from '@supabase/supabase-js';
-import { getSupabaseClient, isSupabaseConfigured, checkSupabaseReachability } from '@/lib/supabase';
+import { getSupabaseClient, isSupabaseConfigured, checkSupabaseReachability, isReachable } from '@/lib/supabase';
+import logger from '@/lib/logger';
 
 let supabase: SupabaseClient | null = null;
 
@@ -14,11 +15,7 @@ export function getSupabaseInstance(): SupabaseClient {
 interface AuthState {
   user: User | null;
   loading: boolean;
-  email: string | null;
   initialized: boolean;
-  setUser: (user: User | null) => void;
-  setLoading: (loading: boolean) => void;
-  sendMagicLink: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
 }
@@ -26,40 +23,17 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   loading: true,
-  email: null,
   initialized: false,
 
-  setUser: (user) => set({ user, loading: false }),
-  setLoading: (loading) => set({ loading }),
-
-  sendMagicLink: async (email) => {
-    if (!isSupabaseConfigured) {
-      return { error: new Error('Auth is not configured or offline') };
-    }
-    const supabase = getSupabaseInstance();
-    const redirectTo = process.env.NEXT_PUBLIC_APP_URL
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
-      : typeof window !== 'undefined'
-        ? `${window.location.origin}/auth/callback`
-        : undefined;
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: redirectTo },
-    });
-    if (!error) {
-      set({ email });
-    }
-    return { error: error as Error | null };
-  },
-
   signOut: async () => {
-    if (!isSupabaseConfigured) {
-      set({ user: null, email: null });
-      return;
+    if (!isSupabaseConfigured) return;
+    try {
+      const supabase = getSupabaseInstance();
+      await supabase.auth.signOut();
+      set({ user: null });
+    } catch (err) {
+      logger.error('Sign out error:', err);
     }
-    const supabase = getSupabaseInstance();
-    await supabase.auth.signOut();
-    set({ user: null, email: null });
   },
 
   initialize: async () => {
@@ -68,26 +42,55 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Await reachability check to determine if Supabase is actually accessible
     await checkSupabaseReachability();
 
-    // If Supabase isn't properly configured or reachable, skip auth and allow access
-    if (!isSupabaseConfigured) {
+    // If Supabase isn't properly configured, unreachable, or navigator is offline, skip auth and allow access
+    const isOffline = typeof window !== 'undefined' && !window.navigator.onLine;
+    if (!isSupabaseConfigured || !isReachable || isOffline) {
       set({ user: { id: 'guest', email: 'guest@local' } as User, loading: false, initialized: true });
       return;
     }
+    
     try {
       const supabase = getSupabaseInstance();
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        // Specifically catch and silence AuthRetryableFetchError in logs if we are offline
+        if (error.name === 'AuthRetryableFetchError') {
+          logger.warn('[Auth] Operating in offline mode due to fetch error');
+          set({ user: { id: 'guest', email: 'guest@local' } as User, loading: false, initialized: true });
+          return;
+        }
+        logger.warn('Auth session retrieval returned an error:', error);
+      }
+
       set({ 
         user: session?.user ?? null, 
         loading: false, 
         initialized: true 
       });
 
-      supabase.auth.onAuthStateChange((_event, session) => {
+      supabase.auth.onAuthStateChange((event, session) => {
+        logger.log(`[Auth] State change: ${event}`);
         set({ user: session?.user ?? null, loading: false });
       });
     } catch (err) {
-      console.error('Auth initialization failed:', err);
-      set({ user: null, loading: false, initialized: true });
+      const error = err as { name?: string; message?: string };
+      const errName = error?.name || '';
+      const errMsg = error?.message || '';
+      const isOfflineError = 
+        errName === 'AuthRetryableFetchError' ||
+        errName === 'AuthApiError' ||
+        errMsg.toLowerCase().includes('offline') ||
+        errMsg.toLowerCase().includes('operating in offline mode') ||
+        !isReachable;
+
+      if (isOfflineError) {
+        logger.warn('[Auth] Operating in offline mode after catching initialization exception cleanly');
+        set({ user: { id: 'guest', email: 'guest@local' } as User, loading: false, initialized: true });
+      } else {
+        logger.error('Auth initialization caught a critical exception:', err);
+        set({ user: null, loading: false, initialized: true });
+      }
     }
   },
 }));

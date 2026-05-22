@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { useDiagramStore } from '@/store/diagramStore';
 import { useTutorialStore } from '@/store/tutorialStore';
-import { isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
+import { isSupabaseConfigured, getSupabaseClient, type TutorialProgressTable, type UserCanvasesTable } from '@/lib/supabase';
 
 async function migrateGuestProgress(userId: string) {
   if (!isSupabaseConfigured) return;
@@ -15,7 +16,7 @@ async function migrateGuestProgress(userId: string) {
   for (const [tutorialId, progress] of entries) {
     if (!progress.currentStep || progress.currentStep <= 1) continue;
     try {
-      await supabase.from('tutorial_progress').upsert(
+      await (supabase.from('tutorial_progress') as unknown as TutorialProgressTable).upsert(
         {
           user_id: userId,
           tutorial_id: tutorialId,
@@ -26,7 +27,8 @@ async function migrateGuestProgress(userId: string) {
           canvas_nodes: progress.canvasNodes,
           canvas_edges: progress.canvasEdges,
           explain_count: progress.explainCount,
-        } as unknown as never,
+          updated_at: progress.updatedAt || new Date().toISOString(),
+        },
         { onConflict: 'user_id,tutorial_id' }
       );
     } catch {
@@ -47,11 +49,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [initialize]);
 
   useEffect(() => {
-    if (!user) { prevUserIdRef.current = null; return; }
+    if (!user) { 
+      prevUserIdRef.current = null;
+      useDiagramStore.getState().setUserProfile(null);
+      return;
+    }
+    
     if (user.id === prevUserIdRef.current) return;
     prevUserIdRef.current = user.id;
-    migrateGuestProgress(user.id).catch(() => {});
+
+    // Set user profile and load canvases when user is found
+    const { setUserProfile, loadCanvasesFromDB } = useDiagramStore.getState();
+    
+    if (user.id !== 'guest') {
+      setUserProfile({
+        id: user.id,
+        email: user.email ?? undefined,
+        name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? undefined,
+        avatar_url: user.user_metadata?.avatar_url ?? undefined,
+      });
+      loadCanvasesFromDB().catch(() => {});
+      migrateGuestProgress(user.id).catch(() => {});
+    } else {
+      setUserProfile({
+        id: 'guest',
+        email: 'guest@local',
+        name: 'Guest User',
+      });
+    }
   }, [user]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    
+    const supabase = getSupabaseClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const { setUserProfile, loadCanvasesFromDB } = useDiagramStore.getState();
+      
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        const u = session.user;
+        setUserProfile({
+          id: u.id,
+          email: u.email ?? undefined,
+          name: u.user_metadata?.full_name ?? u.user_metadata?.name ?? undefined,
+          avatar_url: u.user_metadata?.avatar_url ?? undefined,
+        });
+        await loadCanvasesFromDB();
+        
+        // Restore guest canvases if they exist
+        const saved = localStorage.getItem('guestCanvases');
+        if (saved) {
+          try {
+            const guestCanvases = JSON.parse(saved);
+            const supabaseClient = getSupabaseClient();
+            for (const canvas of guestCanvases) {
+              if (canvas.nodes?.length > 0) {
+                await (supabaseClient.from('user_canvases') as unknown as UserCanvasesTable).upsert({
+                  id: canvas.id,
+                  user_id: u.id,
+                  name: canvas.name,
+                  nodes: canvas.nodes,
+                  edges: canvas.edges,
+                  updated_at: new Date().toISOString(),
+                });
+              }
+            }
+            localStorage.removeItem('guestCanvases');
+            await loadCanvasesFromDB();
+          } catch { /* ignore */ }
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUserProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return <>{children}</>;
 }

@@ -11,13 +11,11 @@ import {
   CreditCard,
   ChevronRight,
   Camera,
-  Check,
   Sparkles,
   Palette,
   Zap,
   Globe,
   Eye,
-  Moon,
   Grid3X3,
   Magnet,
   Map,
@@ -29,9 +27,6 @@ import {
   Mail,
   Search,
   LayoutGrid,
-  AlertCircle,
-  CheckCircle2,
-  XCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
@@ -88,7 +83,7 @@ function SettingRow({ icon: Icon, title, desc, children }: { icon?: React.Elemen
 
 export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
   const { user, signOut } = useAuthStore();
-  const { userProfile, canvases, showGrid, toggleGrid, edgeAnimations } = useDiagramStore();
+  const { showGrid, toggleGrid, edgeAnimations, userProfile, canvases } = useDiagramStore();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const ref = useRef<HTMLDivElement>(null);
   
@@ -110,17 +105,6 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
   const [bio, setBio] = useState('');
   const [portfolio, setPortfolio] = useState('');
   const [language, setLanguage] = useState('en');
-  const [hasChanges, setHasChanges] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHasChanges(
-      displayName !== '' || 
-      bio !== '' || 
-      portfolio !== '' || 
-      language !== 'en'
-    );
-  }, [displayName, bio, portfolio, language]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -133,7 +117,6 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
   }, [open, onOpenChange]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (userProfile?.name) setDisplayName(userProfile.name);
   }, [userProfile]);
 
@@ -158,12 +141,6 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
   ];
 
   if (!open) return null;
-
-  const handleSave = () => {
-    // Save changes logic here
-    setHasChanges(false);
-    onOpenChange(false);
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -571,7 +548,7 @@ export function UserAvatar() {
         onClick={openProfile}
         className="flex items-center gap-2 p-1.5 rounded-[12px] transition-colors hover:bg-gray-100"
       >
-        {'avatar_url' in profile && profile.avatar_url ? (
+        {profile && 'avatar_url' in profile && profile.avatar_url ? (
           <img src={profile.avatar_url} alt={initials} className="w-7 h-7 rounded-full object-cover shrink-0" />
         ) : (
           <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs text-white font-semibold" style={{ background: '#1A1A1A' }}>

@@ -1,9 +1,10 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useDiagramStore } from '@/store/diagramStore';
-import { canvasCache, type CachedCanvas } from './canvasCache';
+import { canvasCache } from './canvasCache';
+import logger from '@/lib/logger';
 
 export function useCanvasPreload() {
-  const preloadTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const preloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { canvases, activeCanvasId } = useDiagramStore();
 
   const preloadCanvas = useCallback(async (canvasId: string) => {
@@ -24,7 +25,7 @@ export function useCanvasPreload() {
         });
       }
     } catch (error) {
-      console.error('Failed to preload canvas:', error);
+      logger.error('Failed to preload canvas:', error);
     }
   }, []);
 
