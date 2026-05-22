@@ -331,9 +331,19 @@ export function Toolbar() {
     
     const { fitView } = useDiagramStore.getState();
     
+    const originalCanvasDarkMode = useDiagramStore.getState().canvasDarkMode;
+    const targetDarkMode = bgType === 'dark' ? true : bgType === 'light' ? false : originalCanvasDarkMode;
+    const themeChanged = originalCanvasDarkMode !== targetDarkMode;
+
     setIsExporting(true);
     
     try {
+      if (themeChanged) {
+        useDiagramStore.setState({ canvasDarkMode: targetDarkMode });
+        // wait for rendering to update
+        await new Promise((r) => setTimeout(r, 250));
+      }
+
       if (isSvg) {
         const { nodes, edges } = useDiagramStore.getState();
         const isDark = bgType === 'dark';
@@ -349,7 +359,7 @@ export function Toolbar() {
         const MAX_SIZE = 3 * 1024 * 1024;
         if (blob.size > MAX_SIZE) {
           const { toPng } = await import('html-to-image');
-          const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
+          const element = document.querySelector('.react-flow') as HTMLElement | null;
           if (!element) return;
           try {
             const pngDataUrl = await toPng(element, {
@@ -378,7 +388,6 @@ export function Toolbar() {
           downloadFile(blob, 'archdraw-export.svg');
           toast.success('Exported as SVG');
         }
-        setIsExporting(false);
         return;
       }
       
@@ -392,7 +401,7 @@ export function Toolbar() {
       
       const pixelRatio = pixelRatioMap[format] || 4;
       
-      const element = document.querySelector('.react-flow__viewport') as HTMLElement | null;
+      const element = document.querySelector('.react-flow') as HTMLElement | null;
       if (!element) return;
       
       fitView({ padding: 0.1, duration: 300 });
@@ -437,6 +446,9 @@ export function Toolbar() {
       toast.error('Export failed. Please try again.');
       logger.error(err);
     } finally {
+      if (themeChanged) {
+        useDiagramStore.setState({ canvasDarkMode: originalCanvasDarkMode });
+      }
       setIsExporting(false);
     }
   };
