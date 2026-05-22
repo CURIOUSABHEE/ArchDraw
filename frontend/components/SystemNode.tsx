@@ -218,7 +218,6 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
             borderRadius: BORDER_RADIUS,
             transform: `translate(${layer.offset}px, ${layer.offset}px)`,
             background: layer.color,
-            border: `1.5px solid ${borderCol}`,
             zIndex: i + 1,
             pointerEvents: 'none',
             transition: 'all 150ms ease',
