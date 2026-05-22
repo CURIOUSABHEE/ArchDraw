@@ -244,6 +244,8 @@ function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
       x="${bp.offset}" y="${bp.offset}"
       width="${width}" height="${height}"
       fill="${bp.color}"
+      stroke="${borderCol}"
+      stroke-width="1.5"
       rx="10" ry="10"
     />
   `).join('');
