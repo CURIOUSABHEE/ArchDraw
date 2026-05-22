@@ -51,7 +51,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     
     try {
       const supabase = getSupabaseInstance();
-      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      // Wrap getSession in a timeout to prevent indefinite hangs (e.g. from Web Locks API issues)
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<{ data: { session: any }, error: any }>((_, reject) => {
+        setTimeout(() => reject(new Error('Supabase getSession timed out - operating in offline mode')), 3000);
+      });
+      
+      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
       
       if (error) {
         // Specifically catch and silence AuthRetryableFetchError in logs if we are offline
