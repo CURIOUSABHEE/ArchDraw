@@ -66,7 +66,7 @@ export function getEdgeShiftOffset(
   side: Position,
   edges: Edge[],
   nodeInternals: Map<string, Node>,
-  spacing: number = 10
+  spacing: number = 15
 ): number {
   const node = nodeInternals.get(nodeId);
   if (!node) return 0;
@@ -104,7 +104,20 @@ export function getEdgeShiftOffset(
     return 0;
   }
 
-  // We have both inward and outward edges on this side. Max 2 ports needed.
+  const edge = edges.find(e => e.id === edgeId);
+  if (!edge) return 0;
+
+  // Check if there is a direct bidirectional connection for THIS edge
+  const isBidirectional = edges.some(
+    e => e.id !== edge.id && e.source === edge.target && e.target === edge.source
+  );
+
+  // If this specific edge is part of a bidirectional pair, use the deterministic lexical shift
+  if (isBidirectional) {
+    return edge.source > edge.target ? spacing : -spacing;
+  }
+
+  // Otherwise, use the geometric calculation to untangle bundles
   const getAvgCoord = (items: typeof inwardEdges) => {
     let sum = 0;
     for (const item of items) {
@@ -120,9 +133,7 @@ export function getEdgeShiftOffset(
 
   const isCurrentInward = inwardEdges.some(e => e.edge.id === edgeId);
   
-  // Assign shifts to avoid crossovers between the inward and outward bundles
   if (avgIn <= avgOut) {
-    // Inward bundle is "above" or "left" of outward bundle
     return isCurrentInward ? -spacing : spacing;
   } else {
     return isCurrentInward ? spacing : -spacing;

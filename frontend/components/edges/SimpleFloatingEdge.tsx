@@ -133,13 +133,16 @@ export default function SimpleFloatingEdge({
     if (data?.color) {
       return data.color;
     }
+    if (style?.stroke) {
+      return style.stroke as string;
+    }
     if (isDark) {
       if (isAsync) return '#FBBF24';
       if (lowerType === 'error' || lowerLabel.includes('error') || lowerLabel.includes('failed')) return '#EF4444';
       if (lowerType === 'success' || lowerLabel.includes('success') || lowerLabel.includes('ok')) return '#34D399';
       return '#60A5FA'; // sync/default bright blue
     }
-    return inferred.color || (style?.stroke as string) || config.color || '#6B7280';
+    return inferred.color || config.color || '#6B7280';
   }, [selected, isDark, data?.color, isAsync, lowerType, lowerLabel, inferred.color, style?.stroke, config.color]);
 
   const strokeWidth = useMemo(() => {
@@ -148,6 +151,18 @@ export default function SimpleFloatingEdge({
   }, [style?.strokeWidth, selected, isHovered]);
 
   const strokeDasharray = useMemo(() => {
+    if (style?.strokeDasharray) {
+      return style.strokeDasharray as string;
+    }
+    if (data?.edgeVariant === 'dotted' || data?.connectionType === 'dotted') {
+      return '2,4';
+    }
+    if (data?.edgeVariant === 'dashed') {
+      return '8,4';
+    }
+    if (data?.edgeVariant === 'solid') {
+      return undefined;
+    }
     if (isDark) {
       if (isAsync) return '8,4';
       return undefined;
@@ -155,7 +170,7 @@ export default function SimpleFloatingEdge({
     return animated || config.animated || inferred.dash
       ? inferred.dash || config.dash || undefined
       : undefined;
-  }, [isDark, isAsync, animated, config.animated, inferred.dash]);
+  }, [style?.strokeDasharray, data?.edgeVariant, data?.connectionType, isDark, isAsync, animated, config.animated, inferred.dash]);
 
   const edgeStyle: React.CSSProperties = useMemo(() => {
     const opacity = selected ? 1 : (isHovered ? 1 : (isDark ? 0.8 : 0.85));
@@ -272,6 +287,11 @@ export default function SimpleFloatingEdge({
         <EdgeLabelRenderer>
           <div
             onMouseDown={handleLabelMouseDown}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              document.dispatchEvent(new CustomEvent('edit-edge-label', { detail: id }));
+            }}
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelPos.x}px, ${labelPos.y}px)`,

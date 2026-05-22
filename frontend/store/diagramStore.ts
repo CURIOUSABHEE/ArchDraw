@@ -408,7 +408,19 @@ function normalizeEdge(edge: Edge): Edge {
 
 function normalizeEdges(edges: Edge[]): Edge[] {
   const migrated = migrateEdgesToSmoothstep(edges);
-  return migrated.map(normalizeEdge);
+  
+  // Clean up legacy duplicate keys that might be stuck in localStorage
+  const seenIds = new Set<string>();
+  const deduplicated = migrated.map(edge => {
+    let id = edge.id;
+    while (seenIds.has(id)) {
+      id = `${id}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+    seenIds.add(id);
+    return { ...edge, id };
+  });
+
+  return deduplicated.map(normalizeEdge);
 }
 
 function mergeCanvases(localCanvases: CanvasTab[], dbCanvases: CanvasTab[]): CanvasTab[] {

@@ -3,6 +3,10 @@ export interface UserIntent {
   systemType: string;
   complexity: 'low' | 'medium' | 'high';
   model?: string;
+  existingContext?: {
+    nodes: any[];
+    edges: any[];
+  };
 }
 
 // ============================================================================
@@ -88,7 +92,7 @@ export interface ArchitectureNode {
   serviceType?: ServiceType;
   
   // TIER SYSTEM (new layout rules)
-  tier?: 'edge' | 'compute' | 'async' | 'data' | 'observe' | 'client' | 'external';
+  tier?: 'edge' | 'compute' | 'async' | 'data' | 'observe' | 'client' | 'external' | 'infrastructure';
   tierColor?: string;
   subtitle?: string;
   
@@ -281,9 +285,11 @@ export type LayerType =
   | 'compute' 
   | 'application'
   | 'async' 
+  | 'queue'
   | 'data' 
   | 'observe' 
   | 'observability'
+  | 'infrastructure'
   | 'external' 
   | 'group';
 
@@ -303,7 +309,7 @@ export type ServiceType =
   | 'service'
   | 'generic';
 
-export type CommunicationType = 'sync' | 'async' | 'stream' | 'event' | 'dep';
+export type CommunicationType = 'sync' | 'async' | 'stream' | 'event' | 'dep' | 'dotted';
 
 export type PathType = 'smooth' | 'bezier' | 'step' | 'straight';
 

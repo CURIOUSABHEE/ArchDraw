@@ -1,7 +1,7 @@
 import { MarkerType } from 'reactflow';
 
 export type PathType = 'smooth' | 'Smoothstep' | 'bezier' | 'step' | 'straight';
-export type EdgeType = 'sync' | 'async' | 'stream' | 'event' | 'dep';
+export type EdgeType = 'sync' | 'async' | 'stream' | 'event' | 'dep' | 'dotted';
 
 export interface EdgeTypeConfig {
   id: EdgeType;
@@ -61,6 +61,16 @@ export const EDGE_TYPE_CONFIGS: Record<EdgeType, EdgeTypeConfig> = {
     color: '#6B7280',
     dash: '6 6',
     animated: true,
+    markerStart: false,
+    markerEnd: true,
+    pathType: 'Smoothstep',
+  },
+  dotted: {
+    id: 'dotted',
+    label: 'Dotted',
+    color: '#94a3b8',
+    dash: '2 4',
+    animated: false,
     markerStart: false,
     markerEnd: true,
     pathType: 'Smoothstep',

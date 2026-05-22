@@ -1,4 +1,4 @@
-export const LAYER_ORDER = ['client', 'edge', 'gateway', 'application', 'queue', 'data'];
+export const LAYER_ORDER = ['client', 'edge', 'gateway', 'application', 'queue', 'data', 'infrastructure', 'observability', 'external'];
 
 export const MAX_ITERATIONS = 3;
 export const SCORE_THRESHOLD = 75;
@@ -11,6 +11,7 @@ export const COMMUNICATION_STYLES: Record<string, { color: string; dash: string 
   stream: { color: '#94a3b8', dash: '10,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '10,4', markerEnd: 'arrowclosed', markerId: 'arrow-stream' },
   event: { color: '#94a3b8', dash: '4,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '4,4', markerEnd: 'arrowclosed', markerId: 'arrow-event' },
   dep: { color: '#94a3b8', dash: '6,6', animated: false, pathType: 'Smoothstep', strokeDasharray: '6,6', markerEnd: 'arrowclosed', markerId: 'arrow-dep' },
+  dotted: { color: '#94a3b8', dash: '2,4', animated: false, pathType: 'Smoothstep', strokeDasharray: '2,4', markerEnd: 'arrowclosed', markerId: 'arrow-dotted' },
 };
 
 export const EDGE_COLORS: Record<string, string> = {
@@ -19,6 +20,7 @@ export const EDGE_COLORS: Record<string, string> = {
   stream: '#94a3b8',
   event: '#94a3b8',
   dep: '#94a3b8',
+  dotted: '#94a3b8',
 };
 
 export const EDGE_MARKER_IDS: Record<string, string> = {
@@ -27,6 +29,7 @@ export const EDGE_MARKER_IDS: Record<string, string> = {
   stream: 'arrow-stream',
   event: 'arrow-event',
   dep: 'arrow-dep',
+  dotted: 'arrow-dotted',
 };
 
 export const DEFAULT_ELK_OPTIONS: Record<string, string> = {
@@ -58,7 +61,7 @@ RULES:
 
 ANALYZE (5 steps, be concise — output feeds a diagram generator):
 1. BOUNDARIES: entryPoints[], exitPoints[], trustZones[]
-2. LAYERS: {ComponentName: LayerName} — Valid: client|edge|gateway|application|queue|data
+2. LAYERS: {ComponentName: LayerName} — Valid: client|edge|gateway|application|queue|data|infrastructure|observability|external
 3. PATTERNS: [monolith|microservices|event-driven|cqrs|circuit-breaker|saga]
 4. STRESS TESTS (5 scenarios, mark safe:true/false):
    - DB down → mitigation
@@ -152,7 +155,10 @@ LAYER_ORDER (left → right in final diagram):
 3. gateway — API Gateway, Reverse Proxy
 4. application — Microservices, Serverless, Auth
 5. queue — Message Bus, Kafka, SQS (optional)
-6. data — Databases, Cache, Storage (rightmost)
+6. data — Databases, Cache, Storage
+7. infrastructure — CI/CD, Container Registry, Orchestration
+8. observability — Logging, Metrics, Tracing
+9. external — Third-party APIs (rightmost)
 
 
 OUTPUT ORDER:
