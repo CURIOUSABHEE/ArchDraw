@@ -2,10 +2,16 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Plus, Loader2, FilePlus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Loader2, FilePlus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDiagramStore } from '@/store/diagramStore';
 import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function DiagramPagination() {
   const router = useRouter();
@@ -105,6 +111,11 @@ export function DiagramPagination() {
     return null;
   }
 
+  // Calculate 5 canvases before and 5 after
+  const startIdx = Math.max(0, currentIndex - 5);
+  const endIdx = Math.min(total - 1, currentIndex + 5);
+  const visibleCanvases = canvasList.slice(startIdx, endIdx + 1);
+
   return (
     <div className="flex items-center gap-1">
       {/* Previous - disabled at position 1 */}
@@ -118,12 +129,28 @@ export function DiagramPagination() {
         {isNavigating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronLeft className="w-4 h-4" />}
       </Button>
 
-      {/* Current canvas name */}
-      <div className="px-3 py-1.5 rounded-md bg-muted/50 text-sm font-medium">
-        <span className="text-xs font-medium truncate max-w-[150px] block">
-          {currentName}
-        </span>
-      </div>
+      {/* Current canvas name with Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted text-sm font-medium transition-colors focus:outline-none flex items-center gap-1">
+            <span className="text-xs font-medium truncate max-w-[150px] block">
+              {currentName}
+            </span>
+            <ChevronDown className="w-3 h-3 text-muted-foreground" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center" className="w-48 max-h-[300px] overflow-y-auto">
+          {visibleCanvases.map((c) => (
+            <DropdownMenuItem 
+              key={c.id} 
+              onClick={() => navigateTo(c.id)}
+              className={`text-xs ${c.id === activeCanvasId ? 'bg-accent font-semibold' : ''}`}
+            >
+              <span className="truncate">{c.name || 'Untitled'}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Next - NEVER disabled */}
       <Button
