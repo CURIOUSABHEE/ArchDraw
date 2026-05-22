@@ -314,9 +314,9 @@ function CanvasInner() {
         <Background 
           variant={BackgroundVariant.Dots} 
           gap={25} 
-          size={1}
-          color={isDark ? '#1E2130' : '#94a3b8'}
-          style={{ opacity: isDark ? 0.4 : 0.3 }}
+          size={1.5}
+          color={isDark ? '#475569' : '#64748b'}
+          style={{ opacity: isDark ? 0.6 : 0.4 }}
         />
         <Controls showInteractive={false} className={`!shadow-sm ${isDark ? '!bg-[#1E2235] !border-gray-800 !text-white' : '!bg-white !border-gray-200 !text-gray-800'}`} />
         <EdgeMarkerDefs />

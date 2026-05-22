@@ -139,7 +139,8 @@ function TutorialCanvasInner({
   const edgeTypes = useMemo(() => EDGE_TYPES, []);
   const isDark = theme === 'dark';
   const canvasBg = isDark ? '#0f172a' : '#f8fafc';
-  const dotColor = isDark ? '#334155' : '#cbd5e1';
+  const dotColor = isDark ? '#475569' : '#64748b';
+  const dotOpacity = isDark ? 0.6 : 0.4;
   const emptyIconBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
   const emptyIconBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
   const emptyTextPrimary = isDark ? 'text-slate-400' : 'text-slate-500';
@@ -359,7 +360,7 @@ function TutorialCanvasInner({
           }}
           deleteKeyCode={['Backspace', 'Delete', 'Meta+Backspace']}
         >
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color={dotColor} style={{ backgroundColor: canvasBg }} />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color={dotColor} style={{ backgroundColor: canvasBg, opacity: dotOpacity }} />
           <Controls
             showInteractive={false}
             className={controlsClass}

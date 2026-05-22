@@ -91,9 +91,9 @@ function CanvasPreview() {
         <Background 
           variant={BackgroundVariant.Dots} 
           gap={20} 
-          size={1} 
-          color="#cbd5e1" 
-          style={{ opacity: 0.5 }}
+          size={1.5} 
+          color="#64748b" 
+          style={{ opacity: 0.4 }}
         />
       </ReactFlow>
     </div>

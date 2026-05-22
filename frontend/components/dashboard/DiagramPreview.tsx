@@ -369,8 +369,8 @@ export function ReactFlowPreview({ nodes, edges, width = 280, height = 160 }: Re
           <Background 
             variant={BackgroundVariant.Dots} 
             gap={15} 
-            size={1} 
-            color="#cbd5e1" 
+            size={1.5} 
+            color="#64748b" 
             style={{ opacity: 0.4 }}
           />
         </ReactFlow>

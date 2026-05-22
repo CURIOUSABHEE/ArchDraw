@@ -163,7 +163,7 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
         }}
       >
         <EdgeMarkerDefs />
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#334155" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#475569" style={{ opacity: 0.6 }} />
         <Controls showInteractive={false} className="!bg-card/90 !border !border-border/60 !rounded-lg" />
         <MiniMap zoomable pannable className="!bg-card/90 !border !border-border/60 !rounded-lg" maskColor="rgba(0,0,0,0.04)" />
       </ReactFlow>

@@ -81,7 +81,7 @@ function HeroCanvasContent() {
         }
       }}
     >
-      <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#1e293b" />
+      <Background variant={BackgroundVariant.Dots} gap={16} size={1.5} color="#475569" style={{ opacity: 0.6 }} />
     </ReactFlow>
   );
 }

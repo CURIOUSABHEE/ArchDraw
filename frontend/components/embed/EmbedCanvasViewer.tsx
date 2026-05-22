@@ -58,7 +58,8 @@ function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls
   const isDark = theme === 'dark';
   
   const backgroundColor = isDark ? '#0f172a' : '#ffffff';
-  const gridColor = isDark ? '#334155' : '#e2e8f0';
+  const gridColor = isDark ? '#475569' : '#64748b';
+  const gridOpacity = isDark ? 0.6 : 0.4;
   const controlBg = isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)';
   const controlBorder = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.8)';
   
@@ -139,6 +140,7 @@ function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls
           gap={20}
           size={1.5}
           color={gridColor}
+          style={{ opacity: gridOpacity }}
         />
         {showControls && (
           <Controls
