@@ -174,16 +174,7 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     useDiagramStore.getState().setSidebarOpen(true);
   }, []);
 
-  // Backplate layers — completely disabled in dark mode for glass/glow effect
-  const backplateLayers = isDark ? [] : (selected
-    ? [
-        { offset: 10, color: '#ecece5' },
-        { offset: 5, color: '#dfdfd8' },
-      ]
-    : [
-        { offset: 10, color: '#efefe8' },
-        { offset: 5, color: '#e1e1da' },
-      ]);
+
 
   // Dark mode details
   const catStyle = getDarkCategoryStyle(nodeData.layer);
@@ -197,17 +188,28 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     }
   } else {
     boxS = selected
-      ? `0 0 0 2px ${accentColor}, 0 3px 8px rgba(0,0,0,0.07)`
-      : `0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.85)`;
+      ? `0 0 0 2px ${accentColor}, 0 2px 5px rgba(0,0,0,0.06)`
+      : '0 1px 2px rgba(0,0,0,0.04)';
   }
 
   // Icon color: match category border at 90% brightness (default hex here is already bright)
   const iconColor = isDark ? catStyle.border : accentColor;
 
+  // Backplate layers for light mode
+  const backplateLayers = selected
+    ? [
+        { offset: 10, color: '#ecece5' },
+        { offset: 5, color: '#dfdfd8' },
+      ]
+    : [
+        { offset: 10, color: '#efefe8' },
+        { offset: 5, color: '#e1e1da' },
+      ];
+
   return (
     <div style={{ position: 'relative', zIndex: 2 /* node above edges */ }}>
-      {/* Backplate layers — z-index: -1, below edges */}
-      {backplateLayers.map((layer, i) => (
+      {/* Backplate layers — separate elements in light mode, z-index: 1 and 2 (BELOW main surface at 5) */}
+      {!isDark && backplateLayers.map((layer, i) => (
         <div
           key={i}
           style={{
@@ -216,13 +218,15 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
             borderRadius: BORDER_RADIUS,
             transform: `translate(${layer.offset}px, ${layer.offset}px)`,
             background: layer.color,
-            zIndex: -1,
+            border: `1.5px solid ${borderCol}`,
+            zIndex: i + 1,
             pointerEvents: 'none',
+            transition: 'all 150ms ease',
           }}
         />
       ))}
 
-      {/* Main node surface — z-index: 2, above edges */}
+      {/* Main node surface — z-index: 5, above backplates */}
       <div
         className="group"
         style={{
@@ -240,7 +244,7 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
           flexDirection: 'column',
           overflow: 'hidden',
           opacity: 1,
-          zIndex: 2,
+          zIndex: 5,
         }}
         onClick={handleClick}
       >
