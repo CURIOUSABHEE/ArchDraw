@@ -19,12 +19,12 @@ export function useTheme() {
 }
 
 export function useCanvasTheme() {
-  const { resolvedTheme } = useNextTheme();
-  const isDark = resolvedTheme === 'dark';
+  const canvasDarkMode = useDiagramStore((s) => s.canvasDarkMode);
+  const isDark = canvasDarkMode;
   
   return {
     isDark,
-    resolvedTheme: (resolvedTheme || 'dark') as Theme,
+    resolvedTheme: (canvasDarkMode ? 'dark' : 'light') as Theme,
   };
 }
 

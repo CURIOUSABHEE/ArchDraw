@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap, ReactFlowProvider,
   ConnectionLineType,
@@ -18,6 +18,7 @@ import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { EmailCaptureModal } from '@/components/EmailCaptureModal';
 import { EdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
+import { useDiagramStore } from '@/store/diagramStore';
 
 const NODE_TYPES = {
   systemNode:        SystemNode,
@@ -54,8 +55,13 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
   const nodeTypes = useMemo(() => NODE_TYPES, []);
   const edgeTypes = useMemo(() => EDGE_TYPES, []);
 
+  useEffect(() => {
+    // Force dark mode on mount for the viewer since the background is dark
+    useDiagramStore.setState({ canvasDarkMode: true });
+  }, []);
+
   const doDownload = async () => {
-    const el = document.querySelector('.react-flow__viewport') as HTMLElement | null;
+    const el = document.querySelector('.react-flow') as HTMLElement | null;
     if (!el) return;
     setIsDownloading(true);
 
