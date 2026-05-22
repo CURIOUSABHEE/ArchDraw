@@ -256,13 +256,13 @@ function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
         width="${width}" height="${height}"
         fill="${fillBg}"
         stroke="${borderCol}"
-        stroke-width="${selected ? 2.5 : 1.5}"
+        stroke-width="1.5"
         rx="10" ry="10"
         ${styleAttr}
       />
       <!-- Header Icon Box -->
       <g transform="translate(10, 8)">
-        <rect x="0" y="0" width="24" height="24" rx="6" fill="${iconColor}12" />
+        <rect x="0" y="0" width="24" height="24" rx="6" fill="${iconColor}" fill-opacity="0.07" />
         <rect x="7" y="7" width="10" height="10" rx="2.5" fill="${iconColor}" />
       </g>
       <!-- Title -->
@@ -432,6 +432,7 @@ function renderEdge(edge: EdgeRenderData, isDark: boolean): string {
     if (isAsync) strokeColor = '#F59E0B';
     else if (lowerType === 'error' || lowerLabel.includes('error') || lowerLabel.includes('failed')) strokeColor = '#EF4444';
     else if (lowerType === 'success' || lowerLabel.includes('success') || lowerLabel.includes('ok')) strokeColor = '#10B981';
+    else if (lowerType === 'sql' || lowerType === 'data' || lowerLabel.includes('sql') || lowerLabel.includes('query') || lowerLabel.includes('cache')) strokeColor = '#3B82F6';
     else strokeColor = config.color || '#6B7280';
   }
 
@@ -461,7 +462,8 @@ function renderEdge(edge: EdgeRenderData, isDark: boolean): string {
     }
   }
   
-  const strokeDashArray = dashArray || config.dash || 'none';
+  const isAnimated = (data as any)?.animated || config.animated;
+  const strokeDashArray = dashArray || (isAnimated ? config.dash : '') || 'none';
   const opacity = selected ? 1 : (isDark ? 0.8 : 0.85);
   
   const pathResult = getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, isFloating);
@@ -492,9 +494,9 @@ function renderEdge(edge: EdgeRenderData, isDark: boolean): string {
     const labelY = pathResult.labelY;
     const labelText = data.label;
     
-    const bg = isDark ? '#1e2235' : '#fefdfa';
+    const bg = isDark ? '#1e2235' : '#fefdf8';
     const fg = isDark ? '#CBD5E1' : '#6B7280';
-    const border = isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2dfd5';
+    const border = isDark ? 'rgba(255, 255, 255, 0.1)' : '#e0dbd0';
     
     const padding = 12;
     const charWidth = 6.5;
@@ -517,10 +519,10 @@ function renderEdge(edge: EdgeRenderData, isDark: boolean): string {
           x="0" y="3"
           fill="${fg}"
           font-family="${FONTS.body}"
-          font-size="9"
-          font-weight="bold"
+          font-size="${isDark ? 10 : 9}"
+          font-weight="${isDark ? 'bold' : 600}"
           text-anchor="middle"
-          letter-spacing="0.04em"
+          letter-spacing="${isDark ? '0.05em' : '0.04em'}"
         >${escapeXml(labelText)}</text>
       </g>
     `.trim();

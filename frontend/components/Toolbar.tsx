@@ -341,7 +341,7 @@ export function Toolbar() {
       if (themeChanged) {
         useDiagramStore.setState({ canvasDarkMode: targetDarkMode });
         // wait for rendering to update
-        await new Promise((r) => setTimeout(r, 250));
+        await new Promise((r) => setTimeout(r, 500));
       }
 
       if (isSvg) {
