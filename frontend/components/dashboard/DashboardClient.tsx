@@ -2,12 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
 import { NewCanvasBanner } from '@/components/dashboard/NewCanvasBanner';
 import { NewCanvasCard } from '@/components/dashboard/NewCanvasCard';
 import { TemplatePreviewCard } from '@/components/dashboard/TemplatePreviewCard';
 import { CanvasCard } from '@/components/dashboard/CanvasCard';
+import { getLayoutedElements } from '@/lib/layoutUtils';
 
 interface DashboardClientProps {
   templates: any[];
@@ -17,11 +19,28 @@ interface DashboardClientProps {
 export function DashboardClient({ templates, aiPrompts }: DashboardClientProps) {
   const router = useRouter();
   const { initialized } = useAuthStore();
+  const [layoutedTemplates, setLayoutedTemplates] = useState<any[]>(templates);
   const {
     canvases,
     addCanvas,
     switchCanvas,
   } = useDiagramStore();
+
+  useEffect(() => {
+    // Process templates layout asynchronously to prevent UI freeze
+    const layoutTemplatesAsync = async () => {
+      // Use setTimeout to yield to the main thread
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const processed = templates.map((template) => {
+        // If it already has positions, getLayoutedElements will just re-layout them,
+        // but wait, let's only layout if they have {x:0, y:0} or just run it.
+        const { nodes, edges } = getLayoutedElements(template.nodes, template.edges, 'LR');
+        return { ...template, nodes, edges };
+      });
+      setLayoutedTemplates(processed);
+    };
+    layoutTemplatesAsync();
+  }, [templates]);
 
   const handleNewCanvas = (fromTemplate?: string) => {
     if (fromTemplate) {
@@ -80,7 +99,13 @@ export function DashboardClient({ templates, aiPrompts }: DashboardClientProps) 
           />
 
           {/* Canvas Cards */}
-          {Array.from(new Map(canvases.map(c => [c.id, c])).values()).map((canvas) => (
+          {Array.from(new Map(canvases.map(c => [c.id, c])).values())
+            .sort((a, b) => {
+              const aTime = a.lastAccessedAt || a.updatedAt || 0;
+              const bTime = b.lastAccessedAt || b.updatedAt || 0;
+              return bTime - aTime;
+            })
+            .map((canvas) => (
             <CanvasCard
               key={canvas.id}
               id={canvas.id}
@@ -102,7 +127,7 @@ export function DashboardClient({ templates, aiPrompts }: DashboardClientProps) 
           Architecture Templates
         </h2>
         <div className="flex gap-4 overflow-x-auto pb-2 px-1 -mx-1" style={{ scrollbarWidth: 'none' }}>
-          {templates.map((template) => (
+          {layoutedTemplates.map((template) => (
             <div key={template.id} className="flex-shrink-0 w-64">
               <TemplatePreviewCard
                 title={template.name}

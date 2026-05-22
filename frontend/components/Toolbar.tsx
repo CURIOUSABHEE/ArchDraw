@@ -327,13 +327,16 @@ export function Toolbar() {
     
     const isSvg = format.startsWith('svg-');
     const bgType = format.includes('dark') ? 'dark' : format.includes('light') ? 'light' : 'transparent';
-    const bgColor = bgType === 'dark' ? '#0f172a' : bgType === 'light' ? '#ffffff' : undefined;
+    const bgColor = bgType === 'dark' ? '#000000' : bgType === 'light' ? '#ffffff' : undefined;
     
     const { fitView } = useDiagramStore.getState();
     
+    // We strictly use the user's current canvas node style (canvasDarkMode).
+    // Exporting with a different background should NOT change the nodes' styling
+    // to prevent the "Nodes losing plates" issue.
     const originalCanvasDarkMode = useDiagramStore.getState().canvasDarkMode;
-    const targetDarkMode = bgType === 'dark' ? true : bgType === 'light' ? false : originalCanvasDarkMode;
-    const themeChanged = originalCanvasDarkMode !== targetDarkMode;
+    const targetDarkMode = originalCanvasDarkMode;
+    const themeChanged = false; // Never change theme during export
 
     setIsExporting(true);
     
@@ -346,13 +349,13 @@ export function Toolbar() {
 
       if (isSvg) {
         const { nodes, edges } = useDiagramStore.getState();
-        const isDark = bgType === 'dark';
-        const bg = bgType === 'dark' ? '#0f172a' : bgType === 'light' ? '#ffffff' : 'transparent';
+        const isDark = originalCanvasDarkMode;
+        const bg = bgType === 'dark' ? '#000000' : bgType === 'light' ? '#ffffff' : 'transparent';
         
         fitView({ padding: 0.1, duration: 300 });
         await new Promise((r) => setTimeout(r, 350));
         
-        const svgContent = generatePureSVG(nodes, edges, isDark, bg || '#0f172a');
+        const svgContent = generatePureSVG(nodes, edges, isDark, bg || '#000000');
         
         const blob = new Blob([svgContent], { type: 'image/svg+xml' });
         
@@ -719,7 +722,7 @@ export function Toolbar() {
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setExportOpen(false)} />
                 <div
-                  className="absolute right-0 top-full mt-3 w-56 rounded-2xl overflow-hidden z-30 bg-white"
+                  className="absolute right-0 top-full mt-3 w-56 rounded-2xl overflow-hidden z-30 bg-popover border border-border text-popover-foreground"
                   style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}
                 >
                   <div className="px-4 py-3">
@@ -731,7 +734,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
                       {label}
                     </button>
@@ -745,7 +748,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
                       {label}
                     </button>
@@ -759,7 +762,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
                       {label}
                     </button>
@@ -775,7 +778,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
                       {label}
                     </button>
@@ -791,7 +794,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
                       {label}
                     </button>
@@ -804,7 +807,7 @@ export function Toolbar() {
           <div className="relative">
             <button
               onClick={() => setMoreOpen(!moreOpen)}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
               <MoreHorizontal className="w-4 h-4" />
             </button>
@@ -813,7 +816,7 @@ export function Toolbar() {
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setMoreOpen(false)} />
                 <div
-                  className="absolute right-0 top-full mt-3 w-52 rounded-2xl overflow-hidden z-30 bg-white"
+                  className="absolute right-0 top-full mt-3 w-52 rounded-2xl overflow-hidden z-30 bg-popover border border-border text-popover-foreground"
                   style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}
                 >
                   {/* Resources Section */}
@@ -822,14 +825,14 @@ export function Toolbar() {
                   </div>
                   <button
                     onClick={() => { router.push('/tutorials'); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
                     <GraduationCap className="w-3.5 h-3.5" />
                     Learn
                   </button>
                   <button
                     onClick={() => { openGuide(); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
                     Guide
@@ -841,7 +844,7 @@ export function Toolbar() {
                   </div>
                   <button
                     onClick={() => { setTemplatesOpen(true); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
                     <LayoutTemplate className="w-3.5 h-3.5" />
                     Templates
@@ -849,7 +852,7 @@ export function Toolbar() {
                   <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
                   <button
                     onClick={() => { fileInputRef.current?.click(); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     Import JSON
@@ -862,7 +865,7 @@ export function Toolbar() {
                   <button
                     onClick={() => { handleClear(); setMoreOpen(false); }}
                     disabled={nodes.length === 0}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Clear Canvas

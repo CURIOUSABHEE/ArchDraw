@@ -40,6 +40,7 @@ import { useGrouping } from '@/hooks/useGrouping';
 import { toast } from 'sonner';
 import type { Node } from 'reactflow';
 import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
+import { calculateNodeDimensions } from '@/lib/utils/nodeSizing';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -160,10 +161,27 @@ function CanvasInner() {
 
       const data = await response.json();
       const isMCP = data.source === 'mcp';
-      const nodesWithType = (data.nodes as Node[]).map((n) => ({
-        ...n,
-        type: n.type === 'architectureNode' ? 'systemNode' : (n.type || 'systemNode'),
-      }));
+      const nodesWithType = (data.nodes as Node[]).map((n) => {
+        // Calculate dimensions if missing, to maintain consistency with AI generated nodes
+        let nodeWidth = n.data?.nodeWidth;
+        let nodeHeight = n.data?.nodeHeight;
+        
+        if (!nodeWidth || !nodeHeight) {
+          const dims = calculateNodeDimensions(n.data?.label || '', n.data?.subtitle || '');
+          nodeWidth = nodeWidth || dims.width;
+          nodeHeight = nodeHeight || dims.height;
+        }
+
+        return {
+          ...n,
+          type: n.type === 'architectureNode' ? 'systemNode' : (n.type || 'systemNode'),
+          data: {
+            ...n.data,
+            nodeWidth,
+            nodeHeight,
+          }
+        };
+      });
       const edgesWithType = (data.edges as Edge[]).map((e) => ({
         ...e,
         // Always use simpleFloating for MCP sessions — SystemNode doesn't mount
@@ -265,6 +283,17 @@ function CanvasInner() {
 
   // Label editing logic
   useEffect(() => {
+    const handleEditEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      setPendingLabelEdgeId(customEvent.detail);
+    };
+    document.addEventListener('edit-edge-label', handleEditEvent);
+    return () => {
+      document.removeEventListener('edit-edge-label', handleEditEvent);
+    };
+  }, []);
+
+  useEffect(() => {
     if (pendingLabelEdgeId && labelInputRef.current) {
       labelInputRef.current.focus();
       const edge = edges.find(e => e.id === pendingLabelEdgeId);
@@ -296,6 +325,11 @@ function CanvasInner() {
         onPaneClick={onPaneClick}
         onNodeContextMenu={onNodeContextMenu}
         onPaneContextMenu={onPaneContextMenu}
+        onEdgeDoubleClick={(e, edge) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setPendingLabelEdgeId(edge.id);
+        }}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
@@ -322,11 +356,23 @@ function CanvasInner() {
         <EdgeMarkerDefs />
         <GuideLines />
         
-        {/* Connection Tooltips/Hints */}
         <EdgeLabelRenderer>
           {pendingLabelEdgeId && (
-            <div className="absolute z-50 pointer-events-auto">
-              {/* input handled by component if needed, or overlay */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-auto bg-background/95 backdrop-blur-sm p-4 rounded-xl shadow-xl border border-border flex flex-col gap-3 min-w-[300px]">
+              <div className="text-sm font-medium">Edit Edge Label</div>
+              <input
+                ref={labelInputRef}
+                value={labelDraft}
+                onChange={(e) => setLabelDraft(e.target.value)}
+                onBlur={handleLabelSubmit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleLabelSubmit();
+                  if (e.key === 'Escape') setPendingLabelEdgeId(null);
+                  e.stopPropagation();
+                }}
+                className="w-full px-3 py-2 text-sm bg-secondary rounded-lg outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="e.g. calls API, sends data"
+              />
             </div>
           )}
         </EdgeLabelRenderer>

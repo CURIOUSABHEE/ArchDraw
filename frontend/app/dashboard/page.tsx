@@ -14,15 +14,7 @@ const aiPrompts = [
 ];
 
 export default async function DashboardPage() {
-  // Pre-calculate layouted templates on the server
-  const layoutedTemplates = TEMPLATES.slice(0, 5).map((template) => {
-    const { nodes, edges } = getLayoutedElements(template.nodes, template.edges, 'LR');
-    return {
-      ...template,
-      nodes,
-      edges,
-    };
-  });
+  const layoutedTemplates = TEMPLATES.slice(0, 5);
 
   return (
     <DashboardClient 

@@ -66,8 +66,9 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
     setIsDownloading(true);
 
     try {
+      const isDark = useDiagramStore.getState().canvasDarkMode;
       const dataUrl = await toPng(el, {
-        backgroundColor: '#0f172a',
+        backgroundColor: isDark ? '#0f172a' : '#ffffff',
         pixelRatio: 3,
         cacheBust: true,
         filter: (node) => {
