@@ -55,38 +55,7 @@ export async function generateDiagramPipeline(
     // If no parsed diagram, use comprehensive fallback
     if (!parsed || parsed.nodes.length === 0) {
       logger.log('[Pipeline] Using fallback diagram');
-      parsed = {
-        nodes: [
-          // Groups with ALL CAPS short zone names
-          { id: 'clients-group', label: 'Clients', layer: 'presentation' as const, isGroup: true, groupLabel: 'CLIENTS', groupColor: '#dbeafe' },
-          { id: 'gateway-group', label: 'Gateway', layer: 'presentation' as const, isGroup: true, groupLabel: 'GATEWAY', groupColor: '#dcfce7' },
-          { id: 'services-group', label: 'Services', layer: 'application' as const, isGroup: true, groupLabel: 'SERVICES', groupColor: '#fef3c7' },
-          { id: 'storage-group', label: 'Storage', layer: 'data' as const, isGroup: true, groupLabel: 'STORAGE', groupColor: '#fce7f3' },
-          // Children (2-4 per group, 11 total)
-          { id: 'web-app', label: 'Web App', layer: 'presentation' as const, parentId: 'clients-group', subtitle: 'React SPA' },
-          { id: 'mobile-app', label: 'Mobile App', layer: 'presentation' as const, parentId: 'clients-group', subtitle: 'iOS/Android' },
-          { id: 'api-gateway', label: 'API Gateway', layer: 'presentation' as const, parentId: 'gateway-group', subtitle: 'REST/GraphQL' },
-          { id: 'load-balancer', label: 'Load Balancer', layer: 'presentation' as const, parentId: 'gateway-group', subtitle: 'Traffic distribution' },
-          { id: 'auth-service', label: 'Auth Service', layer: 'application' as const, parentId: 'services-group', subtitle: 'JWT/OAuth' },
-          { id: 'user-service', label: 'User Service', layer: 'application' as const, parentId: 'services-group', subtitle: 'CRUD operations' },
-          { id: 'payment-service', label: 'Payment Service', layer: 'application' as const, parentId: 'services-group', subtitle: 'Payment processing' },
-          { id: 'notification-service', label: 'Notification Service', layer: 'application' as const, parentId: 'services-group', subtitle: 'Push/SMS/Email' },
-          { id: 'user-db', label: 'User Database', layer: 'data' as const, parentId: 'storage-group', subtitle: 'PostgreSQL' },
-          { id: 'cache', label: 'Redis Cache', layer: 'data' as const, parentId: 'storage-group', subtitle: 'Session cache' },
-          { id: 'queue', label: 'Message Queue', layer: 'application' as const, subtitle: 'RabbitMQ' },
-        ],
-        flows: [
-          // Paths with 3-5 nodes, never referencing group IDs
-          { path: ['web-app', 'api-gateway', 'auth-service', 'user-db'], label: 'authentication', async: false },
-          { path: ['mobile-app', 'load-balancer', 'user-service', 'user-db'], label: 'user CRUD', async: false },
-          { path: ['web-app', 'api-gateway', 'payment-service', 'user-db'], label: 'payment', async: false },
-          { path: ['payment-service', 'queue', 'notification-service'], label: 'async notification', async: true },
-          { path: ['user-service', 'cache'], label: 'cache lookup', async: false },
-          { path: ['web-app', 'load-balancer', 'user-service', 'cache'], label: 'cached user data', async: false },
-          { path: ['mobile-app', 'api-gateway', 'auth-service'], label: 'mobile auth', async: false },
-          { path: ['api-gateway', 'user-service', 'user-db'], label: 'user API', async: false },
-        ]
-      };
+      parsed = buildPromptFallback(prompt, intent.type);
     }
     
     logger.log(`[Pipeline] Parsed nodes: ${parsed.nodes.length}, flows: ${parsed.flows.length}`);
@@ -105,7 +74,7 @@ export async function generateDiagramPipeline(
 
     // Stage 5: Validate and repair
     logger.log('[Pipeline] Stage 5: Validate and repair');
-    const validated = validateAndRepair(parsed);
+    const validated = validateAndRepair(parsed, prompt);
     logger.log(`[Pipeline] Validated nodes: ${validated.nodes.length}, edges: ${validated.edges.length}`);
 
     // Stage 6: Layout
@@ -181,4 +150,79 @@ export async function generateDiagramPipeline(
     onStreaming?.({ type: 'error', data: error instanceof Error ? error.message : 'Unknown error' });
     throw error;
   }
+}
+
+function buildPromptFallback(prompt: string, intentType: string): { nodes: RawNode[]; flows: RawFlow[] } {
+  const p = prompt.toLowerCase();
+  const nodes: RawNode[] = [];
+  const add = (id: string, label: string, layer: RawNode['layer'], subtitle: string) => {
+    if (nodes.some(node => node.id === id)) return;
+    nodes.push({ id, label, layer, subtitle });
+  };
+
+  if (/\b(video|streaming|vod|cdn|transcod|drm|recommend)\b/.test(p)) {
+    add('video-player', 'Video Player', 'client', 'Playback client');
+    add('cdn', 'CDN', 'edge', 'HLS/DASH delivery');
+    add('api-gateway', 'API Gateway', 'gateway', 'Playback control API');
+    if (/\bauth|login|user\b/.test(p)) add('auth-service', 'Auth Service', 'application', 'Token validation');
+    if (/\bdrm|license|widevine|fairplay\b/.test(p)) add('drm-license-service', 'DRM License Service', 'application', 'Entitlement checks');
+    add('raw-video-storage', 'Raw Video Storage', 'data', 'Uploaded source files');
+    add('transcoding-queue', 'Transcoding Queue', 'queue', 'Encoding jobs');
+    add('transcoding-worker', 'Transcoding Worker', 'application', 'FFmpeg renditions');
+    add('processed-video-storage', 'Processed Video Storage', 'data', 'HLS/DASH segments');
+    if (/\brecommend/.test(p)) {
+      add('watch-event-stream', 'Watch Event Stream', 'queue', 'Playback events');
+      add('recommendation-engine', 'Recommendation Engine', 'application', 'Personalized ranking');
+      add('metadata-store', 'Metadata Store', 'data', 'Catalog metadata');
+    }
+  } else {
+    if (/\b(web|browser|frontend|user|client)\b/.test(p)) add('client-app', 'Client App', 'client', 'User interface');
+    if (/\bmobile|ios|android\b/.test(p)) add('mobile-app', 'Mobile App', 'client', 'Native client');
+    if (/\bapi|gateway|graphql|rest|backend|service\b/.test(p)) add('api-gateway', 'API Gateway', 'gateway', 'Request routing');
+    if (/\bauth|login|user\b/.test(p)) add('auth-service', 'Auth Service', 'application', 'Login and tokens');
+    if (/\bsearch\b/.test(p)) add('search-service', 'Search Service', 'application', 'Query handling');
+    if (/\brecommend|rank|feed\b/.test(p)) add('ranking-service', 'Ranking Service', 'application', 'Personalization');
+    if (/\bqueue|event|async|worker|job\b/.test(p)) add('event-queue', 'Event Queue', 'queue', 'Async messages');
+    if (/\bworker|job|background\b/.test(p)) add('worker-service', 'Worker Service', 'application', 'Background jobs');
+    if (/\bpostgres|mysql|database|db|store|persist\b/.test(p)) add('primary-database', 'Primary Database', 'data', 'Operational data');
+    if (/\bredis|cache\b/.test(p)) add('cache', 'Cache', 'data', 'Hot data');
+    if (/\bstorage|file|upload|media\b/.test(p)) add('object-storage', 'Object Storage', 'data', 'Files and blobs');
+    if (/\bpayment|billing|checkout|stripe\b/.test(p)) add('payment-provider', 'Payment Provider', 'external', 'Payments API');
+  }
+
+  if (nodes.length === 0) {
+    add('domain-service', `${titleCase(intentType.replace(/-/g, ' '))} Service`, 'application', 'Core domain workflow');
+    add('primary-store', 'Primary Store', 'data', 'Persistent state');
+  }
+
+  const ordered = [...nodes].sort((a, b) => layerRank(a.layer) - layerRank(b.layer));
+  const flows: RawFlow[] = [];
+  for (let i = 0; i < ordered.length - 1; i++) {
+    flows.push({
+      path: [ordered[i].id, ordered[i + 1].id],
+      label: edgeLabelFor(ordered[i], ordered[i + 1]),
+      async: ordered[i].layer === 'queue' || ordered[i + 1].layer === 'queue',
+    });
+  }
+
+  return { nodes, flows };
+}
+
+function layerRank(layer: RawNode['layer']): number {
+  const normalized = layer === 'presentation' ? 'client' : layer === 'compute' ? 'application' : layer === 'async' ? 'queue' : layer;
+  const order = ['client', 'edge', 'gateway', 'application', 'queue', 'data', 'observability', 'external'];
+  const idx = order.indexOf(normalized);
+  return idx >= 0 ? idx : 3;
+}
+
+function edgeLabelFor(source: RawNode, target: RawNode): string {
+  if (target.layer === 'data') return 'reads/writes';
+  if (target.layer === 'queue') return 'publishes';
+  if (source.layer === 'queue') return 'consumes';
+  if (source.layer === 'client') return 'requests';
+  return 'routes';
+}
+
+function titleCase(value: string): string {
+  return value.replace(/\b\w/g, c => c.toUpperCase());
 }

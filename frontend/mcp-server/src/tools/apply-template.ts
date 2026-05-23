@@ -316,7 +316,7 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
 
       return {
         id: node.id,
-        type: 'customNode',
+        type: 'systemNode',
         position: { x: TIER_X[tier] || 650, y },
         data: {
           label: node.label,

@@ -111,28 +111,60 @@ export function enforceMinimumConnections(
     );
 
     if (connections.length === 0) {
-      const candidate = nodes.find(n => !n.isGroup && n.id !== node.id && n.layer === 'application');
+      const candidate = findDirectionalPartner(node, nodes);
       if (candidate) {
+        const nodeRank = getLayerRank(node.layer);
+        const candidateRank = getLayerRank(candidate.layer);
+        const nodeIsSource = nodeRank <= candidateRank;
+
         const newEdge: ArchitectureEdge = {
           id: `auto-fix-${node.id}`,
-          source: node.id,
-          target: candidate.id,
+          source: nodeIsSource ? node.id : candidate.id,
+          target: nodeIsSource ? candidate.id : node.id,
           sourceHandle: 'right',
           targetHandle: 'left',
-          communicationType: 'sync',
+          communicationType: node.layer === 'async' || node.layer === 'queue' || candidate.layer === 'async' || candidate.layer === 'queue' ? 'async' : 'sync',
           pathType: 'smooth',
           label: '',
-          animated: false,
+          animated: node.layer === 'async' || node.layer === 'queue' || candidate.layer === 'async' || candidate.layer === 'queue',
           style: { stroke: '#94a3b8', strokeWidth: 2 },
           markerEnd: 'arrowclosed',
         } as ArchitectureEdge;
 
         resultEdges.push(newEdge);
         fixes.push(`Connected orphan node: ${node.label}`);
-        logger.log(`[EdgeValidator] Adding missing edge: ${node.label} → ${candidate.label}`);
+        logger.log(`[EdgeValidator] Adding missing edge: ${newEdge.source} → ${newEdge.target}`);
       }
     }
   }
 
   return { edges: resultEdges, fixes };
+}
+
+function findDirectionalPartner(node: ArchitectureNode, nodes: ArchitectureNode[]): ArchitectureNode | undefined {
+  const candidates = nodes.filter(n => !n.isGroup && n.id !== node.id);
+  const nodeRank = getLayerRank(node.layer);
+  const downstream = candidates
+    .filter(candidate => getLayerRank(candidate.layer) >= nodeRank)
+    .sort((a, b) => getLayerRank(a.layer) - getLayerRank(b.layer));
+  const upstream = candidates
+    .filter(candidate => getLayerRank(candidate.layer) < nodeRank)
+    .sort((a, b) => getLayerRank(b.layer) - getLayerRank(a.layer));
+
+  if (nodeRank === 0) return downstream.find(candidate => getLayerRank(candidate.layer) > nodeRank) || downstream[0];
+  if (nodeRank >= 4) return upstream[0] || downstream[0];
+  return downstream.find(candidate => getLayerRank(candidate.layer) > nodeRank) || upstream[0] || downstream[0];
+}
+
+function getLayerRank(layer?: string): number {
+  const normalized = normalizeLayer(layer);
+  const order = ['client', 'edge', 'gateway', 'application', 'compute', 'async', 'queue', 'data', 'infrastructure', 'observe', 'observability', 'external'];
+  const idx = order.indexOf(normalized);
+  return idx >= 0 ? idx : 3;
+}
+
+function normalizeLayer(layer?: string): string {
+  if (!layer) return 'application';
+  if (layer === 'presentation') return 'client';
+  return layer;
 }

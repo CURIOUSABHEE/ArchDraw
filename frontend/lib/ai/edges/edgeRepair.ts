@@ -1,6 +1,6 @@
 import type { ArchitectureNode, ArchitectureEdge } from '../types';
 import type { TierType } from '../domain/tiers';
-import { TIER_ORDER } from '../domain/tiers';
+import { getTierFromLayer, TIER_ORDER } from '../domain/tiers';
 import { ArchitectureGraph } from '../graph/ArchitectureGraph';
 import { validateEdges, validateConnectivity } from './edgeValidator';
 import type { EdgeValidationError } from './edgeValidator';
@@ -39,7 +39,9 @@ const DEGREE_CAP_BY_TIER: Partial<Record<TierType, number>> = {
 };
 
 function getTier(node?: ArchitectureNode): TierType {
-  return ((node?.tier || node?.layer || 'compute') as TierType);
+  if (!node) return 'compute';
+  if (node.tier) return node.tier as TierType;
+  return getTierFromLayer(node.layer) || 'compute';
 }
 
 function edgePriority(edge: ArchitectureEdge, nodeMap: Map<string, ArchitectureNode>): number {
@@ -185,13 +187,13 @@ export function repairEdges(
       if (isolatedNodeId) {
         const node = nodes.find(n => n.id === isolatedNodeId);
         if (node && !node.isGroup) {
-          const tier = (node.tier || node.layer) as TierType;
+          const tier = getTier(node);
           const tierIndex = TIER_ORDER.indexOf(tier);
 
           let targetTier: TierType | null = null;
           for (let i = tierIndex + 1; i < TIER_ORDER.length; i++) {
             const candidates = nodes.filter(n => 
-              (n.tier || n.layer) === TIER_ORDER[i] && !n.isGroup && n.id !== isolatedNodeId
+              getTier(n) === TIER_ORDER[i] && !n.isGroup && n.id !== isolatedNodeId
             );
             if (candidates.length > 0) {
               targetTier = TIER_ORDER[i];
@@ -201,7 +203,7 @@ export function repairEdges(
 
           if (targetTier) {
             const targets = nodes.filter(n => 
-              (n.tier || n.layer) === targetTier && !n.isGroup && n.id !== isolatedNodeId
+              getTier(n) === targetTier && !n.isGroup && n.id !== isolatedNodeId
             );
             if (targets.length > 0) {
               const newEdge: ArchitectureEdge = {
@@ -274,14 +276,14 @@ export function generateMissingEdges(
 ): ArchitectureEdge[] {
   const newEdges: ArchitectureEdge[] = [];
 
-  const asyncNodes = nodes.filter(n => (n.tier || n.layer) === 'async' && !n.isGroup);
+  const asyncNodes = nodes.filter(n => getTier(n) === 'async' && !n.isGroup);
   for (const asyncNode of asyncNodes) {
     const incomingEdges = edges.filter(e => e.target === asyncNode.id);
     const outgoingEdges = edges.filter(e => e.source === asyncNode.id);
 
     if (incomingEdges.length === 0) {
       const producers = nodes.filter(n => 
-        (n.tier || n.layer) === 'compute' && !n.isGroup
+        getTier(n) === 'compute' && !n.isGroup
       );
       if (producers.length > 0) {
         const newEdge: ArchitectureEdge = {
@@ -297,7 +299,7 @@ export function generateMissingEdges(
 
     if (outgoingEdges.length === 0) {
       const consumers = nodes.filter(n => 
-        ((n.tier || n.layer) === 'compute' || (n.tier || n.layer) === 'observe') && !n.isGroup && n.id !== asyncNode.id
+        (getTier(n) === 'compute' || getTier(n) === 'observe') && !n.isGroup && n.id !== asyncNode.id
       );
       if (consumers.length > 0) {
         const newEdge: ArchitectureEdge = {

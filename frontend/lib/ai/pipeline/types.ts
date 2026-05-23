@@ -73,6 +73,7 @@ export interface IntentResult {
 
 export interface ReasoningResult {
   systemType: string;
+  sourcePrompt?: string;
   nfrs: Record<string, string>;
   capPosition: string;
   boundaries: {

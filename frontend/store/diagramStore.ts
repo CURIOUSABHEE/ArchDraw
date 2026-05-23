@@ -11,7 +11,7 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
 } from 'reactflow';
-import { getSupabaseClient, isSupabaseConfigured, type UserCanvasesTable } from '@/lib/supabase';
+import { getSupabaseClient, isSupabaseConfigured, isReachable, type UserCanvasesTable } from '@/lib/supabase';
 import { type Database } from '@/types/supabase';
 import { DEFAULT_EDGE_TYPE, type EdgeType } from '@/data/edgeTypes';
 import { getNodeShape } from '@/lib/nodeShapes';
@@ -19,8 +19,8 @@ import { getStrictPortConfig } from '@/lib/componentPorts';
 import { validateAndFixNodes } from '@/lib/utils/nodeValidation';
 import logger from '@/lib/logger';
 
-const NODE_PADDING = 10;
-const MIN_NODE_SPACING = 20;
+const NODE_PADDING = 25;
+const MIN_NODE_SPACING = 25;
 
 function resolveNodeCollisions(nodes: Node[]): Node[] {
   if (!nodes || !Array.isArray(nodes)) return [];
@@ -453,9 +453,9 @@ function mergeCanvases(localCanvases: CanvasTab[], dbCanvases: CanvasTab[]): Can
 }
 // ── Debounced DB save (module-level so it's shared across calls) ──────────────
 const _debouncedSave = debounce(async (canvasId: string, get: () => DiagramState) => {
-  if (!isSupabaseConfigured) return;
+  if (!isSupabaseConfigured || !isReachable) return;
   const state = get();
-  if (!state.userProfile) return;
+  if (!state.userProfile || state.userProfile.id === 'guest') return;
   const canvas = state.canvases.find((c) => c.id === canvasId);
   if (!canvas) return;
   state.setSavingState('saving');
@@ -481,9 +481,9 @@ const _debouncedSave = debounce(async (canvasId: string, get: () => DiagramState
 
 // Delete canvas from Supabase
 async function deleteCanvasFromDB(canvasId: string, get: () => DiagramState): Promise<void> {
-  if (!isSupabaseConfigured) return;
+  if (!isSupabaseConfigured || !isReachable) return;
   const state = get();
-  if (!state.userProfile) return;
+  if (!state.userProfile || state.userProfile.id === 'guest') return;
   try {
     const supabase = getSupabaseClient();
     await (supabase.from('user_canvases') as unknown as UserCanvasesTable).delete().eq('id', canvasId);
@@ -834,7 +834,7 @@ export const useDiagramStore = create<DiagramState>()(
       setSavingState: (s) => set({ savingState: s }),
 
       loadCanvasesFromDB: async () => {
-        if (!isSupabaseConfigured) return;
+        if (!isSupabaseConfigured || !isReachable) return;
         const { activeCanvasId, canvases: localCanvases } = get();
         try {
           const supabase = getSupabaseClient();
@@ -1039,7 +1039,7 @@ onConnect: (connection) => {
           
           newNode = { 
             id, 
-            type: 'customNode', 
+            type: 'systemNode', 
             position: pos, 
             data: { 
               label: label || type, 

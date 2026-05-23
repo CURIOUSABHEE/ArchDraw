@@ -5,7 +5,14 @@ export const NodeInputSchema = z.object({
   label: z.string().describe('Display name shown on the node (e.g., "API Gateway", "PostgreSQL"). Keep it short — 1-3 words.'),
   tier: z.string().describe('Tier placement (REQUIRED): client | edge | compute | async | data | observe | external'),
   layer: z.string().optional().describe('Alternative to tier — same values accepted'),
-  subtitle: z.string().describe('Short description shown under the label (REQUIRED for all nodes). E.g., "handles auth tokens", "PostgreSQL 15", "Kafka topic". Be specific.'),
+  subtitle: z.string().describe(
+    'Short description shown under the label (REQUIRED for all nodes). ' +
+    'CRITICAL: If the user specified a tech stack, the subtitle MUST reflect it. ' +
+    'Examples: "AWS Lambda, Node.js 20, handles video uploads" NOT "handles uploads". ' +
+    '"PostgreSQL 15 on RDS, stores user data" NOT "database". ' +
+    '"CloudFront CDN, serves transcoded HLS segments" NOT "CDN". ' +
+    'Always encode the actual technology name + version + role in the subtitle.'
+  ),
   icon: z.string().optional().describe('Icon name from lucide-react. Examples: "server", "database", "zap", "globe", "shield", "layers", "cpu", "activity", "box", "cloud"'),
   tierColor: z.string().optional().describe('Override hex color for the node accent. Use tier defaults unless you need visual differentiation.'),
   accentColor: z.string().optional().describe('Additional accent/highlight color for the node. 15 options: #3b82f6 #0ea5e9 #06b6d4 #14b8a6 #22c55e #f59e0b #f97316 #ef4444 #ec4899 #6b7280 #f43f5e #a855f7 #84cc16 #fb923c #0ea5e9'),
@@ -47,7 +54,10 @@ export const GenerateDiagramInputSchema = z.object({
     '  6. Assign meaningful icons — use list_node_types to find them\n' +
     '  7. Use accentColor to differentiate nodes within the same tier\n' +
     '  8. MANDATORY: Width must be >= 180px and auto-fit to longest text (NO TRUNCATION)\n' +
-    '  9. MANDATORY: Nodes in same tier must vertically align with no overlap (60px min separation)'
+    '  9. MANDATORY: Nodes in same tier must vertically align with no overlap (60px min separation)\n' +
+    '  10. TECH STACK FIDELITY: If the user specified any tech/service (e.g. "AWS Lambda", "Redis", "Next.js"), ' +
+    'the corresponding node label AND subtitle MUST reflect the exact tech. ' +
+    'Never use a generic label like "API Server" if the user said "Express.js on EC2".'
   ),
   edges: z.array(EdgeInputSchema).min(1).describe(
     'Array of edges. RULES:\n' +
@@ -61,6 +71,22 @@ export const GenerateDiagramInputSchema = z.object({
   direction: z.enum(['RIGHT', 'DOWN', 'LEFT', 'UP']).default('RIGHT').describe('Layout direction. RIGHT (left-to-right) works for most architectures. DOWN for hierarchical/mobile-first views.'),
   label: z.string().optional().describe('Diagram title shown in the header'),
   diagramDescription: z.string().optional().describe('One-sentence description of what this architecture does. Helps with diagram metadata.'),
+  userPrompt: z.string().optional().describe(
+    'The original user request/prompt verbatim. CRITICAL: When provided, every node subtitle MUST reflect ' +
+    'any tech stack, services, or features the user mentioned. ' +
+    'E.g. if user said "use AWS Lambda and DynamoDB", those exact names must appear in node labels/subtitles. ' +
+    'If user said "add rate limiting", an explicit node or edge label must show rate limiting.'
+  ),
+  techStack: z.array(z.string()).optional().describe(
+    'Explicit list of technologies/services extracted from the user prompt. ' +
+    'E.g. ["AWS Lambda", "DynamoDB", "CloudFront", "Redis", "Next.js"]. ' +
+    'Every item here MUST appear verbatim in at least one node label or subtitle.'
+  ),
+  customFeatures: z.array(z.string()).optional().describe(
+    'Custom features or components the user explicitly requested. ' +
+    'E.g. ["rate limiting", "push notifications", "real-time chat", "DRM", "A/B testing"]. ' +
+    'Each feature MUST have a dedicated node or clearly labeled edge in the diagram.'
+  ),
 });
 
 export const FixLayoutInputSchema = z.object({

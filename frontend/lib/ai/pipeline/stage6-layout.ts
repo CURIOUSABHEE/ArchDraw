@@ -19,8 +19,8 @@ const CHAR_WIDTH = 8.5; // Estimated width per character at 14px bold
 const PADDING_X = 80; // 40px on each side
 const PADDING_Y = 40; // 20px on each side
 
-const RANK_SEPARATION = 120;
-const NODE_SEPARATION = 60;
+const RANK_SEPARATION = 220;
+const NODE_SEPARATION = 130;
 
 const SUBTITLE_CHAR_WIDTH = 6.5; // 11px font for subtitles
 
@@ -68,7 +68,11 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
     return src && tgt && src.layer === tgt.layer;
   });
 
-  const dynamicNodeSep = hasVerticalEdges ? 150 : NODE_SEPARATION;
+  const edgePressure = Math.max(0, edges.length - nodes.length);
+  const dynamicNodeSep = Math.max(
+    hasVerticalEdges ? 190 : NODE_SEPARATION,
+    NODE_SEPARATION + edgePressure * 8
+  );
 
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -76,8 +80,8 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
     rankdir,
     ranksep: RANK_SEPARATION,
     nodesep: dynamicNodeSep,
-    marginx: 100,
-    marginy: 100,
+    marginx: 160,
+    marginy: 140,
   });
 
   // 1. Add nodes with adaptive sizes

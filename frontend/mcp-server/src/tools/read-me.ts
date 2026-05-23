@@ -14,6 +14,70 @@ export function getReadMe(): string {
 
 ---
 
+## 🚨 CRITICAL ARCHITECTURE RULES (SYSTEMATIC FIXES — DO NOT SKIP)
+
+### RULE A — AUTH SERVICE TOPOLOGY
+**The Auth Service receives arrows ONLY from login and token refresh endpoints. NO other arrows from the gateway into Auth Service are permitted.**
+
+- CORRECT: Client → API Gateway → Auth Service (label: "POST /login" or "POST /token/refresh" ONLY)
+- CORRECT: Client → API Gateway → Order Service (gateway validates JWT internally — no Auth hop needed)
+- WRONG: API Gateway → Auth Service → Order Service (Auth as per-request proxy hop)
+- WRONG: Any arrow from gateway to Auth Service labeled with a business operation
+
+BEFORE FINALIZING: Audit every edge whose target is the Auth Service. If the source is API Gateway and the edge label is not login/register/token-refresh — DELETE that edge.
+
+### RULE B — OBJECT STORAGE IS MANDATORY FOR MEDIA DOMAINS
+**Drawing a CDN without an origin storage, or a Transcoding Worker without a destination, is architecturally invalid.**
+
+Mandatory when domain involves: video streaming, image sharing, audio streaming, file storage, document management, or any CDN node.
+
+Required pipeline for video platforms:
+\`Upload → Object Storage (raw) → Transcoding Worker → Object Storage (output) → CDN → Client\`
+
+Never omit object storage if a CDN or Transcoding Worker is present in the diagram.
+
+### RULE C — ANALYTICS EVENT STREAM IS CORE INFRASTRUCTURE
+**For engagement-loop platforms, the analytics event stream is NOT optional telemetry — it is the product's primary feedback loop.**
+
+Mandatory when domain involves: video/audio streaming, social media, e-commerce, gaming.
+
+Required pattern:
+\`Client → (play/click/view event) → Event Stream (Kafka/Kinesis) → Analytics Processor → Recommendation Engine\`
+
+Watch history, play events, and engagement signals are the INPUT to recommendation engines — without this stream, the recommendation engine has no data source.
+
+### RULE D — SECURITY SERVICES MUST NOT BYPASS THE GATEWAY
+**DRM, Auth, and License Servers must NEVER connect directly to client-tier nodes.**
+
+- CORRECT: Client → API Gateway → DRM License Service (gateway verifies subscription before issuing license)
+- WRONG: Client → DRM License Service (unauthenticated clients could request licenses)
+
+BEFORE FINALIZING: Audit every edge where source is \`client\` tier and target is a security/DRM/auth node. If API Gateway is not in the path — re-route through the gateway.
+
+### RULE E — EDGE DIRECTION: LEFT→RIGHT ONLY, NO STAR TOPOLOGY
+**This is the most common generation error. Edges MUST flow from lower tier → higher tier, never backward.**
+
+CORRECT tier flow (mandatory for every diagram):
+\`\`\`
+client (0) → edge (1) → compute (2) → async (3) → data (4) → external (5)
+\`\`\`
+
+Client nodes (Web App, Mobile App) are SOURCES — edges go FROM them, not TO them:
+- CORRECT: Web App → API Gateway → Auth Service → PostgreSQL
+- WRONG: Auth Service → Web App (backward edge)
+- WRONG: PostgreSQL → Web App (data to client — forbidden)
+- WRONG: All nodes → Web App (star/hub anti-pattern)
+
+Web Client is NOT a hub. NEVER connect multiple backend nodes back to the client.
+
+If a backend needs to push data to the client, use:
+- A WebSocket Gateway node (tier: edge) with a \`stream\` edge
+- A Push Notification Service node (tier: compute) with a \`stream\` edge to client
+
+Diagrams with star topology (>45% of all edges pointing to one node) will be rejected by the validator.
+
+---
+
 ## TIER SYSTEM
 7 layers in order (left→right in LR layout, top→bottom in DOWN layout):
 
@@ -26,6 +90,21 @@ export function getReadMe(): string {
 | data | blue | #3b82f6 | PostgreSQL, Redis, MongoDB, S3, Elasticsearch |
 | external | violet | #8b5cf6 | Stripe, Twilio, SendGrid, Maps API, OAuth providers |
 | observe | gray | #6b7280 | Prometheus, Grafana, Jaeger, Datadog, ELK Stack |
+
+---
+
+## DOMAIN COMPLETENESS CHECKLIST
+Before generating any diagram, identify the domain and verify these required nodes are included:
+
+| Domain | Required Nodes (cannot be omitted) |
+|--------|-------------------------------------|
+| Video Streaming | Object Storage (raw + output), Transcoding Worker, CDN, DRM (via gateway), Analytics Event Stream, Recommendation Engine |
+| Social Media | Object Storage (media), CDN, Engagement Event Stream, Feed Ranking Service, Notification Service |
+| E-Commerce | Payment Gateway, Order Queue, Inventory Service, Notification Service |
+| Ride-sharing | Real-time Location Service, Matching Engine, Payment Gateway, Push Notification |
+| SaaS / B2B | Auth Service (login only), Billing Service, Audit Log, Webhook Delivery |
+| Chat / Messaging | WebSocket Gateway, Message Queue, Notification Service, Media Storage |
+| Audio Streaming | Object Storage, CDN, Transcoding Worker, Recommendation Engine, Analytics Stream |
 
 ---
 
@@ -120,6 +199,12 @@ Groups are visual containers that cluster related nodes. **Every diagram must ha
 6. Groups should use their tier's color as \`groupColor\` tinted darker
 7. External tier only for third-party services (not your own microservices)
 8. Prefer \`pathType: "Smoothstep"\` for most edges; \`"step"\` for right-angle flows
+9. Auth Service: only receives edges labeled login/register/token-refresh from the gateway
+10. Object storage is mandatory in any diagram with a CDN or media processing
+11. Analytics event stream is mandatory in any diagram with a recommendation engine
+12. **EDGE DIRECTION**: Every edge must point from a LOWER tier to a HIGHER tier (client→edge→compute→async→data)
+13. **NO STAR TOPOLOGY**: Never use Web Client as a hub. If you have 10 services, none of them connect TO the web client.
+14. **BACKWARD EDGE CHECK**: Before calling generate_diagram, scan every edge -- if the target is a client tier node and source is not also client tier -- DELETE that edge.
 
 ---
 

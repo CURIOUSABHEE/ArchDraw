@@ -65,15 +65,18 @@ export function bridgeComponents(
     const c1 = components[i];
     const c2 = components[i+1];
     
-    // Find best nodes to bridge
-    const n1Id = c1[0];
-    const n2Id = c2[0];
+    // Find best boundary nodes to bridge without creating backend → client arrows.
+    const [n1Id, n2Id] = chooseBridgeEndpoints(c1, c2, nodeMap);
     
     if (n1Id && n2Id) {
+      const n1 = nodeMap.get(n1Id);
+      const n2 = nodeMap.get(n2Id);
+      const firstIsSource = getLayerRank(n1?.layer) <= getLayerRank(n2?.layer);
+
       bridges.push({
         id: `bridge-${n1Id}-${n2Id}`,
-        source: n1Id,
-        target: n2Id,
+        source: firstIsSource ? n1Id : n2Id,
+        target: firstIsSource ? n2Id : n1Id,
         sourceHandle: 'right',
         targetHandle: 'left',
         communicationType: 'sync',
@@ -87,4 +90,41 @@ export function bridgeComponents(
   }
 
   return bridges;
+}
+
+function chooseBridgeEndpoints(
+  c1: string[],
+  c2: string[],
+  nodeMap: Map<string, ArchitectureNode>
+): [string | undefined, string | undefined] {
+  const ranked1 = c1
+    .map(id => nodeMap.get(id))
+    .filter((node): node is ArchitectureNode => Boolean(node))
+    .sort((a, b) => getLayerRank(a.layer) - getLayerRank(b.layer));
+  const ranked2 = c2
+    .map(id => nodeMap.get(id))
+    .filter((node): node is ArchitectureNode => Boolean(node))
+    .sort((a, b) => getLayerRank(a.layer) - getLayerRank(b.layer));
+
+  const low1 = ranked1[0];
+  const high1 = [...ranked1].sort((a, b) => getLayerRank(b.layer) - getLayerRank(a.layer))[0];
+  const low2 = ranked2[0];
+  const high2 = [...ranked2].sort((a, b) => getLayerRank(b.layer) - getLayerRank(a.layer))[0];
+
+  if (getLayerRank(high1?.layer) <= getLayerRank(low2?.layer)) return [high1?.id || c1[0], low2?.id || c2[0]];
+  if (getLayerRank(high2?.layer) <= getLayerRank(low1?.layer)) return [high2?.id || c2[0], low1?.id || c1[0]];
+  return [low1?.id || c1[0], low2?.id || c2[0]];
+}
+
+function getLayerRank(layer?: string): number {
+  const normalized = normalizeLayer(layer);
+  const order = ['client', 'edge', 'gateway', 'application', 'compute', 'async', 'queue', 'data', 'infrastructure', 'observe', 'observability', 'external'];
+  const idx = order.indexOf(normalized);
+  return idx >= 0 ? idx : 3;
+}
+
+function normalizeLayer(layer?: string): string {
+  if (!layer) return 'application';
+  if (layer === 'presentation') return 'client';
+  return layer;
 }

@@ -13,18 +13,18 @@ const FAST_ELK_OPTIONS: Record<string, string> = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
   'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-  'elk.spacing.nodeNode': '20',
-  'elk.spacing.edgeNode': '20',
-  'elk.spacing.edgeEdge': '20',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '120',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '40',
+  'elk.spacing.nodeNode': '110',
+  'elk.spacing.edgeNode': '90',
+  'elk.spacing.edgeEdge': '60',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '240',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '90',
   'elk.layered.nodePlacement.strategy': 'SIMPLE',
   'elk.layered.crossingMinimization.strategy': 'NONE',
   'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
   'elk.edgeRouting': 'ORTHOGONAL',
   'elk.portConstraints': 'FIXED_SIDE',
   'elk.separateConnectedComponents': 'false',
-  'elk.padding': '[top=40, left=40, bottom=40, right=40]',
+  'elk.padding': '[top=80, left=80, bottom=80, right=80]',
 };
 
 function getTopologySignature(nodes: ArchitectureNode[]): string {
@@ -108,13 +108,13 @@ const OPTIMIZED_ELK_OPTIONS = {
   'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
   'elk.edgeRouting': 'SPLINES',
   'elk.portConstraints': 'FIXED_SIDE',
-  'elk.spacing.nodeNode': '20',
-  'elk.spacing.edgeEdge': '20',
-  'elk.spacing.edgeNode': '20',
-  'elk.spacing.labelNode': '30',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '220',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '40',
-  'elk.layered.spacing.edgeEdgeBetweenLayers': '40',
+  'elk.spacing.nodeNode': '110',
+  'elk.spacing.edgeEdge': '60',
+  'elk.spacing.edgeNode': '90',
+  'elk.spacing.labelNode': '64',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '300',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '90',
+  'elk.layered.spacing.edgeEdgeBetweenLayers': '70',
   'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
   'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
@@ -126,21 +126,21 @@ const OPTIMIZED_ELK_OPTIONS = {
   'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
   'elk.edgeLabels.inline': 'false',
   'elk.edgeLabels.placement': 'CENTER',
-  'elk.padding': '[top=40, left=40, bottom=40, right=40]',
+  'elk.padding': '[top=80, left=80, bottom=80, right=80]',
 };
 
 const TIER_X: Record<string, number> = {
   client: 50,
-  edge: 350,
-  compute: 700,
-  async: 1100,
-  data: 1500,
-  observe: 1900,
-  external: 2300,
+  edge: 420,
+  compute: 840,
+  async: 1300,
+  data: 1760,
+  observe: 2220,
+  external: 2680,
 };
 
 const LAYER_ORDER = ['client', 'edge', 'compute', 'async', 'data', 'observe', 'external'];
-const MIN_VERTICAL_SPACING = 60;
+const MIN_VERTICAL_SPACING = 110;
 const MAX_NODES_PER_COLUMN = 4;
 
 export type ComplexityTier = 'simple' | 'moderate' | 'complex';
@@ -157,20 +157,20 @@ export function getELKOptionsForComplexity(tier: ComplexityTier): Record<string,
   const baseOptions: Record<string, string> = {};
   
   if (tier === 'simple') {
-    baseOptions['elk.spacing.nodeNode'] = '20';
-    baseOptions['elk.spacing.edgeNode'] = '20';
-    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '120';
-    baseOptions['elk.padding'] = '[top=40, left=40, bottom=40, right=40]';
+    baseOptions['elk.spacing.nodeNode'] = '90';
+    baseOptions['elk.spacing.edgeNode'] = '80';
+    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '240';
+    baseOptions['elk.padding'] = '[top=70, left=70, bottom=70, right=70]';
   } else if (tier === 'moderate') {
-    baseOptions['elk.spacing.nodeNode'] = '20';
-    baseOptions['elk.spacing.edgeNode'] = '20';
-    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '150';
-    baseOptions['elk.padding'] = '[top=40, left=40, bottom=40, right=40]';
+    baseOptions['elk.spacing.nodeNode'] = '110';
+    baseOptions['elk.spacing.edgeNode'] = '90';
+    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '300';
+    baseOptions['elk.padding'] = '[top=80, left=80, bottom=80, right=80]';
   } else {
-    baseOptions['elk.spacing.nodeNode'] = '20';
-    baseOptions['elk.spacing.edgeNode'] = '20';
-    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '180';
-    baseOptions['elk.padding'] = '[top=40, left=40, bottom=40, right=40]';
+    baseOptions['elk.spacing.nodeNode'] = '130';
+    baseOptions['elk.spacing.edgeNode'] = '110';
+    baseOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '360';
+    baseOptions['elk.padding'] = '[top=100, left=100, bottom=100, right=100]';
   }
 
   return {
@@ -313,8 +313,8 @@ function postProcessLayout(
   const nodesByTier: Record<string, ReactFlowNode[]> = {};
   const NODE_HEIGHT = 70;
   const NODE_WIDTH = 160;
-  const VERTICAL_SPACING = 80;
-  const HORIZONTAL_SPACING = 100;
+  const VERTICAL_SPACING = 130;
+  const HORIZONTAL_SPACING = 160;
 
   for (const node of nodes) {
     const tier = node.data?.layer || 'compute';

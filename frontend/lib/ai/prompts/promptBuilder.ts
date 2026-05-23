@@ -26,7 +26,7 @@ const BASE_RULES: PromptModule = {
 2. Every node must belong to exactly ONE tier
 3. Async components (queues, event bus) MUST have their own column - never share with compute tier
 4. All edges flow LEFT-TO-RIGHT only - no backward or diagonal arrows
-5. NO edge labels - encode meaning as node subtitles instead
+5. Every edge should have a concise action/event label when the output schema supports labels
 6. Color encodes tier, not brand
 7. Group containers are dashed rectangles with tier labels`,
 };
@@ -179,7 +179,7 @@ export function buildEdgePrompt(
 ): string {
   const ctx = { ...DEFAULT_CONTEXT, ...context };
   const nodeCount = nodes.length;
-  const minRequiredEdges = Math.max(8, Math.floor(nodeCount * 0.8));
+  const minRequiredEdges = Math.max(nodeCount - 1, Math.floor(nodeCount * 0.65));
   
   return `Create edges for this architecture based on the user's description.
 
@@ -197,6 +197,9 @@ EDGES MUST:
 - Async tier connects to compute tier (producers) and other tiers (consumers)
 - Observe tier only receives connections, never initiates
 - Use communication types: sync, async, stream, event, dep
+- Do not connect backend, async, data, observe, or external nodes back to client nodes
+- Do not force every component through Web Client; clients are sources, not hubs
+- Connect components according to the user's actual workflow, not a generic template
 
 AVAILABLE NODES (${nodeCount} nodes):
 ${nodes.map(n => `- ${n.id} (${n.tier}): ${n.label}`).join('\n')}
@@ -211,7 +214,8 @@ OUTPUT FORMAT (JSON only):
       "id": "edge-1",
       "source": "node-id",
       "target": "node-id",
-      "communicationType": "sync|async|stream|event|dep"
+      "communicationType": "sync|async|stream|event|dep",
+      "label": "short action or event"
     }
   ]
 }

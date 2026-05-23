@@ -5,7 +5,7 @@ import type { Node, Edge } from 'reactflow';
 import type { TutorialDefinition, TutorialSession, PhaseName } from '@/lib/tutorial/schema';
 import type { AnyTutorial } from '@/data/tutorials';
 import * as engine from '@/lib/tutorial/engine';
-import { isSupabaseConfigured, type TutorialProgressTable } from '@/lib/supabase';
+import { isSupabaseConfigured, isReachable, type TutorialProgressTable } from '@/lib/supabase';
 
 function migrateEdgesToSmoothstep(edges: Edge[]): SanitizedEdge[] {
   return edges.map((edge) => {
@@ -338,11 +338,11 @@ export const useTutorialStore = create<TutorialStoreState>()(
           });
           
           // Delete from Supabase
-          if (isSupabaseConfigured) {
+          if (isSupabaseConfigured && isReachable) {
             import('@/lib/supabase').then(({ getSupabaseClient }) => {
               import('@/store/authStore').then(({ useAuthStore }) => {
                 const { user } = useAuthStore.getState();
-                if (user) {
+                if (user && user.id !== 'guest') {
                   getSupabaseClient()
                     .from('tutorial_progress')
                     .delete()
@@ -378,7 +378,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
         });
 
         // Step 3: Try to upsert DB with fresh state (with timeout)
-        if (isSupabaseConfigured) {
+        if (isSupabaseConfigured && isReachable) {
           try {
             // Create a timeout promise that rejects after 5 seconds
             const timeoutPromise = new Promise<never>((_, reject) => 
@@ -393,7 +393,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
             
             const { user } = await Promise.race([authPromise, timeoutPromise]) as { user: unknown };
             
-            if (user && typeof user === 'object' && 'id' in user) {
+            if (user && typeof user === 'object' && 'id' in user && (user as { id: string }).id !== 'guest') {
               const { getSupabaseClient } = await import('@/lib/supabase');
               const supabase = getSupabaseClient();
               
@@ -512,12 +512,12 @@ export const useTutorialStore = create<TutorialStoreState>()(
         if (!progress) return;
         
         try {
-          if (!isSupabaseConfigured) return;
+          if (!isSupabaseConfigured || !isReachable) return;
+
+          const { user } = (await import('@/store/authStore')).useAuthStore.getState();
+          if (!user || user.id === 'guest') return;
 
           set({ isSyncing: true });
-          const { user } = (await import('@/store/authStore')).useAuthStore.getState();
-          if (!user) return;
-
           const { getSupabaseClient } = await import('@/lib/supabase');
           const supabase = getSupabaseClient();
           await (supabase.from('tutorial_progress') as unknown as TutorialProgressTable).upsert({
@@ -542,10 +542,10 @@ export const useTutorialStore = create<TutorialStoreState>()(
 
       loadFromSupabase: async (tutorialId) => {
         try {
-          if (!isSupabaseConfigured) return null;
+          if (!isSupabaseConfigured || !isReachable) return null;
 
           const { user } = (await import('@/store/authStore')).useAuthStore.getState();
-          if (!user) return null;
+          if (!user || user.id === 'guest') return null;
 
           const { getSupabaseClient } = await import('@/lib/supabase');
           const supabase = getSupabaseClient();

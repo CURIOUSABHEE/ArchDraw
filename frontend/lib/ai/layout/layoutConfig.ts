@@ -18,11 +18,11 @@ export interface LayoutMetrics {
 }
 
 const SPACING = {
-  nodeNode: 20,
-  nodeNodeBetweenLayers: 200,
-  edgeNode: 20,
-  edgeEdge: 20,
-  labelNode: 30,
+  nodeNode: 110,
+  nodeNodeBetweenLayers: 280,
+  edgeNode: 90,
+  edgeEdge: 60,
+  labelNode: 64,
 } as const;
 
 const MIN_NODE_WIDTH = 160;
@@ -30,13 +30,13 @@ const MAX_NODE_WIDTH = 280;
 const MIN_NODE_HEIGHT = 60;
 const MAX_NODE_HEIGHT = 80;
 
-// Consistent 20px spacing constants for layout
+// Consistent spacing constants for layout
 export const LAYOUT_SPACING = {
-  NODE_SPACING_X: 20,
-  NODE_SPACING_Y: 20,
-  TIER_SPACING_Y: 200,
-  CANVAS_PADDING_X: 40,
-  CANVAS_PADDING_Y: 40,
+  NODE_SPACING_X: 110,
+  NODE_SPACING_Y: 90,
+  TIER_SPACING_Y: 280,
+  CANVAS_PADDING_X: 80,
+  CANVAS_PADDING_Y: 80,
   NODE_WIDTH: 180,
   NODE_HEIGHT: 70,
 } as const;
@@ -126,7 +126,7 @@ export function generateELKOptions(metrics: LayoutMetrics): Record<string, strin
     ),
     'elk.edgeLabels.inline': 'false',
     'elk.edgeLabels.placement': 'CENTER',
-    'elk.padding': '[top=40, left=40, bottom=40, right=40]',
+    'elk.padding': '[top=80, left=80, bottom=80, right=80]',
   };
   
   if (metrics.hasAsync) {

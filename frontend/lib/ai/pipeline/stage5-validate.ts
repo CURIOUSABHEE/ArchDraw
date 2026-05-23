@@ -1,4 +1,5 @@
 import type { RawNode, RawFlow, DiagramEdge, ValidatedDiagram, PipelineLayer } from './types';
+import { ensurePromptRequiredNodes, prunePromptIrrelevantNodes, repairStoryEdges } from './storyGuard';
 
 /**
  * STAGE 5 — VALIDATION
@@ -16,8 +17,8 @@ const LAYER_ORDER: PipelineLayer[] = ['client', 'edge', 'gateway', 'application'
 /**
  * Main validation function - ensures connectivity and proper layer structure
  */
-export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }): ValidatedDiagram {
-  let nodes = [...parsed.nodes];
+export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }, prompt?: string): ValidatedDiagram {
+  let nodes = ensurePromptRequiredNodes(prunePromptIrrelevantNodes([...parsed.nodes], prompt), prompt);
   const flows = [...parsed.flows];
 
   console.log(`[Validate] Starting with ${nodes.length} nodes and ${flows.length} flows`);
@@ -33,7 +34,7 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
   nodes = ensureNodeIdentity(nodes);
 
   // STEP 4: Remove duplicate edges
-  const repairedEdges = repairEdges(edges, nodes);
+  const repairedEdges = repairStoryEdges(nodes, repairEdges(edges, nodes), prompt);
 
   // STEP 5: Connect orphaned nodes (ensure no orphans)
   const connectedEdges = connectOrphans(nodes, repairedEdges);
@@ -189,38 +190,41 @@ function connectOrphans(nodes: RawNode[], edges: DiagramEdge[]): DiagramEdge[] {
     
     // Heuristic: map layers semantically
     if (orphanLayer === 'client' || orphanLayer === 'presentation') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && (n.layer === 'gateway' || n.layer === 'edge' || n.layer === 'application'));
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['gateway', 'edge', 'application', 'compute'].includes(n.layer));
       isOrphanSource = true;
       edgeLabel = 'requests';
     } else if (orphanLayer === 'edge' || orphanLayer === 'gateway') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && n.layer === 'application');
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute'].includes(n.layer));
       isOrphanSource = true;
       edgeLabel = 'routes to';
     } else if (orphanLayer === 'data') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && (n.layer === 'application' || n.layer === 'queue'));
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute', 'queue', 'async'].includes(n.layer));
       isOrphanSource = false; // Application -> Data
       edgeLabel = 'queries';
     } else if (orphanLayer === 'queue' || orphanLayer === 'async') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && n.layer === 'application');
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute'].includes(n.layer));
       isOrphanSource = false; // Application -> Queue
       edgeLabel = 'publishes to';
     } else if (orphanLayer === 'observability' || orphanLayer === 'observe') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && n.layer === 'application');
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute'].includes(n.layer));
       isOrphanSource = false; // Application -> Observability
       edgeLabel = 'emits logs to';
     } else if (orphanLayer === 'infrastructure') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && n.layer === 'application');
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute'].includes(n.layer));
       isOrphanSource = false; // Application -> Infrastructure
       edgeLabel = 'deployed on';
     } else if (orphanLayer === 'external') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && n.layer === 'application');
+      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute'].includes(n.layer));
       isOrphanSource = false; // Application -> External
       edgeLabel = 'calls API';
     }
     
-    // Fallback: connect to any node in the list
+    // Fallback: connect to the closest directional neighbor, not an arbitrary client hub.
     if (!partnerNode) {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id);
+      partnerNode = findDirectionalPartner(orphan, nodes);
+      if (partnerNode) {
+        isOrphanSource = getLayerRank(orphan.layer) <= getLayerRank(partnerNode.layer);
+      }
     }
     
     if (partnerNode) {
@@ -290,6 +294,37 @@ function inferLayerFromLabel(label: string): PipelineLayer {
   
   // Application tier (default)
   return 'application';
+}
+
+function findDirectionalPartner(orphan: RawNode, nodes: RawNode[]): RawNode | undefined {
+  const candidates = nodes.filter(n => !n.isGroup && n.id !== orphan.id);
+  const orphanRank = getLayerRank(orphan.layer);
+  const downstream = candidates
+    .filter(candidate => getLayerRank(candidate.layer) >= orphanRank)
+    .sort((a, b) => getLayerRank(a.layer) - getLayerRank(b.layer));
+  const upstream = candidates
+    .filter(candidate => getLayerRank(candidate.layer) < orphanRank)
+    .sort((a, b) => getLayerRank(b.layer) - getLayerRank(a.layer));
+
+  if (orphanRank === 0) return downstream.find(candidate => getLayerRank(candidate.layer) > orphanRank) || downstream[0];
+  if (orphanRank >= 5) return upstream[0] || downstream[0];
+  return downstream.find(candidate => getLayerRank(candidate.layer) > orphanRank) || upstream[0] || downstream[0];
+}
+
+function getLayerRank(layer?: string): number {
+  const normalized = normalizeLayer(layer);
+  const order = ['client', 'edge', 'gateway', 'application', 'queue', 'data', 'infrastructure', 'observability', 'external'];
+  const idx = order.indexOf(normalized);
+  return idx >= 0 ? idx : 3;
+}
+
+function normalizeLayer(layer?: string): string {
+  if (!layer) return 'application';
+  if (layer === 'presentation') return 'client';
+  if (layer === 'compute') return 'application';
+  if (layer === 'async') return 'queue';
+  if (layer === 'observe') return 'observability';
+  return layer;
 }
 
 function generateLabelFromId(id: string): string {

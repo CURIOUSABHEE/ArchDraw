@@ -73,7 +73,7 @@ export async function updateDiagram(input: UpdateDiagramInput): Promise<{
   if (input.addNodes && input.addNodes.length > 0) {
     const newNodes: ReactFlowNode[] = input.addNodes.map(node => ({
       id: node.id,
-      type: 'customNode',
+      type: 'systemNode',
       position: { x: 0, y: 0 },
       data: {
         label: node.label,

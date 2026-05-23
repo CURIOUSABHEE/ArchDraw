@@ -5,6 +5,9 @@ import { archdrawNodes, archdrawEdges } from './archdraw';
 import { videoStreamingNodes, videoStreamingEdges } from './video-streaming';
 import { netflixNodes, netflixEdges } from './netflix';
 import { rideshareNodes, rideshareEdges } from './rideshare';
+import { fintechPaymentsNodes, fintechPaymentsEdges } from './fintech-payments';
+import { collaborativeDocsNodes, collaborativeDocsEdges } from './collaborative-docs';
+import { foodDeliveryNodes, foodDeliveryEdges } from './food-delivery';
 
 export interface Template {
   id: string;
@@ -16,8 +19,70 @@ export interface Template {
   edges: Edge[];
 }
 
+type CanvasEdgeType = 'sync' | 'async' | 'stream' | 'event' | 'dep';
+
+function layerForCategory(category?: string): string {
+  const value = (category || '').toLowerCase();
+  if (value.includes('client') || value.includes('entry')) return 'client';
+  if (value.includes('gateway') || value.includes('edge')) return 'edge';
+  if (value.includes('messaging') || value.includes('event') || value.includes('queue') || value.includes('stream')) return 'async';
+  if (value.includes('data') || value.includes('storage') || value.includes('database')) return 'data';
+  if (value.includes('observability') || value.includes('analytics')) return 'observe';
+  if (value.includes('auth') || value.includes('ai') || value.includes('ml')) return 'external';
+  if (value.includes('cache')) return 'external';
+  return 'compute';
+}
+
+function edgeTypeForLabel(label?: string): CanvasEdgeType {
+  const value = (label || '').toLowerCase();
+  if (/(stream|realtime|real-time|location|cursor|token)/.test(value)) return 'stream';
+  if (/(event|publish|broadcast|changed|trigger|metric|log)/.test(value)) return 'event';
+  if (/(async|queue|job|worker|background|notify|email|push)/.test(value)) return 'async';
+  if (/(external|processor|bank|cdn|settlement|rail)/.test(value)) return 'dep';
+  return 'sync';
+}
+
+function withCanvasStyle(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
+  return {
+    nodes: nodes.map((node) => ({
+      ...node,
+      type: node.type || 'systemNode',
+      data: {
+        ...node.data,
+        layer: node.data?.layer || layerForCategory(node.data?.category),
+      },
+    })),
+    edges: edges.map((edge) => {
+      const label = String(edge.data?.label || edge.label || '');
+      const connectionType = (edge.data?.connectionType || edge.data?.edgeType || edgeTypeForLabel(label)) as CanvasEdgeType;
+      return {
+        ...edge,
+        type: 'simpleFloating',
+        animated: edge.animated ?? connectionType !== 'sync',
+        label,
+        data: {
+          ...edge.data,
+          label,
+          edgeType: connectionType,
+          connectionType,
+          pathType: edge.data?.pathType || 'Smoothstep',
+        },
+        style: {
+          ...edge.style,
+          strokeWidth: edge.style?.strokeWidth || 1.5,
+        },
+      };
+    }),
+  };
+}
+
+function template(input: Template): Template {
+  const styled = withCanvasStyle(input.nodes, input.edges);
+  return { ...input, ...styled };
+}
+
 export const TEMPLATES: Template[] = [
-  {
+  template({
     id: 'archdraw_self',
     name: 'ArchDraw Architecture',
     description: 'The system architecture of ArchDraw itself — Next.js, React Flow, Supabase, and Vercel.',
@@ -25,8 +90,8 @@ export const TEMPLATES: Template[] = [
     icon: '🏗️',
     nodes: archdrawNodes,
     edges: archdrawEdges,
-  },
-  {
+  }),
+  template({
     id: 'chatgpt',
     name: 'ChatGPT-like Architecture',
     description: 'LLM-powered chat app with RAG pipeline, vector DB, streaming, and observability.',
@@ -34,8 +99,8 @@ export const TEMPLATES: Template[] = [
     icon: '🤖',
     nodes: chatgptNodes,
     edges: chatgptEdges,
-  },
-  {
+  }),
+  template({
     id: 'instagram',
     name: 'Instagram-like Architecture',
     description: 'Social media platform with feed, media storage, Kafka streaming, and search.',
@@ -43,17 +108,17 @@ export const TEMPLATES: Template[] = [
     icon: '📸',
     nodes: instagramNodes,
     edges: instagramEdges,
-  },
-  {
+  }),
+  template({
     id: 'video_streaming',
     name: 'Video Streaming',
-    description: 'Simple video streaming with CDN, API Gateway, Playback Service, Cache, and Database.',
-    tags: ['Video', 'Streaming', 'CDN', 'Microservices'],
+    description: 'Production video platform with uploads, transcoding, manifests, CDN delivery, playback telemetry, and search.',
+    tags: ['Video', 'Streaming', 'CDN', 'Transcoding', 'Search'],
     icon: '🎬',
     nodes: videoStreamingNodes,
     edges: videoStreamingEdges,
-  },
-  {
+  }),
+  template({
     id: 'netflix',
     name: 'Netflix Streaming',
     description: 'FAANG-level Netflix architecture with 7 layers: Client, Edge, Gateway, Microservices (grouped by domain), Data, Streaming Pipeline, Analytics. Clean layered structure for system design interviews.',
@@ -61,8 +126,8 @@ export const TEMPLATES: Template[] = [
     icon: '🎥',
     nodes: netflixNodes,
     edges: netflixEdges,
-  },
-  {
+  }),
+  template({
     id: 'rideshare',
     name: 'Ride-Sharing Backend',
     description: 'Production-grade ride-sharing architecture with correct flows: Primary (rider request), Real-Time (driver location), Async (post-ride processing). Includes proper grouping and no orphan components.',
@@ -70,5 +135,32 @@ export const TEMPLATES: Template[] = [
     icon: '🚗',
     nodes: rideshareNodes,
     edges: rideshareEdges,
-  },
+  }),
+  template({
+    id: 'fintech_payments',
+    name: 'Fintech Payments Platform',
+    description: 'Payment authorization, fraud scoring, ledger writes, settlement rails, analytics, and operational alerts.',
+    tags: ['Payments', 'Ledger', 'Fraud', 'Kafka', 'Fintech'],
+    icon: '💳',
+    nodes: fintechPaymentsNodes,
+    edges: fintechPaymentsEdges,
+  }),
+  template({
+    id: 'collaborative_docs',
+    name: 'Collaborative Docs',
+    description: 'Realtime document editing with CRDT operations, presence, pub/sub fanout, snapshots, search, and metrics.',
+    tags: ['Realtime', 'CRDT', 'Pub/Sub', 'Docs', 'SaaS'],
+    icon: '📝',
+    nodes: collaborativeDocsNodes,
+    edges: collaborativeDocsEdges,
+  }),
+  template({
+    id: 'food_delivery',
+    name: 'Food Delivery Marketplace',
+    description: 'Marketplace architecture for ordering, restaurant menus, courier dispatch, location streaming, and notifications.',
+    tags: ['Marketplace', 'Dispatch', 'Streaming', 'Search', 'Mobile'],
+    icon: '🍱',
+    nodes: foodDeliveryNodes,
+    edges: foodDeliveryEdges,
+  }),
 ];

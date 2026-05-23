@@ -27,7 +27,7 @@ function assignTierFromLayer(layer: string): TierType {
   return 'compute';
 }
 
-function validateNodes(nodes: ArchitectureNode[]): string[] {
+function validateNodes(nodes: ArchitectureNode[], techStack?: string[], customFeatures?: string[]): string[] {
   const errors: string[] = [];
   const ids = new Set<string>();
 
@@ -44,6 +44,17 @@ function validateNodes(nodes: ArchitectureNode[]): string[] {
 
     const layer = node.tier || node.layer;
     if (!layer) errors.push(`Node ${node.label || node.id} missing tier/layer`);
+
+    // Tech stack fidelity: warn if subtitle looks generic
+    if (node.subtitle) {
+      const genericTerms = ['service', 'server', 'api', 'database', 'storage', 'cache', 'worker', 'backend'];
+      const subtitleLower = node.subtitle.toLowerCase();
+      const labelLower = (node.label || '').toLowerCase();
+      const isGeneric = genericTerms.some(t => subtitleLower === t || subtitleLower === `${labelLower} ${t}`);
+      if (isGeneric && techStack && techStack.length > 0) {
+        errors.push(`WARNING: Node "${node.label}" has a generic subtitle "${node.subtitle}". With user-specified tech stack, subtitles must include actual technology names.`);
+      }
+    }
   }
 
   // Validate parentId references
@@ -56,7 +67,108 @@ function validateNodes(nodes: ArchitectureNode[]): string[] {
     }
   }
 
+  // Tech stack fidelity check: every specified tech must appear in at least one node
+  if (techStack && techStack.length > 0) {
+    const allText = nodes.map(n => `${n.label} ${n.subtitle || ''}`).join(' ').toLowerCase();
+    for (const tech of techStack) {
+      if (!allText.includes(tech.toLowerCase())) {
+        errors.push(`TECH FIDELITY: User specified "${tech}" but it does not appear in any node label or subtitle. Add a node or update a subtitle to mention "${tech}".`);
+      }
+    }
+  }
+
+  // Custom features check
+  if (customFeatures && customFeatures.length > 0) {
+    const allText = nodes.map(n => `${n.label} ${n.subtitle || ''}`).join(' ').toLowerCase();
+    for (const feature of customFeatures) {
+      if (!allText.includes(feature.toLowerCase())) {
+        errors.push(`FEATURE MISSING: User requested "${feature}" but it does not appear in any node label or subtitle. Add a dedicated node or update an existing one.`);
+      }
+    }
+  }
+
   return errors;
+}
+
+/** Tier rank for direction validation — lower number = further left (upstream) */
+const TIER_RANK: Record<string, number> = {
+  client: 0, edge: 1, compute: 2, async: 3, data: 4, external: 5, observe: 6,
+};
+
+function validateEdgeTopology(
+  nodes: ArchitectureNode[],
+  edges: Array<{ source: string; target: string; label?: string; id?: string }>
+): string[] {
+  const topologyErrors: string[] = [];
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+  // Count how many edges TARGET each node (inbound degree)
+  const inboundCount = new Map<string, number>();
+  for (const n of nodes) inboundCount.set(n.id, 0);
+  for (const e of edges) {
+    inboundCount.set(e.target, (inboundCount.get(e.target) || 0) + 1);
+  }
+
+  const totalEdges = edges.length;
+
+  for (const node of nodes) {
+    if (node.isGroup) continue;
+    const tier = (node.tier || node.layer || 'compute').toLowerCase();
+    const inbound = inboundCount.get(node.id) || 0;
+    const label = node.label || node.id;
+
+    // ── RULE 1: Client nodes are SOURCES — max 1-2 inbound edges (responses only) ──
+    if (tier === 'client' && inbound > 2) {
+      topologyErrors.push(
+        `🚨 STAR TOPOLOGY — Client node "${label}" has ${inbound} edges pointing TO it. ` +
+        `Client tier nodes (Web App, Mobile App) INITIATE requests — they are edge SOURCES, not targets. ` +
+        `FIX: Reverse these edges. Flow must be: Web Client → API Gateway → Services → Data. ` +
+        `Services must NEVER point back to the Web Client.`
+      );
+    }
+
+    // ── RULE 2: No single non-gateway node should receive >45% of all edges ──
+    if (totalEdges >= 4 && inbound >= Math.ceil(totalEdges * 0.45) && tier !== 'edge') {
+      topologyErrors.push(
+        `🚨 STAR TOPOLOGY — Node "${label}" (${tier}) is acting as a HUB with ${inbound}/${totalEdges} edges pointing TO it. ` +
+        `Architecture must use tiered flow, not hub-and-spoke. ` +
+        `FIX: Route connections through the appropriate gateway/service tier instead of directly to this node.`
+      );
+    }
+  }
+
+  // ── RULE 3: No backward edges (higher tier → lower tier except response flows) ──
+  for (const edge of edges) {
+    const sourceNode = nodeMap.get(edge.source);
+    const targetNode = nodeMap.get(edge.target);
+    if (!sourceNode || !targetNode) continue;
+    if (sourceNode.isGroup || targetNode.isGroup) continue;
+
+    const sourceTier = (sourceNode.tier || sourceNode.layer || 'compute').toLowerCase();
+    const targetTier = (targetNode.tier || targetNode.layer || 'compute').toLowerCase();
+    const sourceRank = TIER_RANK[sourceTier] ?? 2;
+    const targetRank = TIER_RANK[targetTier] ?? 2;
+
+    // Compute/data/async tier nodes must NEVER connect to client tier
+    if (sourceRank >= 2 && targetRank === 0) {
+      topologyErrors.push(
+        `🚨 BACKWARD EDGE — "${sourceNode.label}" (${sourceTier}) → "${targetNode.label}" (client). ` +
+        `Backend services must NEVER send edges to the client tier. ` +
+        `FIX: Remove this edge. If the client needs real-time updates, add a WebSocket Gateway or Notification Service as an intermediary.`
+      );
+    }
+
+    // Edge tier nodes should generally not point back to client either
+    if (sourceRank >= 1 && targetRank === 0 && sourceTier !== 'external') {
+      topologyErrors.push(
+        `⚠️  DIRECTION WARNING — "${sourceNode.label}" (${sourceTier}) → "${targetNode.label}" (client). ` +
+        `In request-response architecture, edges flow LEFT→RIGHT: client → gateway → services → data. ` +
+        `Do not draw reverse edges back to the client.`
+      );
+    }
+  }
+
+  return topologyErrors;
 }
 
 interface NodeInput {
@@ -115,6 +227,34 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
       errors.push('WARNING: No group nodes provided. Best practice: wrap related nodes in group containers (isGroup:true) for visual clarity.');
     }
 
+    // Extract tech/feature context for fidelity checks
+    const techStack = input.techStack || [];
+    const customFeatures = input.customFeatures || [];
+
+    // Auto-extract tech mentions from userPrompt if techStack not explicitly provided
+    if (input.userPrompt && techStack.length === 0) {
+      const knownTech = [
+        'AWS Lambda', 'EC2', 'ECS', 'EKS', 'S3', 'DynamoDB', 'RDS', 'Aurora', 'CloudFront', 'API Gateway',
+        'SQS', 'SNS', 'Kinesis', 'Kafka', 'RabbitMQ', 'Redis', 'Elasticsearch', 'OpenSearch',
+        'PostgreSQL', 'MySQL', 'MongoDB', 'Cassandra', 'Firebase',
+        'Next.js', 'React', 'Vue', 'Angular', 'Svelte',
+        'Node.js', 'Express', 'FastAPI', 'Django', 'Spring Boot', 'Go', 'Rust',
+        'GraphQL', 'gRPC', 'WebSocket', 'REST',
+        'Docker', 'Kubernetes', 'Terraform', 'Nginx', 'Cloudflare',
+        'Stripe', 'Twilio', 'SendGrid', 'Auth0', 'Cognito',
+        'Prometheus', 'Grafana', 'Datadog', 'Sentry', 'Jaeger',
+        'GCP', 'Azure', 'Vercel', 'Railway', 'Supabase',
+        'HLS', 'DASH', 'FFmpeg', 'Transcoding', 'DRM', 'Widevine', 'FairPlay',
+        'Tailwind', 'TypeScript', 'Python', 'Java', 'Go',
+      ];
+      const promptLower = input.userPrompt.toLowerCase();
+      for (const tech of knownTech) {
+        if (promptLower.includes(tech.toLowerCase())) {
+          techStack.push(tech);
+        }
+      }
+    }
+
     const architectureNodes: ArchitectureNode[] = input.nodes.map((node: NodeInput, index: number) => {
       const layer = node.layer || node.tier || 'compute';
       const tier = assignTierFromLayer(layer);
@@ -169,7 +309,30 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
       }
     }
 
-    errors.push(...validateNodes(architectureNodes), ...inputEdgeErrors);
+    errors.push(...validateNodes(architectureNodes, techStack, customFeatures), ...inputEdgeErrors);
+
+    // ── Run edge topology validation BEFORE layout ────────────────────────────
+    const topologyErrors = validateEdgeTopology(
+      architectureNodes,
+      (input.edges || []).map(e => ({ source: e.source, target: e.target, label: e.label, id: e.id }))
+    );
+    if (topologyErrors.length > 0) {
+      errors.push(...topologyErrors);
+      // Return early with topology errors — do NOT render a broken diagram
+      return {
+        success: false,
+        nodes: [],
+        edges: [],
+        elkPositions: [],
+        metadata: { nodeCount: 0, edgeCount: 0, layoutAlgorithm: 'ELK layered', direction, groupCount: 0 },
+        errors,
+        message:
+          `❌ Diagram rejected due to topology errors. Fix the following issues and call generate_diagram again:\n\n` +
+          topologyErrors.map((e, i) => `${i + 1}. ${e}`).join('\n\n') +
+          `\n\n📐 CORRECT FLOW: client → API Gateway → Services → Async → Data → External\n` +
+          `   Edges must flow LEFT→RIGHT through tiers. Never connect service/data nodes back to the client.`,
+      };
+    }
 
     const commColors: Record<string, { color: string; dash: string }> = {
       sync:   { color: '#3B82F6', dash: '' },
@@ -239,7 +402,18 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         sessionId = saveData.sessionId;
         const nodeCount = layoutResult.nodes.filter(n => !n.data?.isGroup).length;
         const groupCount = layoutResult.nodes.filter(n => n.data?.isGroup).length;
-        message = `✅ Diagram ready! Open this URL to view and edit:\n\n${diagramUrl}\n\n📊 ${nodeCount} nodes, ${groupCount} groups, ${layoutResult.edges.length} edges.\n\n**To export**: Use session ID "${sessionId}" with the export_diagram tool.`;
+
+        // Build a context-aware success message
+        const techLine = techStack.length > 0
+          ? `\n\n🔧 **Tech Stack Applied**: ${techStack.join(', ')}`
+          : '';
+        const featuresLine = customFeatures.length > 0
+          ? `\n⚡ **Features Included**: ${customFeatures.join(', ')}`
+          : '';
+        const promptLine = input.userPrompt
+          ? `\n\n💬 **From prompt**: "${input.userPrompt.substring(0, 100)}${input.userPrompt.length > 100 ? '...' : ''}"` : '';
+
+        message = `✅ Diagram ready! Open this URL to view and edit:\n\n${diagramUrl}\n\n📊 ${nodeCount} nodes, ${groupCount} groups, ${layoutResult.edges.length} edges.${techLine}${featuresLine}${promptLine}\n\n**To export**: Use session ID "${sessionId}" with the export_diagram tool.`;
       }
     } catch {
       message = `Diagram generated with ${layoutResult.nodes.length} nodes and ${layoutResult.edges.length} edges, but couldn't save to generate a link. Make sure Next.js is running on ${API_BASE}.`;

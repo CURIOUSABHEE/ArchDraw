@@ -114,7 +114,8 @@ import { ARCHITECTURE_RULES } from '../prompts/architectureRules';
 function buildDiagramPrompt(reasoning: ReasoningResult, existingContext?: { nodes: any[]; edges: any[] }): string {
   let prompt = `${ARCHITECTURE_RULES}
 
-Create a diagram for: ${reasoning.systemType}.
+Create a custom diagram for: ${reasoning.systemType}.
+USER PROMPT: ${reasoning.sourcePrompt || reasoning.systemType}
 PLAN: ${reasoning.architecturalPlan}
 
 LAYERS:
@@ -145,6 +146,12 @@ You are modifying an existing diagram.
 OUTPUT NDJSON ONLY. ONE OBJECT PER LINE.
 - {"id": "id", "label": "Service (Concise)", "layer": "client|edge|gateway|application|queue|data|observability|external", "subtitle": "Tech Stack (Max 3 words)"}
 - {"path": ["src", "dst"], "label": "action/explanation (e.g. 'fetches data', 'authenticates')", "async": false}
+
+CUSTOMIZATION RULES:
+- Do not copy a generic web-app template. Use the layers, components, and flows that match the user prompt.
+- Do not add Web Client, Mobile App, Auth Service, Load Balancer, Message Queue, Database, or Cache unless the prompt or plan makes them necessary.
+- Never use a client node as the central target for backend services. Client nodes initiate flows; backend/data/queue nodes should not point back to clients.
+- Prefer specific nodes named after the domain workflow over generic placeholders.
 `;
   return prompt.trim();
 }
@@ -173,22 +180,67 @@ function enforceMinimumConstraints(
     logger.log(`[Diagram] Found ${orphanNodes.length} orphan nodes - connecting them`);
     
     orphanNodes.forEach(orphan => {
-      // Connect to first application layer node if exists, otherwise any node
-      const targetNode = result.nodes.find(n => !n.isGroup && n.layer === 'application' && n.id !== orphan.id) 
-                      || result.nodes.find(n => !n.isGroup && n.id !== orphan.id);
-      
+      const targetNode = findBestConnectionPartner(orphan, result.nodes);
+
       if (targetNode) {
+        const orphanRank = getLayerRank(orphan.layer);
+        const targetRank = getLayerRank(targetNode.layer);
+        const orphanShouldSource = orphanRank <= targetRank;
+        const source = orphanShouldSource ? orphan.id : targetNode.id;
+        const target = orphanShouldSource ? targetNode.id : orphan.id;
+
         result.flows.push({
-          path: [orphan.id, targetNode.id],
-          label: 'connects to',
-          async: false,
+          path: [source, target],
+          label: getConnectionLabel(source === orphan.id ? orphan : targetNode, target === orphan.id ? orphan : targetNode),
+          async: orphan.layer === 'queue' || orphan.layer === 'async' || targetNode.layer === 'queue' || targetNode.layer === 'async',
         });
-        logger.log(`[Diagram] Connected orphan ${orphan.id} to ${targetNode.id}`);
+        logger.log(`[Diagram] Connected orphan ${source} to ${target}`);
       }
     });
   }
 
   return result;
+}
+
+function findBestConnectionPartner(orphan: RawNode, nodes: RawNode[]): RawNode | undefined {
+  const leafNodes = nodes.filter(n => !n.isGroup && n.id !== orphan.id);
+  const rank = getLayerRank(orphan.layer);
+  const downstream = leafNodes
+    .filter(n => getLayerRank(n.layer) >= rank)
+    .sort((a, b) => getLayerRank(a.layer) - getLayerRank(b.layer));
+  const upstream = leafNodes
+    .filter(n => getLayerRank(n.layer) < rank)
+    .sort((a, b) => getLayerRank(b.layer) - getLayerRank(a.layer));
+
+  if (rank === 0) return downstream.find(n => getLayerRank(n.layer) > rank) || downstream[0] || upstream[0];
+  if (rank >= 4) return upstream[0] || downstream[0];
+  return downstream.find(n => getLayerRank(n.layer) > rank) || upstream[0] || downstream[0];
+}
+
+function getLayerRank(layer?: string): number {
+  const normalized = normalizeLayer(layer);
+  const order = ['client', 'edge', 'gateway', 'application', 'queue', 'data', 'infrastructure', 'observability', 'external'];
+  const idx = order.indexOf(normalized);
+  return idx >= 0 ? idx : 3;
+}
+
+function normalizeLayer(layer?: string): string {
+  if (!layer) return 'application';
+  if (layer === 'presentation') return 'client';
+  if (layer === 'compute') return 'application';
+  if (layer === 'async') return 'queue';
+  if (layer === 'observe') return 'observability';
+  return layer;
+}
+
+function getConnectionLabel(source: RawNode, target: RawNode): string {
+  const targetLayer = normalizeLayer(target.layer);
+  if (targetLayer === 'data') return 'reads/writes';
+  if (targetLayer === 'queue') return 'publishes';
+  if (targetLayer === 'observability') return 'emits telemetry';
+  if (targetLayer === 'external') return 'calls';
+  if (normalizeLayer(source.layer) === 'client') return 'requests';
+  return 'routes to';
 }
 
 export function parseLLMOutput(text: string): ParsedDiagram {

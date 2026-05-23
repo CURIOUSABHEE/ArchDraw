@@ -8,8 +8,8 @@ export function computeLayout(
   const direction = layoutConfig.direction ?? 'RIGHT';
   const elkOptions = layoutConfig.elkOptions ?? {};
 
-  const spacingX = parseInt(elkOptions['elk.spacing.nodeNode'] ?? '20', 10);
-  const spacingY = parseInt(elkOptions['elk.layered.spacing.nodeNodeBetweenLayers'] ?? '120', 10);
+  const spacingX = parseInt(elkOptions['elk.spacing.nodeNode'] ?? '110', 10);
+  const spacingY = parseInt(elkOptions['elk.layered.spacing.nodeNodeBetweenLayers'] ?? '280', 10);
 
   const nodesByLayer: Record<string, ArchitectureNode[]> = {};
   for (const node of nodes) {

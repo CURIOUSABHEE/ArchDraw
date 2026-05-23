@@ -8,20 +8,20 @@ import { computeLayoutMetrics, type LayoutMetrics, LAYOUT_SPACING } from './layo
 const DEFAULT_NODE_WIDTH = 180;
 const DEFAULT_NODE_HEIGHT = 70;
 
-const SPACING_X = LAYOUT_SPACING.NODE_SPACING_X;  // 20px
-const SPACING_Y = LAYOUT_SPACING.NODE_SPACING_Y;  // 20px
-const TIER_SPACING = LAYOUT_SPACING.TIER_SPACING_Y;  // 200px
+const SPACING_X = LAYOUT_SPACING.NODE_SPACING_X;
+const SPACING_Y = LAYOUT_SPACING.NODE_SPACING_Y;
+const TIER_SPACING = LAYOUT_SPACING.TIER_SPACING_Y;
 
 const TIER_X_POSITIONS: Record<Direction, Record<TierType, number>> = {
   RIGHT: {
     client: 40,
-    edge: 280,
-    compute: 520,
-    async: 760,
-    data: 1000,
-    infrastructure: 1240,
-    observe: 1480,
-    external: 1720,
+    edge: 360,
+    compute: 720,
+    async: 1120,
+    data: 1520,
+    infrastructure: 1920,
+    observe: 2320,
+    external: 2720,
   },
   DOWN: {
     client: 40,
@@ -71,7 +71,7 @@ const TIER_X_SPACING = DEFAULT_NODE_WIDTH + SPACING_X;
 function nodesOverlap(
   n1: { position: { x: number; y: number }; width?: number; height?: number },
   n2: { position: { x: number; y: number }; width?: number; height?: number },
-  minSpacing: number = 20
+  minSpacing: number = 50
 ): boolean {
   const w1 = n1.width || DEFAULT_NODE_WIDTH;
   const h1 = n1.height || DEFAULT_NODE_HEIGHT;
@@ -232,14 +232,14 @@ export function runDeterministicLayout(
       }
     }
   } else {
-    const canvasHeight = 800;
+  const canvasHeight = Math.max(1000, metrics.maxNodesPerTier * (DEFAULT_NODE_HEIGHT + LAYOUT_SPACING.NODE_SPACING_Y) + 220);
     for (const tier of TIER_ORDER) {
       const nodes = nodesByTier.get(tier) || [];
       if (nodes.length === 0) {
         tierStartY.set(tier, 50);
         continue;
       }
-      const totalHeight = nodes.length * baseVerticalSpacing - 60;
+      const totalHeight = nodes.length * baseVerticalSpacing - SPACING_Y;
       const startY = Math.max(50, (canvasHeight - totalHeight) / 2);
       tierStartY.set(tier, startY);
     }
@@ -408,7 +408,7 @@ export function generateELKOptionsFromMetrics(metrics: LayoutMetrics): Record<st
     'elk.layered.spacing.nodeNodeBetweenLayers': String(Math.round(TIER_SPACING * multiplier)),
     'elk.spacing.nodeNode': String(SPACING_X),
     'elk.spacing.edgeEdge': String(SPACING_Y),
-    'elk.spacing.edgeNode': String(SPACING_Y),
+    'elk.spacing.edgeNode': String(SPACING_X),
     'elk.spacing.labelNode': '30',
     'elk.layered.spacing.edgeNodeBetweenLayers': String(Math.round(SPACING_X * multiplier)),
     'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',

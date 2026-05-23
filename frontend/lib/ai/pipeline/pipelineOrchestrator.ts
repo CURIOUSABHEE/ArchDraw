@@ -253,7 +253,7 @@ export async function runArchitecturePipeline(
     }));
 
     // RUN NON-DESTRUCTIVE VALIDATION
-    const validationResult = validateAndRepair({ nodes: rawNodesForValidation, flows: rawFlows });
+    const validationResult = validateAndRepair({ nodes: rawNodesForValidation, flows: rawFlows }, userIntent.description);
     
     // Convert back to ArchitectureNode[] and ArchitectureEdge[]
     const nodesRemoved = rawNodesForValidation.length - validationResult.nodes.length;
@@ -576,7 +576,7 @@ async function generateEdges(state: PipelineState): Promise<ArchitectureEdge[]> 
       targetHandle: 'left',
       communicationType: edge.communicationType || 'sync',
       pathType: 'smooth',
-      label: '',
+      label: edge.label || '',
       labelPosition: 'center',
       animated: false,
       style: {

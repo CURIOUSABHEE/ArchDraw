@@ -1,6 +1,6 @@
 import type { ArchitectureNode, ArchitectureEdge } from '../types';
 import type { TierType } from '../domain/tiers';
-import { TIER_ORDER } from '../domain/tiers';
+import { getTierFromLayer, TIER_ORDER } from '../domain/tiers';
 import { ArchitectureGraph } from '../graph/ArchitectureGraph';
 
 export interface EdgeValidationResult {
@@ -97,7 +97,7 @@ export function validateEdges(
     }
   }
 
-  const nodeTierMap = new Map(nodes.map(n => [n.id, (n.tier || n.layer) as TierType]));
+  const nodeTierMap = new Map(nodes.map(n => [n.id, getNodeTier(n)]));
 
   for (const edge of edges) {
     const sourceTier = nodeTierMap.get(edge.source);
@@ -184,7 +184,7 @@ export function validateTierHierarchy(
   edges: ArchitectureEdge[]
 ): EdgeValidationError[] {
   const errors: EdgeValidationError[] = [];
-  const nodeTierMap = new Map(nodes.map(n => [n.id, (n.tier || n.layer) as TierType]));
+  const nodeTierMap = new Map(nodes.map(n => [n.id, getNodeTier(n)]));
 
   const tiersPresent = new Set(Array.from(nodeTierMap.values()));
   const expectedFlow = ['client', 'edge', 'compute', 'data'];
@@ -209,7 +209,7 @@ export function validateTierHierarchy(
     }
   }
 
-  const asyncNodes = nodes.filter(n => (n.tier || n.layer) === 'async');
+  const asyncNodes = nodes.filter(n => getNodeTier(n) === 'async');
   for (const asyncNode of asyncNodes) {
     const incoming = edges.filter(e => e.target === asyncNode.id);
     const outgoing = edges.filter(e => e.source === asyncNode.id);
@@ -233,4 +233,9 @@ export function validateTierHierarchy(
   }
 
   return errors;
+}
+
+function getNodeTier(node: ArchitectureNode): TierType {
+  if (node.tier) return node.tier as TierType;
+  return getTierFromLayer(node.layer) || 'compute';
 }

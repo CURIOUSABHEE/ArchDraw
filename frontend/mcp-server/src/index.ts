@@ -34,18 +34,51 @@ const TOOLS: Tool[] = [
 
 **IMPORTANT**: When this tool returns a 'diagramUrl', tell the user to open that URL in their browser.
 
+**🚨 CRITICAL SYSTEMATIC RULES — VIOLATIONS WILL BE FLAGGED:**
+
+**RULE A — AUTH SERVICE TOPOLOGY**: The Auth Service receives arrows ONLY from login and token refresh endpoints. NO other arrows from the gateway into Auth Service are permitted. All other routes: gateway validates JWT internally and routes DIRECTLY to the target service. BEFORE FINALIZING: audit every edge targeting Auth Service — if label is not login/register/token-refresh, delete it.
+
+**RULE B — OBJECT STORAGE IS MANDATORY FOR MEDIA DOMAINS**: For video streaming, image sharing, audio streaming, or any diagram with a CDN or Transcoding Worker — Object Storage (S3/GCS) MUST be present. Required pipeline: Upload → Object Storage (raw) → Transcoding Worker → Object Storage (output) → CDN → Client. Drawing CDN without an origin storage is architecturally invalid.
+
+**RULE C — ANALYTICS EVENT STREAM IS CORE INFRASTRUCTURE**: For video/audio streaming, social media, e-commerce, or gaming domains — an Analytics Event Stream (Kafka/Kinesis) feeding a Recommendation Engine is mandatory. Pattern: Client → (play/click event) → Event Stream → Analytics Processor → Recommendation Engine. This is not optional logging — it is the product's primary feedback loop.
+
+**RULE D — SECURITY SERVICES MUST NOT BYPASS THE GATEWAY**: DRM, Auth, and License Servers must NEVER connect directly to client-tier nodes. Always route through API Gateway (client → gateway → DRM). A direct client→DRM connection means unauthenticated users can request licenses.
+
+**RULE E — EDGE DIRECTION: LEFT->RIGHT ONLY, NO STAR TOPOLOGY** THIS IS THE #1 GENERATION ERROR:
+Edges MUST flow from lower-numbered tier to higher-numbered tier:
+  client(0) -> edge(1) -> compute(2) -> async(3) -> data(4) -> external(5)
+
+Client tier nodes (Web App, Mobile App) are REQUEST INITIATORS -- they are edge SOURCES, NOT targets.
+- CORRECT: Web App -> API Gateway -> Order Service -> PostgreSQL
+- WRONG:   Order Service -> Web App  (backward edge, FORBIDDEN)
+- WRONG:   PostgreSQL -> Web App     (data to client, FORBIDDEN)
+- WRONG:   10 services all -> Web App (star topology, REJECTED)
+
+Web Client is NOT a hub. Do NOT draw edges from backend/data/service nodes back to the client.
+If backend needs to push: add a WebSocket Gateway (tier:edge) or Notification Service (tier:compute) as intermediary.
+
+DIAGRAMS WITH STAR TOPOLOGY WILL BE AUTOMATICALLY REJECTED. Fix by:
+1. Reverse any edges that point TO a client-tier node FROM a backend node
+2. Remove all edges where target=web_client that do not originate from another client-tier node
+
 **MANDATORY REQUIREMENTS** — diagrams missing these will be flagged:
 1. At least ONE group node (isGroup:true) to cluster related services
 2. Every node MUST have a subtitle describing its specific role
 3. All async/stream/event edges MUST have a label (the event/message name)
 4. Every node MUST have a tier assigned
+5. Domain-specific required nodes must be present (see read_me for checklist)
 
 **WORKFLOW**:
-1. Call read_me FIRST for the full reference guide
-2. Optionally call list_node_types to find icon names
-3. Design nodes: plan groups first, then place children inside them
-4. Design edges: use correct communicationType and add labels
-5. Call this tool
+1. Call read_me FIRST for the full reference guide and domain checklist
+2. Identify the domain and verify all required domain nodes are planned
+3. Optionally call list_node_types to find icon names
+4. Design nodes: plan groups first, then place children inside them
+5. Design edges: use correct communicationType, audit Auth Service edges, verify no security bypass
+6. **EDGE AUDIT (mandatory)**: Before calling this tool, scan every edge you planned:
+   - Does any edge have a client-tier node as the TARGET? DELETE IT (unless both source and target are client tier)
+   - Does any single node receive >45% of all edges? That node is a hub -- redistribute connections
+   - Do all edges flow LEFT->RIGHT (lower tier -> higher tier)? If not, fix direction.
+7. Call this tool
 
 **NODE FIELDS**:
 - id (required): snake_case unique ID

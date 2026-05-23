@@ -9,7 +9,7 @@ interface FlowNode extends Node {
   };
 }
 
-export function resolveNodeCollisions(nodes: Node[], margin: number = 40): Node[] {
+export function resolveNodeCollisions(nodes: Node[], margin: number = 50): Node[] {
   if (!nodes || !Array.isArray(nodes)) {
     logger.warn('[Collision] resolveNodeCollisions received invalid nodes parameter:', nodes);
     return [];

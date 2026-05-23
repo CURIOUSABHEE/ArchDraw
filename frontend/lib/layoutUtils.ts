@@ -9,6 +9,12 @@ export function getLayoutedElements(
   edges: Edge[],
   direction: 'LR' | 'TB' = 'LR'
 ): { nodes: Node[]; edges: Edge[] } {
+  const hasAuthoredPositions = nodes.some((node) => node.position.x !== 0 || node.position.y !== 0);
+
+  if (hasAuthoredPositions) {
+    return { nodes, edges };
+  }
+
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
