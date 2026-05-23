@@ -26,11 +26,13 @@ import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
 import { EdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
+import { DIAGRAM_CONSTANTS, EDGE_MARKER } from '@/constants/diagram';
 
 const EDGE_TYPES = {
-  custom: FlowEdge,
+  custom: SimpleFloatingEdge,
   simpleFloating: SimpleFloatingEdge,
-  default: FlowEdge,
+  default: SimpleFloatingEdge,
+  smoothstep: SimpleFloatingEdge,
 };
 import { ComponentPalette } from '@/components/tutorial/ComponentPalette';
 import { NodeTooltip } from '@/components/tutorial/NodeTooltip';
@@ -238,9 +240,9 @@ function TutorialCanvasInner({
         {
           ...connection,
           id: `edge-${Date.now()}`,
-          type: 'default',
-          animated: true,
-          style: { stroke: '#94a3b8', strokeWidth: '1.5px' },
+          type: 'smoothstep',
+          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth, stroke: DIAGRAM_CONSTANTS.edge.stroke },
+          markerEnd: EDGE_MARKER,
         },
         edges
       );
@@ -353,10 +355,9 @@ function TutorialCanvasInner({
           connectionLineType={ConnectionLineType.SmoothStep}
           style={{ background: canvasBg }}
           defaultEdgeOptions={{
-            type: 'simpleFloating',
-            animated: true,
-            data: { connectionType: 'smooth', edgeType: 'sync', pathType: 'smooth' },
-            style: { stroke: '#6B7280', strokeWidth: 2 },
+            type: 'smoothstep',
+            style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth, stroke: DIAGRAM_CONSTANTS.edge.stroke },
+            markerEnd: EDGE_MARKER,
           }}
           deleteKeyCode={['Backspace', 'Delete', 'Meta+Backspace']}
         >

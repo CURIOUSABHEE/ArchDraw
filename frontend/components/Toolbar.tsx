@@ -22,14 +22,6 @@ import { useOnboardingStore } from '@/store/onboardingStore';
 import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { DiagramPagination } from '@/components/editor/DiagramPagination';
-import { type PathType } from '@/data/edgeTypes';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 type ExportFormat = 'png-dark-4x' | 'png-light-4x' | 'png-transparent-4x' | 'svg-dark' | 'svg-light' | 'svg-transparent' | 'json' | 'pdf' | 'html-embed';
 
@@ -218,7 +210,6 @@ export function Toolbar() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [selectedEdgeType, setSelectedEdgeType] = useState<string>('smooth');
 
   const openGuide = useOnboardingStore((s) => s.open);
 
@@ -233,35 +224,9 @@ export function Toolbar() {
     setConfirmDeleteId(activeCanvasId);
   };
 
-  const normalizePathType = (type: string): string => {
-    // Normalize invalid values to valid ones
-    if (type === 'smoothstep') return 'smooth';
-    if (!['smooth', 'bezier', 'step', 'straight'].includes(type)) return 'smooth';
-    return type;
-  };
 
-  const updateAllEdgesPathType = (pathType: PathType) => {
-    const normalizedType = normalizePathType(pathType);
-    if (edges.length === 0) {
-      setSelectedEdgeType(normalizedType);
-      return;
-    }
-    setSelectedEdgeType(normalizedType);
-    const updatedEdges = edges.map((edge) => ({
-      ...edge,
-      data: {
-        ...edge.data,
-        connectionType: normalizedType,
-        pathType: normalizedType,
-      },
-    }));
-    const canvases = useDiagramStore.getState().canvases.map((c) =>
-      c.id === useDiagramStore.getState().activeCanvasId
-        ? { ...c, edges: updatedEdges, updatedAt: Date.now() }
-        : c
-    );
-    useDiagramStore.setState({ edges: updatedEdges, canvases });
-  };
+
+
 
   const activeCanvas = canvases.find((c) => c.id === activeCanvasId);
 
@@ -604,46 +569,7 @@ export function Toolbar() {
             <span>{edges.length}</span>
             <span>edges</span>
           </span>
-          <span className="w-px h-3 bg-border/50" />
-          <Select value={selectedEdgeType} onValueChange={(v) => updateAllEdgesPathType(v as PathType)}>
-            <SelectTrigger className="h-7 w-32 text-[11px] gap-1">
-              <SelectValue placeholder="Edge style" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="smooth">
-                <div className="flex items-center gap-3">
-                  <svg width="40" height="16" viewBox="0 0 40 16" className="overflow-visible">
-                    <path d="M2,8 Q10,2 20,8 T38,8" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                  </svg>
-                  <span>Smooth</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="bezier">
-                <div className="flex items-center gap-3">
-                  <svg width="40" height="16" viewBox="0 0 40 16" className="overflow-visible">
-                    <path d="M2,12 C8,2 15,14 38,4" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                  </svg>
-                  <span>Bezier</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="step">
-                <div className="flex items-center gap-3">
-                  <svg width="40" height="16" viewBox="0 0 40 16" className="overflow-visible">
-                    <path d="M2,12 L12,12 L12,4 L38,4" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                  </svg>
-                  <span>Step</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="straight">
-                <div className="flex items-center gap-3">
-                  <svg width="40" height="16" viewBox="0 0 40 16" className="overflow-visible">
-                    <path d="M2,8 L38,8" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                  </svg>
-                  <span>Straight</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+
 
           {userProfile && savingState !== 'idle' && (
             <>

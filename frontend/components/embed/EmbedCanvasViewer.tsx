@@ -20,6 +20,7 @@ import { AnnotationNode } from '@/components/AnnotationNode';
 import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
+import { DIAGRAM_CONSTANTS, EDGE_MARKER } from '@/constants/diagram';
 
 const NODE_TYPES = {
   systemNode:        SystemNode,
@@ -37,9 +38,10 @@ const NODE_TYPES = {
 };
 
 const EDGE_TYPES = {
-  custom: FlowEdge,
+  custom: SimpleFloatingEdge,
   simpleFloating: SimpleFloatingEdge,
-  default: FlowEdge,
+  default: SimpleFloatingEdge,
+  smoothstep: SimpleFloatingEdge,
 };
 
 interface EmbedCanvasProps {
@@ -98,9 +100,9 @@ function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls
         proOptions={{ hideAttribution: true }}
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
-          type: 'simpleFloating',
-          style: pathTypeConfig[pathType],
-          data: { edgeType: 'sync', pathType: 'smooth' },
+          type: 'smoothstep',
+          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth, stroke: DIAGRAM_CONSTANTS.edge.stroke },
+          markerEnd: EDGE_MARKER,
         }}
       >
         <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>

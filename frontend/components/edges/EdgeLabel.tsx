@@ -3,72 +3,33 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDiagramStore } from '@/store/diagramStore';
-import { useCanvasTheme } from '@/lib/theme';
 
 interface EdgeLabelProps {
   edgeId: string;
   label?: string;
   labelX: number;
   labelY: number;
-  edgeColor?: string;
 }
 
-function parseColorToRgb(color: string): { r: number; g: number; b: number } | null {
-  if (color.startsWith('#')) {
-    const hex = color.slice(1);
-    if (hex.length === 3) {
-      const r = parseInt(hex[0] + hex[0], 16);
-      const g = parseInt(hex[1] + hex[1], 16);
-      const b = parseInt(hex[2] + hex[2], 16);
-      return { r, g, b };
-    }
-    if (hex.length === 6) {
-      const r = parseInt(hex.slice(0, 2), 16);
-      const g = parseInt(hex.slice(2, 4), 16);
-      const b = parseInt(hex.slice(4, 6), 16);
-      return { r, g, b };
-    }
-  }
-
-  if (color.startsWith('rgb(')) {
-    const values = color.slice(4, -1).split(',').map((v) => v.trim());
-    if (values.length === 3) {
-      return { r: Number(values[0]), g: Number(values[1]), b: Number(values[2]) };
-    }
-  }
-
-  if (color.startsWith('rgba(')) {
-    const values = color.slice(5, -1).split(',').map((v) => v.trim());
-    if (values.length >= 3) {
-      return { r: Number(values[0]), g: Number(values[1]), b: Number(values[2]) };
-    }
-  }
-
-  return null;
-}
-
-function blendWithBase(color: string, base: string, baseWeight: number): string {
-  const rgb = parseColorToRgb(color);
-  const baseRgb = parseColorToRgb(base);
-  if (!rgb || !baseRgb) return color;
-
-  const w = Math.max(0, Math.min(1, baseWeight));
-  const r = Math.round(rgb.r * (1 - w) + baseRgb.r * w);
-  const g = Math.round(rgb.g * (1 - w) + baseRgb.g * w);
-  const b = Math.round(rgb.b * (1 - w) + baseRgb.b * w);
-
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-export function EdgeLabel({ edgeId, label, edgeColor }: EdgeLabelProps) {
+export function EdgeLabel({ edgeId, label }: EdgeLabelProps) {
   const updateEdgeLabel = useDiagramStore((s) => s.updateEdgeLabel);
-  const { isDark } = useCanvasTheme();
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const displayText = label?.trim() ? label.trim() : null;
+  // Normalize label text (uppercase and max 4 words)
+  const getCleanedText = useCallback((txt?: string): string => {
+    if (!txt) return '';
+    let cleaned = txt.trim().toUpperCase();
+    const words = cleaned.split(/\s+/);
+    if (words.length > 4) {
+      return words.slice(0, 4).join(' ');
+    }
+    return cleaned;
+  }, []);
+
+  const displayText = label?.trim() ? getCleanedText(label) : null;
 
   const enterEdit = useCallback(() => {
     setDraft(label?.trim() ?? '');
@@ -76,9 +37,10 @@ export function EdgeLabel({ edgeId, label, edgeColor }: EdgeLabelProps) {
   }, [label]);
 
   const commit = useCallback(() => {
-    updateEdgeLabel(edgeId, draft);
+    const cleaned = getCleanedText(draft);
+    updateEdgeLabel(edgeId, cleaned);
     setEditing(false);
-  }, [edgeId, draft, updateEdgeLabel]);
+  }, [edgeId, draft, updateEdgeLabel, getCleanedText]);
 
   const cancel = useCallback(() => {
     setEditing(false);
@@ -105,24 +67,22 @@ export function EdgeLabel({ edgeId, label, edgeColor }: EdgeLabelProps) {
 
   const inputWidth = Math.max(80, Math.min(150, draft.length * 6 + 32));
 
-  const styles = isDark 
-    ? {
-        bg: '#111322',
-        border: 'rgba(255, 255, 255, 0.08)',
-        text: '#94A3B8',
-      }
-    : {
-        bg: '#F3F4F6',
-        border: '#E5E7EB',
-        text: '#374151',
-      };
-
-  const softenedColor = edgeColor
-    ? blendWithBase(edgeColor, isDark ? '#111827' : '#ffffff', isDark ? 0.55 : 0.72)
-    : undefined;
-  const labelBg = softenedColor || styles.bg;
-  const labelBorder = softenedColor || styles.border;
-  const labelText = edgeColor ? blendWithBase(edgeColor, isDark ? '#cbd5e1' : '#334155', 0.2) : styles.text;
+  const pillStyle: React.CSSProperties = {
+    background: '#f8f7f4',
+    color: '#94a3b8',
+    borderRadius: 4,
+    border: 'none',
+    fontSize: 10,
+    fontFamily: 'Inter, -apple-system, sans-serif',
+    fontWeight: 500,
+    padding: '4px 6px',
+    textAlign: 'center',
+    outline: 'none',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+    position: 'relative',
+    zIndex: 1000,
+    textTransform: 'uppercase',
+  };
 
   if (!displayText && !editing) {
     return null;
@@ -138,29 +98,16 @@ export function EdgeLabel({ edgeId, label, edgeColor }: EdgeLabelProps) {
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={commit}
-          placeholder="Label"
+          placeholder="LABEL"
           autoFocus
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.1 }}
           style={{
+            ...pillStyle,
             width: inputWidth,
-            background: labelBg,
-            border: `1px solid ${labelBorder}`,
-            borderRadius: 12,
-            color: labelText,
-            fontSize: 10,
-            fontFamily: 'Inter, -apple-system, sans-serif',
-            fontStyle: 'italic',
-            padding: '3px 8px',
-            outline: 'none',
-            textAlign: 'center',
-            boxShadow: isDark 
-              ? '0 1px 3px rgba(0,0,0,0.3)' 
-              : '0 1px 3px rgba(0,0,0,0.1)',
-            position: 'relative',
-            zIndex: 1000,
+            cursor: 'text',
           }}
         />
       ) : (
@@ -176,24 +123,11 @@ export function EdgeLabel({ edgeId, label, edgeColor }: EdgeLabelProps) {
           }}
           title="Double-click to edit"
           style={{
+            ...pillStyle,
             display: 'inline-block',
-            background: labelBg,
-            color: labelText,
-            borderRadius: 12,
-            border: `1px solid ${labelBorder}`,
-            fontSize: 10,
-            fontFamily: 'Inter, -apple-system, sans-serif',
-            fontStyle: 'italic',
-            fontWeight: 500,
-            padding: '3px 8px',
             cursor: 'text',
             userSelect: 'none',
             whiteSpace: 'nowrap',
-            boxShadow: isDark 
-              ? '0 1px 3px rgba(0,0,0,0.3)' 
-              : '0 1px 2px rgba(0,0,0,0.08)',
-            position: 'relative',
-            zIndex: 1000,
           }}
         >
           {displayText}

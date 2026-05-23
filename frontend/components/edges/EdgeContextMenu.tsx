@@ -13,14 +13,13 @@ interface Props {
 }
 
 const EDGE_TYPES: EdgeType[] = ['sync', 'async', 'stream', 'event', 'dep'];
-const PATH_TYPES: PathType[] = ['smooth', 'bezier', 'step', 'straight'];
 
 export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, currentPathType }: Props) {
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
   const deleteEdge = useDiagramStore((s) => s.deleteEdge);
   const menuRef = useRef<HTMLDivElement>(null);
   
-  const [showSubmenu, setShowSubmenu] = useState<'type' | 'path' | null>(null);
+  const [showSubmenu, setShowSubmenu] = useState<'type' | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -56,10 +55,7 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
     onClose();
   };
 
-  const handlePathTypeChange = (type: PathType) => {
-    updateEdgeData(edgeId, { pathType: type });
-    onClose();
-  };
+
 
   const activeConfig = EDGE_TYPE_CONFIGS[currentEdgeType || 'sync'];
   const activePathType = currentPathType || activeConfig.pathType;
@@ -117,60 +113,7 @@ export function EdgeContextMenu({ edgeId, position, onClose, currentEdgeType, cu
         )}
       </div>
 
-      {/* Change Path Submenu */}
-      <div className="relative">
-        <button
-          onMouseEnter={() => setShowSubmenu('path')}
-          onClick={() => setShowSubmenu(showSubmenu === 'path' ? null : 'path')}
-          className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-medium transition-colors ${
-            showSubmenu === 'path' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-          }`}
-        >
-          <div className="flex items-center gap-2.5">
-            <Spline size={14} className="text-muted-foreground" />
-            <span>Path Shape</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-medium text-muted-foreground capitalize">{activePathType}</span>
-            <ChevronRight size={12} className="text-muted-foreground" />
-          </div>
-        </button>
-        
-        {showSubmenu === 'path' && (
-          <div
-            className="absolute left-full top-10 ml-1 min-w-[100px] rounded-md border border-border bg-card p-1 shadow-lg"
-          >
-            {PATH_TYPES.map((type) => {
-              const isActive = type === activePathType;
-              return (
-                <button
-                  key={type}
-                  onClick={() => handlePathTypeChange(type)}
-                  className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-xs capitalize transition-colors ${
-                    isActive ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                  }`}
-                >
-                  <svg width="24" height="16" viewBox="0 0 24 16" className="shrink-0">
-                    {type === 'smooth' && (
-                      <path d="M 2 14 Q 6 2, 12 8 Q 18 14, 22 2" stroke="currentColor" strokeWidth="0.1" fill="none" className="text-primary" />
-                    )}
-                    {type === 'bezier' && (
-                      <path d="M 2 14 C 8 14, 6 2, 12 8 C 18 14, 16 2, 22 2" stroke="currentColor" strokeWidth="0.1" fill="none" className="text-primary" />
-                    )}
-                    {type === 'step' && (
-                      <path d="M 2 14 L 12 14 L 12 2 L 22 2" stroke="currentColor" strokeWidth="0.1" fill="none" className="text-primary" />
-                    )}
-                    {type === 'straight' && (
-                      <path d="M 2 14 L 22 2" stroke="currentColor" strokeWidth="0.1" fill="none" className="text-primary" />
-                    )}
-                  </svg>
-                  {type}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+
 
       <div className="my-1.5 h-px bg-border" />
 

@@ -7,7 +7,7 @@ import { getViewportCenter } from '@/lib/utils';
 import { 
   Copy, Clipboard, Scissors, Trash2, Group, Type, 
   MessageSquare, CheckSquare, Layers, ZoomIn, ZoomOut,
-  Maximize2, ChevronRight, Link2, GitBranch
+  Maximize2, ChevronRight, GitBranch
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
@@ -142,13 +142,6 @@ export function ContextMenu({ menu, onClose }: Props) {
     onClose();
   }, [menu.edgeId, pushHistory, updateEdgeData, onClose]);
 
-  const changeEdgePath = useCallback((pathType: string) => {
-    if (!menu.edgeId) return;
-    pushHistory();
-    updateEdgeData(menu.edgeId, { pathType });
-    onClose();
-  }, [menu.edgeId, pushHistory, updateEdgeData, onClose]);
-
   const selectAll = useCallback(() => {
     const allIds = nodes.map((n) => n.id);
     useDiagramStore.setState({ selectedNodeIds: allIds });
@@ -219,18 +212,6 @@ export function ContextMenu({ menu, onClose }: Props) {
             <SubmenuItem onClick={() => changeEdgeType('stream')}>Stream</SubmenuItem>
             <SubmenuItem onClick={() => changeEdgeType('event')}>Event</SubmenuItem>
             <SubmenuItem onClick={() => changeEdgeType('dep')}>Dependency</SubmenuItem>
-          </MenuItemWithSubmenu>
-          <MenuItemWithSubmenu 
-            icon={<Link2 size={14} />} 
-            label="Path Type"
-            submenuOpen={openSubmenu === 'pathType'} 
-            onMouseEnter={() => setOpenSubmenu('pathType')}
-            onMouseLeave={() => setOpenSubmenu(null)}
-          >
-            <SubmenuItem onClick={() => changeEdgePath('smooth')}>Smooth</SubmenuItem>
-            <SubmenuItem onClick={() => changeEdgePath('step')}>Step</SubmenuItem>
-            <SubmenuItem onClick={() => changeEdgePath('bezier')}>Bezier</SubmenuItem>
-            <SubmenuItem onClick={() => changeEdgePath('straight')}>Straight</SubmenuItem>
           </MenuItemWithSubmenu>
           <Separator />
           <MenuItem icon={<Scissors size={14} />} onClick={deleteEdge} danger>

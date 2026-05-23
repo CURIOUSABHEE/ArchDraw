@@ -17,7 +17,6 @@ interface Props {
 }
 
 const EDGE_TYPES: EdgeType[] = ['sync', 'async', 'stream', 'event', 'dep'];
-const PATH_TYPES: PathType[] = ['smooth', 'bezier', 'step', 'straight'];
 
 export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPathType, labelX, labelY }: Props) {
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
@@ -26,11 +25,9 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(currentLabel || '');
   const [showTypeMenu, setShowTypeMenu] = useState(false);
-  const [showPathMenu, setShowPathMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const typeMenuRef = useRef<HTMLDivElement>(null);
-  const pathMenuRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -51,9 +48,6 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
       const target = e.target as Node;
       if (typeMenuRef.current && !typeMenuRef.current.contains(target)) {
         setShowTypeMenu(false);
-      }
-      if (pathMenuRef.current && !pathMenuRef.current.contains(target)) {
-        setShowPathMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -84,17 +78,12 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
     setShowTypeMenu(false);
   }, [edgeId, updateEdgeData]);
 
-  const handlePathTypeChange = useCallback((type: PathType) => {
-    updateEdgeData(edgeId, { pathType: type });
-    setShowPathMenu(false);
-  }, [edgeId, updateEdgeData]);
+
 
   const activeConfig = useMemo(() => 
     EDGE_TYPE_CONFIGS[currentEdgeType || 'sync'],
     [currentEdgeType]
   );
-  
-  const activePathType = currentPathType || activeConfig.pathType;
 
   return (
     <EdgeLabelRenderer>
@@ -110,7 +99,7 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
         {/* Edge Type Selector */}
         <div className="relative">
           <button
-            onClick={() => { setShowTypeMenu(!showTypeMenu); setShowPathMenu(false); }}
+            onClick={() => { setShowTypeMenu(!showTypeMenu); }}
             title="Change edge type"
             className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase cursor-pointer"
             style={{
@@ -152,42 +141,7 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
           )}
         </div>
 
-        {/* Path Type Selector */}
-        <div className="relative">
-          <button
-            onClick={() => { setShowPathMenu(!showPathMenu); setShowTypeMenu(false); }}
-            title="Change path type"
-            className="flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium capitalize cursor-pointer text-muted-foreground hover:text-foreground"
-            style={{ background: 'transparent' }}
-          >
-            <Spline className="w-3 h-3" />
-            {activePathType}
-          </button>
-          
-          {showPathMenu && (
-            <div
-              ref={pathMenuRef}
-              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 min-w-[90px] rounded-lg border border-border bg-card p-1 shadow-lg"
-            >
-              {PATH_TYPES.map((type) => {
-                const isActive = type === activePathType;
-                return (
-                  <button
-                    key={type}
-                    onClick={() => handlePathTypeChange(type)}
-                    className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs capitalize transition-colors ${
-                      isActive ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                    }`}
-                  >
-                    {type}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
 
-        <div className="mx-1 h-4 w-px bg-border" />
 
         {isEditing ? (
           <>

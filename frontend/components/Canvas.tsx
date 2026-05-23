@@ -35,6 +35,7 @@ import { TemplateModal } from '@/components/TemplateModal';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { isValidConnection, wouldCreateCycle } from '@/lib/config/edgeConfig';
 import { EdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
+import { DIAGRAM_CONSTANTS, EDGE_MARKER } from '@/constants/diagram';
 
 import { useGrouping } from '@/hooks/useGrouping';
 import { toast } from 'sonner';
@@ -61,9 +62,10 @@ const NODE_TYPES = {
 };
 
 const EDGE_TYPES = {
-  custom: FlowEdge,
+  custom: SimpleFloatingEdge,
   simpleFloating: SimpleFloatingEdge,
-  default: FlowEdge,
+  default: SimpleFloatingEdge,
+  smoothstep: SimpleFloatingEdge,
 };
 
 function CanvasInner() {
@@ -191,7 +193,7 @@ function CanvasInner() {
         targetHandle: undefined,
         data: {
           ...e.data,
-          pathType: e.data?.pathType || e.type || 'smooth',
+          pathType: 'Smoothstep',
         },
       }));
       
@@ -346,6 +348,11 @@ function CanvasInner() {
         defaultMarkerColor={isDark ? '#1E2130' : '#94a3b8'}
         minZoom={0.05}
         maxZoom={4}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth, stroke: DIAGRAM_CONSTANTS.edge.stroke },
+          markerEnd: EDGE_MARKER,
+        }}
       >
         <Background 
           variant={BackgroundVariant.Dots} 

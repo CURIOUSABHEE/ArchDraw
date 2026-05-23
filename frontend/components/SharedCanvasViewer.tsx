@@ -19,6 +19,7 @@ import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { EmailCaptureModal } from '@/components/EmailCaptureModal';
 import { EdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
 import { useDiagramStore } from '@/store/diagramStore';
+import { DIAGRAM_CONSTANTS, EDGE_MARKER } from '@/constants/diagram';
 
 const NODE_TYPES = {
   systemNode:        SystemNode,
@@ -36,9 +37,10 @@ const NODE_TYPES = {
 };
 
 const EDGE_TYPES = {
-  custom: FlowEdge,
+  custom: SimpleFloatingEdge,
   simpleFloating: SimpleFloatingEdge,
-  default: FlowEdge,
+  default: SimpleFloatingEdge,
+  smoothstep: SimpleFloatingEdge,
 };
 
 interface SharedCanvas {
@@ -165,8 +167,9 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
         proOptions={{ hideAttribution: true }}
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
-          type: 'simpleFloating',
-          data: { edgeType: 'sync', pathType: 'smooth' },
+          type: 'smoothstep',
+          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth, stroke: DIAGRAM_CONSTANTS.edge.stroke },
+          markerEnd: EDGE_MARKER,
         }}
       >
         <EdgeMarkerDefs />

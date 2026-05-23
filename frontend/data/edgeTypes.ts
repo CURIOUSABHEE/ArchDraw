@@ -97,6 +97,8 @@ export interface EdgeData {
   connectionType?: EdgeType;
   color?: string;
   labelT?: number;
+  curvature?: number;
+  async?: boolean;
 }
 
 export function getEdgeConfig(edgeType: EdgeType | undefined): EdgeTypeConfig {
