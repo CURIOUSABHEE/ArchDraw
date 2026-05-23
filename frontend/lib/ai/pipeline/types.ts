@@ -104,3 +104,20 @@ export interface DiagramScore {
   groupsRemoved?: number;
   preservationPenalty?: number;
 }
+
+export interface ValidationIssue {
+  severity: 'critical' | 'warning';
+  type: string;
+  nodeId?: string;
+  message: string;
+}
+
+export interface ValidationFeedback {
+  isValid: boolean;
+  score: number;
+  issues: ValidationIssue[];
+  injectedNodes: string[];
+  prunedNodes: string[];
+  orphansFixed: number;
+  tiersRepaired: string[];
+}
