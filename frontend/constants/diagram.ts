@@ -1,5 +1,3 @@
-import { MarkerType } from 'reactflow';
-
 export const DIAGRAM_CONSTANTS = {
   node: {
     width: 220,
@@ -25,9 +23,4 @@ export const DIAGRAM_CONSTANTS = {
   },
 };
 
-export const EDGE_MARKER = {
-  type: MarkerType.ArrowClosed,
-  width: DIAGRAM_CONSTANTS.edge.arrowWidth,
-  height: DIAGRAM_CONSTANTS.edge.arrowHeight,
-  color: DIAGRAM_CONSTANTS.edge.stroke,
-};
+export const EDGE_MARKER = 'url(#marker-slate)';
