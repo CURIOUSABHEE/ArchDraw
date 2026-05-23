@@ -212,13 +212,13 @@ function CanvasInner() {
   }, [searchParams, loadSession]);
 
   // Handle canvas ID from URL - only on initial load or external navigation
-  const [urlCanvasHandled, setUrlCanvasHandled] = useState(false);
+  const urlCanvasHandledRef = useRef(false);
   useEffect(() => {
-    if (urlCanvasHandled) return;
+    if (urlCanvasHandledRef.current) return;
     
     const canvasId = searchParams.get('canvas');
     if (!canvasId) {
-      setUrlCanvasHandled(true);
+      urlCanvasHandledRef.current = true;
       return;
     }
     
@@ -228,9 +228,9 @@ function CanvasInner() {
     
     if (exists) {
       switchCanvas(canvasId);
-      setUrlCanvasHandled(true);
+      urlCanvasHandledRef.current = true;
     }
-  }, [searchParams, switchCanvas, urlCanvasHandled]);
+  }, [searchParams, switchCanvas]);
 
   const onNodeDragStop = useCallback(
     (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
@@ -285,21 +285,22 @@ function CanvasInner() {
   useEffect(() => {
     const handleEditEvent = (e: Event) => {
       const customEvent = e as CustomEvent<string>;
-      setPendingLabelEdgeId(customEvent.detail);
+      const edgeId = customEvent.detail;
+      setPendingLabelEdgeId(edgeId);
+      const edge = useDiagramStore.getState().edges.find(edge => edge.id === edgeId);
+      setLabelDraft(edge?.data?.label || '');
     };
     document.addEventListener('edit-edge-label', handleEditEvent);
     return () => {
       document.removeEventListener('edit-edge-label', handleEditEvent);
     };
-  }, []);
+  }, [setPendingLabelEdgeId]);
 
   useEffect(() => {
     if (pendingLabelEdgeId && labelInputRef.current) {
       labelInputRef.current.focus();
-      const edge = edges.find(e => e.id === pendingLabelEdgeId);
-      setLabelDraft(edge?.data?.label || '');
     }
-  }, [pendingLabelEdgeId, edges]);
+  }, [pendingLabelEdgeId]);
 
   const handleLabelSubmit = () => {
     if (pendingLabelEdgeId) {
@@ -329,6 +330,7 @@ function CanvasInner() {
           e.preventDefault();
           e.stopPropagation();
           setPendingLabelEdgeId(edge.id);
+          setLabelDraft(edge.data?.label || '');
         }}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}

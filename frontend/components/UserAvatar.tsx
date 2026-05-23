@@ -116,9 +116,11 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
     }
   }, [open, onOpenChange]);
 
-  useEffect(() => {
+  const [prevProfileName, setPrevProfileName] = useState(userProfile?.name);
+  if (userProfile?.name !== prevProfileName) {
+    setPrevProfileName(userProfile?.name);
     if (userProfile?.name) setDisplayName(userProfile.name);
-  }, [userProfile]);
+  }
 
   const profile = userProfile ?? (user ? { id: user.id, email: user.email ?? undefined, name: user.user_metadata?.name } : null);
   if (!profile) return null;

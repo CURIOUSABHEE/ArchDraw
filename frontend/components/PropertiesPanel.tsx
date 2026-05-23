@@ -52,10 +52,12 @@ function EdgePropertiesPanel() {
   const { selectedEdgeId, edges, updateEdgeLabel, setSelectedEdgeId } = useDiagramStore();
   const edge = edges.find((e) => e.id === selectedEdgeId);
   const [localLabel, setLocalLabel] = useState(edge?.data?.label ?? '');
+  const [prevEdge, setPrevEdge] = useState(edge);
 
-  useEffect(() => {
-    if (edge) setLocalLabel(edge.data?.label ?? '');
-  }, [edge]);
+  if (edge !== prevEdge) {
+    setPrevEdge(edge);
+    setLocalLabel(edge?.data?.label ?? '');
+  }
 
   if (!edge) return null;
 
@@ -113,10 +115,12 @@ export function PropertiesPanel() {
 
   const labelRef = useRef<HTMLInputElement>(null);
   const [localLabel, setLocalLabel] = useState(node?.data?.label ?? '');
+  const [prevNode, setPrevNode] = useState(node);
 
-  useEffect(() => {
-    if (node) setLocalLabel(node.data.label ?? '');
-  }, [node]);
+  if (node !== prevNode) {
+    setPrevNode(node);
+    setLocalLabel(node?.data?.label ?? '');
+  }
 
   if (selectedEdgeId && !node) {
     return <EdgePropertiesPanel />;

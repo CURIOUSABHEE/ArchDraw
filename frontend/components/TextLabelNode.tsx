@@ -46,11 +46,18 @@ function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
 
   const SIZE_ORDER: TextSize[] = useMemo(() => ['small', 'medium', 'large', 'heading'], []);
 
-  useEffect(() => {
+  const [prevDataVals, setPrevDataVals] = useState([data.text, data.fontSize, data.bold]);
+  
+  if (
+    data.text !== prevDataVals[0] || 
+    data.fontSize !== prevDataVals[1] || 
+    data.bold !== prevDataVals[2]
+  ) {
+    setPrevDataVals([data.text, data.fontSize, data.bold]);
     setText(data.text);
     setCurrentSize(data.fontSize ?? 'medium');
     setIsBold(data.bold ?? false);
-  }, [data.text, data.fontSize, data.bold]);
+  }
   
   const updateNodeFontSize = useCallback((size: TextSize) => {
     setNodes((nds) => nds.map((n) => 
@@ -168,10 +175,21 @@ function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
       onDoubleClick={startEdit}
       className="text-label-node"
     >
-      <Handle type="target" position={Position.Left}   style={{ ...handleStyle, left: -15 }} />
-      <Handle type="source" position={Position.Right}  style={handleStyle} />
-      <Handle type="target" position={Position.Top}    style={handleStyle} />
-      <Handle type="source" position={Position.Bottom} style={handleStyle} />
+      {/* Left side */}
+      <Handle type="target" position={Position.Left} id="left" style={{ ...handleStyle, left: -15 }} />
+      <Handle type="source" position={Position.Left} id="left" style={{ ...handleStyle, left: -15 }} />
+
+      {/* Right side */}
+      <Handle type="target" position={Position.Right} id="right" style={handleStyle} />
+      <Handle type="source" position={Position.Right} id="right" style={handleStyle} />
+
+      {/* Top side */}
+      <Handle type="target" position={Position.Top} id="top" style={handleStyle} />
+      <Handle type="source" position={Position.Top} id="top" style={handleStyle} />
+
+      {/* Bottom side */}
+      <Handle type="target" position={Position.Bottom} id="bottom" style={handleStyle} />
+      <Handle type="source" position={Position.Bottom} id="bottom" style={handleStyle} />
 
       {editing && (
         <div

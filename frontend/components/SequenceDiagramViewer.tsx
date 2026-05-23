@@ -22,6 +22,7 @@ export function SequenceDiagramViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [prevSyntax, setPrevSyntax] = useState<string | undefined>();
   const activeCanvasId = useDiagramStore((s) => s.activeCanvasId);
   const sequenceDiagrams = useDiagramStore((s) => s.sequenceDiagrams);
 
@@ -30,9 +31,16 @@ export function SequenceDiagramViewer() {
     [sequenceDiagrams, activeCanvasId]
   );
 
+  if (diagram?.mermaidSyntax !== prevSyntax) {
+    setPrevSyntax(diagram?.mermaidSyntax);
+    if (!diagram?.mermaidSyntax) {
+      setSvg('');
+      setError('');
+    }
+  }
+
   useEffect(() => {
     if (!diagram?.mermaidSyntax || !containerRef.current) {
-      setSvg('');
       return;
     }
 

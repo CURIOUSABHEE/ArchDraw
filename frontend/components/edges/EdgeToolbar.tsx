@@ -40,11 +40,11 @@ export function EdgeToolbar({ edgeId, currentLabel, currentEdgeType, currentPath
   }, [isEditing]);
   
   // Use state reset only when not editing, to follow prop changes
-  useEffect(() => {
-    if (!isEditing) {
-      setEditValue(currentLabel || '');
-    }
-  }, [currentLabel, isEditing]);
+  const [prevCurrentLabel, setPrevCurrentLabel] = useState(currentLabel);
+  if (!isEditing && currentLabel !== prevCurrentLabel) {
+    setPrevCurrentLabel(currentLabel);
+    setEditValue(currentLabel || '');
+  }
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {

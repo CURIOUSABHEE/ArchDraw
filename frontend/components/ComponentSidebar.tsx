@@ -84,12 +84,8 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [customComponents, setCustomComponents] = useState<ComponentEntry[]>([]);
+  const [customComponents, setCustomComponents] = useState<ComponentEntry[]>(() => componentRegistry.getCustomComponents() as ComponentEntry[]);
   const [activeSection, setActiveSection] = useState<string>('general');
-
-  useEffect(() => {
-    setCustomComponents(componentRegistry.getCustomComponents() as ComponentEntry[]);
-  }, []);
 
   const q = search.toLowerCase();
 
