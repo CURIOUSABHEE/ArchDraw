@@ -6,7 +6,7 @@
     "dev": "concurrently \"next dev\" \"npm run mcp:dev\"",
     "dev:frontend": "next dev",
     "dev:mcp": "cd mcp-server && npx tsx src/index.ts",
-    "prebuild": "npx tsx scripts/generateTutorialCache.ts",
+    "prebuild": "npm run mcp:build && npx tsx scripts/generateTutorialCache.ts",
     "build": "next build",
     "build:all": "npm run build && npm run mcp:build",
     "start": "next start",
