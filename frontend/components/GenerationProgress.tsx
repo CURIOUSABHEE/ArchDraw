@@ -9,6 +9,23 @@ interface GenerationProgressProps {
   onCancel?: () => void;
 }
 
+const phaseMap: Record<string, string> = {
+  'planning': 'Analyzing Requirements',
+  'reasoning': 'Architectural Reasoning',
+  'generating': 'Generating Components',
+  'components': 'Generating Components',
+  'edges': 'Creating Connections',
+  'layout': 'Computing Layout',
+  'validating': 'Validating Constraints',
+  'scoring': 'Evaluating Quality',
+  'complete': 'Complete',
+  'error': 'Error'
+};
+
+const getAgentLabel = (phase: string): string => {
+  return phaseMap[phase] || phase.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
 export function GenerationProgressDisplay({ progress, onCancel }: GenerationProgressProps) {
   if (!progress) return null;
 
@@ -21,23 +38,6 @@ export function GenerationProgressDisplay({ progress, onCancel }: GenerationProg
       default:
         return <Loader2 className="w-4 h-4 animate-spin text-primary" />;
     }
-  };
-
-  const getPhaseLabel = () => {
-    return progress.phase.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  const getAgentLabel = (phase: string): string => {
-    const phaseMap: Record<string, string> = {
-      'planning': 'Analyzing requirements',
-      'components': 'Generating components',
-      'edges': 'Creating connections',
-      'layout': 'Computing layout',
-      'scoring': 'Evaluating quality',
-      'complete': 'Complete',
-      'error': 'Error'
-    };
-    return phaseMap[phase] || phase;
   };
 
   return (
@@ -64,19 +64,18 @@ export function GenerationProgressDisplay({ progress, onCancel }: GenerationProg
           </div>
           
           <div className="flex items-center justify-between text-xs text-gray-400">
-            <span className="flex items-center gap-1">
-              {progress.currentAgent && (
-                <span className="font-medium text-gray-500 capitalize">{progress.currentAgent}</span>
-              )}
+            <span className="flex items-center gap-1 min-w-0 flex-1">
+              <span className="font-medium text-gray-500 truncate" title={progress.message}>
+                {progress.message || getAgentLabel(progress.phase)}
+              </span>
             </span>
             {progress.score > 0 && (
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 shrink-0 ml-4">
                 Score: <span className={progress.score >= 85 ? 'text-emerald-500' : 'text-amber-500'}>
                   {progress.score}/100
                 </span>
               </span>
             )}
-            <span className="shrink-0">{getPhaseLabel()}</span>
           </div>
         </div>
 
@@ -108,7 +107,7 @@ export function GenerationStatusBadge({
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/90 backdrop-blur-sm border border-border/60 shadow-sm">
         <Loader2 className="w-3 h-3 animate-spin text-primary" />
         <span className="text-xs text-muted-foreground">
-          Generating: {progress.phase.replace(/_/g, ' ')}
+          Generating: {getAgentLabel(progress.phase)}
         </span>
         <span className="text-xs font-medium">
           {progress.progress}%

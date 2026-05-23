@@ -42,13 +42,21 @@ export function Footer() {
 
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider mb-4 text-muted-foreground">Resources</h4>
-              <ul className="space-y-3 text-sm text-muted-foreground">
-                {['Documentation', 'System Design Guide', 'Blog', 'Changelog'].map((item) => (
-                  <li key={item} className="flex items-center gap-2">
-                    {item}
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground/60">soon</span>
-                  </li>
-                ))}
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <Link href="/docs" className="hover:opacity-70 transition-opacity text-muted-foreground">Documentation</Link>
+                </li>
+                <li>
+                  <Link href="/blogs" className="hover:opacity-70 transition-opacity text-muted-foreground">Engineering Blog</Link>
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  System Design Guide
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground/60">soon</span>
+                </li>
+                <li className="flex items-center gap-2 text-muted-foreground">
+                  Changelog
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground/60">soon</span>
+                </li>
               </ul>
             </div>
 

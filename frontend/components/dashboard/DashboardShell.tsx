@@ -7,8 +7,6 @@ import {
   Search,
   Bell,
   LayoutDashboard,
-  LayoutTemplate,
-  GraduationCap,
   FolderOpen,
   Sparkles,
   ChevronDown,
@@ -114,7 +112,8 @@ export function DashboardShell({ children, activePage }: DashboardShellProps) {
   const [showSettings, setShowSettings] = useState(false);
   
   useEffect(() => {
-    setMounted(true);
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const handleNewCanvas = () => {
@@ -134,12 +133,12 @@ export function DashboardShell({ children, activePage }: DashboardShellProps) {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6" style={{ background: 'hsl(var(--background))' }}>
+    <div className="min-h-screen p-4 md:p-6" style={{ background: 'hsl(var(--canvas-bg))' }}>
       <div className="max-w-[1400px] mx-auto grid md:grid-cols-[260px_1fr] gap-4 md:gap-6">
         {/* LEFT SIDEBAR */}
         <aside
-          className="hidden md:block rounded-[20px] p-4 self-start sticky top-6"
-          style={{ background: 'hsl(var(--card))', boxShadow: '0 10px 40px hsl(var(--foreground) / 0.06)', height: 'fit-content' }}
+          className="hidden md:block rounded-xl p-4 self-start sticky top-6 border border-[hsl(var(--border)/0.14)]"
+          style={{ background: 'hsl(var(--card) / 0.88)', boxShadow: '0 8px 28px hsl(var(--foreground) / 0.05)', height: 'fit-content' }}
         >
           {/* Logo & Title */}
           <div className="flex items-center gap-3 px-2 mb-2">
@@ -208,6 +207,16 @@ export function DashboardShell({ children, activePage }: DashboardShellProps) {
                 active={activePage === 'Learn'}
                 onClick={() => router.push('/dashboard/learn')}
               />
+              <SubmenuItem
+                label="Docs"
+                active={activePage === 'Docs'}
+                onClick={() => router.push('/docs')}
+              />
+              <SubmenuItem
+                label="Blog"
+                active={activePage === 'Blog'}
+                onClick={() => router.push('/blogs')}
+              />
             </div>
 
             {/* AI TOOLS Section */}
@@ -237,19 +246,21 @@ export function DashboardShell({ children, activePage }: DashboardShellProps) {
         <main className="space-y-6 md:space-y-8 overflow-hidden">
           {/* Header */}
           <header
-            className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 px-4 md:px-5 py-3 rounded-[20px]"
-            style={{ background: 'hsl(var(--card))', boxShadow: '0 10px 40px hsl(var(--foreground) / 0.06)' }}
+            className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 px-4 md:px-5 py-3 rounded-xl border border-[hsl(var(--border)/0.14)]"
+            style={{ background: 'hsl(var(--card) / 0.9)', boxShadow: '0 8px 28px hsl(var(--foreground) / 0.05)' }}
           >
             <h1 className="text-xl font-bold text-[hsl(var(--foreground))]">
               {activePage === 'Dashboard' && 'Dashboard'}
               {activePage === 'Templates' && 'Architecture Templates'}
               {activePage === 'Learn' && 'System Design Tutorials'}
               {activePage === 'Canvases-All' && 'All Canvases'}
+              {activePage === 'Docs' && 'Documentation'}
+              {activePage === 'Blog' && 'Engineering Blog'}
             </h1>
             <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto overflow-x-auto">
               <div
-                className="flex items-center gap-2 px-3 py-2 rounded-[12px] shrink-0"
-                style={{ background: 'hsl(var(--muted))' }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg shrink-0 border border-[hsl(var(--border)/0.12)]"
+                style={{ background: 'hsl(var(--background))' }}
               >
                 <Search className="w-4 h-4" style={{ color: 'hsl(var(--muted-foreground))' }} />
                 <input
@@ -261,14 +272,14 @@ export function DashboardShell({ children, activePage }: DashboardShellProps) {
               </div>
               <button
                 onClick={handleNewCanvas}
-                className="flex items-center gap-2 px-4 py-2 rounded-[12px] text-sm font-medium text-white transition-all shrink-0"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all shrink-0"
                 style={{ background: 'hsl(var(--foreground))' }}
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">New Canvas</span>
               </button>
               <button
-                className="p-2 rounded-[12px] transition-colors shrink-0"
+                className="p-2 rounded-lg transition-colors shrink-0"
                 style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}
               >
                 <Bell className="w-5 h-5" />

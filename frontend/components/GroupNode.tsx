@@ -1,15 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
-import { NodeProps } from 'reactflow';
+import { NodeProps, Handle, Position, useUpdateNodeInternals } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
 import { NodeResizer } from '@reactflow/node-resizer';
 import { useCanvasTheme } from '@/lib/theme';
 import '@reactflow/node-resizer/dist/style.css';
 
 export default function GroupNode({ id, data, selected }: NodeProps) {
+  const updateNodeInternals = useUpdateNodeInternals();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const { isDark } = useCanvasTheme();
+
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, updateNodeInternals]);
   
   const color = (data as { groupColor?: string })?.groupColor || '#3b82f6';
 
@@ -146,6 +151,19 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
           <span>{label || 'Group'}</span>
         )}
       </div>
+
+      {/* Invisible Handles for Edge Connections to Group Boundary */}
+      <Handle type="target" position={Position.Left} id="left" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', left: -4, top: '50%', transform: 'translateY(-50%)' }} />
+      <Handle type="source" position={Position.Left} id="left" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', left: -4, top: '50%', transform: 'translateY(-50%)' }} />
+
+      <Handle type="target" position={Position.Right} id="right" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', right: -4, top: '50%', transform: 'translateY(-50%)' }} />
+      <Handle type="source" position={Position.Right} id="right" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', right: -4, top: '50%', transform: 'translateY(-50%)' }} />
+
+      <Handle type="target" position={Position.Top} id="top" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', top: -4, left: '50%', transform: 'translateX(-50%)' }} />
+      <Handle type="source" position={Position.Top} id="top" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', top: -4, left: '50%', transform: 'translateX(-50%)' }} />
+
+      <Handle type="target" position={Position.Bottom} id="bottom" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', bottom: -4, left: '50%', transform: 'translateX(-50%)' }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', bottom: -4, left: '50%', transform: 'translateX(-50%)' }} />
     </div>
   );
 }

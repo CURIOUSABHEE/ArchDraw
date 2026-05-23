@@ -87,9 +87,19 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
     const isOffline = typeof window !== 'undefined' && !window.navigator.onLine;
     
     if (isOffline || !isReachable) {
-      // Throw a plain network error — GoTrue-js catches it as AuthRetryableFetchError
-      // which the authStore handles silently. Avoid returning 4xx which surfaces as AuthApiError.
-      throw new TypeError('Application is operating in guest mode (network unavailable)');
+      // Return a 503 response instead of throwing to prevent GoTrue-js from printing the TypeError to console.error.
+      // GoTrue-js converts 503 status code to AuthRetryableFetchError which is handled silently.
+      return new Response(
+        JSON.stringify({
+          error: 'service_unavailable',
+          message: 'Application is operating in guest mode (network unavailable)',
+        }),
+        {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     logger.warn('Supabase fetch failed, intercepting and degrading gracefully:', error);

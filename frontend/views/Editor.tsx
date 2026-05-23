@@ -15,7 +15,7 @@ import { GenerationProgressDisplay } from '@/components/GenerationProgress';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
+
 import { OnboardingOverlay } from '@/components/onboarding/OnboardingOverlay';
 import { useOnboarding } from '@/components/onboarding/useOnboarding';
 import { componentRegistry } from '@/lib/componentRegistry';
@@ -37,7 +37,7 @@ function generateCanvasName(prompt: string): string {
 export default function EditorPage() {
   const { 
     selectedNodeId, selectedEdgeId, nodes, edges, sidebarOpen, setSidebarOpen, 
-    importDiagram, importSequenceDiagram, fitView, addCanvas, renameCanvas, 
+    importDiagram, importSequenceDiagram, fitView, renameCanvas, 
     activeCanvasId, sequenceDiagrams 
   } = useDiagramStore();
   const { user } = useAuthStore();
@@ -56,66 +56,7 @@ export default function EditorPage() {
   useOnboarding();
 
 
-  // Auth init + canvas restore
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    const supabase = getSupabaseClient();
-    const { setUserProfile, loadCanvasesFromDB } = useDiagramStore.getState();
 
-    const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const u = session.user;
-        setUserProfile({
-          id: u.id,
-          email: u.email ?? undefined,
-          name: u.user_metadata?.full_name ?? u.user_metadata?.name ?? undefined,
-          avatar_url: u.user_metadata?.avatar_url ?? undefined,
-        });
-        await loadCanvasesFromDB();
-      }
-    };
-    initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const u = session.user;
-        setUserProfile({
-          id: u.id,
-          email: u.email ?? undefined,
-          name: u.user_metadata?.full_name ?? u.user_metadata?.name ?? undefined,
-          avatar_url: u.user_metadata?.avatar_url ?? undefined,
-        });
-        await loadCanvasesFromDB();
-        // Restore guest canvases
-        const saved = localStorage.getItem('guestCanvases');
-        if (saved) {
-          try {
-            const guestCanvases = JSON.parse(saved);
-            const supabase2 = getSupabaseClient();
-            for (const canvas of guestCanvases) {
-              if (canvas.nodes?.length > 0) {
-                await supabase2.from('user_canvases').insert({
-                  id: canvas.id,
-                  user_id: u.id,
-                  name: canvas.name,
-                  nodes: canvas.nodes,
-                  edges: canvas.edges,
-                } as any);
-              }
-            }
-            localStorage.removeItem('guestCanvases');
-            await loadCanvasesFromDB();
-          } catch { /* ignore */ }
-        }
-      }
-      if (event === 'SIGNED_OUT') {
-        setUserProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -270,7 +211,15 @@ export default function EditorPage() {
 
     try {
       // Pass the existing canvas state to the API so the AI can act as a modifier
-      const payload: any = { description, model, stream: true };
+      const payload: {
+        description: string;
+        model?: string;
+        stream: boolean;
+        existingContext?: {
+          nodes: Node[];
+          edges: Edge[];
+        };
+      } = { description, model, stream: true };
       if (!isCurrentCanvasEmpty) {
         payload.existingContext = { nodes, edges };
       }
@@ -313,9 +262,9 @@ export default function EditorPage() {
               if (event.type === 'progress') {
                 setProgress({
                   phase: event.phase || 'generating',
-                  iteration: 0,
-                  currentAgent: event.phase || 'generating',
-                  score: 0,
+                  iteration: event.iteration || 0,
+                  currentAgent: event.currentAgent || event.phase || 'generating',
+                  score: event.score || 0,
                   message: event.message || 'Generating...',
                   progress: event.progress || 50,
                 });

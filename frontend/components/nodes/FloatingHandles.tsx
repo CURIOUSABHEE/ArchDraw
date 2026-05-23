@@ -56,13 +56,13 @@ export function FloatingHandles({
       <Handle
         type="target"
         position={Position.Left}
-        id="target-left"
+        id="left"
         style={{ ...handleStyle, left: leftOffset, top: '50%', transform: 'translateY(-50%)' }}
       />
       <Handle
         type="source"
         position={Position.Left}
-        id="source-left"
+        id="left"
         style={{ ...handleStyle, left: leftOffset, top: '50%', transform: 'translateY(-50%)' }}
       />
 
@@ -70,13 +70,13 @@ export function FloatingHandles({
       <Handle
         type="target"
         position={Position.Right}
-        id="target-right"
+        id="right"
         style={{ ...handleStyle, right: -rightOffset, top: '50%', transform: 'translateY(-50%)' }}
       />
       <Handle
         type="source"
         position={Position.Right}
-        id="source-right"
+        id="right"
         style={{ ...handleStyle, right: -rightOffset, top: '50%', transform: 'translateY(-50%)' }}
       />
 
@@ -84,13 +84,13 @@ export function FloatingHandles({
       <Handle
         type="target"
         position={Position.Top}
-        id="target-top"
+        id="top"
         style={{ ...handleStyle, top: topOffset, left: '50%', transform: 'translateX(-50%)' }}
       />
       <Handle
         type="source"
         position={Position.Top}
-        id="source-top"
+        id="top"
         style={{ ...handleStyle, top: topOffset, left: '50%', transform: 'translateX(-50%)' }}
       />
 
@@ -98,13 +98,13 @@ export function FloatingHandles({
       <Handle
         type="target"
         position={Position.Bottom}
-        id="target-bottom"
+        id="bottom"
         style={{ ...handleStyle, bottom: -bottomOffset, left: '50%', transform: 'translateX(-50%)' }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        id="source-bottom"
+        id="bottom"
         style={{ ...handleStyle, bottom: -bottomOffset, left: '50%', transform: 'translateX(-50%)' }}
       />
     </>

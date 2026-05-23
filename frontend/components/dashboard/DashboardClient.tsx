@@ -10,16 +10,17 @@ import { NewCanvasCard } from '@/components/dashboard/NewCanvasCard';
 import { TemplatePreviewCard } from '@/components/dashboard/TemplatePreviewCard';
 import { CanvasCard } from '@/components/dashboard/CanvasCard';
 import { getLayoutedElements } from '@/lib/layoutUtils';
+import type { Template } from '@/data/templates';
 
 interface DashboardClientProps {
-  templates: any[];
+  templates: Template[];
   aiPrompts: string[];
 }
 
 export function DashboardClient({ templates, aiPrompts }: DashboardClientProps) {
   const router = useRouter();
   const { initialized } = useAuthStore();
-  const [layoutedTemplates, setLayoutedTemplates] = useState<any[]>(templates);
+  const [layoutedTemplates, setLayoutedTemplates] = useState<Template[]>(templates);
   const {
     canvases,
     addCanvas,
@@ -87,10 +88,15 @@ export function DashboardClient({ templates, aiPrompts }: DashboardClientProps) 
 
       {/* Your Work Section */}
       <div>
-        <h2 className="text-lg font-semibold text-[#1A1A1A] dark:text-white mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-[hsl(var(--foreground))]">
           Your Work
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          </h2>
+          <span className="hidden sm:inline text-xs font-medium text-[hsl(var(--muted-foreground))]">
+            {canvases.length} saved canvases
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {/* New Canvas Card - always first in grid */}
           <NewCanvasCard
             onClick={() => handleNewCanvas()}

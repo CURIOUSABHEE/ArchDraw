@@ -67,6 +67,15 @@ const nextConfig: NextConfig = {
   logging: {
     fetches: { fullUrl: false },
   },
+  async redirects() {
+    return [
+      {
+        source: '/blog',
+        destination: '/blogs',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

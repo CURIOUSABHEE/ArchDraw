@@ -30,7 +30,6 @@ const HANDLE_STYLE = (color: string) => ({
   boxShadow: '0 2px 8px hsl(var(--foreground) / 0.15)',
 });
 
-/** Four-directional handles shared by all shapes */
 function Handles({ color, nodeId }: { color: string; nodeId: string }) {
   const updateNodeInternals = useUpdateNodeInternals();
   const s = HANDLE_STYLE(color);
@@ -42,10 +41,21 @@ function Handles({ color, nodeId }: { color: string; nodeId: string }) {
   
   return (
     <>
-      <Handle type="target" position={Position.Left}   style={sLeft} />
-      <Handle type="source" position={Position.Right}  style={s} />
-      <Handle type="target" position={Position.Top}    style={s} />
-      <Handle type="source" position={Position.Bottom} style={s} />
+      {/* Left side */}
+      <Handle type="target" position={Position.Left} id="left" style={sLeft} />
+      <Handle type="source" position={Position.Left} id="left" style={sLeft} />
+
+      {/* Right side */}
+      <Handle type="target" position={Position.Right} id="right" style={s} />
+      <Handle type="source" position={Position.Right} id="right" style={s} />
+
+      {/* Top side */}
+      <Handle type="target" position={Position.Top} id="top" style={s} />
+      <Handle type="source" position={Position.Top} id="top" style={s} />
+
+      {/* Bottom side */}
+      <Handle type="target" position={Position.Bottom} id="bottom" style={s} />
+      <Handle type="source" position={Position.Bottom} id="bottom" style={s} />
     </>
   );
 }
@@ -86,7 +96,7 @@ function Backplates({ layers, borderRadius }: { layers: { offset: number; color:
 
 // ── Individual shape renderers ────────────────────────────────────────────────
 
-function Rectangle({ data, selected, rounded, backplates }: { data: ShapeNodeData; selected: boolean; rounded: boolean; backplates: { offset: number; color: string }[] }) {
+function Rectangle({ id, data, selected, rounded, backplates }: { id: string; data: ShapeNodeData; selected: boolean; rounded: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const r = rounded ? 14 : 8;
   return (
@@ -109,14 +119,14 @@ function Rectangle({ data, selected, rounded, backplates }: { data: ShapeNodeDat
           transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        <Handles color={color} nodeId={`shape-${data.label}`} />
+        <Handles color={color} nodeId={id} />
         <Label label={data.label} sublabel={data.sublabel} color={color} />
       </div>
     </div>
   );
 }
 
-function Diamond({ data, selected, backplates }: { data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
+function Diamond({ id, data, selected, backplates }: { id: string; data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 140, H = 80;
   return (
@@ -139,7 +149,7 @@ function Diamond({ data, selected, backplates }: { data: ShapeNodeData; selected
           filter={selected ? `drop-shadow(0 0 8px ${color}40)` : 'none'}
         />
       </svg>
-      <Handles color={color} nodeId={`diamond-${data.label}`} />
+      <Handles color={color} nodeId={id} />
       <div
         style={{
           position: 'absolute', inset: 0,
@@ -152,7 +162,7 @@ function Diamond({ data, selected, backplates }: { data: ShapeNodeData; selected
   );
 }
 
-function Cylinder({ data, selected, backplates }: { data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
+function Cylinder({ id, data, selected, backplates }: { id: string; data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 120, H = 90, RY = 14;
   const stroke = selected ? color : `${color}60`;
@@ -180,7 +190,7 @@ function Cylinder({ data, selected, backplates }: { data: ShapeNodeData; selecte
         {/* Top ellipse (drawn last so it overlaps body top edge) */}
         <ellipse cx={W / 2} cy={RY} rx={(W - 4) / 2} ry={RY} fill={`${color}18`} stroke={stroke} strokeWidth={strokeW} />
       </svg>
-      <Handles color={color} nodeId={`cylinder-${data.label}`} />
+      <Handles color={color} nodeId={id} />
       <div
         style={{
           position: 'absolute', inset: 0,
@@ -193,7 +203,7 @@ function Cylinder({ data, selected, backplates }: { data: ShapeNodeData; selecte
   );
 }
 
-function Circle({ data, selected, backplates }: { data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
+function Circle({ id, data, selected, backplates }: { id: string; data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 100, H = 100;
   return (
@@ -207,7 +217,7 @@ function Circle({ data, selected, backplates }: { data: ShapeNodeData; selected:
           strokeWidth={selected ? 2 : 1.5}
         />
       </svg>
-      <Handles color={color} nodeId={`circle-${data.label}`} />
+      <Handles color={color} nodeId={id} />
       <div
         style={{
           position: 'absolute', inset: 0,
@@ -220,7 +230,7 @@ function Circle({ data, selected, backplates }: { data: ShapeNodeData; selected:
   );
 }
 
-function Parallelogram({ data, selected, backplates }: { data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
+function Parallelogram({ id, data, selected, backplates }: { id: string; data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const W = 150, H = 70, SKEW = 20;
   const pts = `${SKEW},2 ${W - 2},2 ${W - SKEW - 2},${H - 2} 2,${H - 2}`;
@@ -242,7 +252,7 @@ function Parallelogram({ data, selected, backplates }: { data: ShapeNodeData; se
           strokeWidth={selected ? 2 : 1.5}
         />
       </svg>
-      <Handles color={color} nodeId={`parallelogram-${data.label}`} />
+      <Handles color={color} nodeId={id} />
       <div
         style={{
           position: 'absolute', inset: 0,
@@ -257,18 +267,18 @@ function Parallelogram({ data, selected, backplates }: { data: ShapeNodeData; se
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-function ShapeNodeComponent({ data, selected }: NodeProps<ShapeNodeData>) {
+function ShapeNodeComponent({ id, data, selected }: NodeProps<ShapeNodeData>) {
   const { isDark } = useCanvasTheme();
   const styles = isDark ? DARK_NODE_STYLES : LIGHT_NODE_STYLES;
   const backplates = styles.backplates;
 
   switch (data.shape) {
-    case 'diamond':          return <Diamond data={data} selected={!!selected} backplates={backplates} />;
-    case 'cylinder':         return <Cylinder data={data} selected={!!selected} backplates={backplates} />;
-    case 'circle':           return <Circle data={data} selected={!!selected} backplates={backplates} />;
-    case 'parallelogram':    return <Parallelogram data={data} selected={!!selected} backplates={backplates} />;
-    case 'rounded-rectangle': return <Rectangle data={data} selected={!!selected} rounded backplates={backplates} />;
-    default:                 return <Rectangle data={data} selected={!!selected} rounded={false} backplates={backplates} />;
+    case 'diamond':          return <Diamond id={id} data={data} selected={!!selected} backplates={backplates} />;
+    case 'cylinder':         return <Cylinder id={id} data={data} selected={!!selected} backplates={backplates} />;
+    case 'circle':           return <Circle id={id} data={data} selected={!!selected} backplates={backplates} />;
+    case 'parallelogram':    return <Parallelogram id={id} data={data} selected={!!selected} backplates={backplates} />;
+    case 'rounded-rectangle': return <Rectangle id={id} data={data} selected={!!selected} rounded backplates={backplates} />;
+    default:                 return <Rectangle id={id} data={data} selected={!!selected} rounded={false} backplates={backplates} />;
   }
 }
 

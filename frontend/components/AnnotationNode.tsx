@@ -260,10 +260,21 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
           boxShadow: selected ? '0 0 0 2px hsl(var(--ring)/0.3)' : undefined,
         }}
       >
-        <Handle type="target" position={Position.Left}   style={{ ...handleStyle, left: -15 }} />
-        <Handle type="source" position={Position.Right}  style={handleStyle} />
-        <Handle type="target" position={Position.Top}    style={handleStyle} />
-        <Handle type="source" position={Position.Bottom} style={handleStyle} />
+        {/* Left side */}
+        <Handle type="target" position={Position.Left} id="left" style={{ ...handleStyle, left: -15 }} />
+        <Handle type="source" position={Position.Left} id="left" style={{ ...handleStyle, left: -15 }} />
+
+        {/* Right side */}
+        <Handle type="target" position={Position.Right} id="right" style={handleStyle} />
+        <Handle type="source" position={Position.Right} id="right" style={handleStyle} />
+
+        {/* Top side */}
+        <Handle type="target" position={Position.Top} id="top" style={handleStyle} />
+        <Handle type="source" position={Position.Top} id="top" style={handleStyle} />
+
+        {/* Bottom side */}
+        <Handle type="target" position={Position.Bottom} id="bottom" style={handleStyle} />
+        <Handle type="source" position={Position.Bottom} id="bottom" style={handleStyle} />
 
         {editingTitle && (
           <div 

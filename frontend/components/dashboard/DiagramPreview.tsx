@@ -1,8 +1,20 @@
 'use client';
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import type { Node, Edge } from 'reactflow';
-import { getBezierPath, ReactFlow, Background, ReactFlowProvider, BackgroundVariant } from 'reactflow';
+import {
+  getBezierPath,
+  getSmoothStepPath,
+  getStraightPath,
+  Position,
+} from 'reactflow';
+import {
+  getEdgeShiftOffset,
+  getNodeCenter,
+  getSimpleEdgePositions,
+  getSimpleHandlePosition,
+} from '@/lib/utils/simpleFloatingEdge';
+import { EDGE_TYPE_CONFIGS, getEdgeConfig, type EdgeType } from '@/data/edgeTypes';
 
 interface DiagramPreviewProps {
   nodes: Node[];
@@ -12,8 +24,54 @@ interface DiagramPreviewProps {
   simplified?: boolean;
 }
 
-const DEFAULT_NODE_WIDTH = 140;
-const DEFAULT_NODE_HEIGHT = 72;
+const DEFAULT_NODE_WIDTH = 160;
+const DEFAULT_NODE_HEIGHT = 80;
+const NODE_RADIUS = 10;
+
+function getNodeWidth(node: Node): number {
+  return Number(node.data?.nodeWidth) || node.width || DEFAULT_NODE_WIDTH;
+}
+
+function getNodeHeight(node: Node): number {
+  return Number(node.data?.nodeHeight) || node.height || DEFAULT_NODE_HEIGHT;
+}
+
+function getTierColor(layer?: string): string {
+  const tier = (layer || 'compute').toLowerCase();
+  const colorMap: Record<string, string> = {
+    client: '#64748b',
+    edge: '#6366f1',
+    gateway: '#6366f1',
+    compute: '#0d9488',
+    service: '#0d9488',
+    async: '#d97706',
+    queue: '#d97706',
+    data: '#3b82f6',
+    database: '#3b82f6',
+    observe: '#8b5cf6',
+    external: '#ec4899',
+    devops: '#f97316',
+  };
+  return colorMap[tier] || colorMap.compute;
+}
+
+function getEdgeType(edge: Edge): EdgeType {
+  return (edge.data?.connectionType || edge.data?.edgeType || 'sync') as EdgeType;
+}
+
+function getEdgeColor(edge: Edge): string {
+  if (edge.data?.color) return edge.data.color;
+  const config = getEdgeConfig(getEdgeType(edge));
+  return config.color || EDGE_TYPE_CONFIGS.sync.color;
+}
+
+function getEdgeDashArray(edge: Edge): string | undefined {
+  if (edge.style?.strokeDasharray) return String(edge.style.strokeDasharray);
+  if (edge.data?.edgeVariant === 'dotted' || edge.data?.connectionType === 'dotted') return '2,4';
+  if (edge.data?.edgeVariant === 'dashed') return '8,4';
+  const config = getEdgeConfig(getEdgeType(edge));
+  return config.dash || undefined;
+}
 
 export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: DiagramPreviewProps) {
   const nodeCount = nodes?.length || 0;
@@ -33,8 +91,8 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
     nodes.forEach((node) => {
       const x = node.position.x;
       const y = node.position.y;
-      const w = node.width || DEFAULT_NODE_WIDTH;
-      const h = node.height || DEFAULT_NODE_HEIGHT;
+      const w = getNodeWidth(node);
+      const h = getNodeHeight(node);
 
       minX = Math.min(minX, x);
       minY = Math.min(minY, y);
@@ -42,8 +100,8 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
       maxY = Math.max(maxY, y + h);
     });
 
-    // Add some breathing room
-    const paddingAdjustment = 50;
+    // Match canvas fitView more closely without making first-row cards look padded.
+    const paddingAdjustment = 28;
     minX -= paddingAdjustment;
     minY -= paddingAdjustment;
     maxX += paddingAdjustment;
@@ -82,123 +140,67 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
     };
   };
 
-  const getNodeColor = (node: Node): string => {
-    if (node.data?.color) return node.data.color;
-    if (node.data?.layer) {
-      const layerColors: Record<string, string> = {
-        client: '#5A5A5A',
-        gateway: '#8B5CF6',
-        service: '#3B82F6',
-        queue: '#F59E0B',
-        database: '#10B981',
-        cache: '#EC4899',
-        external: '#6B7280',
-        devops: '#F97316',
-      };
-      return layerColors[node.data.layer as string] || '#3B82F6';
-    }
-    return '#3B82F6';
-  };
+  const previewNodeInternals = useMemo(() => {
+    return new Map(
+      nodes.map((node) => [
+        node.id,
+        {
+          ...node,
+          width: getNodeWidth(node),
+          height: getNodeHeight(node),
+          positionAbsolute: node.position,
+        } as Node,
+      ])
+    );
+  }, [nodes]);
 
-  const getEdgeColor = (edge: Edge): string => {
-    const edgeType = edge.data?.connectionType as string || edge.data?.edgeType as string;
-    if (edgeType === 'async' || edgeType === 'error' || edgeType === 'success') {
-      const colors: Record<string, string> = {
-        async: '#F59E0B',
-        error: '#EF4444',
-        success: '#10B981',
-      };
-      return colors[edgeType] || '#94A3B8';
-    }
-    return '#94A3B8';
-  };
-
-  const getDashArray = (edge: Edge): string => {
-    const edgeType = edge.data?.connectionType as string || edge.data?.edgeType as string;
-    if (edgeType === 'async') return '8,4';
-    return '';
-  };
-
-  // Generate edge path using React Flow's internal functions
+  // Generate edge path with the same side selection and handle offsets as SimpleFloatingEdge.
   const generateEdgePath = (edge: Edge, sourceNode: Node, targetNode: Node): string => {
     if (!sourceNode || !targetNode) return '';
 
-    const sourceHandle = edge.sourceHandle;
-    const targetHandle = edge.targetHandle;
-
-    // Determine handle positions
-    const sourceWidth = sourceNode.width || DEFAULT_NODE_WIDTH;
-    const sourceHeight = sourceNode.height || DEFAULT_NODE_HEIGHT;
-    const targetWidth = targetNode.width || DEFAULT_NODE_WIDTH;
-    const targetHeight = targetNode.height || DEFAULT_NODE_HEIGHT;
-
-    // Calculate handle positions based on handles
-    let sourceX = sourceNode.position.x;
-    let sourceY = sourceNode.position.y;
-    let targetX = targetNode.position.x;
-    let targetY = targetNode.position.y;
-
-    // Source handle position
-    if (sourceHandle === 'left') {
-      sourceX = sourceNode.position.x;
-      sourceY = sourceNode.position.y + sourceHeight / 2;
-    } else if (sourceHandle === 'right') {
-      sourceX = sourceNode.position.x + sourceWidth;
-      sourceY = sourceNode.position.y + sourceHeight / 2;
-    } else if (sourceHandle === 'top') {
-      sourceX = sourceNode.position.x + sourceWidth / 2;
-      sourceY = sourceNode.position.y;
-    } else if (sourceHandle === 'bottom') {
-      sourceX = sourceNode.position.x + sourceWidth / 2;
-      sourceY = sourceNode.position.y + sourceHeight;
-    } else {
-      // Default: center of source
-      sourceX = sourceNode.position.x + sourceWidth / 2;
-      sourceY = sourceNode.position.y + sourceHeight / 2;
-    }
-
-    // Target handle position
-    if (targetHandle === 'left') {
-      targetX = targetNode.position.x;
-      targetY = targetNode.position.y + targetHeight / 2;
-    } else if (targetHandle === 'right') {
-      targetX = targetNode.position.x + targetWidth;
-      targetY = targetNode.position.y + targetHeight / 2;
-    } else if (targetHandle === 'top') {
-      targetX = targetNode.position.x + targetWidth / 2;
-      targetY = targetNode.position.y;
-    } else if (targetHandle === 'bottom') {
-      targetX = targetNode.position.x + targetWidth / 2;
-      targetY = targetNode.position.y + targetHeight;
-    } else {
-      // Default: center of target
-      targetX = targetNode.position.x + targetWidth / 2;
-      targetY = targetNode.position.y + targetHeight / 2;
-    }
+    const hydratedSource = previewNodeInternals.get(sourceNode.id) || sourceNode;
+    const hydratedTarget = previewNodeInternals.get(targetNode.id) || targetNode;
+    const sCenter = getNodeCenter(hydratedSource);
+    const tCenter = getNodeCenter(hydratedTarget);
+    const { sourcePos, targetPos } = getSimpleEdgePositions(sCenter.cx, sCenter.cy, tCenter.cx, tCenter.cy);
+    const sourceShift = getEdgeShiftOffset(sourceNode.id, edge.id, sourcePos, edges, previewNodeInternals, 15);
+    const targetShift = getEdgeShiftOffset(targetNode.id, edge.id, targetPos, edges, previewNodeInternals, 15);
+    const sourceHandle = getSimpleHandlePosition(sCenter.x, sCenter.y, sCenter.width, sCenter.height, sourcePos, sourceShift);
+    const targetHandle = getSimpleHandlePosition(tCenter.x, tCenter.y, tCenter.width, tCenter.height, targetPos, targetShift);
 
     // Transform to viewBox coordinates
-    const tSource = transform(sourceX, sourceY);
-    const tTarget = transform(targetX, targetY);
+    const tSource = transform(sourceHandle.x, sourceHandle.y);
+    const tTarget = transform(targetHandle.x, targetHandle.y);
+    const normalizedPathType = String(edge.data?.pathType || getEdgeConfig(getEdgeType(edge)).pathType || 'Smoothstep').toLowerCase();
 
-    const pathType = edge.data?.pathType as string || 'bezier';
-
-    // Simple path generation for each type
-    if (pathType === 'straight') {
-      return `M ${tSource.x} ${tSource.y} L ${tTarget.x} ${tTarget.y}`;
+    if (normalizedPathType === 'straight') {
+      const [path] = getStraightPath({
+        sourceX: tSource.x,
+        sourceY: tSource.y,
+        targetX: tTarget.x,
+        targetY: tTarget.y,
+      });
+      return path;
     }
 
-    if (pathType === 'smoothstep') {
-      // Smoothstep: horizontal -> vertical -> horizontal
-      const midX = (tSource.x + tTarget.x) / 2;
-      return `M ${tSource.x} ${tSource.y} H ${midX} V ${tTarget.y} H ${tTarget.x}`;
+    if (normalizedPathType === 'bezier') {
+      const [path] = getBezierPath({
+        sourceX: tSource.x,
+        sourceY: tSource.y,
+        targetX: tTarget.x,
+        targetY: tTarget.y,
+      });
+      return path;
     }
 
-    // Default: bezier curve using React Flow's internal formula
-    const [path] = getBezierPath({
+    const [path] = getSmoothStepPath({
       sourceX: tSource.x,
       sourceY: tSource.y,
+      sourcePosition: sourcePos as Position,
       targetX: tTarget.x,
       targetY: tTarget.y,
+      targetPosition: targetPos as Position,
+      borderRadius: 50 * scale,
     });
     return path;
   };
@@ -214,7 +216,7 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
   }
 
   return (
-    <div className="w-full h-full" style={{ background: '#FAFAFA' }}>
+    <div className="w-full h-full" style={{ background: 'hsl(var(--canvas-bg))' }}>
       <svg
         width="100%"
         height="100%"
@@ -222,17 +224,28 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          <marker
-            id={`preview-arrowhead-${scale}`}
-            markerWidth="8"
-            markerHeight="8"
-            refX="6"
-            refY="3"
-            orient="auto"
-          >
-            <path d="M0,0 L0,6 L8,3 z" fill="#94A3B8" />
-          </marker>
+          <pattern id={`preview-grid-${width}-${height}`} width="16" height="16" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.55" fill="hsl(var(--grid-color))" opacity="0.65" />
+          </pattern>
+          {edges.map((edge, index) => {
+            const color = getEdgeColor(edge);
+            return (
+              <marker
+                key={`${edge.id || 'edge'}-${index}-marker`}
+                id={`preview-arrowhead-${edge.id || index}`}
+                markerWidth="4"
+                markerHeight="4"
+                refX="3.4"
+                refY="2"
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <path d="M 0 0 L 0 4 L 4 2 z" fill={color} />
+              </marker>
+            );
+          })}
         </defs>
+        <rect width={width} height={height} fill={`url(#preview-grid-${width}-${height})`} />
 
         {/* Render edges first (behind nodes) */}
         {edges.map((edge, index) => {
@@ -249,10 +262,13 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
               d={path}
               fill="none"
               stroke={getEdgeColor(edge)}
-              strokeWidth={1.5 * scale}
-              strokeDasharray={getDashArray(edge)}
-              markerEnd={`url(#preview-arrowhead-${scale})`}
-              opacity={0.7}
+              strokeWidth={1.5}
+              strokeDasharray={getEdgeDashArray(edge)}
+              markerEnd={`url(#preview-arrowhead-${edge.id || index})`}
+              opacity={0.85}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
             />
           );
         })}
@@ -261,14 +277,14 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
         {nodes.map((node) => {
           const { x, y } = transform(node.position.x, node.position.y);
           const { width: w, height: h } = transformSize(
-            node.width || DEFAULT_NODE_WIDTH,
-            node.height || DEFAULT_NODE_HEIGHT
+            getNodeWidth(node),
+            getNodeHeight(node)
           );
 
           // Skip if outside visible area
           if (x + w < -10 || x > width + 10 || y + h < -10 || y > height + 10) return null;
 
-          const nodeColor = getNodeColor(node);
+          const accentColor = node.data?.accentColor || node.data?.color || getTierColor(node.data?.layer as string | undefined);
           const isGroup = node.type === 'group' || node.data?.isGroup;
 
           if (isGroup) {
@@ -297,84 +313,87 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
                 y={y}
                 width={w}
                 height={h}
-                rx={4 * scale}
-                fill={nodeColor}
-                fillOpacity={0.9}
+                rx={NODE_RADIUS * scale}
+                fill="#efefe8"
+                transform={`translate(${10 * scale} ${10 * scale})`}
+                opacity={0.95}
               />
-              {node.data?.label && w > 20 && h > 15 && (
+              <rect
+                x={x}
+                y={y}
+                width={w}
+                height={h}
+                rx={NODE_RADIUS * scale}
+                fill="#e1e1da"
+                transform={`translate(${5 * scale} ${5 * scale})`}
+                opacity={0.95}
+              />
+              <rect
+                x={x}
+                y={y}
+                width={w}
+                height={h}
+                rx={NODE_RADIUS * scale}
+                fill="#fefefe"
+                stroke="#595959"
+                strokeWidth={1.5}
+                vectorEffect="non-scaling-stroke"
+              />
+              {w > 28 && h > 18 && (
+                <>
+                  <rect
+                    x={x + 10 * scale}
+                    y={y + 8 * scale}
+                    width={24 * scale}
+                    height={24 * scale}
+                    rx={6 * scale}
+                    fill={accentColor}
+                    opacity={0.12}
+                  />
+                  <rect
+                    x={x + 17 * scale}
+                    y={y + 15 * scale}
+                    width={10 * scale}
+                    height={10 * scale}
+                    rx={2.5 * scale}
+                    fill={accentColor}
+                  />
+                </>
+              )}
+              {node.data?.label && w > 72 && h > 32 && (
                 <text
-                  x={x + w / 2}
-                  y={y + h / 2}
-                  textAnchor="middle"
+                  x={x + 40 * scale}
+                  y={y + 24 * scale}
+                  textAnchor="start"
                   dominantBaseline="middle"
-                  fontSize={Math.max(6, Math.min(10, w * 0.15))}
-                  fontWeight="600"
-                  fill="white"
+                  fontSize={Math.max(4.5, 12 * scale)}
+                  fontWeight="700"
+                  fill="#595959"
                 >
-                  {node.data.label.length > 8
-                    ? node.data.label.slice(0, 8) + '..'
+                  {String(node.data.label).length > 18
+                    ? String(node.data.label).slice(0, 18) + '...'
                     : node.data.label}
+                </text>
+              )}
+              {node.data?.subtitle && w > 96 && h > 52 && (
+                <text
+                  x={x + 10 * scale}
+                  y={y + h - 12 * scale}
+                  textAnchor="start"
+                  dominantBaseline="middle"
+                  fontSize={Math.max(4, 10 * scale)}
+                  fontWeight="500"
+                  fill="#7a7a7a"
+                >
+                  {String(node.data.subtitle).length > 22
+                    ? String(node.data.subtitle).slice(0, 22) + '...'
+                    : node.data.subtitle}
                 </text>
               )}
             </g>
           );
         })}
       </svg>
-    </div>
-  );
-}
-
-// Lightweight React Flow wrapper for accurate preview
-interface ReactFlowPreviewProps {
-  nodes: Node[];
-  edges: Edge[];
-  width?: number;
-  height?: number;
-}
-
-export function ReactFlowPreview({ nodes, edges, width = 280, height = 160 }: ReactFlowPreviewProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className="w-full h-full bg-gray-100 animate-pulse" style={{ background: '#FAFAFA' }} />
-    );
-  }
-
-  return (
-    <div className="w-full h-full" style={{ width, height }}>
-      <ReactFlowProvider>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
-          minZoom={0.1}
-          maxZoom={2}
-          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-          proOptions={{ hideAttribution: true }}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          panOnDrag={false}
-          panOnScroll={false}
-          zoomOnScroll={false}
-          zoomOnPinch={false}
-          zoomOnDoubleClick={false}
-        >
-          <Background 
-            variant={BackgroundVariant.Dots} 
-            gap={15} 
-            size={1.5} 
-            color="#64748b" 
-            style={{ opacity: 0.4 }}
-          />
-        </ReactFlow>
-      </ReactFlowProvider>
     </div>
   );
 }

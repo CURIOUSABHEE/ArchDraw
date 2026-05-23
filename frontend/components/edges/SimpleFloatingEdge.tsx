@@ -186,7 +186,12 @@ export default function SimpleFloatingEdge({
 
   const pathType = data?.pathType || 'Smoothstep';
   const edgeLabel = data?.label?.trim();
-  const labelT = data?.labelT ?? 0.5;
+  const sharedEndpointEdges = useMemo(
+    () => edges.filter((edge) => edge.source === source || edge.target === target || edge.source === target || edge.target === source),
+    [edges, source, target]
+  );
+  const labelOrder = Math.max(0, sharedEndpointEdges.findIndex((edge) => edge.id === id));
+  const labelT = data?.labelT ?? Math.max(0.32, Math.min(0.68, 0.5 + ((labelOrder % 3) - 1) * 0.08));
   
   let edgePath: string;
   if (pathType === 'straight') {
@@ -302,10 +307,10 @@ export default function SimpleFloatingEdge({
               fontWeight: isDark ? 'bold' : 600,
               color: isDark ? '#CBD5E1' : '#6B7280',
               background: isDark
-                ? 'rgba(30, 34, 53, 0.9)'
+                ? 'rgba(30, 34, 53, 0.86)'
                 : dragging
                 ? 'hsl(220 80% 97% / 1)'
-                : 'hsl(60 33% 98% / 1)',
+                : 'hsl(60 33% 98% / 0.88)',
               padding: '2px 6px',
               borderRadius: 4,
               border: isDark

@@ -1101,11 +1101,13 @@ body {
 
 /* Drafting-style dashed borders */
 .draft-border {
-  border: 1.5px dashed hsl(var(--border) / 0.5);
-  transition: border-color 0.2s;
+  border: 1.5px dashed hsl(var(--border) / 0.38);
+  box-shadow: inset 0 0 0 1px hsl(var(--card) / 0.45), 0 8px 24px hsl(var(--foreground) / 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 .draft-border:hover {
-  border-color: hsl(var(--border));
+  border-color: hsl(var(--border) / 0.72);
+  box-shadow: inset 0 0 0 1px hsl(var(--card) / 0.6), 0 12px 32px hsl(var(--foreground) / 0.07);
 }
 
 /* Subtle grid background */
@@ -1116,16 +1118,17 @@ body {
 
 /* Canvas card hover lift */
 .canvas-card {
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 .canvas-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 48px hsl(var(--foreground) / 0.08);
+  border-color: hsl(var(--border) / 0.28);
+  box-shadow: 0 14px 36px hsl(var(--foreground) / 0.08) !important;
 }
 .dark .canvas-card:hover {
   box-shadow:
     0 1px 0 hsl(215 25% 22% / 0.4),
-    0 12px 48px hsl(0 0% 0% / 0.3);
+    0 14px 36px hsl(0 0% 0% / 0.3) !important;
 }
 
 /* Template preview card */

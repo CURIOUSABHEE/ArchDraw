@@ -4,10 +4,10 @@ import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useTutorialStore } from '@/store/tutorialStore';
-import { isSupabaseConfigured, getSupabaseClient, type TutorialProgressTable, type UserCanvasesTable } from '@/lib/supabase';
+import { isSupabaseConfigured, getSupabaseClient, isReachable, type TutorialProgressTable, type UserCanvasesTable } from '@/lib/supabase';
 
 async function migrateGuestProgress(userId: string) {
-  if (!isSupabaseConfigured) return;
+  if (!isSupabaseConfigured || !isReachable) return;
   const { richProgress } = useTutorialStore.getState();
   const entries = Object.entries(richProgress);
   if (entries.length === 0) return;
@@ -38,7 +38,7 @@ async function migrateGuestProgress(userId: string) {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { initialize, user } = useAuthStore();
+  const { initialize, user, initialized } = useAuthStore();
   const prevUserIdRef = useRef<string | null>(null);
   const initializedRef = useRef(false);
 
@@ -80,7 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!initialized || !isSupabaseConfigured) return;
+    
+    const isOffline = typeof window !== 'undefined' && !window.navigator.onLine;
+    if (!isReachable || isOffline) return;
     
     const supabase = getSupabaseClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {

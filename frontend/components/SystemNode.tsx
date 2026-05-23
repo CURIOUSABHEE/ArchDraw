@@ -185,6 +185,7 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         { offset: 5, color: '#e1e1da' },
       ]);
 
+
   // Dark mode details
   const catStyle = getDarkCategoryStyle(nodeData.layer);
   const borderCol = isDark ? catStyle.border : (selected ? accentColor : styles.border);

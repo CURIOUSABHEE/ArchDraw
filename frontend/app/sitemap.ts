@@ -18,6 +18,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     { url: 'https://archdraw.app', lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },
+    { url: 'https://archdraw.app/docs', lastModified: new Date(), changeFrequency: 'monthly', priority: 0.85 },
     { url: 'https://archdraw.app/tutorials', lastModified: new Date(), changeFrequency: 'weekly', priority: 0.9 },
     { url: 'https://archdraw.app/editor', lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
     { url: 'https://archdraw.app/privacy', lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },

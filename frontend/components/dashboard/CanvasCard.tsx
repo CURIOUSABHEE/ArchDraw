@@ -65,17 +65,17 @@ export function CanvasCard({ id, name, nodes, edges, updatedAt, isPinned, isFavo
 
   return (
     <div
-      className="canvas-card rounded-[20px] overflow-hidden cursor-pointer bg-[hsl(var(--card))]"
-      style={{ boxShadow: '0 2px 8px hsl(var(--foreground) / 0.06)' }}
+      className="canvas-card h-[280px] rounded-xl overflow-hidden cursor-pointer bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.16)] flex flex-col"
+      style={{ boxShadow: '0 8px 24px hsl(var(--foreground) / 0.05)' }}
       onClick={onClick}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <div className="h-40 relative overflow-hidden">
-        <DiagramPreview nodes={nodes} edges={edges} width={280} height={160} />
+      <div className="h-[188px] relative overflow-hidden border-b border-[hsl(var(--border)/0.12)]">
+        <DiagramPreview nodes={nodes} edges={edges} width={320} height={188} />
         
         {/* Type tag */}
-        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/90 dark:bg-[#1a1a2e]/90 text-[#6B6B6B]">
+        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[hsl(var(--card)/0.92)] text-[hsl(var(--muted-foreground))] border border-[hsl(var(--border)/0.12)] backdrop-blur-sm">
           {canvasType}
         </div>
         
@@ -117,9 +117,9 @@ export function CanvasCard({ id, name, nodes, edges, updatedAt, isPinned, isFavo
         )}
       </div>
 
-      <div className="p-4">
-        <h3 className="font-semibold text-[#1A1A1A] dark:text-white mb-1 truncate">{name}</h3>
-        <div className="flex items-center gap-2 text-[11px] text-[#6B6B6B] dark:text-gray-400">
+      <div className="p-4 flex-1 flex flex-col justify-center">
+        <h3 className="font-semibold text-[hsl(var(--foreground))] mb-2 truncate">{name}</h3>
+        <div className="flex items-center gap-2 text-[11px] text-[hsl(var(--muted-foreground))]">
           <span>{nodeCount} nodes</span>
           <span>•</span>
           <span>{edgeCount} edges</span>

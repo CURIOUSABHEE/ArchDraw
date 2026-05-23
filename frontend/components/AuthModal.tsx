@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
-import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
+import { getSupabaseClient, isSupabaseConfigured, isReachable } from '@/lib/supabase';
 
 interface AuthModalProps {
   open: boolean;
@@ -25,8 +25,8 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     setError(null);
 
     try {
-      if (!isSupabaseConfigured) {
-        setError('Auth not configured');
+      if (!isSupabaseConfigured || !isReachable) {
+        setError('Supabase authentication server is unreachable or offline.');
         return;
       }
 
@@ -56,8 +56,8 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   };
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
-    if (!isSupabaseConfigured) {
-      setError('Auth not configured');
+    if (!isSupabaseConfigured || !isReachable) {
+      setError('Supabase authentication server is unreachable or offline.');
       return;
     }
 

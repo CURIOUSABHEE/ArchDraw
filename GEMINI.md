@@ -62,3 +62,117 @@ These rules are foundational mandates and take absolute precedence over all othe
 - Never clip any node or label at canvas boundary
 - Export/render at minimum 1400px wide for complex diagrams
 - Background: White (#FFFFFF) or Off-white (#F9FAFB)
+
+## 9. EDGE DIRECTION — MANDATORY (THE #1 GENERATION ERROR)
+**Edges MUST flow LEFT→RIGHT through tiers. Client nodes are SOURCES, never SINKS.**
+
+Tier order (mandatory left-to-right direction):
+```
+client (0) → edge (1) → compute (2) → async (3) → data (4) → external (5)
+```
+
+CORRECT:
+- Web App → API Gateway → Order Service → Kafka → PostgreSQL
+- Mobile App → API Gateway → Auth Service (login only)
+
+WRONG — NEVER DO THIS:
+- Order Service → Web App (service connecting back to client = FORBIDDEN)
+- PostgreSQL → Web App (data to client = FORBIDDEN)
+- 10 services all pointing TO Web App (star topology = REJECTED by validator)
+
+**Web Client is NOT a hub.** It sends requests outward and receives responses via the HTTP cycle — it does not receive direct edges from backend services.
+
+If backend needs to push real-time updates to the client:
+→ Add a `WebSocket Gateway` (tier: edge) with `stream` edges
+→ Or a `Push Notification Service` (tier: compute) with `stream` edge to client
+
+PRE-FLIGHT EDGE AUDIT — run this check before every call to `generate_diagram`:
+1. Find every edge where `target` is a `client` tier node
+2. If `source` is NOT also client tier → DELETE that edge
+3. Count inbound edges per node — if any node receives >45% of all edges → it's a hub, redistribute
+
+---
+
+## 10. AUTH SERVICE TOPOLOGY — MANDATORY
+**The Auth Service receives arrows ONLY from login and token refresh endpoints. No other arrows from the gateway into Auth Service are permitted.**
+
+CORRECT flow:
+- Client → API Gateway → Auth Service: ONLY for `/login`, `/register`, `/token/refresh` routes
+- All other routes: API Gateway validates JWT internally (or via sidecar), then routes DIRECTLY to the target service
+- Auth Service is NOT an intermediate hop in the request chain for business operations
+
+WRONG (never draw this):
+- API Gateway → Auth Service → Order Service (Auth as proxy/middleware hop)
+- Any business service having Auth Service as an upstream dependency on the happy path
+
+ENFORCEMENT: Before finalizing, audit every edge whose target is the Auth Service. If the source is the API Gateway and the edge label is not login/register/token-refresh — delete that edge immediately.
+
+
+---
+
+## 10. OBJECT STORAGE — DOMAIN-REQUIRED NODE
+**For any domain that handles binary files, object storage (S3, GCS, Azure Blob) is not optional. Drawing a CDN without an origin storage is architecturally invalid.**
+
+Mandatory when the domain includes:
+- Video streaming / VOD → S3 for raw uploads + transcoded outputs
+- Image/social platforms → S3 for photo and video blobs
+- Audio streaming → S3 for audio asset files
+- Document/file management → S3 or equivalent
+- Any CDN node → the CDN MUST have an arrow FROM an object storage origin
+
+Complete video pipeline that MUST appear:
+```
+Upload Client → Object Storage (raw) → Transcoding Worker → Object Storage (processed) → CDN → Playback Client
+```
+
+Never omit the object storage node if a CDN or Transcoding Worker is present.
+
+---
+
+## 11. ANALYTICS & WATCH EVENT STREAMS — DOMAIN-REQUIRED NODE
+**For engagement-loop platforms, the analytics event stream is core product infrastructure — not optional observability.**
+
+Mandatory when the domain includes:
+- Video/audio streaming → play, pause, seek, completion events → recommendation engine
+- Social media → like, share, follow events → feed ranking algorithm
+- E-commerce → click, view, add-to-cart, purchase events → recommendation + pricing
+- Gaming → session, achievement, match events → matchmaking + monetization
+
+The feedback loop MUST be shown:
+```
+Client → (play/click/view event) → Event Stream (Kafka / Kinesis) → Analytics Processor → Recommendation Engine
+```
+
+This is the primary business intelligence source and product feedback loop — not a nice-to-have logging feature.
+
+---
+
+## 12. SECURITY SERVICE ROUTING — NO CLIENT BYPASS
+**Security-sensitive services (DRM, Auth, Token Validation, License Servers) must NEVER connect directly to client-tier nodes. All such connections bypass gateway auth enforcement.**
+
+CORRECT:
+- Client → API Gateway → DRM License Service (gateway verifies subscription/entitlement first)
+- Client → API Gateway → Auth Service (only for login/token flows)
+
+WRONG (never draw this):
+- Client → DRM License Service (unauthenticated clients could request licenses)
+- Client → Auth Service directly for general API calls
+
+ENFORCEMENT: Audit every edge where source is `client` tier and target is a security/DRM/auth node in `compute` tier. If no API Gateway is in the path — re-route through the gateway.
+
+---
+
+## 13. DOMAIN COMPLETENESS CHECKLIST
+Before finalizing any diagram, verify all domain-specific required nodes are present:
+
+| Domain | Required Nodes (cannot be omitted) |
+|--------|-------------------------------------|
+| Video Streaming | Object Storage (raw + output), Transcoding Worker, CDN, DRM Service (via gateway), Analytics Event Stream, Recommendation Engine |
+| Social Media | Object Storage (media blobs), CDN, Engagement Event Stream, Feed Ranking Service, Notification Service |
+| E-Commerce | Payment Gateway, Order Queue, Inventory Service, Notification Service, Cart Service |
+| Ride-sharing | Real-time Location Service, Driver Matching Engine, Payment Gateway, Push Notification |
+| SaaS / B2B | Auth Service (login only), Billing/Subscription Service, Audit Log, Webhook Delivery |
+| Chat / Messaging | WebSocket Gateway, Message Queue, Notification Service, Media Storage |
+| Audio Streaming | Object Storage, CDN, Transcoding Worker, Recommendation Engine, Analytics Stream |
+
+If any required node for the detected domain is absent — add it before generating the diagram.
