@@ -13,6 +13,7 @@ const generateDiagramSchema = z.object({
   systemType: z.string().optional(),
   complexity: z.enum(['low', 'medium', 'high']).optional(),
   model: z.string().optional(),
+  diagramSize: z.enum(['small', 'medium', 'large']).optional(),
 });
 
 type GenerateDiagramInput = z.infer<typeof generateDiagramSchema>;
@@ -74,13 +75,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { description, systemType, complexity, model } = validatedInput.data as GenerateDiagramInput;
+    const { description, systemType, complexity, model, diagramSize } = validatedInput.data as GenerateDiagramInput;
 
     const userIntent: UserIntent = {
       description: description.trim(),
       systemType: systemType ?? inferSystemType(description),
       complexity: complexity ?? inferComplexity(description),
       model,
+      diagramSize,
     };
 
     const progressEvents: GenerationProgress[] = [];

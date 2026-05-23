@@ -2,8 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  Sparkles, Plus, Mic, Send, Loader2, ChevronDown, Lightbulb, Zap, MessageSquare,
-  Workflow, Layers, X, Clock, Star, Trash2, Search
+  Plus, Mic, Send, Loader2, ChevronDown, Lightbulb, Clock, Star, Trash2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -16,64 +15,28 @@ import { toast } from 'sonner';
 import { usePromptHistory, PROMPT_SUGGESTIONS } from '@/store/promptHistory';
 
 interface FloatingAIBarProps {
-  onGenerate: (description: string, model?: string) => Promise<void>;
+  onGenerate: (description: string, diagramSize: 'small' | 'medium' | 'large') => Promise<void>;
 }
-
-interface ModelOption {
-  id: string;
-  name: string;
-  description: string;
-  provider: 'groq' | 'openrouter';
-}
-
-const MODELS: ModelOption[] = [
-  { id: 'google/gemma-4-26b-a4b-it', name: 'Gemma 26B', description: 'OpenRouter Free - Fast & capable', provider: 'openrouter' },
-  { id: 'nvidia/nemotron-3-super-120b-a12b', name: 'Nemotron 120B', description: 'OpenRouter Free - Most capable', provider: 'openrouter' },
-  { id: 'meta-llama/llama-3-8b-instruct', name: 'LLaMA 3 8B', description: 'OpenRouter Free - Great for reasoning', provider: 'openrouter' },
-  { id: 'mistralai/mistral-nemo-instruct-2407', name: 'Mistral Nemo', description: 'OpenRouter Free - Balanced', provider: 'openrouter' },
-];
-
-const INSPIRATION_PROMPTS = [
-  {
-    title: 'E-Commerce Platform',
-    icon: Layers,
-    description: 'User auth, product catalog, cart, payments, orders',
-    prompt: 'Microservices e-commerce with user authentication, product catalog, shopping cart, payment processing, and order management',
-  },
-  {
-    title: 'Real-time Chat',
-    icon: MessageSquare,
-    description: 'WebSocket, persistence, notifications',
-    prompt: 'Real-time chat application with WebSocket support, message persistence, and push notifications',
-  },
-  {
-    title: 'CI/CD Pipeline',
-    icon: Workflow,
-    description: 'GitHub to production, monitoring',
-    prompt: 'CI/CD pipeline from GitHub to production with monitoring and rollback capabilities',
-  },
-  {
-    title: 'Data Pipeline',
-    icon: Zap,
-    description: 'IoT to dashboard, stream processing',
-    prompt: 'Data pipeline from IoT devices to dashboard with stream processing and time-series storage',
-  },
-];
 
 export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState<GenerationProgress | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[0]);
+  const [diagramSize, setDiagramSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [activeTab, setActiveTab] = useState<'inspiration' | 'history'>('inspiration');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { history, favorites, addToHistory, getSuggestions, clearHistory, addToFavorites, removeFromFavorites } = usePromptHistory();
+  const { history, addToHistory, getSuggestions, clearHistory, addToFavorites } = usePromptHistory();
   
-  const suggestions = getSuggestions(input);
+  // Auto-grow textarea height calculation
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, 56), 200)}px`;
+    }
+  }, [input]);
 
   const handleGenerate = useCallback(async () => {
     if (!input.trim()) {
@@ -83,13 +46,11 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
 
     setIsGenerating(true);
     setError(null);
-    setProgress(null);
 
     try {
-      await onGenerate(input, selectedModel.id);
-      addToHistory(input, selectedModel.id);
+      await onGenerate(input, diagramSize);
+      addToHistory(input, diagramSize);
       setInput('');
-      setIsExpanded(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Generation failed';
       setError(message);
@@ -97,7 +58,7 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
     } finally {
       setIsGenerating(false);
     }
-  }, [input, onGenerate, selectedModel, addToHistory]);
+  }, [input, onGenerate, diagramSize, addToHistory]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -105,21 +66,22 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
       handleGenerate();
     }
     if (e.key === 'Escape') {
-      setIsExpanded(false);
       setInput('');
     }
   };
 
   const selectInspiration = (prompt: string) => {
     setInput(prompt);
-    setIsExpanded(true);
-    inputRef.current?.focus();
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
   };
 
   const selectHistoryItem = (item: { prompt: string }) => {
     setInput(item.prompt);
-    setIsExpanded(true);
-    inputRef.current?.focus();
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
   };
 
   return (
@@ -135,227 +97,198 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
-          className="solid-panel flex items-center gap-3 px-4 py-3"
+          className="flex flex-col w-full rounded-[20px] overflow-hidden border border-border/40 focus-within:border-primary/50 bg-card shadow-soft-3 transition-colors duration-200"
         >
-            {/* Add Button */}
-            <button
-              className="solid-icon-btn"
-              title="Add component"
-              onClick={() => window.dispatchEvent(new CustomEvent('open-create-component'))}
-            >
-              <Plus className="w-5 h-5" />
-            </button>
+          {/* Top Section */}
+          <div className="p-3">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe your architecture... e.g. a food delivery app with real-time tracking, payments, and notifications"
+              className="w-full bg-transparent border-0 border-transparent outline-none focus:outline-none focus:ring-0 focus:border-transparent focus:border-0 focus-visible:ring-0 resize-none text-sm text-foreground placeholder:text-muted-foreground/60 p-2 min-h-[56px] shadow-none focus:shadow-none focus-visible:!outline-none focus:!outline-none focus-visible:!ring-0"
+              disabled={isGenerating}
+            />
+          </div>
 
-            {/* Divider */}
-            <div className="w-px h-7 bg-foreground/10" />
-
-            {/* Inspiration Dropdown */}
-            <DropdownMenu open={showHistory} onOpenChange={setShowHistory}>
-              <DropdownMenuTrigger asChild>
-                <button className="solid-dropdown-trigger">
-                  <Lightbulb className="w-4 h-4" />
-                  <span className="hidden sm:inline text-xs">Inspiration</span>
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-80 p-0 !bg-white !text-black"
-                style={{ backgroundColor: '#ffffff', opacity: 1, backdropFilter: 'none' }}
+          {/* Bottom Section (Toolbar) */}
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-t border-border/10 bg-muted/20">
+            {/* Left items */}
+            <div className="flex items-center flex-wrap gap-2.5">
+              {/* Add Button */}
+              <button
+                className="solid-icon-btn shrink-0"
+                title="Add component"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-create-component'))}
               >
-                <div className="flex border-b border-border">
-                  <button
-                    onClick={() => setActiveTab('inspiration')}
-                    className={`flex-1 px-4 py-2.5 text-xs font-medium transition-colors ${
-                      activeTab === 'inspiration' 
-                        ? 'text-primary border-b-2 border-primary' 
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Templates
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('history')}
-                    className={`flex-1 px-4 py-2.5 text-xs font-medium transition-colors ${
-                      activeTab === 'history' 
-                        ? 'text-primary border-b-2 border-primary' 
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    History ({history.length})
-                  </button>
-                </div>
-                
-                <div className="max-h-96 overflow-y-auto p-2">
-                  {activeTab === 'inspiration' ? (
-                    <>
-                      {PROMPT_SUGGESTIONS.map((category) => (
-                        <div key={category.category} className="mb-4">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 px-2 py-1">
-                            {category.category}
-                          </p>
-                          {category.prompts.map((item, index) => (
-                            <button
-                              key={index}
-                              onClick={() => {
-                                selectInspiration(item.prompt);
-                                setShowHistory(false);
-                              }}
-                              className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-accent transition-colors"
-                            >
-                              <p className="text-sm font-medium">{item.title}</p>
-                              <p className="text-xs text-muted-foreground line-clamp-2">{item.prompt}</p>
-                            </button>
-                          ))}
-                        </div>
-                      ))}
-                    </>
-                  ) : (
-                    <>
-                      {history.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">No history yet</p>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => clearHistory()}
-                            className="w-full text-xs text-muted-foreground hover:text-destructive px-3 py-2 text-left flex items-center gap-2"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Clear History
-                          </button>
-                          {history.slice(0, 10).map((item) => (
-                            <div
-                              key={item.id}
-                              className="group flex items-start gap-2 px-3 py-2.5 rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                              onClick={() => {
-                                selectHistoryItem(item);
-                                setShowHistory(false);
-                              }}
-                            >
-                              <Clock className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm truncate">{item.prompt}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {item.nodeCount ? `${item.nodeCount} nodes` : 'Just now'}
-                                </p>
-                              </div>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  addToFavorites(item);
-                                  toast.success('Added to favorites');
-                                }}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded"
-                              >
-                                <Star className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <Plus className="w-5 h-5" />
+              </button>
 
-            {/* Model Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="solid-dropdown-trigger">
-                  <Sparkles className="w-4 h-4" />
-                  <span className="hidden sm:inline text-xs">{selectedModel.name}</span>
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-2">
-                {MODELS.map((model) => (
+              {/* Divider */}
+              <div className="w-px h-5 bg-border/20 shrink-0" />
+
+              {/* Inspiration Dropdown */}
+              <DropdownMenu open={showHistory} onOpenChange={setShowHistory}>
+                <DropdownMenuTrigger asChild>
+                  <button className="solid-dropdown-trigger">
+                    <Lightbulb className="w-4 h-4" />
+                    <span className="hidden sm:inline text-xs">Inspiration</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="w-80 p-0 !bg-white !text-black"
+                  style={{ backgroundColor: '#ffffff', opacity: 1, backdropFilter: 'none' }}
+                >
+                  <div className="flex border-b border-border">
+                    <button
+                      onClick={() => setActiveTab('inspiration')}
+                      className={`flex-1 px-4 py-2.5 text-xs font-medium transition-colors ${
+                        activeTab === 'inspiration' 
+                          ? 'text-primary border-b-2 border-primary' 
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Templates
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('history')}
+                      className={`flex-1 px-4 py-2.5 text-xs font-medium transition-colors ${
+                        activeTab === 'history' 
+                          ? 'text-primary border-b-2 border-primary' 
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      History ({history.length})
+                    </button>
+                  </div>
+                  
+                  <div className="max-h-96 overflow-y-auto p-2">
+                    {activeTab === 'inspiration' ? (
+                      <>
+                        {PROMPT_SUGGESTIONS.map((category) => (
+                          <div key={category.category} className="mb-4">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 px-2 py-1">
+                              {category.category}
+                            </p>
+                            {category.prompts.map((item, index) => (
+                              <button
+                                key={index}
+                                onClick={() => {
+                                  selectInspiration(item.prompt);
+                                  setShowHistory(false);
+                                }}
+                                className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-accent transition-colors"
+                              >
+                                <p className="text-sm font-medium">{item.title}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-2">{item.prompt}</p>
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        {history.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No history yet</p>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => clearHistory()}
+                              className="w-full text-xs text-muted-foreground hover:text-destructive px-3 py-2 text-left flex items-center gap-2"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Clear History
+                            </button>
+                            {history.slice(0, 10).map((item) => (
+                              <div
+                                key={item.id}
+                                className="group flex items-start gap-2 px-3 py-2.5 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                                onClick={() => {
+                                  selectHistoryItem(item);
+                                  setShowHistory(false);
+                                }}
+                              >
+                                <Clock className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm truncate">{item.prompt}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.model ? `Size: ${item.model}` : 'Just now'}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addToFavorites(item);
+                                    toast.success('Added to favorites');
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded"
+                                >
+                                  <Star className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Divider */}
+              <div className="w-px h-5 bg-border/20 shrink-0" />
+
+              {/* Segmented Size Selector */}
+              <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/10">
+                {(['small', 'medium', 'large'] as const).map((size) => (
                   <button
-                    key={model.id}
-                    onClick={() => setSelectedModel(model)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
-                      selectedModel.id === model.id 
-                        ? 'bg-primary/10 text-primary' 
-                        : 'hover:bg-accent'
+                    key={size}
+                    type="button"
+                    onClick={() => setDiagramSize(size)}
+                    className={`px-3 py-1 text-xs font-medium rounded-md capitalize transition-all ${
+                      diagramSize === size
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <Sparkles className="w-4 h-4" />
-                    <div className="flex-1 text-left">
-                      <p className="text-sm font-medium">{model.name}</p>
-                      <p className="text-xs text-muted-foreground">{model.description}</p>
-                    </div>
+                    {size}
                   </button>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Main Input */}
-            <div className="flex-1 min-w-0">
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onFocus={() => setIsExpanded(true)}
-                onKeyDown={handleKeyDown}
-                placeholder="Describe your architecture..."
-                className="solid-input text-sm w-full h-11 px-4"
-                disabled={isGenerating}
-              />
+              </div>
             </div>
 
-            {/* Mic Button (disabled) */}
-            <button 
-              className="solid-icon-btn opacity-30 cursor-not-allowed" 
-              disabled 
-              title="Voice input coming soon"
-            >
-              <Mic className="w-5 h-5" />
-            </button>
-
-            {/* Submit Button */}
-            <button
-              onClick={handleGenerate}
-              disabled={!input.trim() || isGenerating}
-              className="solid-submit-btn"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </motion.div>
-      </AnimatePresence>
-
-      {/* Expanded Input Area */}
-      <AnimatePresence>
-        {isExpanded && input && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="solid-panel mt-2 px-5 py-4"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium mb-1">AI Architecture Generator</p>
-                <p className="text-xs text-muted-foreground">
-                  Describe your system architecture and let AI create a complete diagram for you.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsExpanded(false)}
-                className="p-1.5 rounded-lg hover:bg-accent transition-colors"
+            {/* Right items */}
+            <div className="flex items-center gap-2">
+              {/* Mic Button (disabled) */}
+              <button 
+                className="solid-icon-btn opacity-30 cursor-not-allowed" 
+                disabled 
+                title="Voice input coming soon"
               >
-                <X className="w-4 h-4 text-muted-foreground" />
+                <Mic className="w-5 h-5" />
+              </button>
+
+              {/* Submit Button */}
+              <button
+                onClick={handleGenerate}
+                disabled={!input.trim() || isGenerating}
+                className="solid-submit-btn"
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
               </button>
             </div>
-          </motion.div>
-        )}
+          </div>
+        </motion.div>
       </AnimatePresence>
     </motion.div>
   );

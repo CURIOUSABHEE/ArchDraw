@@ -35,6 +35,7 @@ const generateDiagramSchema = z.object({
   systemType: z.string().optional(),
   complexity: z.enum(['low', 'medium', 'high']).optional(),
   model: z.string().optional(),
+  diagramSize: z.enum(['small', 'medium', 'large']).optional(),
   stream: z.boolean().optional().default(true),
   existingContext: z.any().optional(),
 });
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { description, systemType, complexity, model, stream: enableStream, existingContext } = validatedInput.data;
+    const { description, systemType, complexity, model, diagramSize, stream: enableStream, existingContext } = validatedInput.data;
 
     if (enableStream === false) {
       return handleNonStreaming(req, validatedInput.data);
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
             systemType: systemType ?? inferSystemType(description),
             complexity: complexity ?? inferComplexity(description),
             model,
+            diagramSize,
             existingContext,
           };
 
@@ -141,7 +143,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleNonStreaming(req: NextRequest, data: z.infer<typeof generateDiagramSchema>) {
-  const { description, systemType, complexity, model } = data;
+  const { description, systemType, complexity, model, diagramSize } = data;
 
   // Disabled: Caching was causing repeated diagrams
   // const cachedResult = diagramCache.get(description, model);
@@ -152,6 +154,7 @@ async function handleNonStreaming(req: NextRequest, data: z.infer<typeof generat
     systemType: systemType ?? inferSystemType(description),
     complexity: complexity ?? inferComplexity(description),
     model,
+    diagramSize,
   };
 
   const result = await generateDiagram(userIntent);

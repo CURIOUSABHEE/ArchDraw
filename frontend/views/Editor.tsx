@@ -178,7 +178,7 @@ export default function EditorPage() {
       const { activeCanvasId } = useDiagramStore.getState();
       renameCanvas(activeCanvasId, canvasName);
       
-      setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 100);
+      setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 50);
       
       if (cached) {
         toast.success(`Loaded cached diagram: ${result.nodes.length} nodes`);
@@ -197,32 +197,31 @@ export default function EditorPage() {
     });
   }, [fitView, importDiagram, importSequenceDiagram, renameCanvas]);
 
-  const handleGenerate = async (description: string, model?: string) => {
+  const handleGenerate = async (description: string, diagramSize?: 'small' | 'medium' | 'large') => {
     setProgress(null);
 
     const isCurrentCanvasEmpty = nodes.length === 0;
     const canvasName = generateCanvasName(description);
 
-    // If canvas is empty, we rename the current canvas to the generated name.
-    // If it's not empty, we DO NOT create a new canvas, so the AI can modify the existing one.
+    let targetCanvasId = activeCanvasId;
+
     if (isCurrentCanvasEmpty) {
       renameCanvas(activeCanvasId, canvasName);
+    } else {
+      const { addCanvas } = useDiagramStore.getState();
+      targetCanvasId = addCanvas(canvasName);
+      
+      const url = new URL(window.location.href);
+      url.searchParams.set('canvas', targetCanvasId);
+      window.history.pushState({}, '', url);
     }
 
     try {
-      // Pass the existing canvas state to the API so the AI can act as a modifier
       const payload: {
         description: string;
-        model?: string;
+        diagramSize?: 'small' | 'medium' | 'large';
         stream: boolean;
-        existingContext?: {
-          nodes: Node[];
-          edges: Edge[];
-        };
-      } = { description, model, stream: true };
-      if (!isCurrentCanvasEmpty) {
-        payload.existingContext = { nodes, edges };
-      }
+      } = { description, diagramSize, stream: true };
 
       // Use streaming endpoint for real-time feedback
       const response = await fetch('/api/generate-diagram/streaming', {
