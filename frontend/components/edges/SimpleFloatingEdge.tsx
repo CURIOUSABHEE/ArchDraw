@@ -250,11 +250,14 @@ export default function SimpleFloatingEdge({
     [edgePath, getViewport, id, updateEdgeData]
   );
 
+  const safeId = id.replace(/[^a-zA-Z0-9-_]/g, '_');
+  const markerEndId = `arrow-${safeId}`;
+
   return (
     <>
       <defs>
         <marker
-          id={`arrow-${id}`}
+          id={markerEndId}
           markerWidth="6"
           markerHeight="6"
           refX="5"
@@ -282,8 +285,8 @@ export default function SimpleFloatingEdge({
         id={id}
         d={edgePath}
         fill="none"
-        markerEnd={config.markerEnd ? `url(#arrow-${id})` : undefined}
-        className={`react-flow__edge-path ${(animated || config.animated || (isDark && isAsync)) ? `flow-${id}` : ''}`}
+        markerEnd={config.markerEnd ? `url(#${markerEndId})` : undefined}
+        className={`react-flow__edge-path ${(animated || config.animated || (isDark && isAsync)) ? `flow-${safeId}` : ''}`}
         style={edgeStyle}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

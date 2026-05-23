@@ -248,11 +248,15 @@ export function FlowEdge({
 
   const closeMenu = useCallback(() => setContextMenu(null), []);
 
+  const safeId = id.replace(/[^a-zA-Z0-9-_]/g, '_');
+  const markerEndId = `arrow-${safeId}`;
+  const markerStartId = `arrow-start-${safeId}`;
+
   return (
     <>
       <defs>
         <marker
-          id={`arrow-${id}`}
+          id={markerEndId}
           markerWidth="6"
           markerHeight="6"
           refX="5"
@@ -264,7 +268,7 @@ export function FlowEdge({
         </marker>
         {config.markerStart && (
           <marker
-            id={`arrow-start-${id}`}
+            id={markerStartId}
             markerWidth="6"
             markerHeight="6"
             refX="0"
@@ -293,8 +297,8 @@ export function FlowEdge({
       <path
         d={edgePath}
         fill="none"
-        markerEnd={config.markerEnd ? `url(#arrow-${id})` : undefined}
-        markerStart={config.markerStart ? `url(#arrow-start-${id})` : undefined}
+        markerEnd={config.markerEnd ? `url(#${markerEndId})` : undefined}
+        markerStart={config.markerStart ? `url(#${markerStartId})` : undefined}
         onContextMenu={handleContextMenu}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
