@@ -159,7 +159,7 @@ function TutorialCanvasInner({
   const canvasSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setIsMac(navigator.platform.toUpperCase().includes('MAC'));
+    setTimeout(() => setIsMac(navigator.platform.toUpperCase().includes('MAC')), 0);
   }, []);
 
   // Restore canvas from richProgress on mount and when tutorialId changes.

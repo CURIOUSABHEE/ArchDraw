@@ -68,15 +68,15 @@ function useTargetRect(selector: string | null) {
 
   useEffect(() => {
     if (!selector) {
-      setRect(null);
+      setTimeout(() => setRect(null), 0);
       return;
     }
 
     const update = () => {
       const el = document.querySelector(selector);
-      if (!el) { setRect(null); return; }
+      if (!el) { setTimeout(() => setRect(null), 0); return; }
       const r = el.getBoundingClientRect();
-      setRect({ top: r.top, left: r.left, width: r.width, height: r.height, right: r.right, bottom: r.bottom });
+      setTimeout(() => setRect({ top: r.top, left: r.left, width: r.width, height: r.height, right: r.right, bottom: r.bottom }), 0);
     };
 
     update();
@@ -198,6 +198,7 @@ function OnboardingOverlayInner() {
 export function OnboardingOverlay() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line
     setMounted(true);
   }, []);
   if (!mounted || typeof document === 'undefined') return null;

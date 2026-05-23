@@ -38,6 +38,7 @@ export function NodeTooltip({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line
     setMounted(true);
   }, []);
 
@@ -59,7 +60,7 @@ export function NodeTooltip({
   useEffect(() => {
     if (isDragging) {
       if (timerRef.current) clearTimeout(timerRef.current);
-      setVisible(false);
+      setTimeout(() => setVisible(false), 0);
     }
   }, [isDragging]);
 

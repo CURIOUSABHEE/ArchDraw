@@ -33,8 +33,10 @@ function PhaseRenderer({
   const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setShowContinueAnyway(false);
-    setShowHint(false);
+    setTimeout(() => {
+      setShowContinueAnyway(false);
+      setShowHint(false);
+    }, 0);
     
     if (phase === 'action' || phase === 'connecting') {
       timerRef.current = setTimeout(() => {

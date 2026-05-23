@@ -42,9 +42,11 @@ export function ComponentPalette({ onAddComponent, forceOpen, initialQuery, onCl
 
   useEffect(() => {
     if (forceOpen) {
-      setQuery(initialQuery ?? '');
-      setSelectedIndex(0);
-      setOpen(true);
+      setTimeout(() => {
+        setQuery(initialQuery ?? '');
+        setSelectedIndex(0);
+        setOpen(true);
+      }, 0);
     }
   }, [forceOpen, initialQuery]);
 
