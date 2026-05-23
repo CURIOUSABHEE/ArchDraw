@@ -33,6 +33,7 @@ These rules are foundational mandates and take absolute precedence over all othe
 - Async connections (AMQP, Kafka, Queue, Pub/Sub) → dashed lines
 - Always label edges with protocol name (REST, HTTPS, SQL, AMQP, etc.)
 - Arrow direction must clearly show data/request flow
+- If two nodes exchange edges (bidirectional or parallel connections), align and position them so they face each other directly.
 
 ## 5. COLLISION DETECTION — NO OVERLAPPING NODES
 - After placing all nodes, run a bounding box collision check
