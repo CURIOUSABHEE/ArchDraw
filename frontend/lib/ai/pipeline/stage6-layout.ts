@@ -1,4 +1,4 @@
-import dagre from 'dagre';
+import ELK from 'elkjs/lib/elk.bundled.js';
 import type { LayoutedNode, ValidatedDiagram, RawNode } from './types';
 import { resolveNodeCollisions } from '@/lib/collision';
 
@@ -6,23 +6,36 @@ import { resolveNodeCollisions } from '@/lib/collision';
  * STAGE 6 — LAYOUT ENGINE
  * 
  * Mandates from GEMINI.md:
- * 1. Use Dagre for layered layout (rankdir=LR)
+ * 1. Use ELK for layered layout (direction=RIGHT)
  * 2. Adaptive node sizing (no truncation)
  * 3. Min rank separation: 120px
  * 4. Min node separation: 60px
  * 5. Collision detection pass
+ * 6. Use partitioning for tier discipline
  */
 
 const MIN_NODE_WIDTH = 180;
 const NODE_HEIGHT = 80;
 const CHAR_WIDTH = 8.5; // Estimated width per character at 14px bold
-const PADDING_X = 80; // 40px on each side
+const PADDING_X = 40; // 20px on each side
 const PADDING_Y = 40; // 20px on each side
 
 const RANK_SEPARATION = 220;
 const NODE_SEPARATION = 130;
 
 const SUBTITLE_CHAR_WIDTH = 6.5; // 11px font for subtitles
+
+const TIER_LAYER: Record<string, number> = {
+  client: 0,
+  edge: 1,
+  gateway: 2,
+  application: 3,
+  queue: 4,
+  data: 5,
+  infrastructure: 5,
+  observability: 6,
+  external: 7,
+};
 
 /**
  * Calculate required node width based on label and subtitle
@@ -43,25 +56,17 @@ function calculateNodeDimensions(node: RawNode): { width: number; height: number
   return { width, height };
 }
 
-export async function applyLayout(validated: ValidatedDiagram): Promise<LayoutedNode[]> {
+export async function applyLayout(
+  validated: ValidatedDiagram,
+  diagramSize: 'small' | 'medium' | 'large' = 'medium'
+): Promise<LayoutedNode[]> {
   const { nodes, edges } = validated;
-  console.log(`[Layout] Processing ${nodes.length} nodes, ${edges.length} edges using Dagre`);
+  console.log(`[Layout] Processing ${nodes.length} nodes, ${edges.length} edges using ELK with partitioning (size: ${diagramSize})`);
 
-  // Dynamic layout direction based on aspect ratio/tier structure
-  const layerCounts: Record<string, number> = {};
-  nodes.forEach(node => {
-    const layer = node.layer || 'application';
-    layerCounts[layer] = (layerCounts[layer] || 0) + 1;
-  });
-  const activeLayers = Object.keys(layerCounts).length;
-  const maxNodesPerLayer = Math.max(...Object.values(layerCounts), 0);
-  
-  // Use 'LR' (Left-to-Right) to ensure that nodes within the same layer (e.g. services) are always stacked vertically.
-  const rankdir = 'LR';
-  console.log(`[Layout] Rankdir: ${rankdir} (activeLayers: ${activeLayers}, maxNodesPerLayer: ${maxNodesPerLayer}, total nodes: ${nodes.length})`);
+  const baseNodeSep = 160;
+  const layerSep = 240;
 
   // Check if there are any edges connecting nodes in the same layer (vertical edges)
-  // If so, we need more vertical space so the edges and their labels don't look cramped
   const hasVerticalEdges = edges.some(edge => {
     const src = nodes.find(n => n.id === edge.source);
     const tgt = nodes.find(n => n.id === edge.target);
@@ -70,89 +75,181 @@ export async function applyLayout(validated: ValidatedDiagram): Promise<Layouted
 
   const edgePressure = Math.max(0, edges.length - nodes.length);
   const dynamicNodeSep = Math.max(
-    hasVerticalEdges ? 190 : NODE_SEPARATION,
-    NODE_SEPARATION + edgePressure * 8
+    hasVerticalEdges ? (baseNodeSep + 60) : baseNodeSep,
+    baseNodeSep + edgePressure * 8
   );
 
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({
-    rankdir,
-    ranksep: RANK_SEPARATION,
-    nodesep: dynamicNodeSep,
-    marginx: 160,
-    marginy: 140,
-  });
-
-  // 1. Add nodes with adaptive sizes
-  const nodeDimensions = new Map<string, { width: number; height: number }>();
+  const elk = new ELK();
   
-  nodes.forEach((node) => {
+  const elkNodes = nodes.map(node => {
     const { width, height } = calculateNodeDimensions(node);
-    nodeDimensions.set(node.id, { width, height });
-    
-    dagreGraph.setNode(node.id, { width, height });
-  });
-
-  // 2. Add edges
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  // 3. Execute Dagre layout
-  try {
-    dagre.layout(dagreGraph);
-  } catch (e) {
-    console.error('[Layout] Dagre failed, falling back to basic layout:', e);
-    return fallbackLayout(nodes);
-  }
-
-  // 4. Map positions back and create LayoutedNodes
-  const layoutedNodes: LayoutedNode[] = nodes.map((node) => {
-    const dagreNode = dagreGraph.node(node.id);
-    const { width, height } = nodeDimensions.get(node.id)!;
-    
+    const layer = node.layer ? node.layer.toLowerCase() : 'application';
     return {
-      ...node,
-      x: dagreNode.x - width / 2,
-      y: dagreNode.y - height / 2,
+      id: node.id,
       width,
       height,
+      layoutOptions: {
+        'elk.layered.layering.layerId': String(TIER_LAYER[layer] ?? 3)
+      }
     };
   });
+  
+  const elkEdges = edges.map(edge => ({
+    id: edge.id,
+    sources: [edge.source],
+    targets: [edge.target]
+  }));
+  
+    const graph = {
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': 'layered',
+      'elk.direction': 'RIGHT',
+      'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+      'elk.separateConnectedComponents': 'false',
+      'elk.spacing.nodeNode': '80',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '120',
+      'elk.layered.spacing.edgeNodeBetweenLayers': '40',
+      'elk.layered.spacing.edgeEdgeBetweenLayers': '20',
+      'elk.layered.mergeEdges': 'false',
+      'elk.layered.wrapping.multiEdge.improveCuts': 'true',
+      'elk.padding': '[top=60, left=60, bottom=60, right=60]',
+      'elk.layered.unnecessaryBendpoints': 'true',
+      'elk.edge.type': 'DIRECTED'
+    },
+    children: elkNodes,
+    edges: elkEdges
+  };
 
-  // 5. Final collision resolution pass (as mandated by GEMINI.md)
-  // Convert to Node format for collision resolver
-  const rfNodes = layoutedNodes.map(ln => ({
-    id: ln.id,
-    position: { x: ln.x, y: ln.y },
-    width: ln.width,
-    height: ln.height,
-    data: ln
-  })) as any[];
+  try {
+    const layoutedGraph = await elk.layout(graph);
+    
+    if (!layoutedGraph.children) throw new Error("ELK returned no children");
 
-  const resolvedRfNodes = resolveNodeCollisions(rfNodes, 40);
-
-  // Map back to LayoutedNode
-  return layoutedNodes.map(ln => {
-    const resolved = resolvedRfNodes.find(rn => rn.id === ln.id);
-    if (resolved) {
+    // Map positions back and create LayoutedNodes
+    const layoutedNodes: LayoutedNode[] = nodes.map(node => {
+      const elkNode = layoutedGraph.children!.find(n => n.id === node.id);
+      if (!elkNode) throw new Error(`Node ${node.id} missing from layout`);
+      
+      const { width, height } = calculateNodeDimensions(node);
       return {
-        ...ln,
-        x: resolved.position.x,
-        y: resolved.position.y
+        ...node,
+        x: elkNode.x || 0,
+        y: elkNode.y || 0,
+        width,
+        height
       };
+    });
+
+    // Layout Refinement: Symmetrize targets when a node has multiple outgoing edges to the same tier
+    try {
+      for (const sourceNode of layoutedNodes) {
+        // Find all outgoing edges from this node
+        const outgoingEdges = edges.filter(e => e.source === sourceNode.id);
+        if (outgoingEdges.length < 2) continue;
+
+        // Find the target nodes
+        const targetNodes = outgoingEdges
+          .map(e => layoutedNodes.find(n => n.id === e.target))
+          .filter(Boolean) as LayoutedNode[];
+
+        if (targetNodes.length < 2) continue;
+
+        // Group targets by tier/layer to handle only same-layer targets
+        const tierGroups: Record<string, LayoutedNode[]> = {};
+        for (const target of targetNodes) {
+          const tier = target.layer || 'application';
+          tierGroups[tier] ||= [];
+          tierGroups[tier].push(target);
+        }
+
+        for (const [tier, group] of Object.entries(tierGroups)) {
+          if (group.length < 2) continue;
+
+          // Sort them by their current Y coordinates (top to bottom)
+          group.sort((a, b) => a.y - b.y);
+
+          // Find average X to align them vertically
+          const avgX = group.reduce((sum, n) => sum + n.x, 0) / group.length;
+
+          // Source center Y
+          const sourceCenterY = sourceNode.y + sourceNode.height / 2;
+
+          // Align vertically and space them symmetrically
+          const spacing = 220; // Symmetrical center-to-center spacing
+          const totalHeight = (group.length - 1) * spacing;
+          const startY = sourceCenterY - totalHeight / 2;
+
+          for (let i = 0; i < group.length; i++) {
+            const target = group[i];
+            target.x = avgX;
+            target.y = (startY + i * spacing) - target.height / 2;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Layout Refinement] Symmetrization failed:', err);
     }
-    return ln;
-  });
+
+    // Final layout formatting
+    return layoutedNodes;
+
+  } catch (e) {
+    console.error('[Layout] ELK failed, falling back to basic layout:', e);
+    return fallbackLayout(nodes);
+  }
 }
 
 function fallbackLayout(nodes: RawNode[]): LayoutedNode[] {
-  return nodes.map((node, idx) => ({
-    ...node,
-    x: 100 + (idx % 3) * 250,
-    y: 100 + Math.floor(idx / 3) * 150,
-    width: MIN_NODE_WIDTH,
-    height: NODE_HEIGHT,
-  }));
+  const layerGroups: Record<string, RawNode[]> = {};
+  for (const node of nodes) {
+    const layer = node.layer ? node.layer.toLowerCase() : 'application';
+    if (!layerGroups[layer]) layerGroups[layer] = [];
+    layerGroups[layer].push(node);
+  }
+
+  // Sort layers
+  const layerOrder = Object.keys(TIER_LAYER).sort((a, b) => TIER_LAYER[a] - TIER_LAYER[b]);
+  
+  const layouted: LayoutedNode[] = [];
+  let currentX = 100;
+
+  for (const layer of layerOrder) {
+    if (!layerGroups[layer]) continue;
+    let currentY = 100;
+    let maxLayerWidth = 0;
+    
+    for (const node of layerGroups[layer]) {
+      const { width, height } = calculateNodeDimensions(node);
+      layouted.push({
+        ...node,
+        x: currentX,
+        y: currentY,
+        width,
+        height,
+      });
+      currentY += height + 80;
+      maxLayerWidth = Math.max(maxLayerWidth, width);
+    }
+    currentX += maxLayerWidth + 150;
+  }
+  
+  // Also add any nodes that didn't match a valid layer
+  const remainingNodes = nodes.filter(n => !layouted.find(l => l.id === n.id));
+  let currentY = 100;
+  for (const node of remainingNodes) {
+    const { width, height } = calculateNodeDimensions(node);
+    layouted.push({
+      ...node,
+      x: currentX,
+      y: currentY,
+      width,
+      height,
+    });
+    currentY += height + 80;
+  }
+
+  return layouted;
 }

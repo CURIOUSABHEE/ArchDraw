@@ -35,9 +35,10 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null
  */
 export async function callReasoningLLM(
   prompt: string,
-  intentType: string
+  intentType: string,
+  diagramSize: 'small' | 'medium' | 'large' = 'medium'
 ): Promise<ReasoningResult> {
-  const systemPrompt = buildReasoningPrompt(prompt, intentType);
+  const systemPrompt = buildReasoningPrompt(prompt, intentType, diagramSize);
 
   for (const envVar of GROQ_KEY_ENV_VARS) {
     const apiKey = process.env[envVar];
@@ -77,6 +78,14 @@ export async function callReasoningLLM(
           layers: sanitizeLayers(parsed.layers, prompt) || buildPromptDerivedLayers(prompt, intentType),
           keyFlows: parsed.keyFlows || [],
           architecturalPlan: parsed.architecturalPlan || '',
+          extractedBehaviors: parsed.extractedBehaviors || [],
+          preGenerationChecklist: parsed.preGenerationChecklist || {
+            humanActors: [],
+            dataStores: [],
+            backgroundJobs: [],
+            externalIntegrations: [],
+            featureRequirements: []
+          },
         };
       }
     } catch (error) {
@@ -91,8 +100,19 @@ export async function callReasoningLLM(
 
 import { ARCHITECTURE_RULES } from '../prompts/architectureRules';
 
-function buildReasoningPrompt(prompt: string, intentType: string): string {
+function buildReasoningPrompt(prompt: string, intentType: string, diagramSize: 'small' | 'medium' | 'large' = 'medium'): string {
+  let sizeConstraintPrompt = "";
+  if (diagramSize === 'small') {
+    sizeConstraintPrompt = "SIZE CONSTRAINT: Generate a focused diagram with 4–6 nodes maximum. Show only the core architectural components.";
+  } else if (diagramSize === 'large') {
+    sizeConstraintPrompt = "SIZE CONSTRAINT: Generate a comprehensive diagram with 13–20 nodes. Include all services, background workers, caching layers, observability stack, and external integrations.";
+  } else {
+    sizeConstraintPrompt = "SIZE CONSTRAINT: Generate a standard diagram with 8–12 nodes. Include primary services, databases, and one observability node.";
+  }
+
   return `You are an expert systems architect. Analyze the following system description and produce a structured architectural plan.
+
+${sizeConstraintPrompt}
 
 ${ARCHITECTURE_RULES}
 
@@ -134,7 +154,14 @@ OUTPUT A JSON OBJECT with the following structure:
   "layerAssignment": {
     "component-id": "layer-name"
   },
-  "architecturalPlan": "Brief 2-3 sentence summary of the architecture"
+  "architecturalPlan": "Brief 2-3 sentence summary of the architecture",
+  "preGenerationChecklist": {
+    "humanActors": ["actor1", "actor2"],
+    "dataStores": ["store1", "store2"],
+    "backgroundJobs": ["job1"],
+    "externalIntegrations": ["integration1"],
+    "featureRequirements": ["verb phrase 1"]
+  }
 }
 
 REQUIREMENTS:
@@ -144,6 +171,14 @@ REQUIREMENTS:
 4. Define key flows using the exact component names you chose. Flows should be directional: client/producer → edge/gateway → compute → async/data/external.
 5. Be specific about the system type (not just "web app").
 6. Output ONLY valid JSON, no markdown blocks.
+7. CRITICAL RULE FOR CDNs: A CDN (Content Delivery Network) must ONLY be used for serving static assets and media from an Object Storage origin to a Client. It must NEVER route API requests, and it must NEVER connect to an Application Service, API Gateway, or Database.
+8. Before completing the plan, complete this pre-generation checklist based on the user prompt:
+ - humanActors: List every distinct HUMAN ACTOR in the prompt. Each distinct actor will become a separate client node. A 'rider' and a 'driver' are two actors. Never merge multiple human actors into one UI node.
+ - dataStores: List every distinct DATA STORE mentioned or implied.
+ - backgroundJobs: List every BACKGROUND JOB or async process.
+ - externalIntegrations: List every EXTERNAL INTEGRATION (payment, maps, email, SMS).
+ - featureRequirements: List every explicit FEATURE REQUIREMENT as a verb phrase.
+ Every item in this checklist must map to at least one node or edge in the final diagram. Output this structured checklist in the "preGenerationChecklist" field.
 
 Analyze and output JSON now:`;
 }
@@ -259,5 +294,13 @@ function buildFallbackReasoning(prompt: string, intentType: string): ReasoningRe
       },
     ],
     architecturalPlan: `A prompt-derived ${intentType || 'system'} architecture using only components indicated by the request or required by the inferred workload.`,
+    extractedBehaviors: [],
+    preGenerationChecklist: {
+      humanActors: [],
+      dataStores: [],
+      backgroundJobs: [],
+      externalIntegrations: [],
+      featureRequirements: []
+    }
   };
 }

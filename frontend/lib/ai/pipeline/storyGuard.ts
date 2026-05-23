@@ -1,8 +1,27 @@
 import type { DiagramEdge, RawNode } from './types';
 
-const MEDIA_PROMPT = /\b(video|audio|streaming|media|vod|hls|dash|transcod|cdn|drm)\b/i;
-const PAYMENT_PROMPT = /\b(payment|billing|checkout|cart|subscription|purchase|order|invoice|stripe)\b/i;
-const DRM_PROMPT = /\b(drm|license|licensing|widevine|fairplay|playready|entitlement)\b/i;
+const MEDIA_PROMPT = /\b(video|audio|streaming|media|vod|hls|dash|transcod|playback|watch|live stream)\b/ig;
+const PAYMENT_PROMPT = /\b(payment|billing|checkout|cart|subscription|purchase|order|invoice|stripe)\b/ig;
+const DRM_PROMPT = /\b(drm|license|licensing|widevine|fairplay|playready|entitlement)\b/ig;
+
+function getDomainConfidence(prompt: string | undefined, regex: RegExp): number {
+  if (!prompt) return 0;
+  const matches = prompt.match(regex) || [];
+  const distinct = new Set(matches.map(m => m.toLowerCase()));
+  return distinct.size;
+}
+
+function hasMediaDomain(prompt?: string): boolean {
+  return getDomainConfidence(prompt, MEDIA_PROMPT) >= 2;
+}
+
+function hasPaymentDomain(prompt?: string): boolean {
+  return getDomainConfidence(prompt, PAYMENT_PROMPT) >= 2;
+}
+
+function hasDrmDomain(prompt?: string): boolean {
+  return getDomainConfidence(prompt, DRM_PROMPT) >= 2;
+}
 
 export function prunePromptIrrelevantNodes(nodes: RawNode[], prompt?: string): RawNode[] {
   if (!prompt) return nodes;
@@ -10,11 +29,11 @@ export function prunePromptIrrelevantNodes(nodes: RawNode[], prompt?: string): R
   return nodes.filter((node) => {
     const text = `${node.label} ${node.subtitle || ''}`.toLowerCase();
 
-    if (!PAYMENT_PROMPT.test(prompt) && /\b(payment|billing|checkout|stripe|invoice)\b/i.test(text)) {
+    if (!hasPaymentDomain(prompt) && /\b(payment|billing|checkout|stripe|invoice)\b/i.test(text)) {
       return false;
     }
 
-    if (!DRM_PROMPT.test(prompt) && /\b(drm|license|licensing|widevine|fairplay|playready|entitlement)\b/i.test(text)) {
+    if (!hasDrmDomain(prompt) && /\b(drm|license|licensing|widevine|fairplay|playready|entitlement)\b/i.test(text)) {
       return false;
     }
 
@@ -31,7 +50,7 @@ export function ensurePromptRequiredNodes(nodes: RawNode[], prompt?: string): Ra
     result.push({ id, label, layer, subtitle });
   };
 
-  if (/\b(web|browser|frontend|client|user|mobile|app)\b/i.test(prompt) && !MEDIA_PROMPT.test(prompt)) {
+  if (/\b(web|browser|frontend|client|user|mobile|app)\b/i.test(prompt) && !hasMediaDomain(prompt)) {
     add('client-app', 'Client App', 'client', 'User interface', [/client/, /web app/, /mobile app/]);
   }
 
@@ -44,7 +63,7 @@ export function ensurePromptRequiredNodes(nodes: RawNode[], prompt?: string): Ra
     add('user-database', 'User Database', 'data', 'Users and entitlements', [/user.*db/, /user.*database/, /entitlement/]);
   }
 
-  if (DRM_PROMPT.test(prompt)) {
+  if (hasDrmDomain(prompt)) {
     add('drm-license-service', 'DRM License Service', 'application', 'License and entitlement checks', [/drm/, /license/, /licensing/]);
   }
 
@@ -54,7 +73,7 @@ export function ensurePromptRequiredNodes(nodes: RawNode[], prompt?: string): Ra
     add('metadata-store', 'Metadata Store', 'data', 'Catalog and item metadata', [/metadata/, /catalog/]);
   }
 
-  if (MEDIA_PROMPT.test(prompt)) {
+  if (hasMediaDomain(prompt)) {
     const audio = /\b(audio|music|song|podcast|spotify)\b/i.test(prompt);
     add(audio ? 'audio-player' : 'video-player', audio ? 'Audio Player' : 'Video Player', 'client', 'Playback client', [/player/, /client/, /web app/, /mobile app/]);
     add('cdn', audio ? 'Audio CDN' : 'CDN', 'edge', audio ? 'Segment delivery' : 'HLS/DASH edge delivery', [/\bcdn\b/, /content delivery/]);
@@ -62,7 +81,7 @@ export function ensurePromptRequiredNodes(nodes: RawNode[], prompt?: string): Ra
     add('processed-media-storage', audio ? 'Processed Audio Storage' : 'Processed Media Storage', 'data', audio ? 'Encoded audio segments' : 'Packaged HLS/DASH output', [/processed.*(storage|store|bucket)/, /content store/, /(storage|store|bucket).*hls/, /(storage|store|bucket).*dash/]);
   }
 
-  if (/\b(transcod\w*|encode|encoding|rendition|hls|dash|pipeline)\b/i.test(prompt) && MEDIA_PROMPT.test(prompt)) {
+  if (/\b(transcod\w*|encode|encoding|rendition|hls|dash|pipeline)\b/i.test(prompt) && hasMediaDomain(prompt)) {
     add('transcoding-queue', 'Transcoding Queue', 'queue', 'Encoding jobs', [/transcod.*queue/, /ingestion queue/, /queue/]);
     add('transcoding-worker', 'Transcoding Worker', 'application', 'Creates adaptive renditions', [/transcod.*worker/, /transcod.*service/, /encoder/, /packager/]);
   }
@@ -72,7 +91,7 @@ export function ensurePromptRequiredNodes(nodes: RawNode[], prompt?: string): Ra
     add('search-index', 'Search Index', 'data', 'Indexed documents', [/search.*index/, /opensearch/, /elasticsearch/]);
   }
 
-  if (PAYMENT_PROMPT.test(prompt)) {
+  if (hasPaymentDomain(prompt)) {
     add('payment-service', 'Payment Service', 'application', 'Payment orchestration', [/payment service/, /checkout/]);
     add('payment-provider', 'Payment Provider', 'external', 'Stripe/payment API', [/stripe/, /payment provider/, /payment gateway/]);
   }
@@ -108,7 +127,7 @@ export function repairStoryEdges(nodes: RawNode[], edges: DiagramEdge[], prompt?
     if (/transcod|encoder|packag/.test(targetText) && !/queue|storage|store|upload|ingest/.test(sourceText)) return false;
     if (/auth|identity/.test(targetText) && !/gateway|login|client|mobile|web/.test(sourceText) && !/token|register|refresh|authenticate|login/i.test(edge.label || '')) return false;
 
-    if (MEDIA_PROMPT.test(prompt || '')) {
+    if (hasMediaDomain(prompt)) {
       if (isCdn(sourceText) && /transcod|worker|encoder|packag/.test(targetText)) return false;
       if (/drm|license|licensing|widevine|fairplay|playready/.test(sourceText) && /transcod|worker|encoder|packag/.test(targetText)) return false;
       if (/log|monitor|metric|trace|observ/.test(sourceText) && !/log|monitor|metric|trace|observ/.test(targetText)) return false;
@@ -117,10 +136,11 @@ export function repairStoryEdges(nodes: RawNode[], edges: DiagramEdge[], prompt?
     return true;
   });
 
-  if (MEDIA_PROMPT.test(prompt || '')) {
+  if (hasMediaDomain(prompt)) {
     repaired = addMediaStoryEdges(nodes, repaired);
   }
   repaired = addGenericFeatureStoryEdges(nodes, repaired, prompt);
+  repaired = reduceObservabilityEdges(nodes, repaired);
 
   return dedupeEdges(repaired);
 }
@@ -145,6 +165,7 @@ function addMediaStoryEdges(nodes: RawNode[], edges: DiagramEdge[]): DiagramEdge
   push(result, client, gateway, 'control API', false);
   push(result, gateway, auth, 'login/token', false);
   push(result, gateway, drm, 'license request', false);
+  push(result, gateway, rawStore, 'write media blob', false);
   push(result, rawStore, queue, 'media uploaded', true);
   push(result, queue, transcoder, 'trigger transcode', true);
   push(result, transcoder, outputStore || rawStore, 'store renditions', true);
@@ -181,6 +202,12 @@ function addGenericFeatureStoryEdges(nodes: RawNode[], edges: DiagramEdge[], pro
     push(result, eventStream, recommendation, 'ranking signals', true);
     push(result, recommendation, metadata, 'read metadata', false);
     push(result, gateway, recommendation, 'recommendations API', false);
+    
+    // Ensure metadata store has a writer
+    const appService = findNode(nodes, [/service/, /api/, /backend/, /manager/]);
+    if (appService && appService.id !== recommendation?.id) {
+      push(result, appService, metadata, 'writes metadata', false);
+    }
   }
 
   if (/\bsearch\b/i.test(prompt || '') || search) {
@@ -252,4 +279,43 @@ function normalizeLayer(layer?: string): string {
   if (layer === 'async') return 'queue';
   if (layer === 'observe') return 'observability';
   return layer;
+}
+
+function reduceObservabilityEdges(nodes: RawNode[], edges: DiagramEdge[]): DiagramEdge[] {
+  const result = [...edges];
+  const observabilityNodeIds = new Set(nodes.filter(n => normalizeLayer(n.layer) === 'observability').map(n => n.id));
+  
+  if (observabilityNodeIds.size === 0) return result;
+
+  const edgesToRemove = new Set<string>();
+
+  for (const obsId of observabilityNodeIds) {
+    const incomingEdges = result.filter(e => e.target === obsId);
+    
+    if (incomingEdges.length > 2) {
+      const getPriority = (sourceId: string) => {
+        const sourceNode = nodes.find(n => n.id === sourceId);
+        if (!sourceNode) return 0;
+        const layer = normalizeLayer(sourceNode.layer);
+        if (layer === 'gateway') return 3;
+        if (layer === 'application') return 2;
+        return 1;
+      };
+
+      incomingEdges.sort((a, b) => getPriority(b.source) - getPriority(a.source));
+      
+      const toRemove = incomingEdges.slice(2);
+      toRemove.forEach(e => edgesToRemove.add(e.id));
+      
+      const obsNode = nodes.find(n => n.id === obsId);
+      if (obsNode) {
+        if (!obsNode.subtitle) obsNode.subtitle = '';
+        if (!obsNode.subtitle.includes('Receives telemetry')) {
+          obsNode.subtitle = `${obsNode.subtitle} (Receives telemetry from all services)`.trim();
+        }
+      }
+    }
+  }
+
+  return result.filter(e => !edgesToRemove.has(e.id));
 }

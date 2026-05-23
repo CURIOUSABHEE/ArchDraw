@@ -24,7 +24,8 @@ export interface DiagramResult {
 export async function generateDiagramPipeline(
   prompt: string,
   onStreaming?: StreamingCallback,
-  existingContext?: { nodes: any[]; edges: any[] }
+  existingContext?: { nodes: any[]; edges: any[] },
+  diagramSize: 'small' | 'medium' | 'large' = 'medium'
 ): Promise<DiagramResult> {
   try {
     // Stage 1: Intent detection
@@ -34,7 +35,7 @@ export async function generateDiagramPipeline(
 
     // Stage 2: Reasoning LLM
     logger.log('[Pipeline] Stage 2: Reasoning LLM');
-    const reasoning = await callReasoningLLM(prompt, intent.type);
+    const reasoning = await callReasoningLLM(prompt, intent.type, diagramSize);
     onStreaming?.({ type: 'thinking', data: JSON.stringify(reasoning) });
     logger.log('[Pipeline] Reasoning:', reasoning.systemType);
 
@@ -46,7 +47,8 @@ export async function generateDiagramPipeline(
         reasoning,
         node => onStreaming?.({ type: 'node', data: node }),
         flow => onStreaming?.({ type: 'flow', data: flow }),
-        existingContext
+        existingContext,
+        diagramSize
       );
     } catch (e) {
       logger.log('[Pipeline] Diagram LLM failed, using fallback');
@@ -80,7 +82,7 @@ export async function generateDiagramPipeline(
 
     // Stage 6: Layout
     logger.log('[Pipeline] Stage 6: Layout');
-    const layouted = await applyLayout(validated);
+    const layouted = await applyLayout(validated, diagramSize);
     logger.log(`[Pipeline] Layouted nodes: ${layouted.length}`);
 
     // Stage 7: Convert to React Flow

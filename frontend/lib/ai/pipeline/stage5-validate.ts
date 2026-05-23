@@ -1,4 +1,4 @@
-import type { RawNode, RawFlow, DiagramEdge, ValidatedDiagram, PipelineLayer, ValidationFeedback, ValidationIssue } from './types';
+import type { RawNode, RawFlow, DiagramEdge, ValidatedDiagram, PipelineLayer, ValidationFeedback, ValidationIssue, PreGenerationChecklist } from './types';
 import { ensurePromptRequiredNodes, prunePromptIrrelevantNodes, repairStoryEdges } from './storyGuard';
 
 /**
@@ -17,7 +17,7 @@ const LAYER_ORDER: PipelineLayer[] = ['client', 'edge', 'gateway', 'application'
 /**
  * Main validation function - ensures connectivity and proper layer structure
  */
-export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }, prompt?: string): { diagram: ValidatedDiagram; feedback: ValidationFeedback } {
+export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }, prompt?: string, preGenerationChecklist?: PreGenerationChecklist): { diagram: ValidatedDiagram; feedback: ValidationFeedback } {
   const issues: ValidationIssue[] = [];
   const injectedNodes: string[] = [];
   const prunedNodes: string[] = [];
@@ -57,6 +57,16 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
 
   // STEP 4: Remove duplicate edges
   const deduplicatedEdges = repairEdges(edges, nodes, issues);
+  
+  // STEP 4.1: Deduplicate Client Nodes
+  nodes = deduplicateClients(nodes, deduplicatedEdges, issues);
+  
+  // STEP 4.1.5: Deduplicate Concept Nodes
+  nodes = deduplicateConceptNodes(nodes, deduplicatedEdges, issues);
+  
+  // STEP 4.2: Inject API Gateway if missing
+  nodes = injectGatewayIfMissing(nodes, deduplicatedEdges, issues, injectedNodes);
+  
   const repairedEdges = repairStoryEdges(nodes, deduplicatedEdges, prompt);
   // Find difference to log edges removed by storyGuard
   const dedupedIds = new Set(deduplicatedEdges.map(e => e.id));
@@ -67,8 +77,19 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
     }
   });
 
-  // STEP 5: Connect orphaned nodes (ensure no orphans)
-  const connectedEdges = connectOrphans(nodes, repairedEdges, issues);
+  // STEP 4.3: Edge Label Quality
+  checkEdgeLabelQuality(repairedEdges, nodes, issues);
+
+  // STEP 4.4: Checklist and Role validation
+  validateChecklist(nodes, repairedEdges, preGenerationChecklist, issues);
+  
+  // STEP 4.5: Return path validations
+  validateTerminalNodeReturnPaths(nodes, repairedEdges, issues);
+  validateClientReturnFlows(nodes, repairedEdges, issues);
+  validateCDNMisuse(nodes, repairedEdges, issues);
+
+  // STEP 5: Connect orphaned nodes/clusters (ensure no disconnected sub-graphs)
+  const connectedEdges = bridgeConnectedComponents(nodes, repairedEdges, issues);
   orphansFixed = connectedEdges.length - repairedEdges.length;
 
   // STEP 6: Ensure minimum structure
@@ -216,98 +237,472 @@ function repairEdges(edges: DiagramEdge[], nodes: RawNode[], issues: ValidationI
 }
 
 /**
- * Connect orphaned nodes (ensure no orphans) using a semantic best-effort heuristic
+ * Connect disconnected sub-graphs and orphaned clusters using DFS
  */
-function connectOrphans(nodes: RawNode[], edges: DiagramEdge[], issues: ValidationIssue[]): DiagramEdge[] {
+function bridgeConnectedComponents(nodes: RawNode[], edges: DiagramEdge[], issues: ValidationIssue[]): DiagramEdge[] {
   const connectedEdges = [...edges];
+  const leafNodes = nodes.filter(n => !n.isGroup);
   
-  // 1. Collect all node IDs (excluding groups)
-  const leafNodeIds = new Set(nodes.filter(n => !n.isGroup).map(n => n.id));
-  
-  // 2. Collect all node IDs referenced in edges (source + target)
-  const referencedNodeIds = new Set<string>();
+  const adj = new Map<string, string[]>();
+  leafNodes.forEach(n => adj.set(n.id, []));
   connectedEdges.forEach(e => {
-    referencedNodeIds.add(e.source);
-    referencedNodeIds.add(e.target);
+    if (adj.has(e.source) && adj.has(e.target)) {
+      adj.get(e.source)!.push(e.target);
+      adj.get(e.target)!.push(e.source);
+    }
   });
   
-  // 3. Find the difference — these are orphans
-  const orphans = nodes.filter(n => !n.isGroup && !referencedNodeIds.has(n.id));
+  const visited = new Set<string>();
+  const components: string[][] = [];
   
-  if (orphans.length === 0) return connectedEdges;
+  for (const node of leafNodes) {
+    if (!visited.has(node.id)) {
+      const comp: string[] = [];
+      const stack = [node.id];
+      visited.add(node.id);
+      
+      while (stack.length > 0) {
+        const curr = stack.pop()!;
+        comp.push(curr);
+        for (const neighbor of adj.get(curr) || []) {
+          if (!visited.has(neighbor)) {
+            visited.add(neighbor);
+            stack.push(neighbor);
+          }
+        }
+      }
+      components.push(comp);
+    }
+  }
   
-  console.warn(`[Validate] WARNING: Found ${orphans.length} orphan nodes: ${orphans.map(o => o.id).join(', ')}`);
+  if (components.length <= 1) return connectedEdges;
   
-  // 4. Connect orphan nodes to the most semantically relevant existing node using best-effort heuristic
-  orphans.forEach(orphan => {
-    issues.push({ severity: 'critical', type: 'orphan_node', nodeId: orphan.id, message: `Node '${orphan.label || orphan.id}' had zero connections (it was an orphan) and required heuristic reconnection. Every node must be connected to the rest of the architecture.` });
+  components.sort((a, b) => b.length - a.length);
+  const mainComponent = new Set(components[0]);
+  
+  for (let i = 1; i < components.length; i++) {
+    const compNodes = components[i];
+    const isCluster = compNodes.length > 1;
     
-    const orphanLayer = orphan.layer || 'application';
+    if (isCluster) {
+      issues.push({ severity: 'critical', type: 'orphan_cluster', message: `Diagram has an isolated cluster of ${compNodes.length} nodes. All flows must connect to a single entry point.` });
+    } else {
+      issues.push({ severity: 'critical', type: 'orphan_node', nodeId: compNodes[0], message: `Node '${compNodes[0]}' had zero connections (it was an orphan).` });
+    }
+    
+    const compNodeObjs = compNodes.map(id => nodes.find(n => n.id === id)!).filter(Boolean);
+    compNodeObjs.sort((a, b) => getLayerRank(a.layer) - getLayerRank(b.layer));
+    const entryNode = compNodeObjs[0];
+    
     let partnerNode: RawNode | undefined;
-    let isOrphanSource = true; // True if orphan should be source, false if target
+    let isOrphanSource = true;
     let edgeLabel = 'connects to';
     
-    // Heuristic: map layers semantically
+    const orphanLayer = entryNode.layer || 'application';
+    const mainNodes = Array.from(mainComponent).map(id => nodes.find(n => n.id === id)!).filter(Boolean);
+    
     if (orphanLayer === 'client' || orphanLayer === 'presentation') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['gateway', 'edge', 'application', 'compute'].includes(n.layer));
-      isOrphanSource = true;
-      edgeLabel = 'requests';
+      partnerNode = mainNodes.find(n => ['gateway', 'edge', 'application', 'compute'].includes(n.layer));
+      isOrphanSource = true; edgeLabel = 'requests';
     } else if (orphanLayer === 'edge' || orphanLayer === 'gateway') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute'].includes(n.layer));
-      isOrphanSource = true;
-      edgeLabel = 'routes to';
-    } else if (orphanLayer === 'data') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute', 'queue', 'async'].includes(n.layer));
-      isOrphanSource = false; // Application -> Data
-      edgeLabel = 'queries';
-    } else if (orphanLayer === 'queue' || orphanLayer === 'async') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute'].includes(n.layer));
-      isOrphanSource = false; // Application -> Queue
-      edgeLabel = 'publishes to';
-    } else if (orphanLayer === 'observability' || orphanLayer === 'observe') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute'].includes(n.layer));
-      isOrphanSource = false; // Application -> Observability
-      edgeLabel = 'emits logs to';
-    } else if (orphanLayer === 'infrastructure') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute'].includes(n.layer));
-      isOrphanSource = false; // Application -> Infrastructure
-      edgeLabel = 'deployed on';
-    } else if (orphanLayer === 'external') {
-      partnerNode = nodes.find(n => !n.isGroup && n.id !== orphan.id && ['application', 'compute'].includes(n.layer));
-      isOrphanSource = false; // Application -> External
-      edgeLabel = 'calls API';
+      partnerNode = mainNodes.find(n => ['application', 'compute'].includes(n.layer));
+      isOrphanSource = true; edgeLabel = 'routes to';
+    } else {
+      partnerNode = mainNodes.find(n => ['application', 'compute'].includes(n.layer));
+      isOrphanSource = false; edgeLabel = 'integrates with';
     }
     
-    // Fallback: connect to the closest directional neighbor, not an arbitrary client hub.
-    if (!partnerNode) {
-      partnerNode = findDirectionalPartner(orphan, nodes);
-      if (partnerNode) {
-        isOrphanSource = getLayerRank(orphan.layer) <= getLayerRank(partnerNode.layer);
-      }
-    }
+    if (!partnerNode) partnerNode = mainNodes[0];
     
     if (partnerNode) {
-      const source = isOrphanSource ? orphan.id : partnerNode.id;
-      const target = isOrphanSource ? partnerNode.id : orphan.id;
-      
-      const newEdgeId = `auto-orphan-${source}-${target}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const source = isOrphanSource ? entryNode.id : partnerNode.id;
+      const target = isOrphanSource ? partnerNode.id : entryNode.id;
       connectedEdges.push({
-        id: newEdgeId,
+        id: `auto-bridge-${source}-${target}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         source,
         target,
         label: edgeLabel,
-        async: orphanLayer === 'queue' || orphanLayer === 'async',
+        async: false,
       });
-      
-      referencedNodeIds.add(orphan.id);
-      referencedNodeIds.add(partnerNode.id);
-      console.log(`[Validate] Connected orphan "${orphan.id}" to "${partnerNode.id}" as ${isOrphanSource ? 'source' : 'target'}`);
-    } else {
-      console.warn(`[Validate] WARNING: No partner node found to connect orphan "${orphan.id}"`);
+      compNodes.forEach(id => mainComponent.add(id));
     }
-  });
+  }
   
   return connectedEdges;
+}
+
+function deduplicateClients(nodes: RawNode[], edges: DiagramEdge[], issues: ValidationIssue[]): RawNode[] {
+  const clientNodes = nodes.filter(n => normalizeLayer(n.layer) === 'client');
+  if (clientNodes.length <= 1) return nodes;
+
+  // We should only deduplicate if the prompt didn't explicitly ask for multiple actors.
+  // This will be handled partly by validateChecklist, but for auto-repair, we keep all clients for now 
+  // UNLESS they literally have the exact same generic name.
+  const uniqueLabels = new Set();
+  const toMerge = new Set<string>();
+  
+  for (const client of clientNodes) {
+    const norm = client.label.toLowerCase().trim();
+    if (uniqueLabels.has(norm) || norm === 'user' || norm === 'client') {
+      toMerge.add(client.id);
+    } else {
+      uniqueLabels.add(norm);
+    }
+  }
+
+  if (toMerge.size === 0) return nodes;
+
+  const primaryClient = clientNodes.find(n => !toMerge.has(n.id)) || clientNodes[0];
+  toMerge.delete(primaryClient.id); // ensure primary isn't merged into itself
+
+  if (toMerge.size > 0) {
+    issues.push({ severity: 'warning', type: 'duplicate_client_node', message: `Found duplicate generic client nodes. Merging them into a single entry point.` });
+    
+    edges.forEach(e => {
+      if (toMerge.has(e.source)) e.source = primaryClient.id;
+      if (toMerge.has(e.target)) e.target = primaryClient.id;
+    });
+  }
+
+  return nodes.filter(n => !toMerge.has(n.id));
+}
+
+function deduplicateConceptNodes(nodes: RawNode[], edges: DiagramEdge[], issues: ValidationIssue[]): RawNode[] {
+  const tiers = new Map<string, RawNode[]>();
+  nodes.forEach(n => {
+    const t = normalizeLayer(n.layer);
+    if (!tiers.has(t)) tiers.set(t, []);
+    tiers.get(t)!.push(n);
+  });
+
+  const duplicateIds = new Set<string>();
+
+  for (const [tier, tierNodes] of tiers.entries()) {
+    if (tierNodes.length < 2) continue;
+    
+    for (let i = 0; i < tierNodes.length; i++) {
+      for (let j = i + 1; j < tierNodes.length; j++) {
+        const a = tierNodes[i];
+        const b = tierNodes[j];
+        if (duplicateIds.has(a.id) || duplicateIds.has(b.id)) continue;
+        
+        const aNorm = a.label.toLowerCase();
+        const bNorm = b.label.toLowerCase();
+        
+        const keywords = ['payment', 'email', 'cdn', 'cache', 'queue', 'auth', 'notification', 'search'];
+        const sharedKeyword = keywords.find(k => aNorm.includes(k) && bNorm.includes(k));
+        
+        if (sharedKeyword) {
+          if (aNorm.includes(bNorm) || bNorm.includes(aNorm)) {
+            // Auto merge
+            const aEdges = edges.filter(e => e.source === a.id || e.target === a.id).length;
+            const bEdges = edges.filter(e => e.source === b.id || e.target === b.id).length;
+            
+            const survivor = aEdges >= bEdges ? a : b;
+            const duplicate = aEdges >= bEdges ? b : a;
+            
+            duplicateIds.add(duplicate.id);
+            edges.forEach(e => {
+              if (e.source === duplicate.id) e.source = survivor.id;
+              if (e.target === duplicate.id) e.target = survivor.id;
+            });
+            
+            issues.push({ severity: 'warning', type: 'duplicate_concept_node', message: `Nodes '${a.label}' and '${b.label}' represent the same concept in the ${tier} tier. Merged into '${survivor.label}'.` });
+          } else {
+            issues.push({ severity: 'warning', type: 'duplicate_concept_node', message: `Nodes '${a.label}' and '${b.label}' may represent the same concept. Consider merging.` });
+          }
+        }
+      }
+    }
+  }
+
+  return nodes.filter(n => !duplicateIds.has(n.id));
+}
+
+function injectGatewayIfMissing(nodes: RawNode[], edges: DiagramEdge[], issues: ValidationIssue[], injectedNodes: string[]): RawNode[] {
+  const clientNodes = nodes.filter(n => normalizeLayer(n.layer) === 'client');
+  const appNodes = nodes.filter(n => normalizeLayer(n.layer) === 'application' || normalizeLayer(n.layer) === 'compute');
+  const appNodeIds = new Set(appNodes.map(n => n.id));
+  
+  const hasGateway = nodes.some(n => normalizeLayer(n.layer) === 'gateway' || normalizeLayer(n.layer) === 'edge');
+  if (hasGateway) return nodes;
+
+  let needsGateway = false;
+  for (const client of clientNodes) {
+    let directAppConnections = 0;
+    for (const edge of edges) {
+      if (edge.source === client.id && appNodeIds.has(edge.target)) {
+        directAppConnections++;
+      }
+    }
+    if (directAppConnections >= 3) {
+      needsGateway = true;
+      break;
+    }
+  }
+
+  if (needsGateway) {
+    const gatewayId = `gateway-${Date.now()}`;
+    const newGateway: RawNode = {
+      id: gatewayId,
+      label: 'API Gateway',
+      layer: 'gateway',
+      subtitle: 'Routes requests',
+      icon: getIconForType('gateway'),
+      serviceType: 'gateway' as any,
+    };
+    nodes.push(newGateway);
+    injectedNodes.push(gatewayId);
+    issues.push({ severity: 'critical', type: 'missing_gateway', message: `Client directly connects to 3+ services with no API Gateway. An API Gateway was injected.` });
+
+    // Reroute client -> app edges through gateway
+    const clientIds = new Set(clientNodes.map(n => n.id));
+    const edgesToRemove = new Set<string>();
+    
+    edges.forEach(edge => {
+      if (clientIds.has(edge.source) && appNodeIds.has(edge.target)) {
+        edgesToRemove.add(edge.id);
+        edges.push({
+          id: `auto-gw-${edge.source}-${gatewayId}-${Date.now()}`,
+          source: edge.source,
+          target: gatewayId,
+          label: 'requests API',
+          async: false,
+        });
+        edges.push({
+          id: `auto-gw-${gatewayId}-${edge.target}-${Date.now()}`,
+          source: gatewayId,
+          target: edge.target,
+          label: edge.label || 'routes to',
+          async: false,
+        });
+      }
+    });
+
+    // We can't actually remove from the array being iterated easily without filter,
+    // so let's mutate in place
+    for (let i = edges.length - 1; i >= 0; i--) {
+      if (edgesToRemove.has(edges[i].id)) edges.splice(i, 1);
+    }
+  }
+
+  return nodes;
+}
+
+function generateLabel(sourceNode: RawNode, targetNode: RawNode): string {
+  const tType = normalizeLayer(targetNode.layer);
+  const sText = sourceNode.label.toLowerCase();
+  const tText = targetNode.label.toLowerCase();
+
+  if (tType === 'data') {
+    if (tText.includes('cache') || tText.includes('redis')) return 'cache read/write';
+    if (tText.includes('storage') || tText.includes('blob') || tText.includes('bucket')) return 'read/write object';
+    return 'read/write record';
+  }
+  if (tType === 'queue') {
+    if (tText.includes('stream') || tText.includes('kafka')) return 'publishes event stream';
+    return 'enqueues job';
+  }
+  if (tType === 'observability') return 'sends telemetry';
+  if (tType === 'external') return 'calls external API';
+  if (tType === 'application' || tType === 'gateway') {
+    if (sText.includes('gateway')) return 'routes request';
+    if (tText.includes('auth')) return 'authenticates';
+    if (tText.includes('payment')) return 'process payment';
+    if (tText.includes('notification') || tText.includes('email')) return 'sends notification';
+    return 'rpc call';
+  }
+  return 'sends request';
+}
+
+function detectAsyncEdge(edge: DiagramEdge, nodes: RawNode[]): boolean {
+  const label = (edge.label || '').toLowerCase();
+  const sourceNode = nodes.find(n => n.id === edge.source);
+  const targetNode = nodes.find(n => n.id === edge.target);
+  
+  const sLayer = sourceNode?.layer?.toLowerCase() || '';
+  const tLayer = targetNode?.layer?.toLowerCase() || '';
+  const sLabel = sourceNode?.label?.toLowerCase() || '';
+  const tLabel = targetNode?.label?.toLowerCase() || '';
+  
+  const isQueueLayer = sLayer === 'queue' || tLayer === 'queue' || sLayer === 'async' || tLayer === 'async';
+  const hasQueueKeywords = [
+    'queue', 'kafka', 'rabbitmq', 'pubsub', 'event', 'stream', 'broker', 'nats', 'sqs', 'sns', 'mqtt', 'amqp'
+  ].some(k => sLabel.includes(k) || tLabel.includes(k) || label.includes(k));
+  
+  const hasAsyncKeywords = [
+    'publish', 'subscribe', 'consume', 'trigger', 'background', 'telemetry', 'webhook', 'async', 'notify', 'notification'
+  ].some(k => label.includes(k));
+
+  return isQueueLayer || hasQueueKeywords || hasAsyncKeywords || edge.async === true || edge.edgeVariant === 'dashed';
+}
+
+function cleanAndNormalizeEdgeLabel(label: string, sourceLabel: string, targetLabel: string): string {
+  let cleaned = label.trim();
+  
+  // Strip quotes if any
+  cleaned = cleaned.replace(/["']/g, '');
+
+  const upperCleaned = cleaned.toUpperCase();
+
+  // Banned exact generic labels or words
+  const bannedGenerics = [
+    "INTEGRATES WITH", "CONNECTS TO", "REQUESTS", "CALLS", "USES", 
+    "TALKS TO", "INTERACTS WITH", "LINKED TO", "ASSOCIATED WITH", "CONNECTS"
+  ];
+  
+  const isGeneric = !cleaned || bannedGenerics.includes(upperCleaned) || 
+                    upperCleaned === "INTEGRATES" || upperCleaned === "REQUEST" || upperCleaned === "CALL";
+
+  if (isGeneric) {
+    // Generate a default label based on nodes
+    const s = sourceLabel.toLowerCase();
+    const t = targetLabel.toLowerCase();
+    if (t.includes('database') || t.includes('db') || t.includes('postgres') || t.includes('mysql') || t.includes('rds') || t.includes('dynamo')) {
+      cleaned = 'READ/WRITE SQL';
+    } else if (t.includes('cache') || t.includes('redis')) {
+      cleaned = 'CACHE READ/WRITE';
+    } else if (t.includes('storage') || t.includes('s3') || t.includes('blob') || t.includes('bucket')) {
+      cleaned = 'WRITE OBJECT';
+    } else if (t.includes('queue') || t.includes('kafka') || t.includes('rabbitmq') || t.includes('sns') || t.includes('sqs') || t.includes('pubsub') || t.includes('message')) {
+      cleaned = 'PUBLISH EVENT';
+    } else if (t.includes('auth')) {
+      cleaned = 'AUTHENTICATE';
+    } else if (t.includes('payment') || t.includes('stripe')) {
+      cleaned = 'PROCESS PAYMENT';
+    } else if (t.includes('notification') || t.includes('email')) {
+      cleaned = 'SEND EMAIL';
+    } else {
+      cleaned = 'CALL API';
+    }
+  } else {
+    // Strip banned words or replace them
+    cleaned = cleaned
+      .replace(/\bintegrates with\b/gi, 'interfaces with')
+      .replace(/\bconnects to\b/gi, 'routes to')
+      .replace(/\brequests\b/gi, 'fetches')
+      .replace(/\bcalls\b/gi, 'invokes');
+  }
+
+  // Enforce uppercase
+  cleaned = cleaned.toUpperCase();
+
+  // Enforce max 4 words
+  const words = cleaned.split(/\s+/);
+  if (words.length > 4) {
+    cleaned = words.slice(0, 4).join(' ');
+  }
+
+  return cleaned;
+}
+
+function checkEdgeLabelQuality(edges: DiagramEdge[], nodes: RawNode[], issues: ValidationIssue[]) {
+  const blocklist = ['connects to', 'requests', 'emits telemetry', 'calls', 'uses', 'integrates with', 'linked to', 'associated with', 'interacts with', 'talks to'];
+  for (const edge of edges) {
+    const srcNode = nodes.find(n => n.id === edge.source);
+    const tgtNode = nodes.find(n => n.id === edge.target);
+    const srcLabel = srcNode?.label || '';
+    const tgtLabel = tgtNode?.label || '';
+
+    const label = (edge.label || '').toLowerCase().trim();
+    if (blocklist.includes(label) || !label) {
+      issues.push({ severity: 'warning', type: 'vague_edge_label', message: `Edge label '${edge.label}' is too generic and has been auto-repaired.` });
+    }
+
+    edge.label = cleanAndNormalizeEdgeLabel(edge.label || '', srcLabel, tgtLabel);
+
+    // Enforce async/dashed classification
+    const isAsync = detectAsyncEdge(edge, nodes);
+    edge.async = isAsync;
+    edge.edgeVariant = isAsync ? 'dashed' : 'solid';
+    edge.communicationType = isAsync ? 'async' : 'sync';
+  }
+}
+
+function validateChecklist(nodes: RawNode[], edges: DiagramEdge[], checklist: PreGenerationChecklist | undefined, issues: ValidationIssue[]) {
+  if (!checklist) return;
+  
+  const allText = [
+    ...nodes.map(n => `${n.label} ${n.subtitle || ''}`.toLowerCase()),
+    ...edges.map(e => (e.label || '').toLowerCase())
+  ].join(' ');
+
+  // 1. Check human actors
+  if (checklist.humanActors && checklist.humanActors.length > 0) {
+    const clientNodes = nodes.filter(n => normalizeLayer(n.layer) === 'client');
+    if (clientNodes.length < checklist.humanActors.length) {
+      issues.push({ severity: 'critical', type: 'missing_actors', message: `Prompt describes ${checklist.humanActors.length} distinct user roles but diagram has only ${clientNodes.length} client nodes. Missing roles may include: ${checklist.humanActors.join(', ')}.` });
+    }
+  }
+
+  // 2. Check features
+  const checkFeature = (feature: string, category: string) => {
+    const b = feature.toLowerCase().trim();
+    if (!b) return;
+    const words = b.split(' ');
+    const hasMatch = words.some(w => w.length > 3 && allText.includes(w)) || allText.includes(b);
+    if (!hasMatch) {
+      issues.push({ severity: 'critical', type: 'missing_feature', message: `Feature '${feature}' was identified in pre-generation checklist (${category}) but has no corresponding node or edge.` });
+    }
+  };
+
+  checklist.dataStores?.forEach(f => checkFeature(f, 'data store'));
+  checklist.backgroundJobs?.forEach(f => checkFeature(f, 'background job'));
+  checklist.externalIntegrations?.forEach(f => checkFeature(f, 'external integration'));
+  checklist.featureRequirements?.forEach(f => checkFeature(f, 'feature requirement'));
+}
+
+function validateTerminalNodeReturnPaths(nodes: RawNode[], edges: DiagramEdge[], issues: ValidationIssue[]) {
+  const terminalTypes = ['cdn', 'recommend', 'notification', 'payment', 'email', 'search'];
+  
+  for (const node of nodes) {
+    const text = `${node.label} ${node.subtitle || ''}`.toLowerCase();
+    if (terminalTypes.some(t => text.includes(t))) {
+      const outgoingEdges = edges.filter(e => e.source === node.id);
+      
+      let hasReturnPath = false;
+      for (const edge of outgoingEdges) {
+        const target = nodes.find(n => n.id === edge.target);
+        if (target && (normalizeLayer(target.layer) === 'client' || normalizeLayer(target.layer) === 'gateway')) {
+          hasReturnPath = true;
+          break;
+        }
+      }
+      
+      if (!hasReturnPath) {
+        issues.push({ severity: 'critical', type: 'missing_return_path', nodeId: node.id, message: `Node '${node.label}' is a user-facing service with no return path to client. Add an edge showing delivery back to the user or gateway.` });
+      }
+    }
+  }
+}
+
+function validateClientReturnFlows(nodes: RawNode[], edges: DiagramEdge[], issues: ValidationIssue[]) {
+  const clientNodes = nodes.filter(n => normalizeLayer(n.layer) === 'client');
+  
+  for (const client of clientNodes) {
+    const incomingEdges = edges.filter(e => e.target === client.id);
+    if (incomingEdges.length === 0) {
+      issues.push({ severity: 'critical', type: 'missing_client_return', nodeId: client.id, message: `Client node '${client.label}' has no return paths. No service in the diagram delivers a response back to this client.` });
+    }
+  }
+}
+
+function validateCDNMisuse(nodes: RawNode[], edges: DiagramEdge[], issues: ValidationIssue[]) {
+  const isCdn = (text: string) => /\bcdn\b|content delivery|akamai|cloudfront/i.test(text);
+  const cdnNodes = nodes.filter(n => isCdn(`${n.label} ${n.subtitle || ''}`));
+  
+  for (const cdn of cdnNodes) {
+    const outgoingEdges = edges.filter(e => e.source === cdn.id);
+    for (const edge of outgoingEdges) {
+      const target = nodes.find(n => n.id === edge.target);
+      if (target) {
+        const layer = normalizeLayer(target.layer);
+        if (layer === 'application' || layer === 'compute' || layer === 'data' || layer === 'queue') {
+          issues.push({ severity: 'critical', type: 'cdn_misuse', nodeId: cdn.id, message: `CDN node '${cdn.label}' routes to backend node '${target.label}'. CDNs must not act as API Gateways or proxy to application services.` });
+        }
+      }
+    }
+  }
 }
 
 /**

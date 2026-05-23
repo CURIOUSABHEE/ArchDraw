@@ -31,6 +31,7 @@ import { convertToReactFlow } from './stage7-convert';
 import { scoreDiagram } from './stage8-score';
 import { buildFeedbackPrompt } from './buildFeedbackPrompt';
 import type { DiagramScore, LayoutedNode, RawNode, RawFlow, ValidationFeedback, ValidatedDiagram } from './types';
+import { logGenerationResult } from './feedbackLogger';
 
 export interface PipelineState {
   userIntent: UserIntent;
@@ -125,6 +126,7 @@ export async function runArchitecturePipeline(
     let currentPrompt = userIntent.description;
     
     let validationResult!: ValidatedDiagram;
+    let finalFeedback!: ValidationFeedback;
     let nodesForValidation: RawNode[] = [];
     let flowsForValidation: RawFlow[] = [];
 
@@ -263,9 +265,10 @@ export async function runArchitecturePipeline(
       }));
 
       // RUN NON-DESTRUCTIVE VALIDATION
-      const valObj = validateAndRepair({ nodes: nodesForValidation, flows: flowsForValidation }, currentPrompt);
+      const valObj = validateAndRepair({ nodes: nodesForValidation, flows: flowsForValidation }, currentPrompt, state.reasoningResult?.preGenerationChecklist);
       validationResult = valObj.diagram;
-      const feedback: ValidationFeedback = valObj.feedback;
+      finalFeedback = valObj.feedback;
+      const feedback = valObj.feedback;
 
       logger.log(`[Pipeline] Validation score: ${feedback.score}/100. Critical issues: ${feedback.issues.filter(i => i.severity === 'critical').length}`);
 
@@ -285,6 +288,23 @@ export async function runArchitecturePipeline(
       
       break;
     }
+
+    // Log the final feedback result
+    logGenerationResult({
+      originalPrompt: userIntent.description,
+      finalScore: finalFeedback.score,
+      totalAttempts: attempt,
+      wasRepaired: finalFeedback.injectedNodes.length > 0 || 
+                   finalFeedback.prunedNodes.length > 0 || 
+                   finalFeedback.orphansFixed > 0 || 
+                   finalFeedback.tiersRepaired.length > 0,
+      issues: finalFeedback.issues,
+      injectedNodes: finalFeedback.injectedNodes,
+      prunedNodes: finalFeedback.prunedNodes,
+      orphansFixed: finalFeedback.orphansFixed,
+      tiersRepaired: finalFeedback.tiersRepaired,
+      detectedDomain: null, // StoryGuard doesn't output detected domain to PipelineState yet
+    });
 
     // Convert back to ArchitectureNode[] and ArchitectureEdge[] using the best valid result
     const nodesRemoved = nodesForValidation.length - validationResult.nodes.length;
@@ -584,7 +604,7 @@ async function generateEdges(state: PipelineState): Promise<ArchitectureEdge[]> 
         model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: 'You are a JSON-only output system. Always respond with valid JSON object with an "edges" array. Do NOT wrap in markdown code blocks.' },
-          { role: 'user', content: prompt },
+          { role: 'user', content: prompt + '\n\nIMPORTANT: Every edge label must describe the specific data or action being transmitted, not just the relationship type. BAD: "CONNECTS TO", "REQUESTS", "EMITS TELEMETRY", "CALLS". GOOD: "submits expense data", "returns JWT token", "publishes job event", "streams video chunk". Labels must be 2-5 words describing what is actually flowing.' },
         ],
         temperature: 0.1,
         max_tokens: 4096,

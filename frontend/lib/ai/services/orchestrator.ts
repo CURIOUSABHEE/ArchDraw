@@ -47,7 +47,8 @@ export async function generateDiagram(
           });
         }
       },
-      userIntent.existingContext
+      userIntent.existingContext,
+      userIntent.diagramSize || 'medium'
     );
 
     logger.log('[Orchestrator] Generation complete. Score:', result.score.score);

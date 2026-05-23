@@ -18,27 +18,27 @@ export interface LayoutMetrics {
 }
 
 const SPACING = {
-  nodeNode: 110,
-  nodeNodeBetweenLayers: 280,
-  edgeNode: 90,
-  edgeEdge: 60,
-  labelNode: 64,
+  nodeNode: 80,
+  nodeNodeBetweenLayers: 120,
+  edgeNode: 40,
+  edgeEdge: 20,
+  labelNode: 50,
 } as const;
 
-const MIN_NODE_WIDTH = 160;
-const MAX_NODE_WIDTH = 280;
-const MIN_NODE_HEIGHT = 60;
-const MAX_NODE_HEIGHT = 80;
+const MIN_NODE_WIDTH = 220;
+const MAX_NODE_WIDTH = 220;
+const MIN_NODE_HEIGHT = 72;
+const MAX_NODE_HEIGHT = 72;
 
 // Consistent spacing constants for layout
 export const LAYOUT_SPACING = {
-  NODE_SPACING_X: 110,
-  NODE_SPACING_Y: 90,
-  TIER_SPACING_Y: 280,
+  NODE_SPACING_X: 80,
+  NODE_SPACING_Y: 80,
+  TIER_SPACING_Y: 120,
   CANVAS_PADDING_X: 80,
   CANVAS_PADDING_Y: 80,
-  NODE_WIDTH: 180,
-  NODE_HEIGHT: 70,
+  NODE_WIDTH: 220,
+  NODE_HEIGHT: 72,
 } as const;
 
 const BASE_FONT_SIZE = 14;
@@ -49,23 +49,7 @@ const PADDING_H = 24;
 const PADDING_V = 16;
 
 export function computeNodeSize(label: string, subtitle?: string): { width: number; height: number } {
-  const labelWidth = label.length * CHAR_WIDTH_RATIO + PADDING_H * 2;
-  const subtitleWidth = subtitle ? subtitle.length * 6 + PADDING_H : 0;
-  const width = Math.min(Math.max(labelWidth, subtitleWidth), MAX_NODE_WIDTH);
-  
-  const labelLines = Math.ceil(labelWidth / (MAX_NODE_WIDTH - PADDING_H * 2));
-  const subtitleLines = subtitle ? 1 : 0;
-  const totalLines = labelLines + subtitleLines;
-  
-  const height = Math.min(
-    Math.max(
-      totalLines * BASE_FONT_SIZE * LINE_HEIGHT + PADDING_V * 2 + (subtitle ? SUBTITLE_FONT_SIZE : 0),
-      MIN_NODE_HEIGHT
-    ),
-    MAX_NODE_HEIGHT
-  );
-  
-  return { width, height };
+  return { width: 220, height: 72 };
 }
 
 export function computeLayoutMetrics(
@@ -96,44 +80,31 @@ export function computeLayoutMetrics(
 }
 
 export function generateELKOptions(metrics: LayoutMetrics): Record<string, string> {
-  const spacingMultiplier = metrics.density === 'high' ? 1.5 : metrics.density === 'medium' ? 1.2 : 1;
-  
   const options: Record<string, string> = {
     'elk.algorithm': 'layered',
     'elk.direction': 'RIGHT',
     'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
     'elk.edgeRouting': 'ORTHOGONAL',
     'elk.portConstraints': 'FIXED_SIDE',
-    'elk.layered.spacing.nodeNodeBetweenLayers': String(
-      Math.round(SPACING.nodeNodeBetweenLayers * spacingMultiplier)
-    ),
-    'elk.spacing.nodeNode': String(Math.round(SPACING.nodeNode * spacingMultiplier)),
-    'elk.spacing.edgeEdge': String(Math.round(SPACING.edgeEdge * spacingMultiplier)),
-    'elk.spacing.edgeNode': String(Math.round(SPACING.edgeNode * spacingMultiplier)),
-    'elk.spacing.labelNode': String(SPACING.labelNode),
-    'elk.layered.spacing.edgeNodeBetweenLayers': String(
-      Math.round(SPACING.nodeNodeBetweenLayers * 0.6 * spacingMultiplier)
-    ),
+    'elk.layered.spacing.nodeNodeBetweenLayers': '120',
+    'elk.spacing.nodeNode': '80',
+    'elk.spacing.edgeEdge': '20',
+    'elk.spacing.edgeNode': '40',
+    'elk.spacing.labelNode': '50',
+    'elk.layered.spacing.edgeNodeBetweenLayers': '40',
     'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
     'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
     'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
     'elk.layered.crossingMinimization.forceNodeModelOrder': 'false',
     'elk.layered.separatingEdges.strategy': 'CENTERING',
-    'elk.layered.unnecessaryBendpoints': 'false',
+    'elk.layered.unnecessaryBendpoints': 'true',
     'elk.layered.mergeEdges': 'false',
-    'elk.layered.spacing.edgeEdgeBetweenLayers': String(
-      Math.round(SPACING.edgeEdge * spacingMultiplier * 1.5)
-    ),
+    'elk.layered.wrapping.multiEdge.improveCuts': 'true',
+    'elk.layered.spacing.edgeEdgeBetweenLayers': '20',
     'elk.edgeLabels.inline': 'false',
     'elk.edgeLabels.placement': 'CENTER',
     'elk.padding': '[top=80, left=80, bottom=80, right=80]',
   };
-  
-  if (metrics.hasAsync) {
-    options['elk.layered.spacing.nodeNodeBetweenLayers'] = String(
-      Math.round(SPACING.nodeNodeBetweenLayers * 1.8)
-    );
-  }
   
   return options;
 }

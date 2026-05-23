@@ -45,9 +45,10 @@ export async function callDiagramLLM(
   reasoning: ReasoningResult,
   onNode?: (node: RawNode) => void,
   onFlow?: (flow: RawFlow) => void,
-  existingContext?: { nodes: any[]; edges: any[] }
+  existingContext?: { nodes: any[]; edges: any[] },
+  diagramSize: 'small' | 'medium' | 'large' = 'medium'
 ): Promise<ParsedDiagram> {
-  const prompt = buildDiagramPrompt(reasoning, existingContext);
+  const prompt = buildDiagramPrompt(reasoning, existingContext, diagramSize);
   const parser = new IncrementalParser();
 
   const GROQ_KEY_ENV_VARS = [
@@ -111,8 +112,23 @@ export async function callDiagramLLM(
 
 import { ARCHITECTURE_RULES } from '../prompts/architectureRules';
 
-function buildDiagramPrompt(reasoning: ReasoningResult, existingContext?: { nodes: any[]; edges: any[] }): string {
+function buildDiagramPrompt(
+  reasoning: ReasoningResult,
+  existingContext?: { nodes: any[]; edges: any[] },
+  diagramSize: 'small' | 'medium' | 'large' = 'medium'
+): string {
+  let sizeInstructions = "";
+  if (diagramSize === 'small') {
+    sizeInstructions = "CRITICAL LIMIT: Generate a focused diagram with exactly 4 to 6 nodes total. Omit all optional or secondary components.";
+  } else if (diagramSize === 'large') {
+    sizeInstructions = "CRITICAL LIMIT: Generate a comprehensive diagram with 13 to 20 nodes total. Include primary, secondary, worker, cache, observability, and external services to show the complete production setup.";
+  } else {
+    sizeInstructions = "CRITICAL LIMIT: Generate a standard diagram with exactly 8 to 12 nodes total. Include primary components, primary databases, and basic observability.";
+  }
+
   let prompt = `${ARCHITECTURE_RULES}
+
+${sizeInstructions}
 
 Create a custom diagram for: ${reasoning.systemType}.
 USER PROMPT: ${reasoning.sourcePrompt || reasoning.systemType}
@@ -152,6 +168,16 @@ CUSTOMIZATION RULES:
 - Do not add Web Client, Mobile App, Auth Service, Load Balancer, Message Queue, Database, or Cache unless the prompt or plan makes them necessary.
 - Never use a client node as the central target for backend services. Client nodes initiate flows; backend/data/queue nodes should not point back to clients.
 - Prefer specific nodes named after the domain workflow over generic placeholders.
+- NEVER use these edge labels: 'integrates with', 'connects to', 'calls', 'uses', 'requests'. These are banned. Every label must describe the specific data being transmitted.
+  WRONG: GPS Service --INTEGRATES WITH--> Mapping Service
+  RIGHT: GPS Service --sends lat/lng coordinates--> Mapping Service
+  WRONG: Appointment Service --INTEGRATES WITH--> Payment Service
+  RIGHT: Appointment Service --submits payment request--> Payment Service
+- For every service that delivers a result to a user (recommendations, notifications, payments, search results, video streams), you MUST draw a return edge from that service back toward the client or API gateway. A flow that only shows the request path without the response path is architecturally incomplete.
+- For every flow that starts at a client node, you must trace the complete cycle back to that client. Ask yourself: 'What does the user actually receive at the end of this flow?' That answer must be an edge. Examples:
+  - User requests recommendations → ... → Recommendation Engine returns ranked list → API Gateway → User
+  - User uploads video → ... → CDN delivers stream → Video Player
+  - User books appointment → ... → Confirmation Service sends confirmation → Patient App
 `;
   return prompt.trim();
 }

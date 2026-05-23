@@ -3,9 +3,10 @@ export interface UserIntent {
   systemType: string;
   complexity: 'low' | 'medium' | 'high';
   model?: string;
+  diagramSize?: 'small' | 'medium' | 'large';
   existingContext?: {
-    nodes: any[];
-    edges: any[];
+    nodes: unknown[];
+    edges: unknown[];
   };
 }
 

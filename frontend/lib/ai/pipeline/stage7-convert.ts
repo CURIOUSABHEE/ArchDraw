@@ -148,6 +148,23 @@ export function convertToReactFlow(
       };
     });
 
+  // STEP 7: Detect bidirectional edge pairs and apply curvature offsets
+  const edgePairMap = new Map<string, Edge[]>();
+  for (const edge of rfEdges) {
+    const pairKey = [edge.source, edge.target].sort().join('--');
+    if (!edgePairMap.has(pairKey)) {
+      edgePairMap.set(pairKey, []);
+    }
+    edgePairMap.get(pairKey)!.push(edge);
+  }
+
+  for (const pairs of edgePairMap.values()) {
+    if (pairs.length === 2) {
+      pairs[0].data = { ...pairs[0].data, pathType: 'bezier', curvature: 0.25 };
+      pairs[1].data = { ...pairs[1].data, pathType: 'bezier', curvature: -0.25 };
+    }
+  }
+
   console.log(`[Convert] Final output: ${rfNodes.length} nodes, ${rfEdges.length} edges (all nodes preserved)`);
 
   return { nodes: rfNodes, edges: rfEdges };

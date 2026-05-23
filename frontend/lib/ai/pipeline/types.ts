@@ -71,6 +71,14 @@ export interface IntentResult {
   ambiguous: boolean;
 }
 
+export interface PreGenerationChecklist {
+  humanActors: string[];
+  dataStores: string[];
+  backgroundJobs: string[];
+  externalIntegrations: string[];
+  featureRequirements: string[];
+}
+
 export interface ReasoningResult {
   systemType: string;
   sourcePrompt?: string;
@@ -89,6 +97,8 @@ export interface ReasoningResult {
   layers?: Record<string, { description: string; components: string[] }>;
   keyFlows?: Array<{ name: string; description: string; path: string[] }>;
   architecturalPlan?: string;
+  extractedBehaviors?: string[];
+  preGenerationChecklist?: PreGenerationChecklist;
 }
 
 export interface DiagramScore {
