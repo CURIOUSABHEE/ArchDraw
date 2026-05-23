@@ -1,4 +1,4 @@
-import type { RawNode, RawFlow, DiagramEdge, ValidatedDiagram, PipelineLayer } from './types';
+import type { RawNode, RawFlow, DiagramEdge, ValidatedDiagram, PipelineLayer, ValidationFeedback, ValidationIssue } from './types';
 import { ensurePromptRequiredNodes, prunePromptIrrelevantNodes, repairStoryEdges } from './storyGuard';
 
 /**
@@ -17,37 +17,89 @@ const LAYER_ORDER: PipelineLayer[] = ['client', 'edge', 'gateway', 'application'
 /**
  * Main validation function - ensures connectivity and proper layer structure
  */
-export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }, prompt?: string): ValidatedDiagram {
-  let nodes = ensurePromptRequiredNodes(prunePromptIrrelevantNodes([...parsed.nodes], prompt), prompt);
-  const flows = [...parsed.flows];
+export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }, prompt?: string): { diagram: ValidatedDiagram; feedback: ValidationFeedback } {
+  const issues: ValidationIssue[] = [];
+  const injectedNodes: string[] = [];
+  const prunedNodes: string[] = [];
+  let orphansFixed = 0;
+  const tiersRepaired: string[] = [];
 
-  console.log(`[Validate] Starting with ${nodes.length} nodes and ${flows.length} flows`);
+  // Track pruned nodes
+  const pruned = prunePromptIrrelevantNodes([...parsed.nodes], prompt);
+  const prunedIds = new Set(pruned.map(n => n.id));
+  parsed.nodes.forEach(n => {
+    if (!prunedIds.has(n.id)) {
+      prunedNodes.push(n.id);
+      issues.push({ severity: 'warning', type: 'pruned_node', nodeId: n.id, message: `Node '${n.label || n.id}' was pruned because it was irrelevant to the requested architecture.` });
+    }
+  });
+
+  // Track injected nodes
+  let nodes = ensurePromptRequiredNodes(pruned, prompt);
+  nodes.forEach(n => {
+    if (!prunedIds.has(n.id)) {
+      injectedNodes.push(n.id);
+      issues.push({ severity: 'critical', type: 'injected_node', nodeId: n.id, message: `Required node '${n.label}' was missing and had to be injected based on the requested domain.` });
+    }
+  });
+
+  console.log(`[Validate] Starting with ${nodes.length} nodes and ${parsed.flows.length} flows`);
 
   // STEP 1: Parse flows into edges
-  const edges = flowsToEdges(flows);
+  const edges = flowsToEdges(parsed.flows);
   console.log(`[Validate] Parsed ${edges.length} edges from flows`);
 
   // STEP 2: Fix nodes with missing data
-  nodes = repairNodeData(nodes);
+  nodes = repairNodeData(nodes, issues, tiersRepaired);
 
   // STEP 3: Ensure all nodes have valid IDs and labels
-  nodes = ensureNodeIdentity(nodes);
+  nodes = ensureNodeIdentity(nodes, issues);
 
   // STEP 4: Remove duplicate edges
-  const repairedEdges = repairStoryEdges(nodes, repairEdges(edges, nodes), prompt);
+  const deduplicatedEdges = repairEdges(edges, nodes, issues);
+  const repairedEdges = repairStoryEdges(nodes, deduplicatedEdges, prompt);
+  // Find difference to log edges removed by storyGuard
+  const dedupedIds = new Set(deduplicatedEdges.map(e => e.id));
+  const repairedIds = new Set(repairedEdges.map(e => e.id));
+  deduplicatedEdges.forEach(e => {
+    if (!repairedIds.has(e.id)) {
+      issues.push({ severity: 'warning', type: 'invalid_edge', message: `Edge from '${e.source}' to '${e.target}' was removed because it violates architectural rules.` });
+    }
+  });
 
   // STEP 5: Connect orphaned nodes (ensure no orphans)
-  const connectedEdges = connectOrphans(nodes, repairedEdges);
+  const connectedEdges = connectOrphans(nodes, repairedEdges, issues);
+  orphansFixed = connectedEdges.length - repairedEdges.length;
 
   // STEP 6: Ensure minimum structure
   const { nodes: enrichedNodes, edges: enrichedEdges } = enrichDiagram(nodes, connectedEdges);
 
   // STEP 7: Enforce granular layer structure
-  const finalNodes = enforceHierarchy(enrichedNodes);
+  const finalNodes = enforceHierarchy(enrichedNodes, issues, tiersRepaired);
 
   console.log(`[Validate] Final: ${finalNodes.length} nodes and ${enrichedEdges.length} edges`);
 
-  return { nodes: finalNodes, edges: enrichedEdges };
+  // Calculate score
+  let score = 100;
+  issues.forEach(issue => {
+    if (issue.severity === 'critical') score -= 15;
+    if (issue.severity === 'warning') score -= 5;
+  });
+  score = Math.max(0, score);
+  
+  const isValid = issues.filter(i => i.severity === 'critical').length === 0;
+
+  const feedback: ValidationFeedback = {
+    isValid,
+    score,
+    issues,
+    injectedNodes,
+    prunedNodes,
+    orphansFixed,
+    tiersRepaired
+  };
+
+  return { diagram: { nodes: finalNodes, edges: enrichedEdges }, feedback };
 }
 
 /**
@@ -89,19 +141,22 @@ function flowsToEdges(flows: RawFlow[]): DiagramEdge[] {
 /**
  * Fix nodes with missing data
  */
-function repairNodeData(nodes: RawNode[]): RawNode[] {
+function repairNodeData(nodes: RawNode[], issues: ValidationIssue[], tiersRepaired: string[]): RawNode[] {
   return nodes.map(node => {
     const repaired = { ...node };
 
     // Fix missing layer
     if (!repaired.layer) {
       repaired.layer = inferLayerFromLabel(repaired.label) as PipelineLayer;
+      tiersRepaired.push(repaired.id);
+      issues.push({ severity: 'warning', type: 'missing_layer', nodeId: repaired.id, message: `Node '${repaired.label || repaired.id}' lacked a layer and was automatically assigned to '${repaired.layer}'. Ensure every node specifies a correct layer.` });
       console.log(`[Validate] Repaired missing layer for "${repaired.label}" → ${repaired.layer}`);
     }
 
     // Fix missing label
     if (!repaired.label || repaired.label.trim() === '') {
       repaired.label = generateLabelFromId(repaired.id);
+      issues.push({ severity: 'warning', type: 'missing_label', nodeId: repaired.id, message: `Node '${repaired.id}' was missing a label. It must have a descriptive label.` });
       console.log(`[Validate] Repaired missing label for "${repaired.id}" → "${repaired.label}"`);
     }
 
@@ -117,10 +172,11 @@ function repairNodeData(nodes: RawNode[]): RawNode[] {
 /**
  * Ensure all nodes have valid IDs and labels
  */
-function ensureNodeIdentity(nodes: RawNode[]): RawNode[] {
+function ensureNodeIdentity(nodes: RawNode[], issues: ValidationIssue[]): RawNode[] {
   return nodes.map((node, idx) => {
     if (!node.id || node.id.trim() === '') {
       const newId = `node-${idx}-${Date.now()}`;
+      issues.push({ severity: 'warning', type: 'missing_id', nodeId: newId, message: `A node was missing an ID and had to be assigned '${newId}'. Every node must have a valid ID.` });
       console.log(`[Validate] Generated ID for node ${idx}: "${newId}"`);
       return { ...node, id: newId };
     }
@@ -131,7 +187,7 @@ function ensureNodeIdentity(nodes: RawNode[]): RawNode[] {
 /**
  * Remove duplicate edges
  */
-function repairEdges(edges: DiagramEdge[], nodes: RawNode[]): DiagramEdge[] {
+function repairEdges(edges: DiagramEdge[], nodes: RawNode[], issues: ValidationIssue[]): DiagramEdge[] {
   const nodeIds = new Set(nodes.map(n => n.id));
   
   const validEdges: DiagramEdge[] = [];
@@ -140,6 +196,7 @@ function repairEdges(edges: DiagramEdge[], nodes: RawNode[]): DiagramEdge[] {
   for (const edge of edges) {
     // Remove edges pointing to non-existent nodes
     if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
+      issues.push({ severity: 'warning', type: 'dangling_edge', message: `Edge from '${edge.source}' to '${edge.target}' references a non-existent node and was removed.` });
       console.log(`[Validate] Edge ${edge.source}->${edge.target} references non-existent node, removing`);
       continue;
     }
@@ -161,7 +218,7 @@ function repairEdges(edges: DiagramEdge[], nodes: RawNode[]): DiagramEdge[] {
 /**
  * Connect orphaned nodes (ensure no orphans) using a semantic best-effort heuristic
  */
-function connectOrphans(nodes: RawNode[], edges: DiagramEdge[]): DiagramEdge[] {
+function connectOrphans(nodes: RawNode[], edges: DiagramEdge[], issues: ValidationIssue[]): DiagramEdge[] {
   const connectedEdges = [...edges];
   
   // 1. Collect all node IDs (excluding groups)
@@ -183,6 +240,8 @@ function connectOrphans(nodes: RawNode[], edges: DiagramEdge[]): DiagramEdge[] {
   
   // 4. Connect orphan nodes to the most semantically relevant existing node using best-effort heuristic
   orphans.forEach(orphan => {
+    issues.push({ severity: 'critical', type: 'orphan_node', nodeId: orphan.id, message: `Node '${orphan.label || orphan.id}' had zero connections (it was an orphan) and required heuristic reconnection. Every node must be connected to the rest of the architecture.` });
+    
     const orphanLayer = orphan.layer || 'application';
     let partnerNode: RawNode | undefined;
     let isOrphanSource = true; // True if orphan should be source, false if target
@@ -262,11 +321,15 @@ function enrichDiagram(nodes: RawNode[], edges: DiagramEdge[]): { nodes: RawNode
 /**
  * Enforce hierarchy - ensure nodes follow left-to-right flow
  */
-function enforceHierarchy(nodes: RawNode[]): RawNode[] {
+function enforceHierarchy(nodes: RawNode[], issues: ValidationIssue[], tiersRepaired: string[]): RawNode[] {
   return nodes.map(node => {
     if (node.layer) return node;
 
     const inferredLayer = inferLayerFromLabel(node.label);
+    if (!tiersRepaired.includes(node.id)) {
+      tiersRepaired.push(node.id);
+      issues.push({ severity: 'warning', type: 'missing_layer', nodeId: node.id, message: `Node '${node.label || node.id}' lacked a valid layer hierarchy and was assigned to '${inferredLayer}'. Ensure nodes follow the left-to-right tier rule.` });
+    }
     console.log(`[Validate] Enforcing hierarchy: assigned "${node.label}" to layer "${inferredLayer}"`);
     return { ...node, layer: inferredLayer as PipelineLayer };
   });

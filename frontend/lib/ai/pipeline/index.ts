@@ -74,7 +74,8 @@ export async function generateDiagramPipeline(
 
     // Stage 5: Validate and repair
     logger.log('[Pipeline] Stage 5: Validate and repair');
-    const validated = validateAndRepair(parsed, prompt);
+    const validationResult = validateAndRepair(parsed, prompt);
+    const validated = validationResult.diagram;
     logger.log(`[Pipeline] Validated nodes: ${validated.nodes.length}, edges: ${validated.edges.length}`);
 
     // Stage 6: Layout
