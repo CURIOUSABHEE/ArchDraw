@@ -29,7 +29,8 @@ import { validateAndRepair } from './stage5-validate';
 import { applyLayout } from './stage6-layout';
 import { convertToReactFlow } from './stage7-convert';
 import { scoreDiagram } from './stage8-score';
-import type { DiagramScore, LayoutedNode, RawNode, RawFlow } from './types';
+import { buildFeedbackPrompt } from './buildFeedbackPrompt';
+import type { DiagramScore, LayoutedNode, RawNode, RawFlow, ValidationFeedback, ValidatedDiagram } from './types';
 
 export interface PipelineState {
   userIntent: UserIntent;
@@ -75,6 +76,7 @@ export interface PipelineResult {
 }
 
 const MAX_ITERATIONS = 3;
+const MAX_RETRIES = 2;
 const SCORE_THRESHOLD = 75;
 
 /**
@@ -119,145 +121,174 @@ export async function runArchitecturePipeline(
       };
     }
 
-    // ── STAGE 1: Intent Detection ──
-    onProgress?.('Detecting intent', 10);
-    state.systemIntent = detectSystemIntent(userIntent.description);
-    state.useAWS = state.systemIntent.useAWS || detectAWSInPrompt(userIntent.description);
+    let attempt = 0;
+    let currentPrompt = userIntent.description;
     
-    // NEW: Improved intent detection with confidence
-    state.intentResult = detectIntent(userIntent.description);
-    logger.log(`[Pipeline] Intent: ${state.intentResult.type} (confidence: ${state.intentResult.confidence.toFixed(2)}, ambiguous: ${state.intentResult.ambiguous})`);
-    
-    state.history.push({
-      step: 'intent',
-      timestamp: Date.now(),
-      output: state.intentResult,
-    });
+    let validationResult!: ValidatedDiagram;
+    let nodesForValidation: RawNode[] = [];
+    let flowsForValidation: RawFlow[] = [];
 
-    // Detect domain early for validation rules
-    const domain = detectDomain(userIntent.description);
-    logger.log(`[Pipeline] Detected domain: ${domain}`);
+    while (attempt <= MAX_RETRIES) {
+      // ── STAGE 1: Intent Detection ──
+      onProgress?.(`Detecting intent (Attempt ${attempt + 1})`, 10);
+      state.systemIntent = detectSystemIntent(currentPrompt);
+      state.useAWS = state.systemIntent.useAWS || detectAWSInPrompt(currentPrompt);
+      
+      // NEW: Improved intent detection with confidence
+      state.intentResult = detectIntent(currentPrompt);
+      logger.log(`[Pipeline] Intent: ${state.intentResult.type} (confidence: ${state.intentResult.confidence.toFixed(2)}, ambiguous: ${state.intentResult.ambiguous})`);
+      
+      state.history.push({
+        step: 'intent',
+        timestamp: Date.now(),
+        output: state.intentResult,
+      });
 
-    // ── STAGE 2: Reasoning ──
-    onProgress?.('Reasoning about architecture', 20);
-    state.reasoningResult = await callReasoningLLM(userIntent.description, state.intentResult.type);
-    logger.log(`[Pipeline] Reasoning complete: ${state.reasoningResult.systemType}`);
-    logger.log(`[Pipeline] Architectural plan: ${state.reasoningResult.architecturalPlan}`);
-    
-    if (state.reasoningResult.layers) {
-      logger.log(`[Pipeline] Layers defined: ${Object.keys(state.reasoningResult.layers).join(', ')}`);
-    }
-    
-    state.history.push({
-      step: 'reasoning',
-      timestamp: Date.now(),
-      output: state.reasoningResult,
-    });
+      // Detect domain early for validation rules
+      const domain = detectDomain(currentPrompt);
+      logger.log(`[Pipeline] Detected domain: ${domain}`);
 
-    // ── STAGE 3: Diagram Generation (LLM) ──
-    onProgress?.('Generating diagram', 35);
-    
-    const diagramResult = await callDiagramLLM(
-      state.reasoningResult,
-      (node) => {
-        logger.log(`[Pipeline] Generated node: ${node.label} (${node.id})`);
-      },
-      (flow) => {
-        logger.log(`[Pipeline] Generated flow: ${flow.path.join(' → ')}`);
-      },
-      userIntent.existingContext
-    );
-
-    // Convert RawNode[] to ArchitectureNode[]
-    state.rawNodes = diagramResult.nodes.map(n => 
-      rawNodeToArchitectureNode(n)
-    );
-    
-    logger.log(`[Pipeline] Generated ${state.rawNodes.length} nodes and ${diagramResult.flows.length} flows`);
-    
-    state.history.push({
-      step: 'diagram',
-      timestamp: Date.now(),
-      output: { nodeCount: state.rawNodes.length, flowCount: diagramResult.flows.length },
-    });
-
-    // ── Enrich Nodes ──
-    onProgress?.('Enriching nodes', 45);
-    state.enrichedNodes = enrichNodes(state.rawNodes);
-    state.history.push({
-      step: 'enrich',
-      timestamp: Date.now(),
-      output: state.enrichedNodes.length,
-    });
-
-    // ── Generate Edges ──
-    onProgress?.('Generating edges', 50);
-    state.edges = await generateEdges(state);
-    
-    // Apply domain-specific edge patterns
-    const domainResult = applyDomainEdgePatterns(state.enrichedNodes, domain, state.edges);
-    if (domainResult.added > 0) {
-      logger.log(`[Pipeline] Domain edge patterns added: ${domainResult.added}`);
-      state.edges = [...state.edges, ...domainResult.edges];
-    }
-    
-    state.history.push({
-      step: 'edges',
-      timestamp: Date.now(),
-      output: state.edges.length,
-    });
-
-    // Ensure minimum edges
-    const minRequiredEdges = Math.max(10, Math.floor(state.enrichedNodes.length * 0.5));
-    if (state.edges.length < minRequiredEdges) {
-      logger.warn(`[Pipeline] Low edge count (${state.edges.length} < ${minRequiredEdges}), adding missing edges`);
-      const missingEdges = generateMissingEdges(state.enrichedNodes, state.edges);
-      if (missingEdges.length > 0) {
-        state.edges = [...state.edges, ...missingEdges];
+      // ── STAGE 2: Reasoning ──
+      onProgress?.('Reasoning about architecture', 20);
+      state.reasoningResult = await callReasoningLLM(currentPrompt, state.intentResult.type);
+      logger.log(`[Pipeline] Reasoning complete: ${state.reasoningResult.systemType}`);
+      logger.log(`[Pipeline] Architectural plan: ${state.reasoningResult.architecturalPlan}`);
+      
+      if (state.reasoningResult.layers) {
+        logger.log(`[Pipeline] Layers defined: ${Object.keys(state.reasoningResult.layers).join(', ')}`);
       }
+      
+      state.history.push({
+        step: 'reasoning',
+        timestamp: Date.now(),
+        output: state.reasoningResult,
+      });
+
+      // ── STAGE 3: Diagram Generation (LLM) ──
+      onProgress?.('Generating diagram', 35);
+      
+      const diagramResult = await callDiagramLLM(
+        state.reasoningResult,
+        (node) => {
+          logger.log(`[Pipeline] Generated node: ${node.label} (${node.id})`);
+        },
+        (flow) => {
+          logger.log(`[Pipeline] Generated flow: ${flow.path.join(' → ')}`);
+        },
+        userIntent.existingContext
+      );
+
+      // Convert RawNode[] to ArchitectureNode[]
+      state.rawNodes = diagramResult.nodes.map(n => 
+        rawNodeToArchitectureNode(n)
+      );
+      
+      logger.log(`[Pipeline] Generated ${state.rawNodes.length} nodes and ${diagramResult.flows.length} flows`);
+      
+      state.history.push({
+        step: 'diagram',
+        timestamp: Date.now(),
+        output: { nodeCount: state.rawNodes.length, flowCount: diagramResult.flows.length },
+      });
+
+      // ── Enrich Nodes ──
+      onProgress?.('Enriching nodes', 45);
+      state.enrichedNodes = enrichNodes(state.rawNodes);
+      state.history.push({
+        step: 'enrich',
+        timestamp: Date.now(),
+        output: state.enrichedNodes.length,
+      });
+
+      // ── Generate Edges ──
+      onProgress?.('Generating edges', 50);
+      state.edges = await generateEdges(state);
+      
+      // Apply domain-specific edge patterns
+      const domainResult = applyDomainEdgePatterns(state.enrichedNodes, domain, state.edges);
+      if (domainResult.added > 0) {
+        logger.log(`[Pipeline] Domain edge patterns added: ${domainResult.added}`);
+        state.edges = [...state.edges, ...domainResult.edges];
+      }
+      
+      state.history.push({
+        step: 'edges',
+        timestamp: Date.now(),
+        output: state.edges.length,
+      });
+
+      // Ensure minimum edges
+      const minRequiredEdges = Math.max(10, Math.floor(state.enrichedNodes.length * 0.5));
+      if (state.edges.length < minRequiredEdges) {
+        logger.warn(`[Pipeline] Low edge count (${state.edges.length} < ${minRequiredEdges}), adding missing edges`);
+        const missingEdges = generateMissingEdges(state.enrichedNodes, state.edges);
+        if (missingEdges.length > 0) {
+          state.edges = [...state.edges, ...missingEdges];
+        }
+      }
+
+      // Enforce minimum connections per node
+      const connectionFix = enforceMinimumConnections(state.enrichedNodes, state.edges);
+      if (connectionFix.fixes.length > 0) {
+        logger.log('[Pipeline] Connection fixes applied:', connectionFix.fixes);
+        state.edges = connectionFix.edges;
+      }
+
+      // Ensure connectivity for orphaned nodes
+      const connectivityResult = ensureConnectivity(state.enrichedNodes, state.edges);
+      state.edges = connectivityResult.edges;
+      logger.log(`[Pipeline] Connectivity enforcement complete`);
+
+      // Auto-add compensating resilience components
+      const resilientResult = autoAddCompensatingComponents(state.enrichedNodes, state.edges);
+      state.enrichedNodes = resilientResult.nodes;
+      state.edges = resilientResult.edges;
+      logger.log(`[Pipeline] Compensating components added`);
+
+      // ── STAGE 4/5: NON-DESTRUCTIVE Validation ──
+      onProgress?.('Validating and repairing', 65);
+      
+      // Convert ArchitectureNode[] to RawNode[] for validation
+      nodesForValidation = state.enrichedNodes.map(n => 
+        architectureNodeToRawNode(n)
+      );
+
+      // Convert ArchitectureEdge[] to RawFlow[]
+      flowsForValidation = state.edges.map(e => ({
+        path: [e.source, e.target],
+        label: e.label || '',
+        async: e.communicationType === 'async',
+        communicationType: e.communicationType,
+        edgeVariant: e.edgeVariant,
+      }));
+
+      // RUN NON-DESTRUCTIVE VALIDATION
+      const valObj = validateAndRepair({ nodes: nodesForValidation, flows: flowsForValidation }, currentPrompt);
+      validationResult = valObj.diagram;
+      const feedback: ValidationFeedback = valObj.feedback;
+
+      logger.log(`[Pipeline] Validation score: ${feedback.score}/100. Critical issues: ${feedback.issues.filter(i => i.severity === 'critical').length}`);
+
+      if (!feedback.isValid && feedback.score < SCORE_THRESHOLD && attempt < MAX_RETRIES) {
+        logger.warn(`[Pipeline] Triggering retry ${attempt + 1} due to structural issues.`);
+        
+        // Build an enriched prompt containing the feedback
+        currentPrompt = buildFeedbackPrompt(userIntent.description, feedback, attempt + 1);
+        attempt++;
+        
+        // Reset node/edge state for retry
+        state.rawNodes = [];
+        state.enrichedNodes = [];
+        state.edges = [];
+        continue;
+      }
+      
+      break;
     }
 
-    // Enforce minimum connections per node
-    const connectionFix = enforceMinimumConnections(state.enrichedNodes, state.edges);
-    if (connectionFix.fixes.length > 0) {
-      logger.log('[Pipeline] Connection fixes applied:', connectionFix.fixes);
-      state.edges = connectionFix.edges;
-    }
-
-    // Ensure connectivity for orphaned nodes
-    const connectivityResult = ensureConnectivity(state.enrichedNodes, state.edges);
-    state.edges = connectivityResult.edges;
-    logger.log(`[Pipeline] Connectivity enforcement complete`);
-
-    // Auto-add compensating resilience components
-    const resilientResult = autoAddCompensatingComponents(state.enrichedNodes, state.edges);
-    state.enrichedNodes = resilientResult.nodes;
-    state.edges = resilientResult.edges;
-    logger.log(`[Pipeline] Compensating components added`);
-
-    // ── STAGE 4/5: NON-DESTRUCTIVE Validation ──
-    onProgress?.('Validating and repairing', 65);
-    
-    // Convert ArchitectureNode[] to RawNode[] for validation
-    const rawNodesForValidation: RawNode[] = state.enrichedNodes.map(n => 
-      architectureNodeToRawNode(n)
-    );
-
-    // Convert ArchitectureEdge[] to RawFlow[]
-    const rawFlows: RawFlow[] = state.edges.map(e => ({
-      path: [e.source, e.target],
-      label: e.label || '',
-      async: e.communicationType === 'async',
-      communicationType: e.communicationType,
-      edgeVariant: e.edgeVariant,
-    }));
-
-    // RUN NON-DESTRUCTIVE VALIDATION
-    const validationResult = validateAndRepair({ nodes: rawNodesForValidation, flows: rawFlows }, userIntent.description);
-    
-    // Convert back to ArchitectureNode[] and ArchitectureEdge[]
-    const nodesRemoved = rawNodesForValidation.length - validationResult.nodes.length;
-    const edgesRemoved = rawFlows.length - validationResult.edges.length;
+    // Convert back to ArchitectureNode[] and ArchitectureEdge[] using the best valid result
+    const nodesRemoved = nodesForValidation.length - validationResult.nodes.length;
+    const edgesRemoved = flowsForValidation.length - validationResult.edges.length;
     
     if (nodesRemoved > 0) {
       logger.warn(`[Pipeline] WARNING: ${nodesRemoved} nodes removed during validation`);
