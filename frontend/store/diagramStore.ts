@@ -388,22 +388,80 @@ function normalizeNodes(nodes: Node[]): Node[] {
 }
 
 function normalizeEdge(edge: Edge): Edge {
-  const edgeType = edge.type as string | undefined;
-  const normalizedType = edgeType && KNOWN_EDGE_TYPES.has(edgeType) ? edgeType : 'simpleFloating';
-
-  if (normalizedType === 'simpleFloating') {
-    return {
-      ...edge,
-      type: normalizedType,
-      sourceHandle: undefined,
-      targetHandle: undefined,
-    };
-  }
-
   return {
     ...edge,
-    type: normalizedType,
+    type: 'smoothstep',
   };
+}
+
+function distributeTargetHandles(nodes: Node[], edges: Edge[]): Edge[] {
+  // Group edges by their target node
+  const incomingEdgesByTarget = new Map<string, Edge[]>();
+  for (const edge of edges) {
+    const target = edge.target;
+    if (!incomingEdgesByTarget.has(target)) {
+      incomingEdgesByTarget.set(target, []);
+    }
+    incomingEdgesByTarget.get(target)!.push(edge);
+  }
+
+  return edges.map(edge => {
+    const target = edge.target;
+    const incoming = incomingEdgesByTarget.get(target) || [];
+    
+    // Sort incoming edges by the source node's Y coordinate to keep routing clean and prevent crossings
+    const sortedIncoming = [...incoming].sort((a, b) => {
+      const nodeA = nodes.find(n => n.id === a.source);
+      const nodeB = nodes.find(n => n.id === b.source);
+      const yA = nodeA?.position?.y ?? 0;
+      const yB = nodeB?.position?.y ?? 0;
+      return yA - yB;
+    });
+
+    const index = sortedIncoming.findIndex(e => e.id === edge.id);
+    
+    // Determine the general direction from source to target
+    const srcNode = nodes.find(n => n.id === edge.source);
+    const tgtNode = nodes.find(n => n.id === edge.target);
+    
+    const srcX = srcNode?.position?.x ?? 0;
+    const tgtX = tgtNode?.position?.x ?? 0;
+    const srcY = srcNode?.position?.y ?? 0;
+    const tgtY = tgtNode?.position?.y ?? 0;
+
+    let targetHandle = 'left';
+    let sourceHandle = tgtX > srcX ? 'right' : 'left';
+
+    if (incoming.length < 3) {
+      if (incoming.length === 2) {
+        if (index === 0) {
+          targetHandle = tgtY > srcY ? 'top' : 'bottom';
+        } else {
+          targetHandle = 'left';
+        }
+      } else {
+        if (tgtX > srcX + 100) {
+          targetHandle = 'left';
+        } else if (srcX > tgtX + 100) {
+          targetHandle = 'right';
+        } else if (tgtY > srcY) {
+          targetHandle = 'top';
+        } else {
+          targetHandle = 'bottom';
+        }
+      }
+    } else {
+      const handles = ['top', 'left', 'bottom'];
+      targetHandle = handles[index % 3];
+    }
+
+    return {
+      ...edge,
+      sourceHandle,
+      targetHandle,
+      type: 'smoothstep',
+    };
+  });
 }
 
 function normalizeEdges(edges: Edge[]): Edge[] {
@@ -958,40 +1016,22 @@ export const useDiagramStore = create<DiagramState>()(
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
-onConnect: (connection) => {
+      onConnect: (connection) => {
         get().pushHistory();
         const edgeId = `edge-${Date.now()}`;
         
-        const sourceNode = get().nodes.find(n => n.id === connection.source);
-        const targetNode = get().nodes.find(n => n.id === connection.target);
-        
-        let sourceHandle = connection.sourceHandle;
-        let targetHandle = connection.targetHandle;
-        
-        if (!sourceHandle && connection.source) {
-          const sourceX = sourceNode?.position?.x ?? 0;
-          const targetX = targetNode?.position?.x ?? 0;
-          sourceHandle = targetX > sourceX ? 'right' : 'left';
-        }
-        if (!targetHandle && connection.target) {
-          const sourceX = sourceNode?.position?.x ?? 0;
-          const targetX = targetNode?.position?.x ?? 0;
-          targetHandle = sourceX > targetX ? 'left' : 'right';
-        }
-        
-        const edges = addEdge(
+        const rawEdges = addEdge(
           { 
             ...connection, 
-            sourceHandle,
-            targetHandle,
             id: edgeId, 
-            type: 'simpleFloating',
+            type: 'smoothstep',
             data: { 
               edgeType: DEFAULT_EDGE_TYPE as EdgeType,
             },
           },
           get().edges
         );
+        const edges = distributeTargetHandles(get().nodes, rawEdges);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
@@ -999,7 +1039,7 @@ onConnect: (connection) => {
 
       onReconnect: (oldEdge, newConnection) => {
         get().pushHistory();
-        const edges = get().edges.map(e => {
+        const rawEdges = get().edges.map(e => {
           if (e.id === oldEdge.id) {
             return {
               ...e,
@@ -1011,6 +1051,7 @@ onConnect: (connection) => {
           }
           return e;
         });
+        const edges = distributeTargetHandles(get().nodes, rawEdges);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
         set({ edges, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
@@ -1140,30 +1181,7 @@ onConnect: (connection) => {
         const resolvedNodes = resolveNodeCollisions(validatedNodes);
         const normalizedEdges = normalizeEdges(edges);
         
-        const edgesWithHandles = normalizedEdges.map(edge => {
-          // simpleFloating edges calculate positions dynamically — no handles needed
-          if (edge.type === 'simpleFloating') return edge;
-          if (edge.sourceHandle && edge.targetHandle) return edge;
-          
-          const srcNode = resolvedNodes.find(n => n.id === edge.source);
-          const tgtNode = resolvedNodes.find(n => n.id === edge.target);
-          
-          let sourceHandle = edge.sourceHandle;
-          let targetHandle = edge.targetHandle;
-          
-          if (!sourceHandle && srcNode && tgtNode) {
-            const srcX = srcNode.position?.x ?? 0;
-            const tgtX = tgtNode?.position?.x ?? 0;
-            sourceHandle = tgtX > srcX ? 'right' : 'left';
-          }
-          if (!targetHandle && srcNode && tgtNode) {
-            const srcX = srcNode?.position?.x ?? 0;
-            const tgtX = tgtNode?.position?.x ?? 0;
-            targetHandle = srcX > tgtX ? 'left' : 'right';
-          }
-          
-          return { ...edge, sourceHandle, targetHandle };
-        });
+        const edgesWithHandles = distributeTargetHandles(resolvedNodes, normalizedEdges);
         
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, edgesWithHandles);
         set({ nodes: resolvedNodes, edges: edgesWithHandles, canvases });

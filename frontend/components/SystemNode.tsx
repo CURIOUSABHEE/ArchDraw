@@ -7,9 +7,11 @@ import { useCanvasTheme } from '@/lib/theme';
 import { Activity, Palette, Pencil, Copy, Trash2 } from 'lucide-react';
 import { FloatingHandles } from './nodes/FloatingHandles';
 
-const NODE_WIDTH = 160;
-const NODE_HEIGHT = 80;
-const BORDER_RADIUS = 10;
+import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
+
+const NODE_WIDTH = DIAGRAM_CONSTANTS.node.width;
+const NODE_HEIGHT = DIAGRAM_CONSTANTS.node.minHeight;
+const BORDER_RADIUS = DIAGRAM_CONSTANTS.node.borderRadius;
 
 interface NodeStyleConfig {
   background: string;
@@ -214,8 +216,8 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
             position: 'absolute',
             top: layer.offset,
             left: layer.offset,
-            width: nodeData.nodeWidth || NODE_WIDTH,
-            height: nodeData.nodeHeight || NODE_HEIGHT,
+            width: NODE_WIDTH,
+            height: NODE_HEIGHT,
             borderRadius: BORDER_RADIUS,
             background: layer.color,
             zIndex: 0,
@@ -228,9 +230,9 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
       <div
         className="group"
         style={{
-          width: nodeData.nodeWidth || NODE_WIDTH,
-          minWidth: nodeData.nodeWidth || NODE_WIDTH,
-          height: nodeData.nodeHeight || NODE_HEIGHT,
+          width: NODE_WIDTH,
+          minWidth: NODE_WIDTH,
+          minHeight: NODE_HEIGHT,
           borderRadius: BORDER_RADIUS,
           background: styles.background,
           border: `1.5px solid ${borderCol}`,
