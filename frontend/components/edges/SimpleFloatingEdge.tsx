@@ -186,12 +186,12 @@ export default function SimpleFloatingEdge({
 
   const pathType = data?.pathType || 'Smoothstep';
   const edgeLabel = data?.label?.trim();
-  const sharedEndpointEdges = useMemo(
-    () => edges.filter((edge) => edge.source === source || edge.target === target || edge.source === target || edge.target === source),
+  const parallelEdges = useMemo(
+    () => edges.filter((edge) => (edge.source === source && edge.target === target) || (edge.source === target && edge.target === source)).sort((a, b) => a.id.localeCompare(b.id)),
     [edges, source, target]
   );
-  const labelOrder = Math.max(0, sharedEndpointEdges.findIndex((edge) => edge.id === id));
-  const labelT = data?.labelT ?? Math.max(0.32, Math.min(0.68, 0.5 + ((labelOrder % 3) - 1) * 0.08));
+  const labelOrder = Math.max(0, parallelEdges.findIndex((edge) => edge.id === id));
+  const labelT = data?.labelT ?? (parallelEdges.length > 1 ? Math.max(0.2, Math.min(0.8, 0.5 + ((labelOrder - (parallelEdges.length - 1) / 2) * 0.15))) : 0.5);
   
   let edgePath: string;
   if (pathType === 'straight') {

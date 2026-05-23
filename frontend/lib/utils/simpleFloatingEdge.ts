@@ -107,17 +107,20 @@ export function getEdgeShiftOffset(
   const edge = edges.find(e => e.id === edgeId);
   if (!edge) return 0;
 
-  // Check if there is a direct bidirectional connection for THIS edge
-  const isBidirectional = edges.some(
-    e => e.id !== edge.id && e.source === edge.target && e.target === edge.source
-  );
+  // Check for parallel edges between the exact same two nodes (regardless of direction)
+  const parallelEdges = edges.filter(
+    e => (e.source === edge.source && e.target === edge.target) || 
+         (e.source === edge.target && e.target === edge.source)
+  ).sort((a, b) => a.id.localeCompare(b.id));
 
-  // If this specific edge is part of a bidirectional pair, use the deterministic lexical shift
-  if (isBidirectional) {
-    return edge.source > edge.target ? spacing : -spacing;
+  // If this specific edge is part of a parallel/bidirectional group, spread them evenly
+  if (parallelEdges.length > 1) {
+    const index = parallelEdges.findIndex(e => e.id === edgeId);
+    // Spread them by spacing * 1.5 around the center
+    return (index - (parallelEdges.length - 1) / 2) * spacing * 1.5;
   }
 
-  // Otherwise, use the geometric calculation to untangle bundles
+  // Otherwise, use the geometric calculation to untangle bundles of different nodes
   const getAvgCoord = (items: typeof inwardEdges) => {
     let sum = 0;
     for (const item of items) {
