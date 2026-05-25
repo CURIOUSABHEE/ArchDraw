@@ -1,6 +1,5 @@
 import { Node, Edge } from 'reactflow';
 import type { LayoutedNode, ValidatedDiagram } from './types';
-import { EDGE_MARKER_IDS } from '../constants';
 import { EDGE_STYLES } from '@/lib/theme/stylingConstants';
 
 /**
@@ -129,20 +128,24 @@ export function convertToReactFlow(
       const connectionType = edge.async ? 'async' : 'sync';
       const edgeStyle = EDGE_STYLES[connectionType as keyof typeof EDGE_STYLES] || EDGE_STYLES.sync;
       const strokeDash = edgeStyle.dash || '';
-      const markerId = EDGE_MARKER_IDS[connectionType] || EDGE_MARKER_IDS.sync;
       const edgeLabel = edge.label?.trim();
 
       return {
         id: edge.id || `rf-${idx}`,
         source: edge.source,
         target: edge.target,
-        type: 'simpleFloating',
+        type: 'simpleFloating' as const,
         animated: edge.async,
         style: { stroke: edgeStyle.color, strokeWidth: 2, strokeDasharray: strokeDash },
-        markerEnd: `url(#${markerId})`,
+        markerEnd: {
+          type: 'arrowclosed' as any,
+          color: edgeStyle.color,
+          width: 20,
+          height: 20,
+        },
         data: {
           connectionType,
-          pathType: 'smooth',
+          pathType: 'smooth' as const,
           label: edgeLabel && edgeLabel.length > 0 ? edgeLabel : undefined,
         },
       };

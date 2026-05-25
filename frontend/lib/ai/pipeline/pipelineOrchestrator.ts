@@ -3,7 +3,7 @@ import type { ArchitectureNode, ArchitectureEdge, UserIntent, ReactFlowNode, Lay
 import { detectSystemIntent } from '../graph/ArchitectureGraph';
 import { detectAWSInPrompt, enrichNodes } from '../agents/component';
 import { ArchitectureGraph } from '../graph/ArchitectureGraph';
-import { validateEdges } from '../edges/edgeValidator';
+// import { validateEdges } from '../edges/edgeValidator'; // Removed as it is imported below
 import { repairEdges, generateMissingEdges } from '../edges/edgeRepair';
 import { allocatePorts, assignHandlesToEdges } from '../edges/portAllocator';
 import { apiKeyManager } from '../utils/apiKeyManager';
@@ -16,7 +16,8 @@ import { autoAddCompensatingComponents } from '../graph/compensatingComponents';
 import { validateDiagramQuality, type DiagramQualityReport } from '../validation/diagramQualityValidator';
 import * as diagramCache from '../services/diagramCache';
 import { detectDomain } from '../graph/componentValidator';
-import { enforceMinimumConnections } from '../graph/edgeValidator';
+import { enforceMinimumConnections, validateEdges } from '../edges/edgeValidator';
+import type { ValidationIssue } from '../types';
 import { applyDomainEdgePatterns } from '../graph/domainEdgePatterns';
 import { findConnectedComponents, bridgeComponents } from '../graph/graphConnectivity';
 import { COMMUNICATION_STYLES } from '../constants';

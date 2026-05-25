@@ -28,19 +28,21 @@ import { useCallback, useEffect, useRef, DragEvent, useState, useMemo } from 're
 import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
 import { LayoutGrid, LayoutTemplate, MousePointer2 } from 'lucide-react';
 import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
-import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { useCanvasTheme } from '@/lib/theme';
+import { cn } from '@/lib/utils';
+import { SVGEdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
+
 import { TemplateModal } from '@/components/TemplateModal';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { isValidConnection, wouldCreateCycle } from '@/lib/config/edgeConfig';
-import { EdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
-import { DIAGRAM_CONSTANTS, EDGE_MARKER } from '@/constants/diagram';
+import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
 
 import { useGrouping } from '@/hooks/useGrouping';
 import { toast } from 'sonner';
 import type { Node } from 'reactflow';
 import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
+import { useEdgeColors } from '@/lib/edgeColors';
 import { calculateNodeDimensions } from '@/lib/utils/nodeSizing';
 
 // Module-level ref so the store can call fitView without hooks
@@ -66,11 +68,16 @@ const EDGE_TYPES = {
   simpleFloating: SimpleFloatingEdge,
   default: SimpleFloatingEdge,
   smoothstep: SimpleFloatingEdge,
+  flow: SimpleFloatingEdge,
+  async: SimpleFloatingEdge,
+  sync: SimpleFloatingEdge,
+  stream: SimpleFloatingEdge,
+  event: SimpleFloatingEdge,
+  dep: SimpleFloatingEdge,
+  dotted: SimpleFloatingEdge,
 };
 
 function CanvasInner() {
-  const nodeTypes = useMemo(() => NODE_TYPES, []);
-  const edgeTypes = useMemo(() => EDGE_TYPES, []);
 
   const {
     nodes, edges, onNodesChange, onEdgesChange, onConnect, onReconnect,
@@ -311,6 +318,8 @@ function CanvasInner() {
     }
   };
 
+  const coloredEdges = useEdgeColors(edges);
+
   return (
     <div 
       className="w-full h-full relative transition-colors duration-200 bg-[hsl(var(--canvas-bg))]"
@@ -318,7 +327,7 @@ function CanvasInner() {
     >
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={coloredEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -334,8 +343,8 @@ function CanvasInner() {
           setPendingLabelEdgeId(edge.id);
           setLabelDraft(edge.data?.label || '');
         }}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
         fitView
         selectionMode={SelectionMode.Full}
         selectionOnDrag
@@ -350,8 +359,7 @@ function CanvasInner() {
         maxZoom={4}
         defaultEdgeOptions={{
           type: 'smoothstep',
-          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth, stroke: DIAGRAM_CONSTANTS.edge.stroke },
-          markerEnd: EDGE_MARKER,
+          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth },
         }}
       >
         <Background 
@@ -362,7 +370,7 @@ function CanvasInner() {
           style={{ opacity: isDark ? 0.6 : 0.4 }}
         />
         <Controls showInteractive={false} className={`!shadow-sm ${isDark ? '!bg-[#1E2235] !border-gray-800 !text-white' : '!bg-white !border-gray-200 !text-gray-800'}`} />
-        <EdgeMarkerDefs />
+        <SVGEdgeMarkerDefs />
         <GuideLines />
         
         <EdgeLabelRenderer>
