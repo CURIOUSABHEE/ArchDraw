@@ -1,10 +1,17 @@
-import ELK from 'elkjs/lib/elk.bundled.js';
 import type { ReactFlowNode, ReactFlowEdge, ArchitectureNode, ArchitectureEdge } from '../types';
 import type { EdgePath, Point } from './edgeLayout';
 import logger from '@/lib/logger';
 import { getNodeShapeConfig } from '@/constants/nodeShapeConfig';
 
-const elk = new ELK();
+let elkInstance: any = null;
+async function getELK() {
+  if (!elkInstance) {
+    const ELKModule = await import('elkjs/lib/elk.bundled.js');
+    const ELK = ELKModule.default ?? ELKModule;
+    elkInstance = new ELK();
+  }
+  return elkInstance as { layout: (graph: any) => Promise<any> };
+}
 
 const LAYOUT_CACHE = new Map<string, { nodes: ReactFlowNode[]; timestamp: number }>();
 const LAYOUT_CACHE_TTL = 5 * 60 * 1000;
@@ -45,6 +52,7 @@ async function runELKLayoutAsync(
     setTimeout(() => reject(new Error('ELK timeout after ' + timeoutMs + 'ms')), timeoutMs);
   });
 
+  const elk = await getELK();
   const elkPromise = elk.layout(graph as Parameters<typeof elk.layout>[0]);
 
   return Promise.race([elkPromise, timeoutPromise]);

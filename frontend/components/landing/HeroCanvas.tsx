@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, useNodesState, useEdgesState, ReactFlowProvider, type NodeTypes,
   type Node, type Edge, applyNodeChanges, type NodeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { HeroNode } from './HeroNode';
+import { assignEdgeColors } from '@/lib/edgeColors';
 
 const nodeTypes: NodeTypes = { heroNode: HeroNode };
 
@@ -53,10 +54,12 @@ function HeroCanvasContent() {
     [setNodes]
   );
 
+  const coloredEdges = useMemo(() => assignEdgeColors(edges), [edges]);
+
   return (
     <ReactFlow
       nodes={nodes}
-      edges={edges}
+      edges={coloredEdges}
       onNodesChange={onNodesChange}
       onEdgesChange={() => {}}
       nodeTypes={nodeTypes}

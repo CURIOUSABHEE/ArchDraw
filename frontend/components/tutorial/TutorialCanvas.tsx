@@ -22,17 +22,23 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
-import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
-import { EdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
+import { SVGEdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
 import { DIAGRAM_CONSTANTS, EDGE_MARKER } from '@/constants/diagram';
-
+import { assignEdgeColors } from '@/lib/edgeColors';
 const EDGE_TYPES = {
   custom: SimpleFloatingEdge,
   simpleFloating: SimpleFloatingEdge,
   default: SimpleFloatingEdge,
   smoothstep: SimpleFloatingEdge,
+  flow: SimpleFloatingEdge,
+  async: SimpleFloatingEdge,
+  sync: SimpleFloatingEdge,
+  stream: SimpleFloatingEdge,
+  event: SimpleFloatingEdge,
+  dep: SimpleFloatingEdge,
+  dotted: SimpleFloatingEdge,
 };
 import { ComponentPalette } from '@/components/tutorial/ComponentPalette';
 import { NodeTooltip } from '@/components/tutorial/NodeTooltip';
@@ -137,8 +143,6 @@ function TutorialCanvasInner({
   theme, 
   tutorialId, 
 }: TutorialCanvasInnerProps) {
-  const nodeTypes = useMemo(() => NODE_TYPES, []);
-  const edgeTypes = useMemo(() => EDGE_TYPES, []);
   const isDark = theme === 'dark';
   const canvasBg = isDark ? '#0f172a' : '#f8fafc';
   const dotColor = isDark ? '#475569' : '#64748b';
@@ -330,20 +334,22 @@ function TutorialCanvasInner({
     return () => { delete (window as Window & { __tutorialOpenPalette?: typeof openPaletteWithQuery }).__tutorialOpenPalette; };
   }, [openPaletteWithQuery]);
 
+  const coloredEdges = useMemo(() => assignEdgeColors(edges), [edges]);
+
   return (
     <div className="flex-1 relative flex flex-col">
-      <EdgeMarkerDefs />
+      <SVGEdgeMarkerDefs />
       <div className="flex-1 relative">
         <ReactFlow
           nodes={nodes}
-          edges={edges}
+          edges={coloredEdges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onDragOver={onDragOver}
           onDrop={onDrop}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
+          nodeTypes={NODE_TYPES}
+          edgeTypes={EDGE_TYPES}
           snapToGrid
           snapGrid={[20, 20]}
           minZoom={0.1}

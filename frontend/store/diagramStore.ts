@@ -1,16 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { serializedStorage } from './storage';
-import {
-  Connection,
-  Edge,
-  EdgeChange,
-  Node,
-  NodeChange,
-  addEdge,
-  applyNodeChanges,
-  applyEdgeChanges,
-} from 'reactflow';
+import type { Connection, Edge, EdgeChange, Node, NodeChange } from 'reactflow';
+import { addEdge, applyNodeChanges, applyEdgeChanges, MarkerType } from 'reactflow';
 import { getSupabaseClient, isSupabaseConfigured, isReachable, type UserCanvasesTable } from '@/lib/supabase';
 import { type Database } from '@/types/supabase';
 import { DEFAULT_EDGE_TYPE, type EdgeType } from '@/data/edgeTypes';
@@ -391,6 +383,12 @@ function normalizeEdge(edge: Edge): Edge {
   return {
     ...edge,
     type: 'smoothstep',
+    markerEnd: edge.markerEnd ?? {
+      type: MarkerType.ArrowClosed,
+      color: '#94a3b8',
+      width: 20,
+      height: 20,
+    },
   };
 }
 
@@ -1025,6 +1023,12 @@ export const useDiagramStore = create<DiagramState>()(
             ...connection, 
             id: edgeId, 
             type: 'smoothstep',
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: '#94a3b8',
+              width: 20,
+              height: 20,
+            },
             data: { 
               edgeType: DEFAULT_EDGE_TYPE as EdgeType,
             },

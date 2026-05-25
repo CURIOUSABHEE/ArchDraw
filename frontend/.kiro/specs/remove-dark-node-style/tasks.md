@@ -1,0 +1,127 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Dark Mode Gradient and Missing Backplates
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: For deterministic bugs, scope the property to the concrete failing case(s) to ensure reproducibility
+  - Test that SystemNode in dark mode uses gradient background instead of solid color with backplates
+  - Test that SystemNode in dark mode has empty backplate array instead of plate design structure
+  - Test that ShapeNode in dark mode uses different backplate configuration than light mode
+  - Test that SVG export in dark mode uses `url(#node-dark-bg)` gradient fill instead of solid fill with backplates
+  - The test assertions should match the Expected Behavior Properties from design:
+    - Assert nodes use plate-based design structure (solid background with offset backplate layers)
+    - Assert no gradient backgrounds are used
+    - Assert backplate offsets match light mode structure
+    - Assert dark-theme-appropriate colors are used
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found to understand root cause:
+    - SystemNode renders with `linear-gradient(135deg, #1E2235 0%, #141624 100%)`
+    - SystemNode has no backplate elements (empty array)
+    - SVG export uses gradient fill instead of solid color
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+
+- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Light Mode Design Unchanged
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs (light mode rendering)
+  - Observe: SystemNode in light mode uses plate design with specific backplate offsets and colors
+  - Observe: ShapeNode in light mode uses plate design with consistent backplate structure
+  - Observe: Selection indicators (borders, shadows) display correctly in light mode
+  - Observe: SVG export in light mode produces solid fills with backplate elements
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - For all light mode node renderings, verify plate design structure is maintained
+    - For all light mode selections, verify selection indicators display correctly
+    - For all light mode exports, verify SVG output matches canvas rendering
+    - For all node interactions, verify toolbar and property behaviors are unchanged
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 3. Fix for dark mode gradient and dual-style system
+
+  - [ ] 3.1 Update SystemNode.tsx to use plate design in dark mode
+    - Remove gradient background from DARK_STYLES configuration
+    - Replace `background: 'linear-gradient(135deg, #1E2235 0%, #141624 100%)'` with solid color like `'#1F2937'`
+    - Add dark mode backplates to match plate design structure
+    - Change `const backplateLayers = isDark ? [] : (selected ? [...] : [...])` to include dark mode backplates
+    - Use dark-appropriate backplate colors: `[{offset: 10, color: '#111827'}, {offset: 5, color: '#1F2937'}]` for unselected
+    - Use darker backplate colors for selected state: `[{offset: 10, color: '#0F172A'}, {offset: 5, color: '#111827'}]`
+    - Adjust box shadows for dark mode to work with plate design
+    - _Bug_Condition: isBugCondition(input) where input.theme == 'dark' AND nodeUsesGradientBackground(input.nodeType)_
+    - _Expected_Behavior: nodes use plate-based design structure (solid background with offset backplate layers) with dark-theme-appropriate colors_
+    - _Preservation: Light mode plate design with existing backplate offsets and colors must continue to work exactly as before_
+    - _Requirements: 1.1, 2.1, 3.1_
+
+  - [ ] 3.2 Update ShapeNode.tsx to ensure consistent plate design
+    - Verify dark mode backplates match plate design structure
+    - Ensure backplate offsets are consistent with light mode (same structural approach)
+    - Adjust colors to be appropriate for dark backgrounds while maintaining plate design
+    - Verify the component uses unified backplate logic across themes
+    - _Bug_Condition: isBugCondition(input) where input.theme == 'dark' AND nodeUsesDifferentBackplateConfig(input.nodeType)_
+    - _Expected_Behavior: nodes maintain plate design structure with only color adjustments for theme contrast_
+    - _Preservation: Light mode plate design and selection indicators must continue to display appropriately_
+    - _Requirements: 1.2, 2.2, 3.2_
+
+  - [ ] 3.3 Update lib/theme/stylingConstants.ts to unify node styles
+    - Update DARK_NODE_STYLES to use same structural approach as LIGHT_NODE_STYLES
+    - Ensure backplates array has same offset values as light mode
+    - Adjust colors to be appropriate for dark backgrounds
+    - Remove any gradient-related properties from dark mode configuration
+    - Consider consolidating to single unified configuration with theme-specific color variants
+    - _Bug_Condition: isBugCondition(input) where input.theme == 'dark' AND dual style configurations exist_
+    - _Expected_Behavior: single unified node style configuration with theme-specific color variations_
+    - _Preservation: Light mode colors and configuration must remain unchanged_
+    - _Requirements: 1.5, 2.5, 3.1_
+
+  - [ ] 3.4 Update lib/svgExport.ts to use plate design in dark mode
+    - Remove gradient fill for dark mode nodes
+    - Replace `fillBg = 'url(#node-dark-bg)'` with solid color like `fillBg = '#1F2937'`
+    - Add dark mode backplates to SVG export
+    - Modify `const backplateLayers = isDark ? [] : (selected ? [...] : [...])` to include dark-appropriate backplate colors
+    - Remove or comment out `<linearGradient id="node-dark-bg">` definition in SVG defs
+    - Verify exported SVGs in dark mode match canvas rendering with plate design
+    - _Bug_Condition: isBugCondition(input) where input.theme == 'dark' AND svgExportUsesGradientFill(input.nodeType)_
+    - _Expected_Behavior: SVG export renders nodes with plate-based design using solid fills and backplates_
+    - _Preservation: SVG export in light mode must produce identical output as before_
+    - _Requirements: 1.3, 2.3, 3.4_
+
+  - [ ] 3.5 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Unified Plate Design Across Themes
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - Verify SystemNode in dark mode uses solid background with backplates (no gradients)
+    - Verify ShapeNode in dark mode uses consistent backplate structure
+    - Verify SVG export in dark mode uses solid fills with backplates
+    - Verify theme switching maintains structural consistency (only colors change)
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+
+  - [ ] 3.6 Verify preservation tests still pass
+    - **Property 2: Preservation** - Light Mode Design Unchanged
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - Verify light mode plate design remains unchanged
+    - Verify selection indicators work correctly in both themes
+    - Verify accent colors and status indicators display correctly
+    - Verify SVG export in light mode produces identical output
+    - Verify node interactions (toolbar, properties) function correctly
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix (no regressions)
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Run all bug condition exploration tests - verify they pass
+  - Run all preservation property tests - verify they pass
+  - Run any existing unit tests for affected components
+  - Verify visual consistency: compare dark mode node rendering before/after fix
+  - Verify theme switching works smoothly without structural changes
+  - Verify SVG export produces valid output in both themes
+  - Ask the user if questions arise or if manual testing is needed

@@ -246,51 +246,25 @@ body {
 }
 
 .react-flow__edge-path {
-  stroke: #6B7280 !important;
-  stroke-width: 1.5 !important;
-  stroke-linecap: round !important;
-  stroke-linejoin: round !important;
-  vector-effect: non-scaling-stroke !important;
-  opacity: 0.7 !important;
-  transition: stroke 0.15s ease, stroke-width 0.15s ease, opacity 0.15s ease !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.7;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease, opacity 0.15s ease;
 }
 
 /* Dark mode: lighter edges for visibility */
 .dark .react-flow__edge-path {
-  stroke: #94A3B8 !important;
-  stroke-width: 2 !important;
-  opacity: 0.75 !important;
+  opacity: 0.75;
 }
 
 .react-flow__edge.animated .react-flow__edge-path {
-  stroke: #6B7280 !important;
   animation: edgeFlow 1s linear infinite;
 }
 
-.dark .react-flow__edge.animated .react-flow__edge-path {
-  stroke: #94A3B8 !important;
-}
-
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke: #4B5563 !important;
-  stroke-width: 2 !important;
-  opacity: 1 !important;
-}
-
-.dark .react-flow__edge.selected .react-flow__edge-path {
-  stroke: #CBD5E1 !important;
-  stroke-width: 2.2 !important;
-  opacity: 1 !important;
-}
-
+.react-flow__edge.selected .react-flow__edge-path,
 .react-flow__edge:hover .react-flow__edge-path {
-  stroke: #4B5563 !important;
-  opacity: 1 !important;
-}
-
-.dark .react-flow__edge:hover .react-flow__edge-path {
-  stroke: #CBD5E1 !important;
-  opacity: 1 !important;
+  opacity: 1;
 }
 
 .react-flow__edges svg marker path {

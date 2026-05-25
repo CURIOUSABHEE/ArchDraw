@@ -1,10 +1,17 @@
-import ELK from 'elkjs/lib/elk.bundled.js';
 import type { Node, Edge } from 'reactflow';
 import type { LayoutPreset } from './layoutPresets';
 import { getNodeShapeConfig } from '@/constants/nodeShapeConfig';
 import logger from '@/lib/logger';
 
-const elk = new ELK();
+let elkInstance: any = null;
+async function getELK() {
+  if (!elkInstance) {
+    const ELKModule = await import('elkjs/lib/elk.bundled.js');
+    const ELK = ELKModule.default ?? ELKModule;
+    elkInstance = new ELK();
+  }
+  return elkInstance as { layout: (graph: any) => Promise<any> };
+}
 
 const DEFAULT_GROUP_WIDTH = 400;
 const DEFAULT_GROUP_HEIGHT = 300;
@@ -125,6 +132,7 @@ export async function applyLayoutPreset(
   };
 
   try {
+    const elk = await getELK();
     const layouted = await elk.layout(elkGraph);
 
     const positionMap = new Map<string, { x: number; y: number }>();

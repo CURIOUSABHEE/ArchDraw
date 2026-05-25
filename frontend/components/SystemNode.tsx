@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { useCanvasTheme } from '@/lib/theme';
@@ -38,15 +38,15 @@ const LIGHT_STYLES: NodeStyleConfig = {
 };
 
 const DARK_STYLES: NodeStyleConfig = {
-  background: 'linear-gradient(135deg, #1E2235 0%, #141624 100%)',
-  border: '#1E2130',
-  borderHover: '#4B5563',
-  shadow: '0 4px 16px rgba(0,0,0,0.5)',
-  shadowSelected: '0 0 0 2px rgba(129,140,248,0.5), 0 4px 12px rgba(129,140,248,0.25)',
-  titleColor: '#F1F5F9', // near white
-  subtitleColor: '#94A3B8', // soft slate
-  fontSize: 13,
-  subFontSize: 11,
+  background: '#ffffff',
+  border: '#d1d5db',
+  borderHover: '#9ca3af',
+  shadow: '5px 5px 0 #e5e7eb, 10px 10px 0 #f3f4f6, 0 1px 3px rgba(0,0,0,0.08)',
+  shadowSelected: '0 0 0 2px rgba(129,140,248,0.5), 5px 5px 0 #d1d5db, 10px 10px 0 #e5e7eb, 0 2px 6px rgba(0,0,0,0.1)',
+  titleColor: '#1f2937',
+  subtitleColor: '#6b7280',
+  fontSize: 12,
+  subFontSize: 10,
 };
 
 const STATUS_COLORS = {
@@ -68,6 +68,13 @@ function getTierColorNormalized(layer?: string): string {
     external: '#ec4899', // rose
   };
   return colorMap[tier] || colorMap.compute;
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function getDarkCategoryStyle(layer?: string): { border: string; glow: string } {
@@ -109,6 +116,7 @@ function ToolbarButton({
 function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
   const { isDark } = useCanvasTheme();
+  const [isHovered, setIsHovered] = useState(false);
   
   const nodeData = data as NodeData & {
     layer?: string;
@@ -177,29 +185,40 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   }, []);
 
 
-  const backplateLayers = isDark ? [] : (selected
-    ? [
-        { offset: 10, color: '#ecece5' },
-        { offset: 5, color: '#dfdfd8' },
-      ]
-    : [
-        { offset: 10, color: '#efefe8' },
-        { offset: 5, color: '#e1e1da' },
-      ]);
+  const backplateLayers = isDark
+    ? (selected
+        ? [
+            { offset: 10, color: '#f7f7f7' },
+            { offset: 5, color: '#eef0f2' },
+          ]
+        : [
+            { offset: 10, color: '#fbfbfb' },
+            { offset: 5, color: '#f8f8fa' },
+          ])
+    : (selected
+        ? [
+            { offset: 10, color: '#f8f8f4' },
+            { offset: 5, color: '#eaeae4' },
+          ]
+        : [
+            { offset: 10, color: '#fafaf7' },
+            { offset: 5, color: '#ecece6' },
+          ]);
 
 
   // Dark mode details
   const catStyle = getDarkCategoryStyle(nodeData.layer);
-  const borderCol = isDark ? catStyle.border : (selected ? accentColor : styles.border);
+  const showBorder = selected || isHovered;
+  const borderCol = showBorder ? (isDark ? catStyle.border : accentColor) : 'transparent';
   
   let boxS = '';
   if (isDark) {
-    boxS = `0 4px 16px rgba(0,0,0,0.5), inset 0 0 12px ${catStyle.glow}`;
-    if (selected) {
-      boxS = `0 0 0 2px ${catStyle.border}, 0 4px 16px rgba(0,0,0,0.5), inset 0 0 12px ${catStyle.glow}`;
+    boxS = `${styles.shadow}, inset 0 0 12px ${catStyle.glow}`;
+    if (selected || isHovered) {
+      boxS = `0 0 0 2px ${catStyle.border}, ${styles.shadowSelected}, inset 0 0 12px ${catStyle.glow}`;
     }
   } else {
-    boxS = selected
+    boxS = (selected || isHovered)
       ? `0 0 0 2px ${accentColor}, 0 3px 8px rgba(0,0,0,0.07)`
       : `0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.85)`;
   }
@@ -247,6 +266,8 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
           zIndex: 5,
         }}
         onClick={handleClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Toolbar - appears above when selected */}
         {selected && (
@@ -286,6 +307,16 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
             </ToolbarButton>
           </div>
         )}
+
+        {/* Colored shine overlay */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: BORDER_RADIUS,
+          background: `linear-gradient(135deg, ${hexToRgba(accentColor, 0.04)} 0%, transparent 60%)`,
+          pointerEvents: 'none',
+          zIndex: 1,
+        }} />
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px 4px', flex: 1 }}>

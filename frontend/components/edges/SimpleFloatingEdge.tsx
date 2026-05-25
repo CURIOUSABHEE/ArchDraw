@@ -26,6 +26,7 @@ export default function SimpleFloatingEdge({
   target,
   data,
   selected,
+  style: edgeStyle,
   sourceX = 0,
   sourceY = 0,
   targetX = 0,
@@ -55,20 +56,12 @@ export default function SimpleFloatingEdge({
       const sCenter = getNodeCenter(sourceNode);
       const tCenter = getNodeCenter(targetNode);
 
-      // Respect specified sourceHandleId / targetHandleId if they are directions
-      if (sourceHandleId && ['left', 'right', 'top', 'bottom'].includes(sourceHandleId)) {
-        sourcePos = sourceHandleId as Position;
-      } else {
-        const positions = getSimpleEdgePositions(sCenter.cx, sCenter.cy, tCenter.cx, tCenter.cy);
-        sourcePos = positions.sourcePos;
-      }
-
-      if (targetHandleId && ['left', 'right', 'top', 'bottom'].includes(targetHandleId)) {
-        targetPos = targetHandleId as Position;
-      } else {
-        const positions = getSimpleEdgePositions(sCenter.cx, sCenter.cy, tCenter.cx, tCenter.cy);
-        targetPos = positions.targetPos;
-      }
+      // Always compute the closest side dynamically from current node positions.
+      // Do NOT use sourceHandleId/targetHandleId — those are frozen at edge creation
+      // and would prevent the edge from "floating" to the nearest side when nodes move.
+      const positions = getSimpleEdgePositions(sCenter.cx, sCenter.cy, tCenter.cx, tCenter.cy);
+      sourcePos = positions.sourcePos;
+      targetPos = positions.targetPos;
 
       const sourceShift = getEdgeShiftOffset(source, id, sourcePos, edges, nodeInternals, 15);
       const targetShift = getEdgeShiftOffset(target, id, targetPos, edges, nodeInternals, 15);
@@ -91,7 +84,7 @@ export default function SimpleFloatingEdge({
   const isAsync = data?.edgeVariant === 'dashed' || data?.async || data?.connectionType === 'async';
 
   const strokeStyle: React.CSSProperties = useMemo(() => {
-    const stroke = DIAGRAM_CONSTANTS.edge.stroke;
+    const stroke = edgeStyle?.stroke || DIAGRAM_CONSTANTS.edge.stroke;
     const strokeWidth = DIAGRAM_CONSTANTS.edge.strokeWidth;
     const strokeDasharray = isAsync ? DIAGRAM_CONSTANTS.edge.dashArray : undefined;
 
@@ -102,7 +95,7 @@ export default function SimpleFloatingEdge({
       transition: 'opacity 0.2s',
       opacity: selected || isHovered ? 1 : 0.85,
     };
-  }, [isAsync, selected, isHovered]);
+  }, [edgeStyle, isAsync, selected, isHovered]);
 
   const edgeLabel = data?.label?.trim();
   const parallelEdges = useMemo(

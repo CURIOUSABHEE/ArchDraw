@@ -116,9 +116,18 @@ function Rectangle({ id, data, selected, rounded, backplates }: { id: string; da
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
+          overflow: 'hidden',
           transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
+        {/* Colored shine overlay */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: r,
+          background: `linear-gradient(135deg, ${color}08 0%, transparent 60%)`,
+          pointerEvents: 'none',
+        }} />
         <Handles color={color} nodeId={id} />
         <Label label={data.label} sublabel={data.sublabel} color={color} />
       </div>

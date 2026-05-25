@@ -1,4 +1,4 @@
-import { Node, Edge } from 'reactflow';
+import type { Node, Edge } from 'reactflow';
 import { chatgptNodes, chatgptEdges } from './chatgpt';
 import { instagramNodes, instagramEdges } from './instagram';
 import { archdrawNodes, archdrawEdges } from './archdraw';

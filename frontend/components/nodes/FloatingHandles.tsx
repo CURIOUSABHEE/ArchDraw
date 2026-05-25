@@ -29,10 +29,10 @@ interface FloatingHandlesProps {
  */
 export function FloatingHandles({
   nodeId,
-  rightOffset = 6,
-  bottomOffset = 6,
-  leftOffset = -12,
-  topOffset = -6,
+  rightOffset = 14,
+  bottomOffset = 14,
+  leftOffset = -14,
+  topOffset = -14,
 }: FloatingHandlesProps) {
   const updateNodeInternals = useUpdateNodeInternals();
   const { isDark } = useTheme();

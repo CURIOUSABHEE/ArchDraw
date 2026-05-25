@@ -17,10 +17,10 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
-import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
-import { DIAGRAM_CONSTANTS, EDGE_MARKER } from '@/constants/diagram';
+import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
+import { assignEdgeColors } from '@/lib/edgeColors';
 
 const NODE_TYPES = {
   systemNode:        SystemNode,
@@ -42,6 +42,13 @@ const EDGE_TYPES = {
   simpleFloating: SimpleFloatingEdge,
   default: SimpleFloatingEdge,
   smoothstep: SimpleFloatingEdge,
+  flow: SimpleFloatingEdge,
+  async: SimpleFloatingEdge,
+  sync: SimpleFloatingEdge,
+  stream: SimpleFloatingEdge,
+  event: SimpleFloatingEdge,
+  dep: SimpleFloatingEdge,
+  dotted: SimpleFloatingEdge,
 };
 
 interface EmbedCanvasProps {
@@ -55,8 +62,6 @@ interface EmbedCanvasProps {
 
 function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls = true, pathType = 'smooth' }: EmbedCanvasProps) {
   const { fitView } = useReactFlow();
-  const nodeTypes = useMemo(() => NODE_TYPES, []);
-  const edgeTypes = useMemo(() => EDGE_TYPES, []);
   const isDark = theme === 'dark';
   
   const backgroundColor = isDark ? '#0f172a' : '#ffffff';
@@ -79,13 +84,15 @@ function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls
     return () => clearTimeout(timer);
   }, [fitView]);
 
+  const coloredEdges = useMemo(() => assignEdgeColors(edges), [edges]);
+
   return (
     <div style={{ width: '100%', height: '100%', background: backgroundColor }}>
       <ReactFlow
         nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        edges={coloredEdges}
+        nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={true}
@@ -101,8 +108,7 @@ function EmbedCanvasInner({ nodes, edges, theme = 'dark', zoom = 1, showControls
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
           type: 'smoothstep',
-          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth, stroke: DIAGRAM_CONSTANTS.edge.stroke },
-          markerEnd: EDGE_MARKER,
+          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth },
         }}
       >
         <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>

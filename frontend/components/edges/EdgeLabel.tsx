@@ -21,7 +21,7 @@ export function EdgeLabel({ edgeId, label }: EdgeLabelProps) {
   // Normalize label text (uppercase and max 4 words)
   const getCleanedText = useCallback((txt?: string): string => {
     if (!txt) return '';
-    let cleaned = txt.trim().toUpperCase();
+    const cleaned = txt.trim().toUpperCase();
     const words = cleaned.split(/\s+/);
     if (words.length > 4) {
       return words.slice(0, 4).join(' ');
@@ -69,7 +69,7 @@ export function EdgeLabel({ edgeId, label }: EdgeLabelProps) {
 
   const pillStyle: React.CSSProperties = {
     background: '#f8f7f4',
-    color: '#94a3b8',
+    color: '#4B5563',
     borderRadius: 4,
     border: 'none',
     fontSize: 10,

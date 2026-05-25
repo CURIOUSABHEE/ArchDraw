@@ -239,3 +239,80 @@ function getNodeTier(node: ArchitectureNode): TierType {
   if (node.tier) return node.tier as TierType;
   return getTierFromLayer(node.layer) || 'compute';
 }
+
+/**
+ * Enforces minimum connections per node.
+ */
+export function enforceMinimumConnections(
+  nodes: ArchitectureNode[],
+  edges: ArchitectureEdge[]
+): { edges: ArchitectureEdge[]; fixes: string[] } {
+  const resultEdges = [...edges];
+  const fixes: string[] = [];
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+  for (const node of nodes) {
+    if (node.isGroup) continue;
+
+    const connections = resultEdges.filter(
+      e => e.source === node.id || e.target === node.id
+    );
+
+    if (connections.length === 0) {
+      const candidate = findDirectionalPartner(node, nodes);
+      if (candidate) {
+        const nodeRank = getLayerRank(node.layer);
+        const candidateRank = getLayerRank(candidate.layer);
+        const nodeIsSource = nodeRank <= candidateRank;
+
+        const newEdge: ArchitectureEdge = {
+          id: `auto-fix-${node.id}`,
+          source: nodeIsSource ? node.id : candidate.id,
+          target: nodeIsSource ? candidate.id : node.id,
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          communicationType: node.layer === 'async' || node.layer === 'queue' || candidate.layer === 'async' || candidate.layer === 'queue' ? 'async' : 'sync',
+          pathType: 'smooth',
+          label: '',
+          animated: node.layer === 'async' || node.layer === 'queue' || candidate.layer === 'async' || candidate.layer === 'queue',
+          style: { stroke: '#94a3b8', strokeWidth: 2 },
+          markerEnd: 'arrowclosed',
+        } as ArchitectureEdge;
+
+        resultEdges.push(newEdge);
+        fixes.push(`Connected orphan node: ${node.label}`);
+      }
+    }
+  }
+
+  return { edges: resultEdges, fixes };
+}
+
+function findDirectionalPartner(node: ArchitectureNode, nodes: ArchitectureNode[]): ArchitectureNode | undefined {
+  const candidates = nodes.filter(n => !n.isGroup && n.id !== node.id);
+  const nodeRank = getLayerRank(node.layer);
+  const downstream = candidates
+    .filter(candidate => getLayerRank(candidate.layer) >= nodeRank)
+    .sort((a, b) => getLayerRank(a.layer) - getLayerRank(b.layer));
+  const upstream = candidates
+    .filter(candidate => getLayerRank(candidate.layer) < nodeRank)
+    .sort((a, b) => getLayerRank(b.layer) - getLayerRank(a.layer));
+
+  if (nodeRank === 0) return downstream.find(candidate => getLayerRank(candidate.layer) > nodeRank) || downstream[0];
+  if (nodeRank >= 4) return upstream[0] || downstream[0];
+  return downstream.find(candidate => getLayerRank(candidate.layer) > nodeRank) || upstream[0] || downstream[0];
+}
+
+function getLayerRank(layer?: string): number {
+  const normalized = normalizeLayer(layer);
+  const order = ['client', 'edge', 'gateway', 'application', 'compute', 'async', 'queue', 'data', 'infrastructure', 'observe', 'observability', 'external'];
+  const idx = order.indexOf(normalized);
+  return idx >= 0 ? idx : 3;
+}
+
+function normalizeLayer(layer?: string): string {
+  if (!layer) return 'application';
+  if (layer === 'presentation') return 'client';
+  return layer;
+}
+

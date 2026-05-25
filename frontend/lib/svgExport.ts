@@ -208,14 +208,14 @@ function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
     const catStyle = getDarkCategoryStyle(data.layer);
     borderCol = catStyle.border;
     iconColor = catStyle.border;
-    fillBg = 'url(#node-dark-bg)';
-    titleColor = '#F1F5F9';
-    subtitleColor = '#94A3B8';
+    fillBg = '#ffffff';
+    titleColor = '#1f2937';
+    subtitleColor = '#6b7280';
     
     if (selected) {
-      styleAttr = `style="filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5)) drop-shadow(0 0 6px ${borderCol});"`;
+      styleAttr = `style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));"`;
     } else {
-      styleAttr = `style="filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5)) drop-shadow(0 0 3px ${catStyle.glow});"`;
+      styleAttr = `style="filter: drop-shadow(0 2px 6px rgba(0,0,0,0.1));"`;
     }
   } else {
     borderCol = selected ? accentColor : '#e5e7eb';
@@ -229,15 +229,25 @@ function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
       : `style="filter: drop-shadow(0 2px 6px rgba(0,0,0,0.06));"`;
   }
   
-  const backplateLayers = isDark ? [] : (selected
-    ? [
-        { offset: 10, color: '#ecece5' },
-        { offset: 5, color: '#dfdfd8' },
-      ]
-    : [
-        { offset: 10, color: '#efefe8' },
-        { offset: 5, color: '#e1e1da' },
-      ]);
+  const backplateLayers = isDark
+    ? (selected
+        ? [
+            { offset: 10, color: '#d1d5db' },
+            { offset: 5, color: '#e5e7eb' },
+          ]
+        : [
+            { offset: 10, color: '#e5e7eb' },
+            { offset: 5, color: '#f3f4f6' },
+          ])
+    : (selected
+        ? [
+            { offset: 10, color: '#ecece5' },
+            { offset: 5, color: '#dfdfd8' },
+          ]
+        : [
+            { offset: 10, color: '#efefe8' },
+            { offset: 5, color: '#e1e1da' },
+          ]);
       
   const backplateElements = backplateLayers.map((bp) => `
     <rect
@@ -721,13 +731,6 @@ export function generatePureSVG(
   
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <defs>
-    <!-- Background Linear Gradient for Dark Mode Nodes -->
-    <linearGradient id="node-dark-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1E2235" />
-      <stop offset="100%" stop-color="#141624" />
-    </linearGradient>
-  </defs>
   <rect x="0" y="0" width="${width}" height="${height}" fill="${backgroundColor}"/>
   <g id="edges">
 ${edgeElements.map(e => '    ' + e.replace(/\n/g, '\n    ')).join('\n')}

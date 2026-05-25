@@ -6,11 +6,13 @@ export interface EdgePositions {
 }
 
 // Align with FloatingHandles.tsx defaults for accurate edge attachment
+// FloatingHandles: left:-14 (w:8 center=-10), right:-14 (w:8 center=+10),
+// top:-14 (w:8 center=-10), bottom:-14 (w:8 center=+10)
 const HANDLE_OFFSETS = {
-  [Position.Left]: -12,
-  [Position.Right]: 24,
-  [Position.Top]: -12,
-  [Position.Bottom]: 12,
+  [Position.Left]: -10,
+  [Position.Right]: 15,
+  [Position.Top]: -10,
+  [Position.Bottom]: 15,
 };
 
 export function getNodeCenter(node: Node) {

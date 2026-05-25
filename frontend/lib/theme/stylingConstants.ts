@@ -37,16 +37,16 @@ export const LIGHT_NODE_STYLES: NodeStyleConfig = {
 };
 
 export const DARK_NODE_STYLES: NodeStyleConfig = {
-  background: '#1F2937',
-  border: '#374151',
-  borderHover: '#4B5563',
-  shadow: '0 1px 4px rgba(0,0,0,0.3)',
-  shadowSelected: '0 0 0 2px rgba(129,140,248,0.5), 0 4px 12px rgba(129,140,248,0.25)',
-  titleColor: '#F9FAFB',
-  subtitleColor: '#9CA3AF',
+  background: '#ffffff',
+  border: '#d1d5db',
+  borderHover: '#9ca3af',
+  shadow: '0 1px 3px rgba(0,0,0,0.08)',
+  shadowSelected: '0 0 0 2px rgba(129,140,248,0.5), 0 2px 6px rgba(0,0,0,0.1)',
+  titleColor: '#1f2937',
+  subtitleColor: '#6b7280',
   backplates: [
-    { offset: 10, color: '#111827' },
-    { offset: 5, color: '#1F2937' },
+    { offset: 10, color: '#e5e7eb' },
+    { offset: 5, color: '#f3f4f6' },
   ],
 };
 

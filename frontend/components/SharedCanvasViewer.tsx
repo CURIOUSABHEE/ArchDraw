@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import ReactFlow, {
   Background, BackgroundVariant, Controls, MiniMap, ReactFlowProvider,
-  ConnectionLineType,
+  ConnectionLineType, Edge
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Download } from 'lucide-react';
@@ -14,13 +14,12 @@ import { ShapeNode } from '@/components/ShapeNode';
 import { GroupNode } from '@/components/GroupNode';
 import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
-import { FlowEdge } from '@/components/edges/FlowEdge';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { EmailCaptureModal } from '@/components/EmailCaptureModal';
-import { EdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
+import { SVGEdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
 import { useDiagramStore } from '@/store/diagramStore';
-import { DIAGRAM_CONSTANTS, EDGE_MARKER } from '@/constants/diagram';
-
+import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
+import { assignEdgeColors } from '@/lib/edgeColors';
 const NODE_TYPES = {
   systemNode:        SystemNode,
   architectureNode:  SystemNode,
@@ -41,6 +40,13 @@ const EDGE_TYPES = {
   simpleFloating: SimpleFloatingEdge,
   default: SimpleFloatingEdge,
   smoothstep: SimpleFloatingEdge,
+  flow: SimpleFloatingEdge,
+  async: SimpleFloatingEdge,
+  sync: SimpleFloatingEdge,
+  stream: SimpleFloatingEdge,
+  event: SimpleFloatingEdge,
+  dep: SimpleFloatingEdge,
+  dotted: SimpleFloatingEdge,
 };
 
 interface SharedCanvas {
@@ -54,13 +60,13 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
-  const nodeTypes = useMemo(() => NODE_TYPES, []);
-  const edgeTypes = useMemo(() => EDGE_TYPES, []);
 
   useEffect(() => {
     // Force dark mode on mount for the viewer since the background is dark
     useDiagramStore.setState({ canvasDarkMode: true });
   }, []);
+
+  const coloredEdges = useMemo(() => assignEdgeColors(canvas.edges as Edge[]), [canvas.edges]);
 
   const doDownload = async () => {
     const el = document.querySelector('.react-flow') as HTMLElement | null;
@@ -154,9 +160,9 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
       {/* Canvas */}
       <ReactFlow
         nodes={canvas.nodes as never[]}
-        edges={canvas.edges as never[]}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        edges={coloredEdges as never[]}
+        nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={true}
@@ -168,13 +174,12 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
         connectionLineType={ConnectionLineType.SmoothStep}
         defaultEdgeOptions={{
           type: 'smoothstep',
-          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth, stroke: DIAGRAM_CONSTANTS.edge.stroke },
-          markerEnd: EDGE_MARKER,
+          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth },
         }}
       >
-        <EdgeMarkerDefs />
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#475569" style={{ opacity: 0.6 }} />
-        <Controls showInteractive={false} className="!bg-card/90 !border !border-border/60 !rounded-lg" />
+        <Controls showInteractive={false} className="!bg-white !border-gray-200 !text-gray-800 !shadow-sm" />
+        <SVGEdgeMarkerDefs />
         <MiniMap zoomable pannable className="!bg-card/90 !border !border-border/60 !rounded-lg" maskColor="rgba(0,0,0,0.04)" />
       </ReactFlow>
 
