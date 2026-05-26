@@ -99,12 +99,12 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
 
   const backplateLayers = selected
     ? [
-        { offset: 10, color: '#e8e8e8' },
-        { offset: 5, color: '#ffffff' },
+        { offset: 10, color: '#ffffff' },
+        { offset: 5, color: '#e8e8e8' },
       ]
     : [
-        { offset: 10, color: '#f5f5f5' },
-        { offset: 5, color: '#ffffff' },
+        { offset: 10, color: '#ffffff' },
+        { offset: 5, color: '#f5f5f5' },
       ];
 
   const catStyle = getDarkCategoryStyle(nodeData.layer);
