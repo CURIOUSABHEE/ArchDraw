@@ -2,6 +2,7 @@ import type { ReactFlowNode, ReactFlowEdge, ArchitectureNode, ArchitectureEdge }
 import type { EdgePath, Point } from './edgeLayout';
 import logger from '@/lib/logger';
 import { getNodeShapeConfig } from '@/constants/nodeShapeConfig';
+import { snapNodesToColumns } from '@/lib/utils/columnAlignNodes';
 
 let elkInstance: any = null;
 async function getELK() {
@@ -26,9 +27,11 @@ const FAST_ELK_OPTIONS: Record<string, string> = {
   'elk.layered.spacing.nodeNodeBetweenLayers': '240',
   'elk.layered.spacing.edgeNodeBetweenLayers': '90',
   'elk.layered.nodePlacement.strategy': 'SIMPLE',
-  'elk.layered.crossingMinimization.strategy': 'NONE',
+  'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+  'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
   'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
   'elk.edgeRouting': 'ORTHOGONAL',
+  'elk.layered.wrapOver': 'false',
   'elk.portConstraints': 'FIXED_SIDE',
   'elk.separateConnectedComponents': 'false',
   'elk.padding': '[top=80, left=80, bottom=80, right=80]',
@@ -128,8 +131,9 @@ const OPTIMIZED_ELK_OPTIONS = {
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
   'elk.layered.crossingMinimization.forceNodeModelOrder': 'false',
   'elk.layered.separatingEdges.strategy': 'CENTERING',
-  'elk.layered.unnecessaryBendpoints': 'false',
-  'elk.layered.mergeEdges': 'false',
+  'elk.layered.unnecessaryBendpoints': 'true',
+  'elk.layered.wrapOver': 'false',
+  'elk.layered.mergeEdges': 'true',
   'elk.layered.compaction.strategy': 'NONE',
   'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
   'elk.edgeLabels.inline': 'false',
@@ -557,7 +561,19 @@ export async function computeELKLayout(
   const edgeTargetIndex = new Map<string, number>();
   const nodeIds = new Set(nodesWithGroupDims.map(n => n.id));
 
-  const elkEdges = validatedEdges
+  const validEdges = validatedEdges.filter(e => e.source !== e.target);
+
+  // Push sink nodes (no outgoing edges) to the last layer
+  const sinkIds = new Set(
+    nodesWithGroupDims.map(n => n.id).filter(id => !validEdges.some(e => e.source === id))
+  );
+  for (const elkNode of elkNodes) {
+    if (sinkIds.has(elkNode.id) && elkNode.layoutOptions) {
+      elkNode.layoutOptions['elk.layered.layering.layerId'] = '99';
+    }
+  }
+
+  const elkEdges = validEdges
     .filter(edge => {
       const sourceIsGroup = groupNodes.some(g => g.id === edge.source);
       const targetIsGroup = groupNodes.some(g => g.id === edge.target);
@@ -667,14 +683,21 @@ export async function computeELKLayout(
 
     const postProcessedNodes = postProcessLayout(reactFlowNodes, []);
 
+    const columnAlignedNodes = snapNodesToColumns(
+      postProcessedNodes,
+      n => n.position.x,
+      (n, x) => ({ ...n, position: { ...n.position, x } }),
+      60
+    );
+
     const result = {
-      nodes: postProcessedNodes,
+      nodes: columnAlignedNodes,
       edgePaths: [],
       elkGraph: allELKNodes,
     };
 
     LAYOUT_CACHE.set(signature, {
-      nodes: postProcessedNodes,
+      nodes: columnAlignedNodes,
       timestamp: Date.now(),
     });
 

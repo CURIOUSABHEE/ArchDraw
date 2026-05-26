@@ -277,6 +277,7 @@ interface DiagramState {
   moveToGroup: (nodeId: string, groupId: string | null) => void;
   loadTemplate: (nodes: Node[], edges: Edge[]) => void;
   loadDefaultArchitecture: () => void;
+  alignConnectedNodes: () => void;
 
   // ── Fit view ──────────────────────────────────────────────────────────────
   fitView: (options?: FitViewOptions) => void;
@@ -1476,6 +1477,49 @@ export const useDiagramStore = create<DiagramState>()(
         const normalizedEdges = normalizeEdges(defaultEdges);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, normalizedNodes, normalizedEdges);
         set({ nodes: normalizedNodes, edges: normalizedEdges, canvases, selectedNodeId: null, selectedEdgeId: null });
+        get().saveCanvasToDB(get().activeCanvasId);
+      },
+
+      alignConnectedNodes: () => {
+        const { nodes, edges, selectedNodeIds } = get();
+        const sel = new Set(selectedNodeIds);
+        if (sel.size < 2) return;
+
+        const relevantEdges = edges.filter(e => sel.has(e.source) && sel.has(e.target));
+        if (relevantEdges.length === 0) return;
+
+        get().pushHistory();
+
+        const updated = nodes.map(n => ({
+          ...n,
+          position: { ...n.position },
+          data: { ...n.data } as NodeData,
+        }));
+
+        for (const edge of relevantEdges) {
+          const source = updated.find(n => n.id === edge.source);
+          const target = updated.find(n => n.id === edge.target);
+          if (!source || !target) continue;
+
+          const dx = target.position.x - source.position.x;
+          const dy = target.position.y - source.position.y;
+
+          const sw = source.width ?? (source.data as NodeData)?.nodeWidth ?? 180;
+          const sh = source.height ?? 70;
+          const tw = target.width ?? (target.data as NodeData)?.nodeWidth ?? 180;
+          const th = target.height ?? 70;
+
+          if (Math.abs(dx) > Math.abs(dy)) {
+            const srcCenterY = source.position.y + sh / 2;
+            target.position.y = srcCenterY - th / 2;
+          } else {
+            const srcCenterX = source.position.x + sw / 2;
+            target.position.x = srcCenterX - tw / 2;
+          }
+        }
+
+        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, updated, get().edges);
+        set({ nodes: updated, canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
     }),

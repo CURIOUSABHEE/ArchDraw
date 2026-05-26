@@ -1,6 +1,7 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type { LayoutedNode, ValidatedDiagram, RawNode } from './types';
 import { resolveNodeCollisions } from '@/lib/collision';
+import { snapNodesToColumns } from '@/lib/utils/columnAlignNodes';
 
 /**
  * STAGE 6 — LAYOUT ENGINE
@@ -36,6 +37,27 @@ const TIER_LAYER: Record<string, number> = {
   observability: 6,
   external: 7,
 };
+
+// Label-pattern-based layer hints for strict column placement
+const LAYER_HINTS: { pattern: RegExp; layer: number }[] = [
+  { pattern: /\bclient\b|\bbrowser\b|\bmobile\b|\bspa\b|\bapp\b|\bui\b/i, layer: 0 },
+  { pattern: /\brouter\b|\broutes?\b|\bdispatcher\b|\bnginx\b/i, layer: 1 },
+  { pattern: /\bcontroller\b|\bhandler\b|\bendpoint\b/i, layer: 2 },
+  { pattern: /\bservice\b|\bworker\b|\bprocess/i, layer: 3 },
+  { pattern: /\bmodel\b|\brepository\b|\borm\b|\bentity\b|\bdomain\b/i, layer: 4 },
+  { pattern: /\bcache\b|\bredis\b|\bmemcached\b/i, layer: 4 },
+  { pattern: /\bobserv/i, layer: 5 },
+  { pattern: /\bexternal\b|\bthird.?party\b|\bapi\b/i, layer: 5 },
+];
+
+function getLayerHint(node: RawNode): number {
+  const label = node.label || '';
+  for (const hint of LAYER_HINTS) {
+    if (hint.pattern.test(label)) return hint.layer;
+  }
+  const layer = node.layer ? node.layer.toLowerCase() : 'application';
+  return TIER_LAYER[layer] ?? 3;
+}
 
 /**
  * Calculate required node width based on label and subtitle
@@ -81,20 +103,32 @@ export async function applyLayout(
 
   const elk = new ELK();
   
+  // Filter out self-loops (source === target) before ELK
+  const cleanEdges = edges.filter(e => e.source !== e.target);
+
   const elkNodes = nodes.map(node => {
     const { width, height } = calculateNodeDimensions(node);
-    const layer = node.layer ? node.layer.toLowerCase() : 'application';
     return {
       id: node.id,
       width,
       height,
       layoutOptions: {
-        'elk.layered.layering.layerId': String(TIER_LAYER[layer] ?? 3)
+        'elk.layered.layering.layerId': String(getLayerHint(node)),
       }
     };
   });
-  
-  const elkEdges = edges.map(edge => ({
+
+  // Push sink nodes (only incoming edges, no outgoing) to the last layer
+  const sinkIds = new Set(
+    nodes.map(n => n.id).filter(id => !cleanEdges.some(e => e.source === id))
+  );
+  for (const elkNode of elkNodes) {
+    if (sinkIds.has(elkNode.id)) {
+      elkNode.layoutOptions['elk.layered.layering.layerId'] = '99';
+    }
+  }
+
+  const elkEdges = cleanEdges.map(edge => ({
     id: edge.id,
     sources: [edge.source],
     targets: [edge.target]
@@ -113,10 +147,12 @@ export async function applyLayout(
       'elk.layered.spacing.nodeNodeBetweenLayers': '120',
       'elk.layered.spacing.edgeNodeBetweenLayers': '40',
       'elk.layered.spacing.edgeEdgeBetweenLayers': '20',
-      'elk.layered.mergeEdges': 'false',
+      'elk.layered.mergeEdges': 'true',
+      'elk.portConstraints': 'FIXED_SIDE',
       'elk.layered.wrapping.multiEdge.improveCuts': 'true',
       'elk.padding': '[top=60, left=60, bottom=60, right=60]',
       'elk.layered.unnecessaryBendpoints': 'true',
+      'elk.layered.wrapOver': 'false',
       'elk.edge.type': 'DIRECTED'
     },
     children: elkNodes,
@@ -193,8 +229,16 @@ export async function applyLayout(
       console.error('[Layout Refinement] Symmetrization failed:', err);
     }
 
+    // Column alignment: snap same-column nodes to identical X
+    const alignedNodes = snapNodesToColumns(
+      layoutedNodes,
+      n => n.x,
+      (n, x) => ({ ...n, x }),
+      60
+    );
+
     // Final layout formatting
-    return layoutedNodes;
+    return alignedNodes;
 
   } catch (e) {
     console.error('[Layout] ELK failed, falling back to basic layout:', e);

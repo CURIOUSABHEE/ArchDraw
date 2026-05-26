@@ -43,6 +43,14 @@ Focus on:
 - Data lake and warehouse structure
 - Analytics and serving layers
 Output a detailed data lineage and processing specification (200-300 words).`,
+
+  'mvc': `You are a software architect specializing in layered MVC architecture. Expand this description into a clean Model-View-Controller structure.
+Focus on:
+- Model layer: data models, ORM entities, database access, validation logic
+- View layer: UI templates, screens, API response formatters, presentation components
+- Controller layer: request handlers, routing, business logic orchestration, session management
+- Strict layer separation: controllers depend on models, views are passive, no circular dependencies
+Output a detailed layered specification (200-300 words). NO microservices. NO message queues. NO cloud infrastructure.`,
 };
 
 interface ModelConfig {

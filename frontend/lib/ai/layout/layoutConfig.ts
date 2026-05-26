@@ -98,7 +98,7 @@ export function generateELKOptions(metrics: LayoutMetrics): Record<string, strin
     'elk.layered.crossingMinimization.forceNodeModelOrder': 'false',
     'elk.layered.separatingEdges.strategy': 'CENTERING',
     'elk.layered.unnecessaryBendpoints': 'true',
-    'elk.layered.mergeEdges': 'false',
+    'elk.layered.mergeEdges': 'true',
     'elk.layered.wrapping.multiEdge.improveCuts': 'true',
     'elk.layered.spacing.edgeEdgeBetweenLayers': '20',
     'elk.edgeLabels.inline': 'false',

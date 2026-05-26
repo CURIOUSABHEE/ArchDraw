@@ -251,7 +251,7 @@ export function generateELKOptions(_direction: string = 'RIGHT', density: 'low' 
     'elk.layered.separatingEdges.strategy': 'CENTERING',
     'elk.layered.unnecessaryBendpoints': 'false',
     'elk.layered.edgeRouting.selfLoopDistribution': 'EVEN',
-    'elk.layered.mergeEdges': 'false',
+    'elk.layered.mergeEdges': 'true',
     'elk.edgeLabels.inline': 'false',
     'elk.edgeLabels.placement': 'CENTER',
     'elk.padding': '[top=60, left=60, bottom=60, right=60]',

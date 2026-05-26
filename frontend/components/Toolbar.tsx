@@ -7,6 +7,7 @@ import {
   Undo2, Redo2, Share2, Loader2, Check,
   GraduationCap, Sparkles, MoreHorizontal, HelpCircle,
   PanelLeftClose, LayoutTemplate, FolderOpen,
+  AlignCenterHorizontal,
   LayoutDashboard,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -602,6 +603,14 @@ export function Toolbar() {
             title="Redo (Cmd+Shift+Z)"
           >
             <Redo2 className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => useDiagramStore.getState().alignConnectedNodes()}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
+            title="Align connected nodes by edge direction"
+          >
+            <AlignCenterHorizontal className="w-4 h-4" />
           </button>
 
           <span className="w-px h-4 bg-border/50 mx-1" />

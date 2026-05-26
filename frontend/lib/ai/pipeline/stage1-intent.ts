@@ -3,7 +3,7 @@ import type { IntentResult } from './types';
 /**
  * STAGE 1 — INTENT DETECTION
  * Improved classification with confidence scoring.
- * Distinguishes: system-architecture, microservices, event-driven, data-pipeline
+ * Distinguishes: system-architecture, microservices, event-driven, data-pipeline, mvc, monolith
  * Default to "system-architecture" if confidence < 0.6
  */
 
@@ -14,6 +14,31 @@ interface PatternConfig {
 }
 
 const ARCHITECTURE_PATTERNS: Record<string, PatternConfig> = {
+  'mvc': {
+    keywords: [
+      { term: /\bmvc\b/i, weight: 5 },
+      { term: /\bmodel.?view.?controller/i, weight: 5 },
+      { term: /\blayered\s*arch/i, weight: 3 },
+      { term: /\brails\b/i, weight: 2 },
+      { term: /\bdjango\b/i, weight: 2 },
+      { term: /\bspring\s*mvc/i, weight: 3 },
+      { term: /\bmonolith/i, weight: 2 },
+      { term: /\bcontroller\b/i, weight: 1 },
+    ],
+    negativeKeywords: [
+      /\bmicroservice/i, /\bevent.?driven/i, /\bqueue\b/i, /\bkafka\b/i
+    ],
+  },
+  'monolith': {
+    keywords: [
+      { term: /\bmonolith/i, weight: 5 },
+      { term: /\bsingle.?deploy/i, weight: 3 },
+      { term: /\bmodular\s*monolith/i, weight: 4 },
+      { term: /\bmvp\b/i, weight: 1 },
+      { term: /\bstartup\b/i, weight: 1 },
+      { term: /\blayered\s*arch/i, weight: 2 },
+    ],
+  },
   'system-architecture': {
     keywords: [
       { term: /\bsystem\b/i, weight: 2 },

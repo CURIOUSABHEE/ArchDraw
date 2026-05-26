@@ -1,0 +1,200 @@
+/* ─── NODE CARD STYLES ────────────────────────────────────────────
+   Single source of truth for all node visual styles.
+   Statically imported at the top level of each node component.
+   No runtime injection, no port-dependent behavior.
+   ────────────────────────────────────────────────────────────────── */
+
+/* ── CSS Custom Properties (tunable per-node via inline style) ──── */
+
+.node-wrapper {
+  --node-accent: #0d9488;
+  --node-accent-soft: rgba(13, 148, 136, 0.04);
+  --node-accent-bg: rgba(13, 148, 136, 0.1);
+  --node-card-bg: #ffffff;
+  --node-title-color: #1a2744;
+  --node-subtitle-color: #8b95a5;
+  --node-shadow: 0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.85);
+  --node-shadow-selected: 0 0 0 2px var(--node-accent), 0 3px 8px rgba(0,0,0,0.07);
+  --node-toolbar-bg: #ffffff;
+  --node-toolbar-border: #e5e7eb;
+  --node-toolbar-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  --node-toolbar-btn-hover: #f3f4f6;
+  --node-toolbar-divider: #d1d5db;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Card Surface ──────────────────────────────────────────────── */
+
+.node-card {
+  width: 220px;
+  min-width: 220px;
+  min-height: 72px;
+  border-radius: 16px;
+  background: var(--node-card-bg);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  z-index: 5;
+  box-shadow: var(--node-shadow);
+  border: 1.5px solid transparent;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.node-wrapper.selected .node-card,
+.node-card.selected {
+  box-shadow: var(--node-shadow-selected);
+  border-color: var(--node-accent);
+}
+
+/* ── Shine Overlay ─────────────────────────────────────────────── */
+
+.node-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(135deg, var(--node-accent-soft) 0%, transparent 60%);
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.node-icon-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--node-accent-bg);
+}
+
+.node-icon {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--node-accent);
+}
+
+.node-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--node-title-color);
+  margin: 0;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.node-subtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--node-subtitle-color);
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* ── Footer ────────────────────────────────────────────────────── */
+
+.node-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.node-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--node-status-color, #10B981);
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────── */
+
+.node-toolbar {
+  position: absolute;
+  top: -56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 9999px;
+  background: var(--node-toolbar-bg);
+  border: 1px solid var(--node-toolbar-border);
+  box-shadow: var(--node-toolbar-shadow);
+}
+
+.node-toolbar-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b7280;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.node-toolbar-btn:hover {
+  background: var(--node-toolbar-btn-hover);
+}
+
+.node-toolbar-btn--danger:hover {
+  color: #ef4444;
+}
+
+.node-toolbar-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--node-toolbar-divider);
+  margin: 0 4px;
+}
+
+/* ── Dark Mode Overrides ───────────────────────────────────────── */
+
+.dark .node-wrapper {
+  --node-card-bg: #ffffff;
+  --node-title-color: #1f2937;
+  --node-subtitle-color: #6b7280;
+  --node-shadow: 5px 5px 0 #e5e7eb, 10px 10px 0 #f3f4f6, 0 1px 3px rgba(0,0,0,0.08);
+  --node-shadow-selected: 0 0 0 2px var(--node-glow-border, #34D399), 5px 5px 0 #d1d5db, 10px 10px 0 #e5e7eb, 0 2px 6px rgba(0,0,0,0.1);
+  --node-backplate-1: #fbfbfb;
+  --node-backplate-2: #f8f8fa;
+  --node-backplate-1-selected: #f7f7f7;
+  --node-backplate-2-selected: #eef0f2;
+  --node-toolbar-bg: #1f2937;
+  --node-toolbar-border: #374151;
+  --node-toolbar-btn-hover: #374151;
+  --node-toolbar-divider: #4b5563;
+}
+
+.dark .node-card {
+  box-shadow: var(--node-shadow), inset 0 0 12px var(--node-glow, rgba(52,211,153,0.15));
+}
+
+.dark .node-wrapper.selected .node-card {
+  box-shadow: var(--node-shadow-selected), inset 0 0 12px var(--node-glow, rgba(52,211,153,0.15));
+}

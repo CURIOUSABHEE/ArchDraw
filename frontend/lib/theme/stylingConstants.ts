@@ -23,7 +23,7 @@ export interface NodeStyleConfig {
 }
 
 export const LIGHT_NODE_STYLES: NodeStyleConfig = {
-  background: '#fefefe',
+  background: '#ffffff',
   border: '#595959',
   borderHover: '#595959',
   shadow: '5px 5px 0 #e1e1da, 10px 10px 0 #efefe8, 0 1px 2px rgba(0,0,0,0.04)',

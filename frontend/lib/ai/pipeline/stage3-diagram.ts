@@ -46,9 +46,10 @@ export async function callDiagramLLM(
   onNode?: (node: RawNode) => void,
   onFlow?: (flow: RawFlow) => void,
   existingContext?: { nodes: any[]; edges: any[] },
-  diagramSize: 'small' | 'medium' | 'large' = 'medium'
+  diagramSize: 'small' | 'medium' | 'large' = 'medium',
+  intentType?: string
 ): Promise<ParsedDiagram> {
-  const prompt = buildDiagramPrompt(reasoning, existingContext, diagramSize);
+  const prompt = buildDiagramPrompt(reasoning, existingContext, diagramSize, intentType);
   const parser = new IncrementalParser();
 
   const GROQ_KEY_ENV_VARS = [
@@ -115,7 +116,8 @@ import { ARCHITECTURE_RULES } from '../prompts/architectureRules';
 function buildDiagramPrompt(
   reasoning: ReasoningResult,
   existingContext?: { nodes: any[]; edges: any[] },
-  diagramSize: 'small' | 'medium' | 'large' = 'medium'
+  diagramSize: 'small' | 'medium' | 'large' = 'medium',
+  intentType?: string
 ): string {
   let sizeInstructions = "";
   if (diagramSize === 'small') {
@@ -126,7 +128,21 @@ function buildDiagramPrompt(
     sizeInstructions = "CRITICAL LIMIT: Generate a standard diagram with exactly 8 to 12 nodes total. Include primary components, primary databases, and basic observability.";
   }
 
+  let intentInject = "";
+  if (intentType === 'mvc') {
+    intentInject = `
+STRICT RULE: This is an MVC diagram. You MUST structure nodes into exactly three groups:
+- View layer: UI screens, templates, components, API responses
+- Controller layer: route handlers, business logic, request processing
+- Model layer: database tables, ORM models, data classes, validation
+
+DO NOT generate: microservices, AWS services, message queues, API gateways, separate backend services, or any cloud infrastructure.
+Every node must belong to one of the three MVC layers.
+`;
+  }
+
   let prompt = `${ARCHITECTURE_RULES}
+${intentInject}
 
 ${sizeInstructions}
 

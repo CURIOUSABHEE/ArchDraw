@@ -11,7 +11,8 @@ import {
   Position,
   useReactFlow,
 } from 'reactflow';
-import { getSimpleEdgePositions, getSimpleHandlePosition, getEdgeShiftOffset, getNodeCenter } from '@/lib/utils/simpleFloatingEdge';
+import { getEdgeShiftOffset, getHandleOffset } from '@/lib/utils/simpleFloatingEdge';
+import { getDynamicHandles, getHandleCoordinate, NodeRect } from '@/lib/features/dynamicHandles';
 import { getPointOnPath, findClosestT } from '@/lib/utils/edgeLabelDrag';
 import { useDiagramStore } from '@/store/diagramStore';
 import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
@@ -45,38 +46,65 @@ export default function SimpleFloatingEdge({
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
 
   const edgeParams = useMemo(() => {
-    let sx = sourceX;
-    let sy = sourceY;
-    let tx = targetX;
-    let ty = targetY;
-    let sourcePos = sourcePosition;
-    let targetPos = targetPosition;
+    let sx = 0;
+    let sy = 0;
+    let tx = 0;
+    let ty = 0;
+    let sourcePos = Position.Top;
+    let targetPos = Position.Bottom;
 
     if (sourceNode && targetNode) {
-      const sCenter = getNodeCenter(sourceNode);
-      const tCenter = getNodeCenter(targetNode);
+      const sourceRect: NodeRect = {
+        x: sourceNode.positionAbsolute?.x ?? sourceNode.position.x,
+        y: sourceNode.positionAbsolute?.y ?? sourceNode.position.y,
+        width: sourceNode.width ?? 200,
+        height: sourceNode.height ?? 80,
+      };
+      const targetRect: NodeRect = {
+        x: targetNode.positionAbsolute?.x ?? targetNode.position.x,
+        y: targetNode.positionAbsolute?.y ?? targetNode.position.y,
+        width: targetNode.width ?? 200,
+        height: targetNode.height ?? 80,
+      };
 
-      // Always compute the closest side dynamically from current node positions.
-      // Do NOT use sourceHandleId/targetHandleId — those are frozen at edge creation
-      // and would prevent the edge from "floating" to the nearest side when nodes move.
-      const positions = getSimpleEdgePositions(sCenter.cx, sCenter.cy, tCenter.cx, tCenter.cy);
-      sourcePos = positions.sourcePos;
-      targetPos = positions.targetPos;
+      const { sourcePosition: srcPos, targetPosition: tgtPos } = getDynamicHandles(
+        sourceRect, 
+        targetRect,
+        id,
+        source,
+        target
+      );
+      sourcePos = srcPos;
+      targetPos = tgtPos;
+
+      const rawSrc = getHandleCoordinate(sourceRect, sourcePos);
+      const rawTgt = getHandleCoordinate(targetRect, targetPos);
+
+      const srcOffset = getHandleOffset(sourcePos);
+      const tgtOffset = getHandleOffset(targetPos);
 
       const sourceShift = getEdgeShiftOffset(source, id, sourcePos, edges, nodeInternals, 15);
       const targetShift = getEdgeShiftOffset(target, id, targetPos, edges, nodeInternals, 15);
 
-      const sourceHandle = getSimpleHandlePosition(sCenter.x, sCenter.y, sCenter.width, sCenter.height, sourcePos, sourceShift);
-      const targetHandle = getSimpleHandlePosition(tCenter.x, tCenter.y, tCenter.width, tCenter.height, targetPos, targetShift);
+      if (sourcePos === Position.Left || sourcePos === Position.Right) {
+        sx = rawSrc.x + srcOffset;
+        sy = rawSrc.y + sourceShift;
+      } else {
+        sx = rawSrc.x + sourceShift;
+        sy = rawSrc.y + srcOffset;
+      }
 
-      sx = sourceHandle.x;
-      sy = sourceHandle.y;
-      tx = targetHandle.x;
-      ty = targetHandle.y;
+      if (targetPos === Position.Left || targetPos === Position.Right) {
+        tx = rawTgt.x + tgtOffset;
+        ty = rawTgt.y + targetShift;
+      } else {
+        tx = rawTgt.x + targetShift;
+        ty = rawTgt.y + tgtOffset;
+      }
     }
 
     return { sx, sy, tx, ty, sourcePos, targetPos };
-  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, source, target, id, edges, nodeInternals, sourceHandleId, targetHandleId]);
+  }, [sourceNode, targetNode, source, target, id, edges, nodeInternals]);
 
   const { sx, sy, tx, ty, sourcePos, targetPos } = edgeParams;
   const [isHovered, setIsHovered] = useState(false);

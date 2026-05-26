@@ -341,10 +341,7 @@ body {
   pointer-events: all !important;
 }
 
-.react-flow__handle-left  { left: -10px !important; }
-.react-flow__handle-right { right: -10px !important; }
-.react-flow__handle-top   { top: -10px !important; }
-.react-flow__handle-bottom { bottom: -10px !important; }
+
 
 /* ═══════════════════════════════════════════════════════════════
    SHADOW SYSTEM

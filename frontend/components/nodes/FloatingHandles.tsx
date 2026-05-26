@@ -6,38 +6,22 @@ import { useTheme } from '@/lib/theme';
 
 interface FloatingHandlesProps {
   nodeId: string;
-  /**
-   * Extra offset for right/bottom handles to clear shadows/backplates.
-   * Default: 30px for right, 30px for bottom
-   */
   rightOffset?: number;
-  bottomOffset?: number;
-  /**
-   * Offset for left/top handles (negative values move outside).
-   * Default: -15px for left, -15px for top
-   */
   leftOffset?: number;
-  topOffset?: number;
 }
 
 /**
- * FloatingHandles component provides 4 handles positioned outside the node
- * for use with floating edges. Handles are positioned to:
- * - Clear node borders and shadows
- * - Work with React Flow's internal connection calculations
- * - Support the floating edge approach from React Flow examples
+ * FloatingHandles provides visible connection handles on the LEFT (target)
+ * and RIGHT (source) edges of the node, vertically centered.
  */
 export function FloatingHandles({
   nodeId,
   rightOffset = 14,
-  bottomOffset = 14,
   leftOffset = -14,
-  topOffset = -14,
 }: FloatingHandlesProps) {
   const updateNodeInternals = useUpdateNodeInternals();
   const { isDark } = useTheme();
 
-  // Notify React Flow to re-measure handle positions after mount
   useEffect(() => {
     updateNodeInternals(nodeId);
   }, [nodeId, updateNodeInternals]);
@@ -52,7 +36,6 @@ export function FloatingHandles({
 
   return (
     <>
-      {/* Left side */}
       <Handle
         type="target"
         position={Position.Left}
@@ -61,51 +44,9 @@ export function FloatingHandles({
       />
       <Handle
         type="source"
-        position={Position.Left}
-        id="left"
-        style={{ ...handleStyle, left: leftOffset, top: '50%', transform: 'translateY(-50%)' }}
-      />
-
-      {/* Right side */}
-      <Handle
-        type="target"
         position={Position.Right}
         id="right"
         style={{ ...handleStyle, right: -rightOffset, top: '50%', transform: 'translateY(-50%)' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right"
-        style={{ ...handleStyle, right: -rightOffset, top: '50%', transform: 'translateY(-50%)' }}
-      />
-
-      {/* Top side */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="top"
-        style={{ ...handleStyle, top: topOffset, left: '50%', transform: 'translateX(-50%)' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Top}
-        id="top"
-        style={{ ...handleStyle, top: topOffset, left: '50%', transform: 'translateX(-50%)' }}
-      />
-
-      {/* Bottom side */}
-      <Handle
-        type="target"
-        position={Position.Bottom}
-        id="bottom"
-        style={{ ...handleStyle, bottom: -bottomOffset, left: '50%', transform: 'translateX(-50%)' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="bottom"
-        style={{ ...handleStyle, bottom: -bottomOffset, left: '50%', transform: 'translateX(-50%)' }}
       />
     </>
   );

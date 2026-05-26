@@ -62,7 +62,7 @@ RULES:
 ANALYZE (5 steps, be concise — output feeds a diagram generator):
 1. BOUNDARIES: entryPoints[], exitPoints[], trustZones[]
 2. LAYERS: {ComponentName: LayerName} — Valid: client|edge|gateway|application|queue|data|infrastructure|observability|external
-3. PATTERNS: [monolith|microservices|event-driven|cqrs|circuit-breaker|saga]
+ 3. PATTERNS: [mvc|monolith|microservices|event-driven|cqrs|circuit-breaker|saga]
 4. STRESS TESTS (5 scenarios, mark safe:true/false):
    - DB down → mitigation
    - 10x traffic spike → mitigation

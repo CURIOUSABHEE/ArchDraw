@@ -112,12 +112,13 @@ export function useEdgeColors(edges: Edge[]): Edge[] {
       }
 
       const color = passesThroughNode ? EDGE_COLORS.overlap : EDGE_COLORS.default;
+      const labelColor = passesThroughNode ? '#000000' : EDGE_COLORS.default;
 
       return {
         ...edge,
         style: { ...edge.style, stroke: color, strokeWidth: 1.5 },
         markerEnd: { type: MarkerType.ArrowClosed, color, width: 20, height: 20 },
-        labelStyle: { ...edge.labelStyle, fill: color },
+        labelStyle: { ...edge.labelStyle, fill: labelColor },
       };
     });
   }, [edges, nodeInternals]);

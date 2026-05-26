@@ -5,6 +5,7 @@ PART 1 — ARCHITECTURE STYLE SELECTION
 Before drawing anything, classify the system and select the appropriate style. A system may combine multiple styles.
 How to classify:
 Signal in the request -> Primary style to apply
+- "MVC", "Model View Controller", "layered architecture", "Rails", "Django" -> MVC
 - "microservices", "independent deployments", "team autonomy" -> Microservices
 - "simple", "startup", "MVP", "monolith" -> Modular Monolith → Monolith
 - "event-driven", "real-time", "streaming", "IoT" -> Event-Driven / Streaming
@@ -22,7 +23,19 @@ Signal in the request -> Primary style to apply
 If the request is ambiguous, show the top 2 candidate styles and explain the tradeoff before proceeding.
 
 PART 2 — STYLE-SPECIFIC PATTERNS & RULES
-A. Monolith / Modular Monolith
+A. MVC (Model-View-Controller) / Layered Monolith
+When to use: User-facing web applications, CRUD apps, standard server-rendered apps, Rails/Django/Spring MVC apps.
+Patterns to apply:
+- Three-layer structure: Controller (request handling, routing, business logic) → Model (data, ORM, validation) → View (templates, response formats, UI).
+- Strict dependency direction: Controller depends on Model, Controller selects View. Model NEVER depends on View or Controller. View NEVER writes data.
+- Single deployable unit with one database. NO microservices. NO separate service nodes.
+- All incoming HTTP requests go through a single Router/Dispatcher (Front Controller pattern).
+- Use Repository pattern for data access, Service objects for business logic extracted from Controllers.
+- Sessions managed server-side for stateful user interactions.
+Must include: Router/Dispatcher, Controllers (one per resource), Models (one per domain entity), Views (one per response type), Database, optional Cache (Redis/Memcached).
+Common mistakes to avoid: Fat controllers with business logic (extract to Service objects), circular model dependencies, views accessing models directly, generating microservice-style nodes (queues, API gateways, Lambda functions).
+
+B. Monolith / Modular Monolith
 When to use: Early-stage products, small teams, low operational complexity, bounded scope.
 Patterns to apply:
 - Layered architecture: Presentation → Application → Domain → Infrastructure. Each layer only depends on the layer below it, never above.
@@ -32,7 +45,7 @@ Patterns to apply:
 Must include: Single deployable unit, relational DB (with schema per module if modular), in-process message bus for inter-module events, reverse proxy (Nginx), CI/CD pipeline.
 Common mistakes to avoid: God classes that span multiple modules, direct DB joins across module boundaries, no separation between domain logic and infrastructure code.
 
-B. Microservices
+C. Microservices
 When to use: Large teams, independent deployment requirements, heterogeneous tech stacks, high scale per service.
 Patterns to apply:
 - API Gateway (single entry point) + BFF (Backend for Frontend) if mobile and web clients have different contracts
@@ -45,7 +58,7 @@ Patterns to apply:
 Must include: API Gateway, Service Mesh or Service Discovery, Message Bus, per-service DBs, Observability Stack, CI/CD, Container Registry, Orchestration (Kubernetes/ECS).
 Common mistakes to avoid: Services sharing a database, auth as a downstream hop, synchronous chains longer than 3 hops, no circuit breakers on cross-service calls.
 
-C. Event-Driven / Streaming Architecture
+D. Event-Driven / Streaming Architecture
 When to use: Real-time data pipelines, IoT, activity feeds, fraud detection, audit systems, reactive UIs.
 Patterns to apply:
 - Event Streaming (Kafka, Kinesis): show topics, partitions, partition key strategy, consumer groups
@@ -59,7 +72,7 @@ Patterns to apply:
 Must include: Event broker with topic/partition labels, consumer group labels, DLQ for every consumer, stream processor, schema registry (Avro/Protobuf), monitoring for consumer lag.
 Common mistakes to avoid: Unlabeled topics, no DLQ, no schema enforcement, no consumer lag monitoring, synchronous calls inside a streaming pipeline, events without a defined schema.
 
-D. Serverless / FaaS Architecture
+E. Serverless / FaaS Architecture
 When to use: Sporadic workloads, event-triggered jobs, low operational overhead requirement, cost-per-invocation model.
 Patterns to apply:
 - Trigger-Function-Destination: every function must show its trigger (HTTP, queue, schedule, storage event) and its destination (DB write, queue publish, API call)
@@ -71,7 +84,7 @@ Patterns to apply:
 Must include: Every function labeled with trigger type and max timeout, state management via Step Functions or Durable Functions for workflows, async queue between functions for pipelines, IAM role per function, observability (CloudWatch, X-Ray, or Datadog serverless).
 Common mistakes to avoid: Synchronous function chains longer than 2 hops, stateful logic inside a function, monolithic functions doing 5 things, no timeout labels, no DLQ on async triggers.
 
-E. Data Platform / Lakehouse Architecture
+F. Data Platform / Lakehouse Architecture
 When to use: Analytics, reporting, ML feature pipelines, data products, multi-source ingestion.
 Patterns to apply:
 - Medallion Architecture (Bronze → Silver → Gold):
@@ -87,7 +100,7 @@ Patterns to apply:
 Must include: Ingestion layer (Kafka, Firehose, Airbyte), storage layer (S3, ADLS, GCS), compute layer (Spark, dbt, Flink), catalog, data quality node, serving layer (Redshift, BigQuery, Snowflake, Trino), BI tool connection.
 Common mistakes to avoid: No data quality checks, no catalog, raw data directly feeding BI tools, no separation between operational and analytical stores, feature store missing online/offline split.
 
-F. ML System Architecture
+G. ML System Architecture
 When to use: Any system involving model training, serving, retraining, or experimentation.
 Patterns to apply:
 - Training Pipeline: Data Ingestion → Feature Engineering → Model Training → Evaluation → Model Registry. Every step is a node.
@@ -102,7 +115,7 @@ Patterns to apply:
 Must include: Feature Store (offline + online), Model Registry, Training Pipeline, Serving Infrastructure, Drift Monitor, Feedback Loop, Experiment Tracking (MLflow), CI/CD for models (CT/CD — Continuous Training / Continuous Deployment).
 Common mistakes to avoid: No feedback loop, no drift monitoring, feature store missing online/offline split, model deployed directly from training script with no registry, no experiment tracking.
 
-G. SaaS / Multi-Tenant Architecture
+H. SaaS / Multi-Tenant Architecture
 When to use: B2C or B2B products sold as a subscription, serving multiple customers from shared infrastructure.
 Patterns to apply:
 - Tenant isolation strategy — must choose and label one:
@@ -118,7 +131,7 @@ Patterns to apply:
 Must include: Tenant router, tenant context propagation through all services, Usage Metering, Billing, Feature Flags, Admin Portal, Tenant DB isolation label.
 Common mistakes to avoid: No tenant isolation strategy labeled, billing as an afterthought with no metering, feature flags missing, no admin surface, tenant_id not propagated through async events.
 
-H. Enterprise / SOA / Integration Architecture
+I. Enterprise / SOA / Integration Architecture
 When to use: Legacy system integration, B2B data exchange, ERP/CRM connectivity, regulated industries.
 Patterns to apply:
 - Enterprise Service Bus (ESB) or API-led connectivity (MuleSoft model: Experience → Process → System APIs)
@@ -131,7 +144,7 @@ Patterns to apply:
 Must include: Integration middleware, ACL adapters for each legacy system, MDM node, canonical model label, monitoring for integration failures, retry and dead letter handling.
 Common mistakes to avoid: Direct point-to-point connections between every system (creates a spaghetti diagram and brittle integrations), no ACL between modern and legacy systems, no canonical model.
 
-I. Mobile Backend Architecture (BFF Pattern)
+J. Mobile Backend Architecture (BFF Pattern)
 When to use: Native mobile apps (iOS/Android), offline-first apps, push notification systems.
 Patterns to apply:
 - BFF (Backend for Frontend): separate API gateway/aggregator per client type (iOS BFF, Android BFF, Web BFF) — each optimizes payload shape for its client
@@ -143,7 +156,7 @@ Patterns to apply:
 Must include: Separate BFF per client type if contracts differ, Push Notification Service with FCM/APNs, Device Registry, Offline Sync strategy labeled, CDN for media assets.
 Common mistakes to avoid: Single monolithic API for all clients, push notifications called directly from business services, no offline sync strategy, media served directly from origin.
 
-J. Edge / Embedded / IoT Architecture
+K. Edge / Embedded / IoT Architecture
 When to use: Physical devices, sensors, low-latency hardware control, edge inference.
 Patterns to apply:
 - Edge-Fog-Cloud hierarchy: Device → Edge Gateway → Fog Node (regional processing) → Cloud (global aggregate)
@@ -156,7 +169,7 @@ Patterns to apply:
 Must include: Device layer, Edge Gateway, Telemetry Pipeline, Device Registry, Command & Control channel, OTA Update Service, Time-Series DB, Cloud aggregation layer.
 Common mistakes to avoid: Devices calling cloud APIs directly with no edge buffer (creates latency and reliability issues), no device registry, telemetry and command using same channel, no OTA update path.
 
-K. Real-Time Collaboration Architecture
+L. Real-Time Collaboration Architecture
 When to use: Shared documents, multiplayer, live dashboards, collaborative editing.
 Patterns to apply:
 - WebSocket / SSE: persistent connection per client — show connection manager as a separate stateful node

@@ -81,6 +81,17 @@ const MAX_ITERATIONS = 3;
 const MAX_RETRIES = 2;
 const SCORE_THRESHOLD = 75;
 
+const FORBIDDEN_MVC_TECH = ['lambda', 'sqs', 'kafka', 'api gateway', 'docker', 'kubernetes', 'ecs', 'eks', 'sns', 'eventbridge', 'step function', 'cloudwatch', 'sagemaker'];
+
+function getTypeOverride(userInput: string): string | null {
+  const input = userInput.toLowerCase();
+  if (/\bmvc\b/.test(input) || /model.?view.?controller/i.test(input)) return 'mvc';
+  if (/\bcicd\b/.test(input) || /ci\/cd/.test(input)) return 'cicd_pipeline';
+  if (/\berd\b/.test(input) || /schema/.test(input)) return 'database_schema';
+  if (/\bmonolith\b/.test(input)) return 'monolith';
+  return null;
+}
+
 /**
  * MAIN PIPELINE ORCHESTRATOR
  */
@@ -137,8 +148,15 @@ export async function runArchitecturePipeline(
       state.systemIntent = detectSystemIntent(currentPrompt);
       state.useAWS = state.systemIntent.useAWS || detectAWSInPrompt(currentPrompt);
       
-      // NEW: Improved intent detection with confidence
-      state.intentResult = detectIntent(currentPrompt);
+      // Keyword override before LLM/rule-based classifier
+      const typeOverride = getTypeOverride(currentPrompt);
+      if (typeOverride) {
+        logger.log(`[Pipeline] Keyword override: "${typeOverride}" (matched from input)`);
+        state.intentResult = { type: typeOverride, confidence: 1.0, ambiguous: false };
+      } else {
+        // NEW: Improved intent detection with confidence
+        state.intentResult = detectIntent(currentPrompt);
+      }
       logger.log(`[Pipeline] Intent: ${state.intentResult.type} (confidence: ${state.intentResult.confidence.toFixed(2)}, ambiguous: ${state.intentResult.ambiguous})`);
       
       state.history.push({
@@ -178,7 +196,9 @@ export async function runArchitecturePipeline(
         (flow) => {
           logger.log(`[Pipeline] Generated flow: ${flow.path.join(' → ')}`);
         },
-        userIntent.existingContext
+        userIntent.existingContext,
+        'medium',
+        state.intentResult.type
       );
 
       // Convert RawNode[] to ArchitectureNode[]
@@ -187,6 +207,27 @@ export async function runArchitecturePipeline(
       );
       
       logger.log(`[Pipeline] Generated ${state.rawNodes.length} nodes and ${diagramResult.flows.length} flows`);
+
+      // MVC post-generation validation
+      if (state.intentResult.type === 'mvc') {
+        const mvcViolations = state.rawNodes.filter(n => {
+          const label = (n.label || '').toLowerCase();
+          return FORBIDDEN_MVC_TECH.some(t => label.includes(t));
+        });
+        if (mvcViolations.length > 0 && attempt < MAX_RETRIES) {
+          logger.warn(`[Pipeline] MVC violation: found MS/cloud nodes (${mvcViolations.map(n => n.label).join(', ')}). Retrying with stricter prompt.`);
+          currentPrompt = `You MUST generate an MVC diagram. ONLY three layers allowed: View, Controller, Model. NO microservices, NO AWS services, NO message queues, NO API Gateway, NO Docker/Kubernetes. Every node must be a class, module, or layer within the MVC pattern.
+
+ORIGINAL REQUEST: ${userIntent.description}
+
+PREVIOUS ATTEMPT contained forbidden nodes: ${mvcViolations.map(n => n.label).join(', ')}. Do NOT repeat these.`;
+          attempt++;
+          state.rawNodes = [];
+          state.enrichedNodes = [];
+          state.edges = [];
+          continue;
+        }
+      }
       
       state.history.push({
         step: 'diagram',

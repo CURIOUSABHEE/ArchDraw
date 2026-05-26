@@ -3,7 +3,8 @@
 import { memo, useEffect } from 'react';
 import { Handle, Position, NodeProps, useUpdateNodeInternals } from 'reactflow';
 import { useCanvasTheme } from '@/lib/theme';
-import { LIGHT_NODE_STYLES, DARK_NODE_STYLES, BORDER_RADIUS } from '@/lib/theme/stylingConstants';
+import { LIGHT_NODE_STYLES, DARK_NODE_STYLES } from '@/lib/theme/stylingConstants';
+import './nodes/nodeStyles.css';
 
 export type ShapeType =
   | 'rectangle'

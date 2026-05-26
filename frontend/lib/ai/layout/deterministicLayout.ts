@@ -416,7 +416,7 @@ export function generateELKOptionsFromMetrics(metrics: LayoutMetrics): Record<st
     'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
     'elk.layered.separatingEdges.strategy': 'CENTERING',
     'elk.layered.unnecessaryBendpoints': 'false',
-    'elk.layered.mergeEdges': 'false',
+    'elk.layered.mergeEdges': 'true',
     'elk.edgeLabels.inline': 'false',
     'elk.edgeLabels.placement': 'CENTER',
     'elk.padding': '[top=40, left=40, bottom=40, right=40]',

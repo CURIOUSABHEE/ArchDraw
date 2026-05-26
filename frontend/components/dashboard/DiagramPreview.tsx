@@ -334,7 +334,7 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
                 width={w}
                 height={h}
                 rx={NODE_RADIUS * scale}
-                fill="#fefefe"
+                fill="#ffffff"
                 stroke="#595959"
                 strokeWidth={1.5}
                 vectorEffect="non-scaling-stroke"

@@ -33,7 +33,7 @@ const BASE_ELK_OPTIONS: Record<string, string> = {
   'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
   'elk.layered.separatingEdges.strategy': 'CENTERING',
   'elk.layered.unnecessaryBendpoints': 'false',
-  'elk.layered.mergeEdges': 'false',
+  'elk.layered.mergeEdges': 'true',
   'elk.layered.wrapping.multiEdge.improveCuts': 'true',
   'elk.layered.cycleBreaking.strategy': 'GREEDY',
   'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
