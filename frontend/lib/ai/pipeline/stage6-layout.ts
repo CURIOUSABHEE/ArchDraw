@@ -2,6 +2,7 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 import type { LayoutedNode, ValidatedDiagram, RawNode } from './types';
 import { resolveNodeCollisions } from '@/lib/collision';
 import { snapNodesToColumns } from '@/lib/utils/columnAlignNodes';
+import { ELK_CONFIG, ELK_DIRECTION_OVERRIDE } from '@/lib/config';
 
 /**
  * STAGE 6 — LAYOUT ENGINE
@@ -80,7 +81,8 @@ function calculateNodeDimensions(node: RawNode): { width: number; height: number
 
 export async function applyLayout(
   validated: ValidatedDiagram,
-  diagramSize: 'small' | 'medium' | 'large' = 'medium'
+  diagramSize: 'small' | 'medium' | 'large' = 'medium',
+  diagramType?: string
 ): Promise<LayoutedNode[]> {
   const { nodes, edges } = validated;
   console.log(`[Layout] Processing ${nodes.length} nodes, ${edges.length} edges using ELK with partitioning (size: ${diagramSize})`);
@@ -137,23 +139,10 @@ export async function applyLayout(
     const graph = {
     id: 'root',
     layoutOptions: {
-      'elk.algorithm': 'layered',
-      'elk.direction': 'RIGHT',
-      'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-      'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-      'elk.separateConnectedComponents': 'false',
-      'elk.spacing.nodeNode': '80',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '120',
-      'elk.layered.spacing.edgeNodeBetweenLayers': '40',
-      'elk.layered.spacing.edgeEdgeBetweenLayers': '20',
-      'elk.layered.mergeEdges': 'true',
-      'elk.portConstraints': 'FIXED_SIDE',
-      'elk.layered.wrapping.multiEdge.improveCuts': 'true',
-      'elk.padding': '[top=60, left=60, bottom=60, right=60]',
-      'elk.layered.unnecessaryBendpoints': 'true',
-      'elk.layered.wrapOver': 'false',
-      'elk.edge.type': 'DIRECTED'
+      ...ELK_CONFIG,
+      'elk.direction': diagramType && ELK_DIRECTION_OVERRIDE[diagramType] 
+                       ? ELK_DIRECTION_OVERRIDE[diagramType] 
+                       : ELK_CONFIG['elk.direction'],
     },
     children: elkNodes,
     edges: elkEdges

@@ -194,14 +194,27 @@ function repairNodeData(nodes: RawNode[], issues: ValidationIssue[], tiersRepair
  * Ensure all nodes have valid IDs and labels
  */
 function ensureNodeIdentity(nodes: RawNode[], issues: ValidationIssue[]): RawNode[] {
+  const seenIds = new Map<string, number>();
+
   return nodes.map((node, idx) => {
-    if (!node.id || node.id.trim() === '') {
-      const newId = `node-${idx}-${Date.now()}`;
-      issues.push({ severity: 'warning', type: 'missing_id', nodeId: newId, message: `A node was missing an ID and had to be assigned '${newId}'. Every node must have a valid ID.` });
-      console.log(`[Validate] Generated ID for node ${idx}: "${newId}"`);
+    let id = node.id;
+    if (!id || id.trim() === '') {
+      id = `node-${idx}-${Date.now()}`;
+      issues.push({ severity: 'warning', type: 'missing_id', nodeId: id, message: `A node was missing an ID and had to be assigned '${id}'. Every node must have a valid ID.` });
+      console.log(`[Validate] Generated ID for node ${idx}: "${id}"`);
+    }
+
+    const count = seenIds.get(id) || 0;
+    seenIds.set(id, count + 1);
+
+    if (count > 0) {
+      const newId = `${id}-${count + 1}`;
+      issues.push({ severity: 'warning', type: 'duplicate_id', nodeId: newId, message: `Node had a duplicate ID '${id}' and was renamed to '${newId}'.` });
+      console.log(`[Validate] Renamed duplicate ID "${id}" to "${newId}"`);
       return { ...node, id: newId };
     }
-    return node;
+
+    return { ...node, id };
   });
 }
 

@@ -3,6 +3,7 @@ import type { EdgePath, Point } from './edgeLayout';
 import logger from '@/lib/logger';
 import { getNodeShapeConfig } from '@/constants/nodeShapeConfig';
 import { snapNodesToColumns } from '@/lib/utils/columnAlignNodes';
+import { ELK_CONFIG, ELK_DIRECTION_OVERRIDE } from '@/lib/config';
 
 let elkInstance: any = null;
 async function getELK() {
@@ -113,33 +114,7 @@ export interface ELKLayoutConfig {
 export const DEFAULT_NODE_WIDTH = 160;
 export const DEFAULT_NODE_HEIGHT = 70;
 
-const OPTIMIZED_ELK_OPTIONS = {
-  'elk.algorithm': 'layered',
-  'elk.direction': 'RIGHT',
-  'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-  'elk.edgeRouting': 'SPLINES',
-  'elk.portConstraints': 'FIXED_SIDE',
-  'elk.spacing.nodeNode': '110',
-  'elk.spacing.edgeEdge': '60',
-  'elk.spacing.edgeNode': '90',
-  'elk.spacing.labelNode': '64',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '300',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '90',
-  'elk.layered.spacing.edgeEdgeBetweenLayers': '70',
-  'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-  'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-  'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-  'elk.layered.crossingMinimization.forceNodeModelOrder': 'false',
-  'elk.layered.separatingEdges.strategy': 'CENTERING',
-  'elk.layered.unnecessaryBendpoints': 'true',
-  'elk.layered.wrapOver': 'false',
-  'elk.layered.mergeEdges': 'true',
-  'elk.layered.compaction.strategy': 'NONE',
-  'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
-  'elk.edgeLabels.inline': 'false',
-  'elk.edgeLabels.placement': 'CENTER',
-  'elk.padding': '[top=80, left=80, bottom=80, right=80]',
-};
+const OPTIMIZED_ELK_OPTIONS = ELK_CONFIG;
 
 const TIER_X: Record<string, number> = {
   client: 50,

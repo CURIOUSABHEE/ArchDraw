@@ -3,6 +3,7 @@ import { getStrictPortConfig, COMPONENT_PORTS, getComponentLabel } from './compo
 import { getShapeConfig, SHAPE_CONFIGS, type ShapeConfig } from './nodeShapes';
 import type { NodeData } from '@/store/diagramStore';
 import logger from '@/lib/logger';
+import { NODE_CONFIG } from '@/lib/config';
 
 export interface NodeFactoryResult {
   node: Node<NodeData>;
@@ -20,8 +21,8 @@ export interface NodeFactoryOptions {
   description?: string;
 }
 
-const DEFAULT_WIDTH = 160;
-const DEFAULT_HEIGHT = 80;
+const DEFAULT_WIDTH = NODE_CONFIG.defaultWidth;
+const DEFAULT_HEIGHT = NODE_CONFIG.defaultHeight;
 
 /**
  * Node Factory - Unified way to create nodes with correct metadata and configuration.
@@ -69,9 +70,9 @@ export function createNode(
     parentId,
     data: {
       label: label || getComponentLabel(componentId),
-      category: category || 'Compute',
-      color: color || '#3b82f6',
-      icon: icon || 'box',
+      category: category || NODE_CONFIG.fallback.category,
+      color: color || NODE_CONFIG.fallback.color,
+      icon: icon || NODE_CONFIG.fallback.icon,
       technology: technology || 'unknown',
       description: options.description || '',
       componentType,

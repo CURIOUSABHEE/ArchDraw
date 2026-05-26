@@ -11,26 +11,6 @@ import { EDGE_STYLES } from '@/lib/theme/stylingConstants';
  * - Correct rendering order by layer
  */
 
-/**
- * Ensure unique IDs
- */
-function deduplicateIds(nodes: LayoutedNode[]): LayoutedNode[] {
-  const seenIds = new Map<string, number>();
-  
-  return nodes.map(node => {
-    const id = node.id;
-    const count = seenIds.get(id) || 0;
-    seenIds.set(id, count + 1);
-
-    if (count > 0) {
-      const newId = `${id}-${count + 1}`;
-      console.log(`[Convert] Renamed duplicate ID "${id}" to "${newId}"`);
-      return { ...node, id: newId };
-    }
-
-    return node;
-  });
-}
 
 /**
  * Sort nodes by layer order for correct rendering
@@ -63,11 +43,8 @@ export function convertToReactFlow(
 
   console.log(`[Convert] Starting conversion: ${layouted.length} nodes, ${diagramEdges.length} edges`);
 
-  // STEP 1: Fix duplicate IDs (rename, don't delete)
-  const processedNodes = deduplicateIds(layouted);
-
-  // STEP 2: Sort nodes for correct rendering order
-  const sortedNodes = sortNodesForRendering(processedNodes);
+  // STEP 1: Sort nodes for correct rendering order
+  const sortedNodes = sortNodesForRendering(layouted);
 
   console.log(`[Convert] Final node count after processing: ${sortedNodes.length} (preserved all nodes)`);
 
@@ -98,25 +75,11 @@ export function convertToReactFlow(
     };
   });
 
-  // STEP 4: Build ID mapping in case any nodes were renamed
-  const idMapping = new Map<string, string>();
-  for (const node of layouted) {
-    const processed = processedNodes.find(p => p.id === node.id);
-    if (processed && processed.id !== node.id) {
-      idMapping.set(node.id, processed.id);
-    }
-  }
 
-  // STEP 5: Map edges through ID mapping
-  const mappedEdges = diagramEdges.map(edge => {
-    const sourceId = idMapping.get(edge.source) || edge.source;
-    const targetId = idMapping.get(edge.target) || edge.target;
-    return { ...edge, source: sourceId, target: targetId };
-  });
 
-  // STEP 6: Filter out edges with invalid node references (but log them)
-  const validNodeIds = new Set(processedNodes.map(n => n.id));
-  const rfEdges: Edge[] = mappedEdges
+  // STEP 3: Filter out edges with invalid node references (but log them)
+  const validNodeIds = new Set(layouted.map(n => n.id));
+  const rfEdges: Edge[] = diagramEdges
     .filter(edge => {
       const valid = validNodeIds.has(edge.source) && validNodeIds.has(edge.target);
       if (!valid) {
@@ -151,7 +114,7 @@ export function convertToReactFlow(
       };
     });
 
-  // STEP 7: Detect bidirectional edge pairs and apply curvature offsets
+  // STEP 4: Detect bidirectional edge pairs and apply curvature offsets
   const edgePairMap = new Map<string, Edge[]>();
   for (const edge of rfEdges) {
     const pairKey = [edge.source, edge.target].sort().join('--');

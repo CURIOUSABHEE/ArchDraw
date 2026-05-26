@@ -1,3 +1,5 @@
+import { EDGE_CONFIG } from '@/lib/config';
+
 export const LAYER_ORDER = ['client', 'edge', 'gateway', 'application', 'queue', 'data', 'infrastructure', 'observability', 'external'];
 
 export const MAX_ITERATIONS = 3;
@@ -6,21 +8,21 @@ export const SCORE_THRESHOLD = 75;
 export const DIAGRAM_SYSTEM_MESSAGE = 'Output NDJSON only. One JSON object per line. No markdown. No arrays. No prose.';
 
 export const COMMUNICATION_STYLES: Record<string, { color: string; dash: string | undefined; animated: boolean; pathType?: string; strokeDasharray: string; markerEnd: string; markerId: string }> = {
-  sync: { color: '#94a3b8', dash: '', animated: false, pathType: 'Smoothstep', strokeDasharray: '', markerEnd: 'arrowclosed', markerId: 'arrow-sync' },
-  async: { color: '#94a3b8', dash: '8,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '8,4', markerEnd: 'arrowclosed', markerId: 'arrow-async' },
-  stream: { color: '#94a3b8', dash: '10,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '10,4', markerEnd: 'arrowclosed', markerId: 'arrow-stream' },
-  event: { color: '#94a3b8', dash: '4,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '4,4', markerEnd: 'arrowclosed', markerId: 'arrow-event' },
-  dep: { color: '#94a3b8', dash: '6,6', animated: false, pathType: 'Smoothstep', strokeDasharray: '6,6', markerEnd: 'arrowclosed', markerId: 'arrow-dep' },
-  dotted: { color: '#94a3b8', dash: '2,4', animated: false, pathType: 'Smoothstep', strokeDasharray: '2,4', markerEnd: 'arrowclosed', markerId: 'arrow-dotted' },
+  sync: { color: EDGE_CONFIG.strokeColor, dash: '', animated: false, pathType: 'Smoothstep', strokeDasharray: '', markerEnd: 'arrowclosed', markerId: 'arrow-sync' },
+  async: { color: EDGE_CONFIG.strokeColor, dash: '8,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '8,4', markerEnd: 'arrowclosed', markerId: 'arrow-async' },
+  stream: { color: EDGE_CONFIG.strokeColor, dash: '10,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '10,4', markerEnd: 'arrowclosed', markerId: 'arrow-stream' },
+  event: { color: EDGE_CONFIG.strokeColor, dash: '4,4', animated: true, pathType: 'Smoothstep', strokeDasharray: '4,4', markerEnd: 'arrowclosed', markerId: 'arrow-event' },
+  dep: { color: EDGE_CONFIG.strokeColor, dash: '6,6', animated: false, pathType: 'Smoothstep', strokeDasharray: '6,6', markerEnd: 'arrowclosed', markerId: 'arrow-dep' },
+  dotted: { color: EDGE_CONFIG.strokeColor, dash: '2,4', animated: false, pathType: 'Smoothstep', strokeDasharray: '2,4', markerEnd: 'arrowclosed', markerId: 'arrow-dotted' },
 };
 
 export const EDGE_COLORS: Record<string, string> = {
-  sync: '#94a3b8',
-  async: '#94a3b8',
-  stream: '#94a3b8',
-  event: '#94a3b8',
-  dep: '#94a3b8',
-  dotted: '#94a3b8',
+  sync: EDGE_CONFIG.strokeColor,
+  async: EDGE_CONFIG.strokeColor,
+  stream: EDGE_CONFIG.strokeColor,
+  event: EDGE_CONFIG.strokeColor,
+  dep: EDGE_CONFIG.strokeColor,
+  dotted: EDGE_CONFIG.strokeColor,
 };
 
 export const EDGE_MARKER_IDS: Record<string, string> = {

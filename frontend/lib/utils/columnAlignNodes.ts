@@ -7,7 +7,7 @@ export function groupNodesByColumn<T extends { id: string }>(
 
   for (const node of nodes) {
     const xn = getX(node);
-    let col = columns.find(c => Math.abs(c.x - xn) <= threshold);
+    const col = columns.find(c => Math.abs(c.x - xn) <= threshold);
 
     if (col) {
       col.nodes.push(node);

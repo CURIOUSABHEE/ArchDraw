@@ -6,13 +6,12 @@ import {
   EdgeLabelRenderer,
   EdgeProps, 
   getSmoothStepPath,
+  useReactFlow,
   useStore,
   ReactFlowState,
   Position,
-  useReactFlow,
 } from 'reactflow';
-import { getEdgeShiftOffset, getHandleOffset } from '@/lib/utils/simpleFloatingEdge';
-import { getDynamicHandles, getHandleCoordinate, NodeRect } from '@/lib/features/dynamicHandles';
+import { getDynamicHandles, getHandleCoordinate } from '@/lib/features/dynamicHandles';
 import { getPointOnPath, findClosestT } from '@/lib/utils/edgeLabelDrag';
 import { useDiagramStore } from '@/store/diagramStore';
 import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
@@ -41,70 +40,48 @@ export default function SimpleFloatingEdge({
   const sourceNode = useStore((s: ReactFlowState) => s.nodeInternals.get(source));
   const targetNode = useStore((s: ReactFlowState) => s.nodeInternals.get(target));
   const edges = useStore((s: ReactFlowState) => s.edges);
-  const nodeInternals = useStore((s: ReactFlowState) => s.nodeInternals);
   const { getViewport } = useReactFlow();
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
 
   const edgeParams = useMemo(() => {
-    let sx = 0;
-    let sy = 0;
-    let tx = 0;
-    let ty = 0;
-    let sourcePos = Position.Top;
-    let targetPos = Position.Bottom;
+    let sx = sourceX;
+    let sy = sourceY;
+    let tx = targetX;
+    let ty = targetY;
+    let sourcePos = sourcePosition;
+    let targetPos = targetPosition;
 
     if (sourceNode && targetNode) {
-      const sourceRect: NodeRect = {
-        x: sourceNode.positionAbsolute?.x ?? sourceNode.position.x,
-        y: sourceNode.positionAbsolute?.y ?? sourceNode.position.y,
-        width: sourceNode.width ?? 200,
-        height: sourceNode.height ?? 80,
-      };
-      const targetRect: NodeRect = {
-        x: targetNode.positionAbsolute?.x ?? targetNode.position.x,
-        y: targetNode.positionAbsolute?.y ?? targetNode.position.y,
-        width: targetNode.width ?? 200,
-        height: targetNode.height ?? 80,
-      };
+      // In reactflow v11/v12, positionAbsolute is preferred, but fallback to position.
+      const sX = (sourceNode as any).positionAbsolute?.x ?? sourceNode.position.x;
+      const sY = (sourceNode as any).positionAbsolute?.y ?? sourceNode.position.y;
+      const tX = (targetNode as any).positionAbsolute?.x ?? targetNode.position.x;
+      const tY = (targetNode as any).positionAbsolute?.y ?? targetNode.position.y;
 
-      const { sourcePosition: srcPos, targetPosition: tgtPos } = getDynamicHandles(
-        sourceRect, 
-        targetRect,
-        id,
-        source,
-        target
-      );
-      sourcePos = srcPos;
-      targetPos = tgtPos;
+      // Handle both v11 (width/height directly on node) and v12 (measured object)
+      const sWidth = (sourceNode as any).measured?.width ?? sourceNode.width ?? 200;
+      const sHeight = (sourceNode as any).measured?.height ?? sourceNode.height ?? 80;
+      const tWidth = (targetNode as any).measured?.width ?? targetNode.width ?? 200;
+      const tHeight = (targetNode as any).measured?.height ?? targetNode.height ?? 80;
 
-      const rawSrc = getHandleCoordinate(sourceRect, sourcePos);
-      const rawTgt = getHandleCoordinate(targetRect, targetPos);
+      const sourceRect = { x: sX, y: sY, width: sWidth, height: sHeight };
+      const targetRect = { x: tX, y: tY, width: tWidth, height: tHeight };
 
-      const srcOffset = getHandleOffset(sourcePos);
-      const tgtOffset = getHandleOffset(targetPos);
+      const handles = getDynamicHandles(sourceRect, targetRect);
+      sourcePos = handles.sourcePosition;
+      targetPos = handles.targetPosition;
 
-      const sourceShift = getEdgeShiftOffset(source, id, sourcePos, edges, nodeInternals, 15);
-      const targetShift = getEdgeShiftOffset(target, id, targetPos, edges, nodeInternals, 15);
+      const sourceXY = getHandleCoordinate(sourceRect, sourcePos);
+      const targetXY = getHandleCoordinate(targetRect, targetPos);
 
-      if (sourcePos === Position.Left || sourcePos === Position.Right) {
-        sx = rawSrc.x + srcOffset;
-        sy = rawSrc.y + sourceShift;
-      } else {
-        sx = rawSrc.x + sourceShift;
-        sy = rawSrc.y + srcOffset;
-      }
-
-      if (targetPos === Position.Left || targetPos === Position.Right) {
-        tx = rawTgt.x + tgtOffset;
-        ty = rawTgt.y + targetShift;
-      } else {
-        tx = rawTgt.x + targetShift;
-        ty = rawTgt.y + tgtOffset;
-      }
+      sx = sourceXY.x;
+      sy = sourceXY.y;
+      tx = targetXY.x;
+      ty = targetXY.y;
     }
 
     return { sx, sy, tx, ty, sourcePos, targetPos };
-  }, [sourceNode, targetNode, source, target, id, edges, nodeInternals]);
+  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
 
   const { sx, sy, tx, ty, sourcePos, targetPos } = edgeParams;
   const [isHovered, setIsHovered] = useState(false);

@@ -18,4 +18,5 @@ export const FEATURES = {
     ],
     description: 'Edge handles auto-select based on relative node position. Recalculates on drag.',
   },
+  // Add future features here
 } as const;

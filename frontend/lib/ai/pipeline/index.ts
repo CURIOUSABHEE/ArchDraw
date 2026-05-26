@@ -82,7 +82,7 @@ export async function generateDiagramPipeline(
 
     // Stage 6: Layout
     logger.log('[Pipeline] Stage 6: Layout');
-    const layouted = await applyLayout(validated, diagramSize);
+    const layouted = await applyLayout(validated, diagramSize, intent.type);
     logger.log(`[Pipeline] Layouted nodes: ${layouted.length}`);
 
     // Stage 7: Convert to React Flow

@@ -6,13 +6,11 @@ export interface EdgePositions {
 }
 
 // Align with FloatingHandles.tsx defaults for accurate edge attachment
-// FloatingHandles: left:-14 (w:8 center=-10), right:-14 (w:8 center=+10),
-// top:-14 (w:8 center=-10), bottom:-14 (w:8 center=+10)
 const HANDLE_OFFSETS = {
-  [Position.Left]: -10,
-  [Position.Right]: 15,
-  [Position.Top]: -10,
-  [Position.Bottom]: 15,
+  [Position.Left]: -12,
+  [Position.Right]: 48,
+  [Position.Top]: -12,
+  [Position.Bottom]: 12,
 };
 
 export function getNodeCenter(node: Node) {
@@ -98,12 +96,13 @@ export function getEdgeShiftOffset(
   
   if (connectedEdges.length <= 1) return 0;
 
-  // Always merge incoming edges at center — no gap between them
-  const isInward = connectedEdges.some(e => e.flow === 'in' && e.edge.id === edgeId);
-  if (isInward) return 0;
+  const inwardEdges = connectedEdges.filter(e => e.flow === 'in');
+  const outwardEdges = connectedEdges.filter(e => e.flow === 'out');
 
-  // Only space out outgoing edges that share a side with incoming edges
-  const hasInward = connectedEdges.some(e => e.flow === 'in');
+  // If this side only has one type of flow, merge them all at the center
+  if (inwardEdges.length === 0 || outwardEdges.length === 0) {
+    return 0;
+  }
 
   const edge = edges.find(e => e.id === edgeId);
   if (!edge) return 0;
@@ -121,10 +120,27 @@ export function getEdgeShiftOffset(
     return (index - (parallelEdges.length - 1) / 2) * spacing * 1.5;
   }
 
-  if (!hasInward) return 0;
+  // Otherwise, use the geometric calculation to untangle bundles of different nodes
+  const getAvgCoord = (items: typeof inwardEdges) => {
+    let sum = 0;
+    for (const item of items) {
+      sum += (side === Position.Left || side === Position.Right) 
+          ? item.otherNodeCenter.cy 
+          : item.otherNodeCenter.cx;
+    }
+    return sum / items.length;
+  };
 
-  // Only split outward edges from the inward cluster
-  return spacing;
+  const avgIn = getAvgCoord(inwardEdges);
+  const avgOut = getAvgCoord(outwardEdges);
+
+  const isCurrentInward = inwardEdges.some(e => e.edge.id === edgeId);
+  
+  if (avgIn <= avgOut) {
+    return isCurrentInward ? -spacing : spacing;
+  } else {
+    return isCurrentInward ? spacing : -spacing;
+  }
 }
 
 export function getSimpleHandlePosition(

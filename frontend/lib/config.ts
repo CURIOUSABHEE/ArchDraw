@@ -1,0 +1,103 @@
+import type { MarkerType, BackgroundVariant, ConnectionMode } from 'reactflow';
+
+// ─── CANVAS ──────────────────────────────────────────────────
+
+export const CANVAS_CONFIG = {
+  snapToGrid:        true,
+  snapGrid:          [20, 20] as [number, number],
+  minZoom:           0.1,
+  maxZoom:           2,
+  connectionMode:    'loose' as ConnectionMode,
+  background: {
+    variant:         'dots' as BackgroundVariant,
+    gap:             20,
+    size:            1,
+    color:           '#334155',
+  },
+} as const;
+
+// ─── EDGES ───────────────────────────────────────────────────
+
+export const EDGE_CONFIG = {
+  type:              'floating',
+  animated:          true,
+  strokeWidth:       1.5,
+  strokeColor:       '#94a3b8',
+  strokeColorOverlap:'#000000',
+  markerType:        'arrowclosed' as MarkerType,
+  label: {
+    fontSize:        10,
+    letterSpacing:   '0.05em',
+    background:      'rgba(255,255,255,0.85)',
+    padding:         '2px 6px',
+    borderRadius:    '4px',
+  },
+} as const;
+
+// derived — use these directly in <ReactFlow />
+export const DEFAULT_EDGE_OPTIONS = {
+  type:      EDGE_CONFIG.type,
+  animated:  EDGE_CONFIG.animated,
+  style: {
+    strokeWidth: EDGE_CONFIG.strokeWidth,
+    stroke:      EDGE_CONFIG.strokeColor,
+  },
+  markerEnd: {
+    type:  EDGE_CONFIG.markerType,
+    color: EDGE_CONFIG.strokeColor,
+  },
+};
+
+// ─── NODES ───────────────────────────────────────────────────
+
+export const NODE_CONFIG = {
+  defaultWidth:      200,
+  defaultHeight:     80,
+  duplicateOffset:   40,
+  defaultType:       'custom',
+  fallback: {
+    color:           '#6366f1',
+    category:        'default',
+    icon:            'Box',
+    label:           'Unnamed',
+  },
+} as const;
+
+// ─── LAYOUT (ELK) ────────────────────────────────────────────
+
+export const ELK_CONFIG = {
+  'elk.algorithm':                                    'layered',
+  'elk.direction':                                    'RIGHT',
+  'elk.spacing.nodeNode':                             '200',
+  'elk.layered.spacing.nodeNodeBetweenLayers':        '300',
+  'elk.spacing.edgeNode':                             '120',
+  'elk.spacing.edgeEdge':                             '80',
+  'elk.padding':                                      '[top=200, left=200, bottom=200, right=200]',
+  'elk.layered.nodePlacement.strategy':               'BRANDES_KOEPF',
+  'elk.layered.crossingMinimization.strategy':        'LAYER_SWEEP',
+  'elk.layered.compaction.postCompaction.strategy':   'EDGE_LENGTH',
+  'elk.portConstraints':                              'FIXED_SIDE',
+  'elk.layered.mergeEdges':                           'true',
+} as const;
+
+export const ELK_DIRECTION_OVERRIDE: Record<string, string> = {
+  mvc:           'DOWN',
+  flow_diagram:  'DOWN',
+};
+
+// ─── STORAGE ─────────────────────────────────────────────────
+
+export const STORAGE_VERSION = 2;
+export const STORAGE_KEY = typeof window !== 'undefined'
+  ? `archdraw-state-${process.env.NODE_ENV}-${window.location.port}`
+  : 'archdraw-state';
+
+// ─── THEME ───────────────────────────────────────────────────
+
+export const THEME = {
+  accent:          '#6366f1',
+  mutedText:       '#94a3b8',
+  border:          'rgba(255,255,255,0.08)',
+  cardBg:          '#1e293b',
+  canvasBg:        '#0f172a',
+} as const;

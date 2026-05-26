@@ -37,6 +37,7 @@ import { TemplateModal } from '@/components/TemplateModal';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { isValidConnection, wouldCreateCycle } from '@/lib/config/edgeConfig';
 import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
+import { CANVAS_CONFIG, DEFAULT_EDGE_OPTIONS, EDGE_CONFIG } from '@/lib/config';
 
 import { useGrouping } from '@/hooks/useGrouping';
 import { toast } from 'sonner';
@@ -350,23 +351,20 @@ function CanvasInner() {
         selectionOnDrag
         panOnScroll
         panOnDrag={[2]}
-        connectionMode={ConnectionMode.Loose}
+        connectionMode={CANVAS_CONFIG.connectionMode as any}
         connectionLineType={ConnectionLineType.SmoothStep}
-        snapToGrid={showGrid}
-        snapGrid={[20, 20]}
-        defaultMarkerColor={isDark ? '#1E2130' : '#94a3b8'}
-        minZoom={0.05}
-        maxZoom={4}
-        defaultEdgeOptions={{
-          type: 'smoothstep',
-          style: { strokeWidth: DIAGRAM_CONSTANTS.edge.strokeWidth },
-        }}
+        snapToGrid={CANVAS_CONFIG.snapToGrid}
+        snapGrid={CANVAS_CONFIG.snapGrid}
+        defaultMarkerColor={isDark ? '#1E2130' : EDGE_CONFIG.strokeColor}
+        minZoom={CANVAS_CONFIG.minZoom}
+        maxZoom={CANVAS_CONFIG.maxZoom}
+        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
       >
         <Background 
-          variant={BackgroundVariant.Dots} 
-          gap={25} 
-          size={1.5}
-          color={isDark ? '#475569' : '#64748b'}
+          variant={CANVAS_CONFIG.background.variant as any} 
+          gap={CANVAS_CONFIG.background.gap} 
+          size={CANVAS_CONFIG.background.size}
+          color={isDark ? '#475569' : CANVAS_CONFIG.background.color}
           style={{ opacity: isDark ? 0.6 : 0.4 }}
         />
         <Controls showInteractive={false} className={`!shadow-sm ${isDark ? '!bg-[#1E2235] !border-gray-800 !text-white' : '!bg-white !border-gray-200 !text-gray-800'}`} />

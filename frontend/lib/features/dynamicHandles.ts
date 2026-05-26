@@ -10,7 +10,7 @@
  * @do-not-delete This file implements core edge routing behavior.
  * @affects SimpleFloatingEdge, useAutoLayout, elkLayoutService
  * 
- * @last-updated 2026-05-26
+ * @last-updated 2026-05-27
  */
 
 import { Position } from 'reactflow';
@@ -33,99 +33,94 @@ export interface DynamicHandleResult {
  * Given two node rects, returns which handle sides to use for source and target.
  * Decision is based on the center-to-center vector between the two nodes.
  * The dominant axis (horizontal vs vertical) determines the handle side.
- * 
- * @param sourceRect - Rectangle defining the source node's position and dimensions
- * @param targetRect - Rectangle defining the target node's position and dimensions
- * @param edgeId - Optional edge ID for debug logging
- * @param sourceId - Optional source node ID for debug logging
- * @param targetId - Optional target node ID for debug logging
  */
 export function getDynamicHandles(
   sourceRect: NodeRect,
   targetRect: NodeRect,
   edgeId?: string,
   sourceId?: string,
-  targetId?: string,
+  targetId?: string
 ): DynamicHandleResult {
-  const DEBUG_HANDLES = process.env.NEXT_PUBLIC_DEBUG_HANDLES === 'true';
-  const startTime = DEBUG_HANDLES ? performance.now() : 0;
+  const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const debug = process.env.NEXT_PUBLIC_DEBUG_HANDLES === 'true';
 
+  let dx = 0;
+  let dy = 0;
+  let sourceCX = 0;
+  let sourceCY = 0;
+  let targetCX = 0;
+  let targetCY = 0;
+  
   try {
-    const sourceCX = sourceRect.x + sourceRect.width / 2;
-    const sourceCY = sourceRect.y + sourceRect.height / 2;
-    const targetCX = targetRect.x + targetRect.width / 2;
-    const targetCY = targetRect.y + targetRect.height / 2;
-
-    const dx = targetCX - sourceCX;
-    const dy = targetCY - sourceCY;
-
-    const dominantAxis = Math.abs(dx) >= Math.abs(dy) ? 'horizontal' : 'vertical';
-
-    if (DEBUG_HANDLES) {
-      console.log('[DynamicHandles] Calculation:', {
-        edgeId,
-        sourceId,
-        targetId,
-        nodeCenter: {
-          source: { x: sourceCX, y: sourceCY },
-          target: { x: targetCX, y: targetCY },
-        },
-        dx,
-        dy,
-        dominantAxis,
-      });
+    sourceCX = sourceRect.x + sourceRect.width / 2;
+    sourceCY = sourceRect.y + sourceRect.height / 2;
+    targetCX = targetRect.x + targetRect.width / 2;
+    targetCY = targetRect.y + targetRect.height / 2;
+    
+    if (isNaN(sourceCX) || isNaN(sourceCY) || isNaN(targetCX) || isNaN(targetCY)) {
+      throw new Error('Invalid rect');
     }
 
-    let sourcePosition: Position;
-    let targetPosition: Position;
+    dx = targetCX - sourceCX;
+    dy = targetCY - sourceCY;
+  } catch (e) {
+    return { sourcePosition: Position.Right, targetPosition: Position.Left };
+  }
 
-    if (Math.abs(dx) >= Math.abs(dy)) {
-      if (dx >= 0) {
-        sourcePosition = Position.Right;
-        targetPosition = Position.Left;
-      } else {
-        sourcePosition = Position.Left;
-        targetPosition = Position.Right;
-      }
+  let sourcePosition = Position.Right;
+  let targetPosition = Position.Left;
+  let dominantAxis = 'horizontal';
+
+  // Determine dominant axis
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    dominantAxis = 'horizontal';
+    if (dx >= 0) {
+      sourcePosition = Position.Right;
+      targetPosition = Position.Left;
     } else {
-      if (dy >= 0) {
-        sourcePosition = Position.Bottom;
-        targetPosition = Position.Top;
-      } else {
-        sourcePosition = Position.Top;
-        targetPosition = Position.Bottom;
-      }
+      sourcePosition = Position.Left;
+      targetPosition = Position.Right;
     }
-
-    if (DEBUG_HANDLES) {
-      const elapsed = performance.now() - startTime;
-      console.log('[DynamicHandles] Selected handles:', {
-        edgeId,
-        sourceId,
-        targetId,
-        sourcePosition,
-        targetPosition,
-      });
-      console.log('[DynamicHandles] Performance:', { edgeId, elapsedMs: elapsed });
-      if (elapsed > 1) {
-        console.warn('[DynamicHandles] Warning: calculation exceeded 1ms', { edgeId, elapsedMs: elapsed });
-      }
+  } else {
+    dominantAxis = 'vertical';
+    if (dy >= 0) {
+      sourcePosition = Position.Bottom;
+      targetPosition = Position.Top;
+    } else {
+      sourcePosition = Position.Top;
+      targetPosition = Position.Bottom;
     }
+  }
 
-    return { sourcePosition, targetPosition };
-  } catch (error) {
-    const elapsed = DEBUG_HANDLES ? performance.now() - startTime : 0;
-    console.error('[DynamicHandles] Error calculating handle positions:', {
+  if (debug) {
+    console.log('[DynamicHandles] Calculation:', {
       edgeId,
       sourceId,
       targetId,
-      sourceRect,
-      targetRect,
-      error: error instanceof Error ? error.message : String(error),
-      elapsedMs: elapsed,
+      nodeCenter: {
+        source: { x: sourceCX, y: sourceCY },
+        target: { x: targetCX, y: targetCY },
+      },
+      dx,
+      dy,
+      dominantAxis,
     });
-    return { sourcePosition: Position.Right, targetPosition: Position.Left };
+
+    console.log('[DynamicHandles] Selected handles:', {
+      edgeId,
+      sourceId,
+      targetId,
+      sourcePosition,
+      targetPosition,
+    });
+
+    console.log('[DynamicHandles] Performance:', {
+      edgeId,
+      elapsedMs: (typeof performance !== 'undefined' ? performance.now() : Date.now()) - start,
+    });
   }
+
+  return { sourcePosition, targetPosition };
 }
 
 /**
@@ -140,9 +135,9 @@ export function getHandleCoordinate(
   const cy = rect.y + rect.height / 2;
 
   switch (position) {
-    case Position.Top:    return { x: cx, y: rect.y };
-    case Position.Bottom: return { x: cx, y: rect.y + rect.height };
-    case Position.Left:   return { x: rect.x, y: cy };
-    case Position.Right:  return { x: rect.x + rect.width, y: cy };
+    case Position.Top:    return { x: cx, y: rect.y - 14 };
+    case Position.Bottom: return { x: cx, y: rect.y + rect.height + 24 };
+    case Position.Left:   return { x: rect.x - 14, y: cy };
+    case Position.Right:  return { x: rect.x + rect.width + 24, y: cy };
   }
 }

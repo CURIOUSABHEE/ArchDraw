@@ -10,6 +10,7 @@ import { getNodeShape } from '@/lib/nodeShapes';
 import { getStrictPortConfig } from '@/lib/componentPorts';
 import { validateAndFixNodes } from '@/lib/utils/nodeValidation';
 import logger from '@/lib/logger';
+import { EDGE_CONFIG, STORAGE_KEY, STORAGE_VERSION, NODE_CONFIG } from '@/lib/config';
 
 const NODE_PADDING = 25;
 const MIN_NODE_SPACING = 25;
@@ -385,8 +386,8 @@ function normalizeEdge(edge: Edge): Edge {
     ...edge,
     type: 'smoothstep',
     markerEnd: edge.markerEnd ?? {
-      type: MarkerType.ArrowClosed,
-      color: '#94a3b8',
+      type: EDGE_CONFIG.markerType,
+      color: EDGE_CONFIG.strokeColor,
       width: 20,
       height: 20,
     },
@@ -429,7 +430,7 @@ function distributeTargetHandles(nodes: Node[], edges: Edge[]): Edge[] {
     const tgtY = tgtNode?.position?.y ?? 0;
 
     let targetHandle = 'left';
-    let sourceHandle = tgtX > srcX ? 'right' : 'left';
+    const sourceHandle = tgtX > srcX ? 'right' : 'left';
 
     if (incoming.length < 3) {
       if (incoming.length === 2) {
@@ -1025,8 +1026,8 @@ export const useDiagramStore = create<DiagramState>()(
             id: edgeId, 
             type: 'smoothstep',
             markerEnd: {
-              type: MarkerType.ArrowClosed,
-              color: '#94a3b8',
+              type: EDGE_CONFIG.markerType,
+              color: EDGE_CONFIG.strokeColor,
               width: 20,
               height: 20,
             },
