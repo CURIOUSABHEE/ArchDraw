@@ -1,5 +1,6 @@
 import type { ArchitectureNode, ArchitectureEdge } from '../types';
 import logger from '@/lib/logger';
+import { EDGE_CONFIG } from '@/lib/config';
 
 /**
  * Applies domain-specific edge patterns (e.g., standard RAG flows, e-commerce flows)
@@ -27,7 +28,7 @@ export function applyDomainEdgePatterns(
       pathType: 'smooth',
       label,
       animated: async,
-      style: { stroke: '#94a3b8', strokeWidth: 2 },
+      style: { stroke: EDGE_CONFIG.strokeColor, strokeWidth: EDGE_CONFIG.strokeWidth },
       markerEnd: 'arrowclosed',
     } as ArchitectureEdge);
   };

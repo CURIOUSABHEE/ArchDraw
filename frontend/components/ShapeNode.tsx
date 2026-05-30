@@ -57,6 +57,10 @@ function Handles({ color, nodeId }: { color: string; nodeId: string }) {
       {/* Bottom side */}
       <Handle type="target" position={Position.Bottom} id="bottom" style={s} />
       <Handle type="source" position={Position.Bottom} id="bottom" style={s} />
+      
+      {/* Dummy handles for edges that don't specify sourceHandle/targetHandle */}
+      <Handle type="source" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
+      <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
     </>
   );
 }

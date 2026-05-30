@@ -10,6 +10,7 @@ import {
   Maximize2, ChevronRight, GitBranch
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { createNode } from '@/lib/factory';
 
 export interface ContextMenuState {
   x: number;
@@ -32,8 +33,8 @@ export function ContextMenu({ menu, onClose }: Props) {
   const { screenToFlowPosition, fitView } = useReactFlow();
   const {
     nodes, edges, removeNode, deleteEdge: storeDeleteEdge, setSelectedNodeId,
-    selectedNodeIds, createGroup, ungroupNodes, moveToGroup,
-    pushHistory, fitView: storeFitView, updateEdgeData,
+    selectedNodeIds, setSelectedNodeIds, createGroup, ungroupNodes, moveToGroup,
+    pushHistory, fitView: storeFitView, updateEdgeData, appendNode,
   } = useDiagramStore();
 
   useEffect(() => {
@@ -52,12 +53,7 @@ export function ContextMenu({ menu, onClose }: Props) {
   const addAtPosition = useCallback((type: string, data: Record<string, unknown>) => {
     const pos = getViewportCenter();
     pushHistory();
-    useDiagramStore.setState((s) => ({
-      nodes: [
-        ...s.nodes,
-        { id: `${type}-${Date.now()}`, type, position: pos, data },
-      ],
-    }));
+    appendNode(createNode(type, (data.label as string) || 'Unnamed', pos, { type, data }));
     onClose();
   }, [pushHistory, onClose]);
 
@@ -70,13 +66,20 @@ export function ContextMenu({ menu, onClose }: Props) {
     const node = nodes.find((n) => n.id === menu.nodeId);
     if (!node) return;
     pushHistory();
-    const newId = `${node.type}-${Date.now()}`;
-    useDiagramStore.setState((s) => ({
-      nodes: [
-        ...s.nodes,
-        { ...node, id: newId, position: { x: node.position.x + 24, y: node.position.y + 24 }, selected: false },
-      ],
-    }));
+    
+    const { id, position, data, type, ...rest } = node;
+    const newPos = { x: position.x + 24, y: position.y + 24 };
+    const typeId = (data?.typeId as string) || type || 'systemNode';
+    const label = (data?.label as string) || 'Unnamed';
+    
+    const newNode = createNode(typeId, label, newPos, { 
+      type, 
+      data, 
+      ...rest, 
+      selected: false 
+    });
+
+    appendNode(newNode);
     onClose();
   }, [menu.nodeId, nodes, pushHistory, onClose]);
 
@@ -96,7 +99,7 @@ export function ContextMenu({ menu, onClose }: Props) {
   const addToGroup = useCallback(() => {
     if (!menu.nodeId) return;
     const ids = selectedNodeIds.length > 0 ? selectedNodeIds : [menu.nodeId];
-    useDiagramStore.setState({ selectedNodeIds: ids });
+    setSelectedNodeIds(ids);
     createGroup();
     onClose();
   }, [menu.nodeId, selectedNodeIds, createGroup, onClose]);
@@ -106,7 +109,7 @@ export function ContextMenu({ menu, onClose }: Props) {
     const node = nodes.find((n) => n.id === menu.nodeId);
     if (!node) return;
     const ids = selectedNodeIds.length > 0 ? selectedNodeIds : [menu.nodeId];
-    useDiagramStore.setState({ selectedNodeIds: ids });
+    setSelectedNodeIds(ids);
     createGroup(node.parentId || node.id);
     onClose();
   }, [menu.nodeId, nodes, selectedNodeIds, createGroup, onClose]);
@@ -144,7 +147,7 @@ export function ContextMenu({ menu, onClose }: Props) {
 
   const selectAll = useCallback(() => {
     const allIds = nodes.map((n) => n.id);
-    useDiagramStore.setState({ selectedNodeIds: allIds });
+    setSelectedNodeIds(allIds);
     onClose();
   }, [nodes, onClose]);
 

@@ -3,15 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Plus, PanelLeft, Blocks, Layers, Square, Search } from 'lucide-react';
 import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData } from './CreateComponentModal';
-import { componentRegistry } from '@/lib/componentRegistry';
+import { componentRegistry, CORE_COMPONENTS, AWS_COMPONENTS, DB_COMPONENTS, SERVICES_COMPONENTS } from '@/lib/componentRegistry';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import componentsData from '@/data/components.json';
-import awsData from '@/data/aws-components.json';
-import dbData from '@/data/db-components.json';
-import servicesData from '@/data/services-components.json';
 import { useDiagramStore } from '@/store/diagramStore';
-import { createNode } from '@/lib/nodeFactory';
+import { createNode } from '@/lib/factory';
 import { getViewportCenter } from '@/lib/utils';
 
 interface ComponentEntry {
@@ -91,39 +87,43 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
 
   const getSectionData = (section: string): ComponentEntry[] => {
     switch (section) {
-      case 'general': return componentsData as ComponentEntry[];
-      case 'aws': return awsData;
-      case 'databases': return dbData;
+      case 'general': return CORE_COMPONENTS as ComponentEntry[];
+      case 'aws': return AWS_COMPONENTS as ComponentEntry[];
+      case 'databases': return DB_COMPONENTS as ComponentEntry[];
       case 'devtools': return [];
-      case 'services': return servicesData;
+      case 'services': return SERVICES_COMPONENTS as ComponentEntry[];
       case 'custom': return customComponents;
       default: return [];
     }
   };
 
   const filteredComponents = q 
-    ? [...customComponents, ...(componentsData as ComponentEntry[]), ...awsData, ...dbData, ...servicesData]
+    ? [...customComponents, ...CORE_COMPONENTS, ...AWS_COMPONENTS, ...DB_COMPONENTS, ...SERVICES_COMPONENTS]
         .filter(c => c.label.toLowerCase().includes(q) || c.category.toLowerCase().includes(q))
         .slice(0, 30)
     : getSectionData(activeSection).slice(0, 15);
 
   const handleAdd = (comp: ComponentEntry) => {
     const center = getViewportCenter();
-    const result = createNode(
+    const node = createNode(
+      comp.id,
+      comp.label,
+      center,
       {
-        componentId: comp.id,
-        label: comp.label,
-        category: comp.category,
-        color: comp.color,
-        icon: comp.icon,
-        technology: comp.technology,
-        position: center,
+        type: 'systemNode',
+        data: {
+          componentId: comp.id,
+          category: comp.category,
+          color: comp.color,
+          icon: comp.icon,
+          technology: comp.technology,
+        }
       }
     );
-    if (result) {
+    if (node) {
       const store = useDiagramStore.getState();
       store.pushHistory();
-      store.importDiagram([...store.nodes, result.node], store.edges);
+      store.importDiagram([...store.nodes, node], store.edges);
     }
   };
 

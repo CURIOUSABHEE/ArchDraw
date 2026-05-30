@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useTutorialStore } from '@/store/tutorialStore';
 import { isSupabaseConfigured, getSupabaseClient, isReachable, type TutorialProgressTable, type UserCanvasesTable } from '@/lib/supabase';
+import { STORAGE_KEYS } from '@/lib/config';
 
 async function migrateGuestProgress(userId: string) {
   if (!isSupabaseConfigured || !isReachable) return;
@@ -100,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await loadCanvasesFromDB();
         
         // Restore guest canvases if they exist
-        const saved = localStorage.getItem('guestCanvases');
+        const saved = localStorage.getItem(STORAGE_KEYS.guestCanvases);
         if (saved) {
           try {
             const guestCanvases = JSON.parse(saved);
@@ -117,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 });
               }
             }
-            localStorage.removeItem('guestCanvases');
+            localStorage.removeItem(STORAGE_KEYS.guestCanvases);
             await loadCanvasesFromDB();
           } catch { /* ignore */ }
         }

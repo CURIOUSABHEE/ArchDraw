@@ -45,6 +45,7 @@ import type { Node } from 'reactflow';
 import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
 import { useEdgeColors } from '@/lib/edgeColors';
 import { calculateNodeDimensions } from '@/lib/utils/nodeSizing';
+import { createNode, createEdge } from '@/lib/factory';
 
 // Module-level ref so the store can call fitView without hooks
 export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
@@ -67,6 +68,7 @@ const NODE_TYPES = {
 const EDGE_TYPES = {
   custom: SimpleFloatingEdge,
   simpleFloating: SimpleFloatingEdge,
+  floating: SimpleFloatingEdge,
   default: SimpleFloatingEdge,
   smoothstep: SimpleFloatingEdge,
   flow: SimpleFloatingEdge,
@@ -172,7 +174,6 @@ function CanvasInner() {
       const data = await response.json();
       const isMCP = data.source === 'mcp';
       const nodesWithType = (data.nodes as Node[]).map((n) => {
-        // Calculate dimensions if missing, to maintain consistency with AI generated nodes
         let nodeWidth = n.data?.nodeWidth;
         let nodeHeight = n.data?.nodeHeight;
         
@@ -182,28 +183,44 @@ function CanvasInner() {
           nodeHeight = nodeHeight || dims.height;
         }
 
-        return {
-          ...n,
-          type: n.type === 'architectureNode' ? 'systemNode' : (n.type || 'systemNode'),
-          data: {
-            ...n.data,
-            nodeWidth,
-            nodeHeight,
+        const { id, type, position, data: extraData, ...rest } = n;
+        const mappedType = type === 'architectureNode' ? 'systemNode' : (type || 'systemNode');
+
+        return createNode(
+          (extraData?.typeId as string) || mappedType,
+          extraData?.label || '',
+          position || { x: 0, y: 0 },
+          {
+            id,
+            type: mappedType,
+            data: {
+              ...extraData,
+              nodeWidth,
+              nodeHeight,
+            },
+            ...rest
           }
-        };
+        );
       });
-      const edgesWithType = (data.edges as Edge[]).map((e) => ({
-        ...e,
-        // Always use simpleFloating for MCP sessions — SystemNode doesn't mount
-        // named Handle components, so FlowEdge (custom) can't resolve handle positions
-        type: 'simpleFloating',
-        sourceHandle: undefined,
-        targetHandle: undefined,
-        data: {
-          ...e.data,
-          pathType: 'Smoothstep',
-        },
-      }));
+      const edgesWithType = (data.edges as Edge[]).map((e) => {
+        const { id, source, target, label, type, sourceHandle, targetHandle, data: extraData, ...rest } = e;
+        return createEdge(
+          source,
+          target,
+          String(extraData?.label || label || ''),
+          {
+            id,
+            type: 'simpleFloating',
+            sourceHandle: undefined,
+            targetHandle: undefined,
+            data: {
+              ...extraData,
+              pathType: 'Smoothstep',
+            },
+            ...rest
+          }
+        );
+      });
       
       const canvasName = isMCP ? `MCP: ${data.label || 'Diagram'}` : (data.label || 'Session Diagram');
       const canvasId = addCanvas(canvasName, sessionId);
@@ -344,8 +361,8 @@ function CanvasInner() {
           setPendingLabelEdgeId(edge.id);
           setLabelDraft(edge.data?.label || '');
         }}
-        nodeTypes={NODE_TYPES}
-        edgeTypes={EDGE_TYPES}
+        nodeTypes={useMemo(() => NODE_TYPES, [])}
+        edgeTypes={useMemo(() => EDGE_TYPES, [])}
         fitView
         selectionMode={SelectionMode.Full}
         selectionOnDrag

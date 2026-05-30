@@ -1,34 +1,7 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
+import { ELK_CONFIG } from '@/lib/config';
 
 const elk = new ELK();
-
-const FAST_ELK_OPTIONS = {
-  'elk.algorithm': 'layered',
-  'elk.direction': 'RIGHT',
-  'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-  'elk.spacing.nodeNode': '110',
-  'elk.spacing.edgeEdge': '60',
-  'elk.spacing.edgeNode': '90',
-  'elk.spacing.labelNode': '64',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '300',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '90',
-  'elk.layered.spacing.edgeEdgeBetweenLayers': '70',
-  'elk.layered.compaction.onlyImprovePositions': 'true',
-  'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-  'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-  'elk.layered.cycleBreaking.strategy': 'GREEDY',
-  'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
-  'elk.separateConnectedComponents': 'false',
-  'elk.portConstraints': 'FIXED_SIDE',
-  'elk.edgeRouting': 'ORTHOGONAL',
-  'elk.edgeLabels.inline': 'false',
-  'elk.edgeLabels.placement': 'CENTER',
-  'elk.layered.unnecessaryBendpoints': 'true',
-  'elk.layered.edgeRouting.selfLoopDistribution': 'EVEN',
-  'elk.padding': '[top=80, left=80, bottom=80, right=80]',
-  'elk.layered.layering.strategy': 'LONGEST_PATH',
-  'elk.layered.initialization.strategy': 'MULTI_LEVEL',
-};
 
 self.onmessage = async (e: MessageEvent) => {
   const { graph, options, timeout = 10000 } = e.data;
@@ -41,7 +14,7 @@ self.onmessage = async (e: MessageEvent) => {
     const layout = await elk.layout({
       ...graph,
       layoutOptions: {
-        ...FAST_ELK_OPTIONS,
+        ...ELK_CONFIG,
         ...(graph.layoutOptions || {}),
         ...(options || {}),
       },

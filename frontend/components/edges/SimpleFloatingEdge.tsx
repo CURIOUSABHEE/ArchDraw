@@ -71,8 +71,8 @@ export default function SimpleFloatingEdge({
       sourcePos = handles.sourcePosition;
       targetPos = handles.targetPosition;
 
-      const sourceXY = getHandleCoordinate(sourceRect, sourcePos);
-      const targetXY = getHandleCoordinate(targetRect, targetPos);
+      const sourceXY = getHandleCoordinate(sourceRect, sourcePos, 'source');
+      const targetXY = getHandleCoordinate(targetRect, targetPos, 'target');
 
       sx = sourceXY.x;
       sy = sourceXY.y;
@@ -104,31 +104,53 @@ export default function SimpleFloatingEdge({
 
   const edgeLabel = data?.label?.trim();
   const parallelEdges = useMemo(
-    () => edges.filter((edge) => (edge.source === source && edge.target === target) || (edge.source === target && edge.target === source)).sort((a, b) => a.id.localeCompare(b.id)),
+    () => edges.filter((edge) => edge.source === source && edge.target === target).sort((a, b) => a.id.localeCompare(b.id)),
     [edges, source, target]
   );
   const labelOrder = Math.max(0, parallelEdges.findIndex((edge) => edge.id === id));
   const labelT = data?.labelT ?? (parallelEdges.length > 1 ? Math.max(0.2, Math.min(0.8, 0.5 + ((labelOrder - (parallelEdges.length - 1) / 2) * 0.15))) : 0.5);
 
+  // Calculate edge offset for parallel edges
+  const edgeOffset = parallelEdges.length > 1 
+    ? (labelOrder - (parallelEdges.length - 1) / 2) * 16
+    : 0;
+
+  const finalSx = sourcePos === Position.Left || sourcePos === Position.Right ? sx : sx + edgeOffset;
+  const finalSy = sourcePos === Position.Left || sourcePos === Position.Right ? sy + edgeOffset : sy;
+  const finalTx = targetPos === Position.Left || targetPos === Position.Right ? tx : tx + edgeOffset;
+  const finalTy = targetPos === Position.Left || targetPos === Position.Right ? ty + edgeOffset : ty;
+
   // Enforce smoothstep path always
   const edgePath = useMemo(() => {
-    const [path] = getSmoothStepPath({
-      sourceX: sx,
-      sourceY: sy,
-      sourcePosition: sourcePos,
-      targetX: tx,
-      targetY: ty,
-      targetPosition: targetPos,
-      borderRadius: 50,
-    });
-    return path;
-  }, [sx, sy, sourcePos, tx, ty, targetPos]);
+    try {
+      const [path] = getSmoothStepPath({
+        sourceX: isNaN(finalSx) ? 0 : finalSx,
+        sourceY: isNaN(finalSy) ? 0 : finalSy,
+        sourcePosition: sourcePos,
+        targetX: isNaN(finalTx) ? 0 : finalTx,
+        targetY: isNaN(finalTy) ? 0 : finalTy,
+        targetPosition: targetPos,
+        borderRadius: 40,
+      });
+      if (!path) {
+        // Fallback to straight line if getSmoothStepPath returns empty
+        return `M${isNaN(finalSx) ? 0 : finalSx},${isNaN(finalSy) ? 0 : finalSy} L${isNaN(finalTx) ? 0 : finalTx},${isNaN(finalTy) ? 0 : finalTy}`;
+      }
+      return path;
+    } catch (e) {
+      return `M${isNaN(finalSx) ? 0 : finalSx},${isNaN(finalSy) ? 0 : finalSy} L${isNaN(finalTx) ? 0 : finalTx},${isNaN(finalTy) ? 0 : finalTy}`;
+    }
+  }, [finalSx, finalSy, sourcePos, finalTx, finalTy, targetPos]);
 
   // Compute label position from labelT along the SVG path
   const labelPos = useMemo(() => {
-    if (!edgeLabel) return { x: (sx + tx) / 2, y: (sy + ty) / 2 };
-    return getPointOnPath(edgePath, labelT);
-  }, [edgePath, labelT, edgeLabel, sx, sy, tx, ty]);
+    if (!edgeLabel) return { x: (finalSx + finalTx) / 2 || 0, y: (finalSy + finalTy) / 2 || 0 };
+    try {
+      return getPointOnPath(edgePath, labelT);
+    } catch (e) {
+      return { x: (finalSx + finalTx) / 2 || 0, y: (finalSy + finalTy) / 2 || 0 };
+    }
+  }, [edgePath, labelT, edgeLabel, finalSx, finalSy, finalTx, finalTy]);
 
   // Drag state
   const isDragging = useRef(false);

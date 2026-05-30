@@ -308,7 +308,7 @@ export function Toolbar() {
     
     try {
       if (themeChanged) {
-        useDiagramStore.setState({ canvasDarkMode: targetDarkMode });
+        useDiagramStore.getState().setCanvasDarkMode(targetDarkMode);
         // wait for rendering to update
         await new Promise((r) => setTimeout(r, 500));
       }
@@ -416,7 +416,7 @@ export function Toolbar() {
       logger.error(err);
     } finally {
       if (themeChanged) {
-        useDiagramStore.setState({ canvasDarkMode: originalCanvasDarkMode });
+        useDiagramStore.getState().setCanvasDarkMode(originalCanvasDarkMode);
       }
       setIsExporting(false);
     }

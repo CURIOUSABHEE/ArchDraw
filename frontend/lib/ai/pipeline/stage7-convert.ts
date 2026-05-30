@@ -1,6 +1,9 @@
+import logger from '@/lib/logger';
+import { createNode, createEdge } from '@/lib/factory';
 import { Node, Edge } from 'reactflow';
 import type { LayoutedNode, ValidatedDiagram } from './types';
 import { EDGE_STYLES } from '@/lib/theme/stylingConstants';
+import { EDGE_CONFIG } from '@/lib/config';
 
 /**
  * STAGE 7 — REACT FLOW CONVERSION
@@ -41,24 +44,23 @@ export function convertToReactFlow(
 ): { nodes: Node[]; edges: Edge[] } {
   const { edges: diagramEdges } = validated;
 
-  console.log(`[Convert] Starting conversion: ${layouted.length} nodes, ${diagramEdges.length} edges`);
+  logger.info(`[Convert] Starting conversion: ${layouted.length} nodes, ${diagramEdges.length} edges`);
 
   // STEP 1: Sort nodes for correct rendering order
   const sortedNodes = sortNodesForRendering(layouted);
 
-  console.log(`[Convert] Final node count after processing: ${sortedNodes.length} (preserved all nodes)`);
+  logger.info(`[Convert] Final node count after processing: ${sortedNodes.length} (preserved all nodes)`);
 
   // STEP 3: Convert to React Flow nodes
   const rfNodes: Node[] = sortedNodes.map(node => {
     const isGroup = node.isGroup === true;
+    const type = isGroup ? 'groupNode' : 'architectureNode';
 
-    return {
+    return createNode(type, node.label, { x: node.x, y: node.y }, {
       id: node.id,
-      type: isGroup ? 'groupNode' : 'architectureNode',
-      position: { x: node.x, y: node.y },
+      type,
       parentNode: node.parentId,
       data: {
-        label: node.label,
         subtitle: node.subtitle || '',
         layer: node.layer,
         icon: node.icon || 'box',
@@ -72,7 +74,7 @@ export function convertToReactFlow(
       width: node.width,
       height: node.height,
       zIndex: isGroup ? 0 : 1000,
-    };
+    });
   });
 
 
@@ -83,7 +85,7 @@ export function convertToReactFlow(
     .filter(edge => {
       const valid = validNodeIds.has(edge.source) && validNodeIds.has(edge.target);
       if (!valid) {
-        console.log(`[Convert] Filtered out edge with invalid refs: ${edge.source}->${edge.target}`);
+        logger.info(`[Convert] Filtered out edge with invalid refs: ${edge.source}->${edge.target}`);
       }
       return valid;
     })
@@ -93,13 +95,11 @@ export function convertToReactFlow(
       const strokeDash = edgeStyle.dash || '';
       const edgeLabel = edge.label?.trim();
 
-      return {
+      return createEdge(edge.source, edge.target, edgeLabel && edgeLabel.length > 0 ? edgeLabel : '', {
         id: edge.id || `rf-${idx}`,
-        source: edge.source,
-        target: edge.target,
-        type: 'simpleFloating' as const,
+        type: 'simpleFloating',
         animated: edge.async,
-        style: { stroke: edgeStyle.color, strokeWidth: 2, strokeDasharray: strokeDash },
+        style: { stroke: edgeStyle.color, strokeWidth: EDGE_CONFIG.strokeWidth, strokeDasharray: strokeDash },
         markerEnd: {
           type: 'arrowclosed' as any,
           color: edgeStyle.color,
@@ -108,10 +108,9 @@ export function convertToReactFlow(
         },
         data: {
           connectionType,
-          pathType: 'smooth' as const,
-          label: edgeLabel && edgeLabel.length > 0 ? edgeLabel : undefined,
-        },
-      };
+          pathType: 'smooth',
+        }
+      });
     });
 
   // STEP 4: Detect bidirectional edge pairs and apply curvature offsets
@@ -131,7 +130,7 @@ export function convertToReactFlow(
     }
   }
 
-  console.log(`[Convert] Final output: ${rfNodes.length} nodes, ${rfEdges.length} edges (all nodes preserved)`);
+  logger.info(`[Convert] Final output: ${rfNodes.length} nodes, ${rfEdges.length} edges (all nodes preserved)`);
 
   return { nodes: rfNodes, edges: rfEdges };
 }

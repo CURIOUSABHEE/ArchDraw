@@ -24,10 +24,11 @@ import {
   Chrome, Github, Twitter, Linkedin,
   Upload, Video,
 } from 'lucide-react';
-import componentsData from '@/data/components.json';
+import { CORE_COMPONENTS as componentsData } from '@/lib/componentRegistry';
 import { NodeIcon } from '@/components/NodeIcon';
 import { iconRegistry } from '@/lib/iconRegistry';
 import { useTutorialStore } from '@/store/tutorialStore';
+import { createNode } from '@/lib/factory';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Monitor, Globe, RadioTower, Webhook, Scale, Shuffle,
@@ -95,19 +96,9 @@ export function TutorialSidebar() {
 
   const handleAdd = (comp: ComponentEntry) => {
     const position = getViewportCenter();
-    const id = `${comp.id}-${Date.now()}`;
-    const newNode = {
-      id,
-      type: 'systemNode' as const,
-      position,
-      data: {
-        label: comp.label,
-        category: comp.category,
-        color: comp.color,
-        icon: comp.icon,
-        technology: comp.technology,
-      },
-    };
+    const newNode = createNode(comp.id, comp.label, position, {
+      technology: comp.technology
+    });
     const updated = [...nodes, newNode];
     setNodes(updated);
     setTutorialNodes(updated);

@@ -4,6 +4,7 @@ import { TIER_ORDER } from '../domain/tiers';
 import { ArchitectureGraph } from '../graph/ArchitectureGraph';
 import { getTierTheme } from '../domain/designSystem';
 import { computeLayoutMetrics, type LayoutMetrics, LAYOUT_SPACING } from './layoutConfig';
+import { ELK_CONFIG } from '@/lib/config';
 
 const DEFAULT_NODE_WIDTH = 180;
 const DEFAULT_NODE_HEIGHT = 70;
@@ -400,26 +401,12 @@ export function generateELKOptionsFromMetrics(metrics: LayoutMetrics): Record<st
   const multiplier = metrics.density === 'high' ? 1.5 : metrics.density === 'medium' ? 1.2 : 1;
   
   const options: Record<string, string> = {
-    'elk.algorithm': 'layered',
-    'elk.direction': 'RIGHT',
-    'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-    'elk.edgeRouting': 'ORTHOGONAL',
-    'elk.portConstraints': 'FIXED_SIDE',
+    ...ELK_CONFIG,
     'elk.layered.spacing.nodeNodeBetweenLayers': String(Math.round(TIER_SPACING * multiplier)),
     'elk.spacing.nodeNode': String(SPACING_X),
     'elk.spacing.edgeEdge': String(SPACING_Y),
     'elk.spacing.edgeNode': String(SPACING_X),
-    'elk.spacing.labelNode': '30',
     'elk.layered.spacing.edgeNodeBetweenLayers': String(Math.round(SPACING_X * multiplier)),
-    'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-    'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-    'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-    'elk.layered.separatingEdges.strategy': 'CENTERING',
-    'elk.layered.unnecessaryBendpoints': 'false',
-    'elk.layered.mergeEdges': 'true',
-    'elk.edgeLabels.inline': 'false',
-    'elk.edgeLabels.placement': 'CENTER',
-    'elk.padding': '[top=40, left=40, bottom=40, right=40]',
   };
   
   if (metrics.hasAsync) {

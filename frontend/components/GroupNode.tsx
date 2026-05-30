@@ -164,6 +164,10 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
 
       <Handle type="target" position={Position.Bottom} id="bottom" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', bottom: -4, left: '50%', transform: 'translateX(-50%)' }} />
       <Handle type="source" position={Position.Bottom} id="bottom" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', bottom: -4, left: '50%', transform: 'translateX(-50%)' }} />
+
+      {/* Dummy handles for edges that don't specify sourceHandle/targetHandle */}
+      <Handle type="source" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
+      <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
     </div>
   );
 }

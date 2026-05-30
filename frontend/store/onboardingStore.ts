@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { STORAGE_KEYS } from '@/lib/config';
 
 interface OnboardingStore {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   nextStep: (totalSteps: number) => {
     const { currentStep } = get();
     if (currentStep === totalSteps - 1) {
-      localStorage.setItem('archdraw_guide_dismissed', 'true');
+      localStorage.setItem(STORAGE_KEYS.guideDismissed, 'true');
       set({ isOpen: false, stepCompleted: false });
     } else {
       set({ currentStep: currentStep + 1, stepCompleted: false });
@@ -31,7 +32,7 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   },
 
   skip: () => {
-    localStorage.setItem('archdraw_guide_dismissed', 'true');
+    localStorage.setItem(STORAGE_KEYS.guideDismissed, 'true');
     set({ isOpen: false, stepCompleted: false });
   },
 

@@ -9,7 +9,7 @@ import type {
 } from './types';
 import type { ArchitectureGraph as AG } from './types';
 export type { ArchitectureGraph, GraphNode, GraphEdge, ComponentMatcher, ComponentType };
-import componentsData from '@/data/components.json';
+import { CORE_COMPONENTS as componentsData } from '@/lib/componentRegistry';
 
 const TYPE_KEYWORDS: Record<ComponentType, string[]> = {
   client: ['client', 'web', 'mobile', 'browser', 'app'],

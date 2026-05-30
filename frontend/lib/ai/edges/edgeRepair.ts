@@ -4,6 +4,7 @@ import { getTierFromLayer, TIER_ORDER } from '../domain/tiers';
 import { ArchitectureGraph } from '../graph/ArchitectureGraph';
 import { validateEdges, validateConnectivity } from './edgeValidator';
 import type { EdgeValidationError } from './edgeValidator';
+import { EDGE_CONFIG } from '@/lib/config';
 
 export interface RepairResult {
   edges: ArchitectureEdge[];
@@ -20,9 +21,9 @@ const DEFAULT_EDGE_PROPS = {
   labelPosition: 'center' as const,
   animated: false,
   style: {
-    stroke: '#94a3b8',
+    stroke: EDGE_CONFIG.strokeColor,
+    strokeWidth: EDGE_CONFIG.strokeWidth,
     strokeDasharray: '',
-    strokeWidth: 2,
   },
   markerEnd: 'arrowclosed' as const,
   markerStart: 'none' as const,

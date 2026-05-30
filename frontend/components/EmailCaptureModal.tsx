@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, Mail, ArrowRight, Loader2, Github } from 'lucide-react';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { STORAGE_KEYS } from '@/lib/config';
 
 export type EmailCaptureReason = 'share' | 'download';
 
@@ -21,8 +22,8 @@ function saveGuestState(reason: EmailCaptureReason) {
   if (typeof window === 'undefined') return;
   import('@/store/diagramStore').then(({ useDiagramStore }) => {
     const { canvases, activeCanvasId } = useDiagramStore.getState();
-    localStorage.setItem('guestCanvases', JSON.stringify(canvases));
-    localStorage.setItem('pendingAction', JSON.stringify({ type: reason, canvasId: activeCanvasId }));
+    localStorage.setItem(STORAGE_KEYS.guestCanvases, JSON.stringify(canvases));
+    localStorage.setItem(STORAGE_KEYS.pendingAction, JSON.stringify({ type: reason, canvasId: activeCanvasId }));
   });
 }
 

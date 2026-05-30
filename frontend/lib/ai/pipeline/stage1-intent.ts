@@ -1,3 +1,4 @@
+import logger from '@/lib/logger';
 import type { IntentResult } from './types';
 
 /**
@@ -57,14 +58,11 @@ const ARCHITECTURE_PATTERNS: Record<string, PatternConfig> = {
   },
   'microservices': {
     keywords: [
-      { term: /\bmicroservice/i, weight: 3 },
-      { term: /\bservice\s*mesh/i, weight: 2 },
-      { term: /\bcontainer/i, weight: 1 },
-      { term: /\borchestrat/i, weight: 1 },
-      { term: /\bdomain\s*driven/i, weight: 2 },
-      { term: /\bapi\s*gateway/i, weight: 1 },
-      { term: /\bcircuit\s*break/i, weight: 1 },
-      { term: /\bindependent\s*(deploy|scal)/i, weight: 2 },
+      { term: /\bmicroservice/i, weight: 5 },
+      { term: /\bservice\s*mesh/i, weight: 3 },
+      { term: /\bindependent\s*(deploy|scal)/i, weight: 3 },
+      { term: /\bteam\s*autonomy/i, weight: 3 },
+      { term: /\bdecoupled\s*services/i, weight: 3 },
     ],
   },
   'event-driven': {
@@ -113,7 +111,7 @@ const NEGATIVE_PATTERNS: Record<string, RegExp[]> = {
 };
 
 const CONFIDENCE_THRESHOLD = 0.6;
-const DEFAULT_INTENT = 'system-architecture';
+const DEFAULT_INTENT = 'monolith';
 
 export function detectIntent(prompt: string): IntentResult {
   const scores: Record<string, number> = {};
@@ -171,7 +169,7 @@ export function detectIntent(prompt: string): IntentResult {
 
   // If confidence < threshold, default to system-architecture
   if (topConfidence < CONFIDENCE_THRESHOLD) {
-    console.log(`[Intent] Confidence ${topConfidence.toFixed(2)} < ${CONFIDENCE_THRESHOLD}, defaulting to ${DEFAULT_INTENT}`);
+    logger.info(`[Intent] Confidence ${topConfidence.toFixed(2)} < ${CONFIDENCE_THRESHOLD}, defaulting to ${DEFAULT_INTENT}`);
     return {
       type: DEFAULT_INTENT,
       confidence: CONFIDENCE_THRESHOLD,

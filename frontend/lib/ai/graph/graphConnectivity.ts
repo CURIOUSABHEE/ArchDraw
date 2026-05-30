@@ -1,5 +1,6 @@
 import type { ArchitectureNode, ArchitectureEdge } from '../types';
 import logger from '@/lib/logger';
+import { EDGE_CONFIG } from '@/lib/config';
 
 /**
  * Finds all connected components (islands) in the diagram.
@@ -83,7 +84,7 @@ export function bridgeComponents(
         pathType: 'smooth',
         label: '',
         animated: false,
-        style: { stroke: '#94a3b8', strokeWidth: 2 },
+        style: { stroke: EDGE_CONFIG.strokeColor, strokeWidth: EDGE_CONFIG.strokeWidth },
         markerEnd: 'arrowclosed',
       } as ArchitectureEdge);
     }

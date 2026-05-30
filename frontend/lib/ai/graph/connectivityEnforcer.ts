@@ -1,5 +1,6 @@
 import type { ArchitectureNode, ArchitectureEdge } from '../types';
 import logger from '@/lib/logger';
+import { EDGE_CONFIG } from '@/lib/config';
 
 /**
  * Ensures a diagram is fully connected.
@@ -38,7 +39,7 @@ export function ensureConnectivity(
         pathType: 'smooth',
         label: '',
         animated: false,
-        style: { stroke: '#94a3b8', strokeWidth: 2 },
+        style: { stroke: EDGE_CONFIG.strokeColor, strokeWidth: EDGE_CONFIG.strokeWidth },
         markerEnd: 'arrowclosed',
       } as ArchitectureEdge);
       logger.log(`[ConnectivityEnforcer] Connected orphan "${orphan.label}" to "${neighbor.label}"`);

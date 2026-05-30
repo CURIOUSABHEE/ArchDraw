@@ -18,7 +18,15 @@ Focus on:
 - Entry points (gateways, CDNs)
 - Async processing (queues, workers)
 - Reliability and scalability components
-Output a detailed, structured technical description (200-300 words).`,
+Output a detailed, structured technical description (200-300 words). Avoid microservices unless explicitly requested by the user.`,
+
+  'monolith': `You are a software architect. Expand this system description into a modular monolith architecture.
+Focus on:
+- Modular services/modules and their responsibilities (e.g. Auth, Order, Payment) running within a single process/deployment or sharing resources
+- Entry points (API Gateway, Load Balancer) routing to modular services
+- Data storage (shared database with modular tables/schemas) and caching strategies
+- Async processing (queues, workers) if needed
+Output a detailed modular monolith specification (200-300 words). NO microservices.`,
 
   'microservices': `You are a microservices expert. Decompose this system into a clean set of decoupled services.
 Focus on:

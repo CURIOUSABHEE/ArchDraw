@@ -1,6 +1,7 @@
+import logger from '@/lib/logger';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { serializedStorage } from './storage';
+import { serializedStorage } from './diagramStore';
 import type { Node, Edge } from 'reactflow';
 import type { TutorialDefinition, TutorialSession, PhaseName } from '@/lib/tutorial/schema';
 import type { AnyTutorial } from '@/data/tutorials';
@@ -414,12 +415,12 @@ export const useTutorialStore = create<TutorialStoreState>()(
                 .single();
 
               if (error) {
-                console.warn('[tutorialStore] Supabase upsert failed, continuing locally:', error.message);
+                logger.warn('[tutorialStore] Supabase upsert failed, continuing locally:', error.message);
               }
             }
           } catch (e) {
             // Timeout or auth error - continue with local-only mode
-            console.warn('[tutorialStore] Auth check timed out or failed, starting locally:', e instanceof Error ? e.message : String(e));
+            logger.warn('[tutorialStore] Auth check timed out or failed, starting locally:', e instanceof Error ? e.message : String(e));
           }
         }
 
@@ -533,7 +534,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
             updated_at: progress.updatedAt,
           }, { onConflict: 'user_id,tutorial_id' });
         } catch (e) {
-          console.error('[tutorialStore] Sync to Supabase failed:', e);
+          logger.error('[tutorialStore] Sync to Supabase failed:', e);
           return;
         } finally {
           set({ isSyncing: false });
@@ -556,7 +557,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
             .maybeSingle();
 
           if (error) {
-            console.error('[tutorialStore] Supabase error:', error.message);
+            logger.error('[tutorialStore] Supabase error:', error.message);
             return null;
           }
 
@@ -577,7 +578,7 @@ export const useTutorialStore = create<TutorialStoreState>()(
           get().saveProgress(tutorialId, progress);
           return progress;
         } catch (e) {
-          console.error('[tutorialStore] Load from Supabase failed:', e);
+          logger.error('[tutorialStore] Load from Supabase failed:', e);
           return null;
         }
       },

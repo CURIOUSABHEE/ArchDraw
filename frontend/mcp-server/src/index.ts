@@ -518,7 +518,16 @@ class ArchDrawMCPServer {
               content: [
                 {
                   type: 'text' as const,
-                  text: JSON.stringify(result, null, 2),
+                  text: JSON.stringify({
+                    success: result.success,
+                    message: result.message,
+                    diagramUrl: result.diagramUrl,
+                    shareUrl: result.shareUrl,
+                    sessionId: result.sessionId,
+                    metadata: result.metadata,
+                    errors: result.errors,
+                    note: "Raw nodes and edges omitted for brevity."
+                  }, null, 2),
                 },
               ],
             };
@@ -561,7 +570,15 @@ class ArchDrawMCPServer {
               content: [
                 {
                   type: 'text' as const,
-                  text: JSON.stringify(result, null, 2),
+                  text: JSON.stringify({
+                    success: result.success,
+                    message: result.message,
+                    diagramUrl: result.diagramUrl,
+                    shareUrl: result.shareUrl,
+                    sessionId: result.sessionId,
+                    errors: result.errors,
+                    note: "Raw nodes and edges omitted for brevity."
+                  }, null, 2),
                 },
               ],
             };
@@ -616,7 +633,13 @@ class ArchDrawMCPServer {
               content: [
                 {
                   type: 'text' as const,
-                  text: JSON.stringify(result, null, 2),
+                  text: JSON.stringify({
+                    success: result.success,
+                    message: result.message,
+                    error: result.error,
+                    changes: result.changes,
+                    note: "Raw nodes and edges omitted for brevity."
+                  }, null, 2),
                 },
               ],
             };

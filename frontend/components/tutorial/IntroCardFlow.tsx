@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, ChevronLeft, Zap, BookOpen, Target, Lightbulb, Play } from 'lucide-react';
+import { STORAGE_KEYS } from '@/lib/config';
 
 interface IntroCard {
   id: string;
@@ -24,18 +25,17 @@ interface IntroCardFlowProps {
   tutorialColor?: string;
 }
 
-const INTRO_SHOWN_COUNT_KEY = 'archdraw-intro-shown-count';
 const MAX_INTRO_SHOWS = 2;
 
 function getIntroShownCount(): number {
   if (typeof window === 'undefined') return 0;
-  return parseInt(localStorage.getItem(INTRO_SHOWN_COUNT_KEY) ?? '0', 10);
+  return parseInt(localStorage.getItem(STORAGE_KEYS.introCount) ?? '0', 10);
 }
 
 function incrementIntroShownCount(): void {
   if (typeof window === 'undefined') return;
   const count = getIntroShownCount();
-  localStorage.setItem(INTRO_SHOWN_COUNT_KEY, String(count + 1));
+  localStorage.setItem(STORAGE_KEYS.introCount, String(count + 1));
 }
 
 export function IntroCardFlow({

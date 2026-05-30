@@ -1,6 +1,7 @@
 import { apiKeyManager } from '../utils/apiKeyManager';
 import type { SharedState, ArchitectureEdge, ArchitectureNode, CommunicationType, PathType, HandlePosition, MarkerType } from '../types';
 import { EDGE_AGENT_PROMPT, COMMUNICATION_STYLES } from '../constants';
+import { EDGE_CONFIG } from '@/lib/config';
 import { getStrictPortConfig } from '@/lib/componentPorts';
 import { validateEdgeOutput } from '../utils/outputValidator';
 import { extractUserPreferences } from '../utils/userInputExtractor';
@@ -565,7 +566,7 @@ function createFullEdge(
     style: {
       stroke: style.color,
       strokeDasharray: style.strokeDasharray ?? '',
-      strokeWidth: 2,
+      strokeWidth: EDGE_CONFIG.strokeWidth,
     },
     markerEnd: (style.markerEnd ?? 'arrowclosed') as MarkerType,
     markerStart: 'none',
@@ -627,7 +628,7 @@ function createEdge(
     style: {
       stroke: style.color,
       strokeDasharray: style.strokeDasharray ?? '',
-      strokeWidth: 2,
+      strokeWidth: EDGE_CONFIG.strokeWidth,
     },
     markerEnd: (style.markerEnd ?? 'arrowclosed') as MarkerType,
     markerStart: 'none',

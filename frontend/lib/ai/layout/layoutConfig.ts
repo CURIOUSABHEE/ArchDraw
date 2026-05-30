@@ -1,6 +1,7 @@
 import type { TierType } from '../domain/tiers';
 import type { ArchitectureNode, ArchitectureEdge } from '../types';
 import type { Direction } from '../domain/tiers';
+import { ELK_CONFIG } from '@/lib/config';
 
 export interface LayoutConfig {
   direction: Direction;
@@ -80,33 +81,7 @@ export function computeLayoutMetrics(
 }
 
 export function generateELKOptions(metrics: LayoutMetrics): Record<string, string> {
-  const options: Record<string, string> = {
-    'elk.algorithm': 'layered',
-    'elk.direction': 'RIGHT',
-    'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-    'elk.edgeRouting': 'ORTHOGONAL',
-    'elk.portConstraints': 'FIXED_SIDE',
-    'elk.layered.spacing.nodeNodeBetweenLayers': '120',
-    'elk.spacing.nodeNode': '80',
-    'elk.spacing.edgeEdge': '20',
-    'elk.spacing.edgeNode': '40',
-    'elk.spacing.labelNode': '50',
-    'elk.layered.spacing.edgeNodeBetweenLayers': '40',
-    'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-    'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-    'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-    'elk.layered.crossingMinimization.forceNodeModelOrder': 'false',
-    'elk.layered.separatingEdges.strategy': 'CENTERING',
-    'elk.layered.unnecessaryBendpoints': 'true',
-    'elk.layered.mergeEdges': 'true',
-    'elk.layered.wrapping.multiEdge.improveCuts': 'true',
-    'elk.layered.spacing.edgeEdgeBetweenLayers': '20',
-    'elk.edgeLabels.inline': 'false',
-    'elk.edgeLabels.placement': 'CENTER',
-    'elk.padding': '[top=80, left=80, bottom=80, right=80]',
-  };
-  
-  return options;
+  return { ...ELK_CONFIG };
 }
 
 export function generateLayoutConfig(

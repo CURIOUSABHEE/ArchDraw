@@ -40,6 +40,7 @@ const NODE_TYPES = {
 const EDGE_TYPES = {
   custom: SimpleFloatingEdge,
   simpleFloating: SimpleFloatingEdge,
+  floating: SimpleFloatingEdge,
   default: SimpleFloatingEdge,
   smoothstep: SimpleFloatingEdge,
   flow: SimpleFloatingEdge,

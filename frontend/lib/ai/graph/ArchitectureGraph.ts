@@ -2,6 +2,7 @@ import type { ArchitectureNode, ArchitectureEdge } from '../types';
 import type { TierType } from '../domain/tiers';
 import { TIER_ORDER } from '../domain/tiers';
 import logger from '@/lib/logger';
+import { EDGE_CONFIG } from '@/lib/config';
 
 export type NodeIntent = 
   | 'auth'
@@ -138,7 +139,7 @@ export class ArchitectureGraph {
           label: 'Auto-connected',
           labelPosition: 'center',
           animated: false,
-          style: { stroke: '#94a3b8', strokeDasharray: '0', strokeWidth: 1 },
+          style: { stroke: EDGE_CONFIG.strokeColor, strokeDasharray: '0', strokeWidth: EDGE_CONFIG.strokeWidth },
           markerEnd: 'arrowclosed',
           markerStart: 'none'
         });

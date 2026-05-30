@@ -7,6 +7,7 @@ import { useCanvasTheme } from '@/lib/theme';
 import { Activity, Palette, Pencil, Copy, Trash2 } from 'lucide-react';
 import { FloatingHandles } from './nodes/FloatingHandles';
 import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
+import { NodeIcon } from '@/components/NodeIcon';
 import './nodes/nodeStyles.css';
 
 const NODE_WIDTH = DIAGRAM_CONSTANTS.node.width;
@@ -221,7 +222,16 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         <div className="node-shine" />
         <div className="node-header">
           <div className="node-icon-box">
-            <div className="node-icon" />
+            {data.icon && Array.from(data.icon as string).length <= 2 ? (
+              <span style={{ fontSize: '16px', lineHeight: 1 }}>{data.icon as string}</span>
+            ) : (
+              <NodeIcon 
+                technology={nodeData.technology} 
+                fallbackIcon={data.icon as string} 
+                fallbackColor={accentColor} 
+                size={16} 
+              />
+            )}
           </div>
           <p className="node-title" title={data.label}>
             {data.label}

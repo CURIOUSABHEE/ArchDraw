@@ -42,36 +42,55 @@ function edgeTypeForLabel(label?: string): CanvasEdgeType {
   return 'sync';
 }
 
+import { createNode, createEdge } from '@/lib/factory';
+
 function withCanvasStyle(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
   return {
-    nodes: nodes.map((node) => ({
-      ...node,
-      type: node.type || 'systemNode',
-      data: {
-        ...node.data,
-        layer: node.data?.layer || layerForCategory(node.data?.category),
-      },
-    })),
+    nodes: nodes.map((node) => {
+      const { id, type, position, data, ...rest } = node;
+      const t = type || 'systemNode';
+      return createNode(
+        (data?.typeId as string) || t,
+        (data?.label as string) || 'Unnamed',
+        position || { x: 0, y: 0 },
+        { 
+          id, 
+          type: t, 
+          data: {
+            ...data,
+            layer: data?.layer || layerForCategory(data?.category as string),
+          },
+          ...rest
+        }
+      );
+    }),
     edges: edges.map((edge) => {
-      const label = String(edge.data?.label || edge.label || '');
-      const connectionType = (edge.data?.connectionType || edge.data?.edgeType || edgeTypeForLabel(label)) as CanvasEdgeType;
-      return {
-        ...edge,
-        type: 'simpleFloating',
-        animated: edge.animated ?? connectionType !== 'sync',
-        label,
-        data: {
-          ...edge.data,
-          label,
-          edgeType: connectionType,
-          connectionType,
-          pathType: edge.data?.pathType || 'Smoothstep',
-        },
-        style: {
-          ...edge.style,
-          strokeWidth: edge.style?.strokeWidth || 1.5,
-        },
-      };
+      const { id, source, target, label, data, style, animated, ...rest } = edge;
+      const edgeLabel = String(data?.label || label || '');
+      const connectionType = (data?.connectionType || data?.edgeType || edgeTypeForLabel(edgeLabel)) as CanvasEdgeType;
+      
+      return createEdge(
+        source, 
+        target, 
+        edgeLabel, 
+        {
+          id,
+          type: 'simpleFloating',
+          animated: animated ?? connectionType !== 'sync',
+          data: {
+            ...data,
+            label: edgeLabel,
+            edgeType: connectionType,
+            connectionType,
+            pathType: data?.pathType || 'Smoothstep',
+          },
+          style: {
+            ...style,
+            strokeWidth: style?.strokeWidth || 1.5,
+          },
+          ...rest
+        }
+      );
     }),
   };
 }

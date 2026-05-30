@@ -1,5 +1,6 @@
 import type { ArchitectureNode, ArchitectureEdge } from '../types';
 import { TIER_ORDER, type TierType } from '../domain/tiers';
+import { EDGE_CONFIG } from '@/lib/config';
 
 const DEFAULT_EDGE_PROPS = {
   sourceHandle: 'right' as const,
@@ -10,9 +11,9 @@ const DEFAULT_EDGE_PROPS = {
   labelPosition: 'center' as const,
   animated: false,
   style: {
-    stroke: '#94a3b8',
+    stroke: EDGE_CONFIG.strokeColor,
     strokeDasharray: '',
-    strokeWidth: 2,
+    strokeWidth: EDGE_CONFIG.strokeWidth,
   },
   markerEnd: 'arrowclosed' as const,
   markerStart: 'none' as const,

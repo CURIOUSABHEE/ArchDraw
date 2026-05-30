@@ -1,7 +1,69 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { serializedStorage } from './storage';
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from 'reactflow';
+
+const isBrowser = typeof window !== 'undefined';
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && (e.name === 'AbortError' || e.message.includes('AbortError'));
+}
+
+function isLockError(e: unknown): boolean {
+  return e instanceof Error && (e.message.includes('Lock') || e.message.includes('lock') || e.message.includes('steal'));
+}
+
+export const serializedStorage = {
+  getItem: (key: string): string | null => {
+    if (!isBrowser) return null;
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      if (isLockError(e) || isAbortError(e)) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const msg = `[storage] ${isLockError(e) ? 'Lock conflict' : 'AbortError'} on getItem("${key}") - returning null`;
+        // logger.warn(msg);
+        return null;
+      }
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    if (!isBrowser) return;
+    
+    const maxRetries = 2;
+    let attempt = 0;
+
+    const trySet = (k: string, v: string) => {
+      try {
+        localStorage.setItem(k, v);
+        return true;
+      } catch (e) {
+        const isLock = isLockError(e);
+        const isAbort = isAbortError(e);
+
+        if ((isLock || isAbort) && attempt < maxRetries) {
+          attempt++;
+          return false;
+        }
+
+        return true;
+      }
+    };
+
+    while (attempt <= maxRetries) {
+      if (trySet(key, value)) break;
+    }
+  },
+  removeItem: (key: string): void => {
+    if (!isBrowser) return;
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      // Ignore
+    }
+  },
+};
+
 import { addEdge, applyNodeChanges, applyEdgeChanges, MarkerType } from 'reactflow';
 import { getSupabaseClient, isSupabaseConfigured, isReachable, type UserCanvasesTable } from '@/lib/supabase';
 import { type Database } from '@/types/supabase';
@@ -11,6 +73,7 @@ import { getStrictPortConfig } from '@/lib/componentPorts';
 import { validateAndFixNodes } from '@/lib/utils/nodeValidation';
 import logger from '@/lib/logger';
 import { EDGE_CONFIG, STORAGE_KEY, STORAGE_VERSION, NODE_CONFIG } from '@/lib/config';
+import { createNode, createEdge } from '@/lib/factory';
 
 const NODE_PADDING = 25;
 const MIN_NODE_SPACING = 25;
@@ -247,6 +310,7 @@ interface DiagramState {
   toggleGrid: () => void;
   toggleDarkMode: () => void;
   toggleCanvasDarkMode: () => void;
+  setCanvasDarkMode: (mode: boolean) => void;
   setSidebarOpen: (open: boolean) => void;
   setCanvasMode: (mode: 'empty' | 'editing' | 'template') => void;
   setActiveLayoutPresetId: (id: string) => void;
@@ -479,6 +543,40 @@ function normalizeEdges(edges: Edge[]): Edge[] {
   });
 
   return deduplicated.map(normalizeEdge);
+}
+
+function sanitizeNodes(nodes: Node[]): Node[] {
+  return nodes.map(node => {
+    const hasRequired =
+      node.data?.typeId &&
+      node.data?.color &&
+      node.data?.category &&
+      node.data?.icon;
+
+    if (!hasRequired) {
+      logger.warn(`[sanitize] Node ${node.id} missing fields. Rebuilding.`);
+      return createNode(
+        (node.data as any)?.typeId ?? 'default',
+        (node.data as any)?.label ?? 'Unknown',
+        node.position,
+      );
+    }
+    return node;
+  });
+}
+
+function sanitizeEdges(edges: Edge[]): Edge[] {
+  return edges.map(edge => {
+    const hasRequired =
+      edge.type === 'floating' &&
+      edge.markerEnd &&
+      edge.style?.stroke;
+
+    if (!hasRequired) {
+      return createEdge(edge.source, edge.target, String(edge.label ?? ''));
+    }
+    return edge;
+  });
 }
 
 function mergeCanvases(localCanvases: CanvasTab[], dbCanvases: CanvasTab[]): CanvasTab[] {
@@ -963,7 +1061,10 @@ export const useDiagramStore = create<DiagramState>()(
         set({ darkMode: next });
       },
       toggleCanvasDarkMode: () => {
-        set({ canvasDarkMode: !get().canvasDarkMode });
+        set((state) => ({ canvasDarkMode: !state.canvasDarkMode }));
+      },
+      setCanvasDarkMode: (mode: boolean) => {
+        set({ canvasDarkMode: mode });
       },
       toggleEdgeAnimations: () => {
         const next = !get().edgeAnimations;
@@ -1018,23 +1119,16 @@ export const useDiagramStore = create<DiagramState>()(
 
       onConnect: (connection) => {
         get().pushHistory();
-        const edgeId = `edge-${Date.now()}`;
-        
+        const { source, target, sourceHandle, targetHandle } = connection;
+        if (!source || !target) return;
+
+        const newEdge = createEdge(source, target, '', {
+            sourceHandle,
+            targetHandle,
+        });
+
         const rawEdges = addEdge(
-          { 
-            ...connection, 
-            id: edgeId, 
-            type: 'smoothstep',
-            markerEnd: {
-              type: EDGE_CONFIG.markerType,
-              color: EDGE_CONFIG.strokeColor,
-              width: 20,
-              height: 20,
-            },
-            data: { 
-              edgeType: DEFAULT_EDGE_TYPE as EdgeType,
-            },
-          },
+          newEdge,
           get().edges
         );
         const edges = distributeTargetHandles(get().nodes, rawEdges);
@@ -1072,8 +1166,7 @@ export const useDiagramStore = create<DiagramState>()(
         if (typeof type === 'object' && 'id' in type && 'data' in type) {
           newNode = type as Node<NodeData>;
         } else {
-          // Legacy path - construct node manually (should be deprecated)
-          const id = `${type}-${Date.now()}`;
+          // Legacy path - construct node through factory
           const pos = position ?? { x: 400 + Math.random() * 200 - 100, y: 300 + Math.random() * 200 - 100 };
           const shape = getNodeShape(category || 'Compute');
           
@@ -1084,20 +1177,22 @@ export const useDiagramStore = create<DiagramState>()(
             componentType = (category || 'compute').toLowerCase().replace(/[^a-z0-9]/g, '_');
           }
           
-          newNode = { 
-            id, 
-            type: 'systemNode', 
-            position: pos, 
-            data: { 
-              label: label || type, 
-              category: category || 'Compute', 
-              color, 
-              icon, 
-              technology, 
-              shape, 
-              componentType 
-            } 
-          };
+          newNode = createNode(
+            type,
+            label || type,
+            pos,
+            {
+              type: 'systemNode',
+              data: {
+                category: category || 'Compute',
+                color,
+                icon,
+                technology,
+                shape,
+                componentType,
+              }
+            }
+          ) as Node<NodeData>;
         }
         
         const nodes = [...get().nodes, newNode];
@@ -1445,32 +1540,32 @@ export const useDiagramStore = create<DiagramState>()(
 
       loadDefaultArchitecture: () => {
         const defaultNodes: Node[] = [
-          { id: 'client-1', type: 'system', position: { x: 50, y: 100 }, data: { label: 'Web Client', icon: '🌐' } },
-          { id: 'client-2', type: 'system', position: { x: 50, y: 250 }, data: { label: 'Mobile App', icon: '📱' } },
-          { id: 'gateway', type: 'system', position: { x: 300, y: 175 }, data: { label: 'API Gateway', icon: '🚪' } },
-          { id: 'auth', type: 'system', position: { x: 550, y: 50 }, data: { label: 'Auth Service', icon: '🔐' } },
-          { id: 'core', type: 'system', position: { x: 550, y: 175 }, data: { label: 'Core API', icon: '⚙️' } },
-          { id: 'billing', type: 'system', position: { x: 550, y: 300 }, data: { label: 'Billing Service', icon: '💳' } },
-          { id: 'queue', type: 'message', position: { x: 800, y: 175 }, data: { label: 'Task Queue', icon: '📋' } },
-          { id: 'email', type: 'message', position: { x: 1050, y: 100 }, data: { label: 'Email Service', icon: '📧' } },
-          { id: 'notif', type: 'message', position: { x: 1050, y: 250 }, data: { label: 'Notification Svc', icon: '🔔' } },
-          { id: 'db', type: 'database', position: { x: 1300, y: 175 }, data: { label: 'PostgreSQL', icon: '🐘' } },
-          { id: 'cache', type: 'cache', position: { x: 1300, y: 300 }, data: { label: 'Redis Cache', icon: '⚡' } },
-        ];
+          createNode('client-1', 'Web Client', { x: 50, y: 100 }, { type: 'systemNode', data: { icon: '🌐', category: 'Client' } }),
+          createNode('client-2', 'Mobile App', { x: 50, y: 250 }, { type: 'systemNode', data: { icon: '📱', category: 'Client' } }),
+          createNode('gateway', 'API Gateway', { x: 300, y: 175 }, { type: 'systemNode', data: { icon: '🚪', category: 'Compute' } }),
+          createNode('auth', 'Auth Service', { x: 550, y: 50 }, { type: 'systemNode', data: { icon: '🔐', category: 'Compute' } }),
+          createNode('core', 'Core API', { x: 550, y: 175 }, { type: 'systemNode', data: { icon: '⚙️', category: 'Compute' } }),
+          createNode('billing', 'Billing Service', { x: 550, y: 300 }, { type: 'systemNode', data: { icon: '💳', category: 'Compute' } }),
+          createNode('queue', 'Task Queue', { x: 800, y: 175 }, { type: 'systemNode', data: { icon: '📋', category: 'Message' } }),
+          createNode('email', 'Email Service', { x: 1050, y: 100 }, { type: 'systemNode', data: { icon: '📧', category: 'Compute' } }),
+          createNode('notif', 'Notification Svc', { x: 1050, y: 250 }, { type: 'systemNode', data: { icon: '🔔', category: 'Compute' } }),
+          createNode('db', 'PostgreSQL', { x: 1300, y: 175 }, { type: 'systemNode', data: { icon: '🐘', category: 'Database' } }),
+          createNode('cache', 'Redis Cache', { x: 1300, y: 300 }, { type: 'systemNode', data: { icon: '⚡', category: 'Cache' } }),
+        ] as Node[];
 
         const defaultEdges: Edge[] = [
-          { id: 'e1', source: 'client-1', target: 'gateway', type: 'flow', label: 'HTTPS' },
-          { id: 'e2', source: 'client-2', target: 'gateway', type: 'flow', label: 'HTTPS' },
-          { id: 'e3', source: 'gateway', target: 'auth', type: 'flow', label: 'auth' },
-          { id: 'e4', source: 'gateway', target: 'core', type: 'flow', label: 'API' },
-          { id: 'e5', source: 'gateway', target: 'billing', type: 'flow', label: 'API' },
-          { id: 'e6', source: 'core', target: 'queue', type: 'async', label: 'enqueue' },
-          { id: 'e7', source: 'billing', target: 'queue', type: 'async', label: 'enqueue' },
-          { id: 'e8', source: 'queue', target: 'email', type: 'async', label: 'process' },
-          { id: 'e9', source: 'queue', target: 'notif', type: 'async', label: 'notify' },
-          { id: 'e10', source: 'core', target: 'db', type: 'flow', label: 'read/write' },
-          { id: 'e11', source: 'core', target: 'cache', type: 'flow', label: 'cache' },
-          { id: 'e12', source: 'billing', target: 'db', type: 'flow', label: 'read/write' },
+          createEdge('client-1', 'gateway', 'HTTPS'),
+          createEdge('client-2', 'gateway', 'HTTPS'),
+          createEdge('gateway', 'auth', 'auth'),
+          createEdge('gateway', 'core', 'API'),
+          createEdge('gateway', 'billing', 'API'),
+          createEdge('core', 'queue', 'enqueue', { data: { edgeType: 'async' } }),
+          createEdge('billing', 'queue', 'enqueue', { data: { edgeType: 'async' } }),
+          createEdge('queue', 'email', 'process', { data: { edgeType: 'async' } }),
+          createEdge('queue', 'notif', 'notify', { data: { edgeType: 'async' } }),
+          createEdge('core', 'db', 'read/write'),
+          createEdge('core', 'cache', 'cache'),
+          createEdge('billing', 'db', 'read/write'),
         ];
 
         get().pushHistory();
@@ -1550,13 +1645,13 @@ export const useDiagramStore = create<DiagramState>()(
             const normalizedNodes = normalizeNodes(active.nodes || []);
             const cleaned = stripReservedLayerNodes(normalizedNodes);
             const validated = validateAndFixNodes(cleaned);
-            state.nodes = resolveNodeCollisions(validated);
-            state.edges = normalizeEdges(active.edges || []);
+            state.nodes = resolveNodeCollisions(sanitizeNodes(validated));
+            state.edges = sanitizeEdges(normalizeEdges(active.edges || []));
             // Normalize node and edge types in all canvases
             state.canvases = state.canvases.map((c: CanvasTab) => ({
               ...c,
-              nodes: validateAndFixNodes(normalizeNodes(c.nodes || [])),
-              edges: normalizeEdges(c.edges || []),
+              nodes: sanitizeNodes(validateAndFixNodes(normalizeNodes(c.nodes || []))),
+              edges: sanitizeEdges(normalizeEdges(c.edges || [])),
             }));
           } else {
             // Fallback: create a default canvas if none exist

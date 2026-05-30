@@ -1,3 +1,4 @@
+import logger from '@/lib/logger';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { FeedbackLogEntry } from './feedbackLogger';
@@ -97,7 +98,7 @@ export function analyzeFeedbackLog(): FeedbackAnalysis {
       lowScoreGenerations: entries.filter(e => e.finalScore < 50),
     };
   } catch (error) {
-    console.warn('[FeedbackAnalyzer] Failed to analyze feedback log:', error);
+    logger.warn('[FeedbackAnalyzer] Failed to analyze feedback log:', error);
     return emptyAnalysis;
   }
 }

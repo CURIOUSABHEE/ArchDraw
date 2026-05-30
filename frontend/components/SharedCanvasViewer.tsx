@@ -38,6 +38,7 @@ const NODE_TYPES = {
 const EDGE_TYPES = {
   custom: SimpleFloatingEdge,
   simpleFloating: SimpleFloatingEdge,
+  floating: SimpleFloatingEdge,
   default: SimpleFloatingEdge,
   smoothstep: SimpleFloatingEdge,
   flow: SimpleFloatingEdge,
@@ -61,10 +62,12 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
 
+  const setCanvasDarkMode = useDiagramStore(s => s.setCanvasDarkMode);
+
   useEffect(() => {
     // Force dark mode on mount for the viewer since the background is dark
-    useDiagramStore.setState({ canvasDarkMode: true });
-  }, []);
+    setCanvasDarkMode(true);
+  }, [setCanvasDarkMode]);
 
   const coloredEdges = useMemo(() => assignEdgeColors(canvas.edges as Edge[]), [canvas.edges]);
 

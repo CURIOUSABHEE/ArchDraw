@@ -1,4 +1,5 @@
 'use client';
+import logger from '@/lib/logger';
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,7 +23,7 @@ export function SpotlightHighlight({ targetSelector, padding = 10 }: SpotlightPr
     const update = () => {
       const el = document.querySelector(targetSelector);
       if (!el) {
-        console.warn('[Onboarding] Spotlight: element not found:', targetSelector);
+        logger.warn('[Onboarding] Spotlight: element not found:', targetSelector);
         setRect(null);
         return;
       }

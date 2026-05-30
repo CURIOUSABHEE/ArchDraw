@@ -18,26 +18,6 @@ async function getELK() {
 const LAYOUT_CACHE = new Map<string, { nodes: ReactFlowNode[]; timestamp: number }>();
 const LAYOUT_CACHE_TTL = 5 * 60 * 1000;
 
-const FAST_ELK_OPTIONS: Record<string, string> = {
-  'elk.algorithm': 'layered',
-  'elk.direction': 'RIGHT',
-  'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-  'elk.spacing.nodeNode': '110',
-  'elk.spacing.edgeNode': '90',
-  'elk.spacing.edgeEdge': '60',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '240',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '90',
-  'elk.layered.nodePlacement.strategy': 'SIMPLE',
-  'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-  'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-  'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
-  'elk.edgeRouting': 'ORTHOGONAL',
-  'elk.layered.wrapOver': 'false',
-  'elk.portConstraints': 'FIXED_SIDE',
-  'elk.separateConnectedComponents': 'false',
-  'elk.padding': '[top=80, left=80, bottom=80, right=80]',
-};
-
 function getTopologySignature(nodes: ArchitectureNode[]): string {
   const layerCounts: Record<string, number> = {};
   for (const node of nodes) {

@@ -24,12 +24,14 @@ import { TextLabelNode } from '@/components/TextLabelNode';
 import { AnnotationNode } from '@/components/AnnotationNode';
 import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { useTutorialStore, sanitizeNode, sanitizeEdge } from '@/store/tutorialStore';
+import { createNode, createEdge } from '@/lib/factory';
 import { SVGEdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
 import { DIAGRAM_CONSTANTS, EDGE_MARKER } from '@/constants/diagram';
 import { assignEdgeColors } from '@/lib/edgeColors';
 const EDGE_TYPES = {
   custom: SimpleFloatingEdge,
   simpleFloating: SimpleFloatingEdge,
+  floating: SimpleFloatingEdge,
   default: SimpleFloatingEdge,
   smoothstep: SimpleFloatingEdge,
   flow: SimpleFloatingEdge,
@@ -42,7 +44,7 @@ const EDGE_TYPES = {
 };
 import { ComponentPalette } from '@/components/tutorial/ComponentPalette';
 import { NodeTooltip } from '@/components/tutorial/NodeTooltip';
-import components from '@/data/components.json';
+import { CORE_COMPONENTS as components } from '@/lib/componentRegistry';
 import { COMPONENT_TOOLTIPS } from '@/data/componentTooltips';
 
 type ComponentEntry = { id: string; label: string; category: string; color: string; description?: string };
@@ -268,22 +270,21 @@ function TutorialCanvasInner({
       if (!raw) return;
       const comp = JSON.parse(raw);
       const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      const id = `${comp.id}-${Date.now()}`;
+      
+      const newNode = createNode(comp.id, comp.label, position, {
+        type: 'systemNode',
+        data: {
+          componentId: comp.id,
+          category: comp.category,
+          color: comp.color,
+          icon: comp.icon,
+          technology: comp.technology,
+        }
+      });
+      
       const updated = [
         ...nodes,
-        {
-          id,
-          type: 'systemNode',
-          position,
-          data: {
-            label: comp.label,
-            componentId: comp.id,
-            category: comp.category,
-            color: comp.color,
-            icon: comp.icon,
-            technology: comp.technology,
-          },
-        },
+        newNode,
       ];
       setNodes(updated);
       setTutorialNodes(updated);
@@ -298,21 +299,20 @@ function TutorialCanvasInner({
       const centerX = bounds ? (bounds.width / 2 - x) / zoom : 400;
       const centerY = bounds ? (bounds.height / 2 - y) / zoom : 300;
 
-      const newNode = {
-        id: `${component.id}-${Date.now()}`,
-        type: 'systemNode' as const,
-        position: {
-          x: centerX + (Math.random() * 60 - 30),
-          y: centerY + (Math.random() * 60 - 30),
-        },
+      const position = {
+        x: centerX + (Math.random() * 60 - 30),
+        y: centerY + (Math.random() * 60 - 30),
+      };
+
+      const newNode = createNode(component.id, component.label, position, {
+        type: 'systemNode',
         data: {
-          label: component.label,
           componentId: component.id,
           category: component.category,
           color: component.color,
           icon: component.icon,
-        },
-      };
+        }
+      });
 
       const updated = [...nodes, newNode];
       setNodes(updated);

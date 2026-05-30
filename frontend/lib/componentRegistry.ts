@@ -3,6 +3,7 @@ import awsData from '@/data/aws-components.json';
 import dbData from '@/data/db-components.json';
 import servicesData from '@/data/services-components.json';
 import logger from '@/lib/logger';
+import { STORAGE_KEYS } from '@/lib/config';
 
 export interface ComponentDefinition {
   id: string;
@@ -15,11 +16,16 @@ export interface ComponentDefinition {
   isCustom?: boolean;
 }
 
+export const CORE_COMPONENTS = componentsData as ComponentDefinition[];
+export const AWS_COMPONENTS = awsData as ComponentDefinition[];
+export const DB_COMPONENTS = dbData as ComponentDefinition[];
+export const SERVICES_COMPONENTS = servicesData as ComponentDefinition[];
+
 const ALL_COMPONENTS: ComponentDefinition[] = [
-  ...(componentsData as ComponentDefinition[]),
-  ...(awsData as ComponentDefinition[]),
-  ...(dbData as ComponentDefinition[]),
-  ...(servicesData as ComponentDefinition[]),
+  ...CORE_COMPONENTS,
+  ...AWS_COMPONENTS,
+  ...DB_COMPONENTS,
+  ...SERVICES_COMPONENTS,
 ];
 
 class ComponentRegistry {
@@ -34,7 +40,7 @@ class ComponentRegistry {
   private loadCustomComponents() {
     if (typeof window === 'undefined') return;
     try {
-      const saved = localStorage.getItem('archdraw_custom_components');
+      const saved = localStorage.getItem(STORAGE_KEYS.customComponents);
       if (saved) {
         const custom = JSON.parse(saved) as ComponentDefinition[];
         custom.forEach(comp => this.customComponents.set(comp.id, { ...comp, isCustom: true }));
@@ -48,7 +54,7 @@ class ComponentRegistry {
     if (typeof window === 'undefined') return;
     try {
       const custom = Array.from(this.customComponents.values());
-      localStorage.setItem('archdraw_custom_components', JSON.stringify(custom));
+      localStorage.setItem(STORAGE_KEYS.customComponents, JSON.stringify(custom));
     } catch (e) {
       logger.error('Failed to save custom components:', e);
     }

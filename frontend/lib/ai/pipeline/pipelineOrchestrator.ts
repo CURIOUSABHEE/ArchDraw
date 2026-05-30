@@ -14,6 +14,7 @@ import {
 import { ensureConnectivity } from '../graph/connectivityEnforcer';
 import { autoAddCompensatingComponents } from '../graph/compensatingComponents';
 import { validateDiagramQuality, type DiagramQualityReport } from '../validation/diagramQualityValidator';
+import { EDGE_CONFIG } from '@/lib/config';
 import * as diagramCache from '../services/diagramCache';
 import { detectDomain } from '../graph/componentValidator';
 import { enforceMinimumConnections, validateEdges } from '../edges/edgeValidator';
@@ -377,9 +378,9 @@ PREVIOUS ATTEMPT contained forbidden nodes: ${mvcViolations.map(n => n.label).jo
         animated: styleConfig.animated,
         edgeVariant: (e.edgeVariant || (e.communicationType === 'dotted' ? 'dotted' : (e.async ? 'dashed' : 'solid'))) as any,
         style: {
-          stroke: styleConfig.color || '#94a3b8',
+          stroke: styleConfig.color || EDGE_CONFIG.strokeColor,
           strokeDasharray: styleConfig.strokeDasharray || '',
-          strokeWidth: 2,
+          strokeWidth: EDGE_CONFIG.strokeWidth,
         },
         markerEnd: styleConfig.markerEnd || 'arrowclosed',
         markerStart: 'none',
@@ -673,9 +674,9 @@ async function generateEdges(state: PipelineState): Promise<ArchitectureEdge[]> 
       labelPosition: 'center',
       animated: false,
       style: {
-        stroke: '#94a3b8',
+        stroke: EDGE_CONFIG.strokeColor,
         strokeDasharray: '',
-        strokeWidth: 2,
+        strokeWidth: EDGE_CONFIG.strokeWidth,
       },
       markerEnd: 'arrowclosed',
       markerStart: 'none',
@@ -707,9 +708,9 @@ function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge
       labelPosition: 'center',
       animated: communicationType === 'async',
       style: {
-        stroke: '#94a3b8',
+        stroke: EDGE_CONFIG.strokeColor,
         strokeDasharray: communicationType === 'async' ? '5,5' : '',
-        strokeWidth: 2,
+        strokeWidth: EDGE_CONFIG.strokeWidth,
       },
       markerEnd: 'arrowclosed',
       markerStart: 'none',

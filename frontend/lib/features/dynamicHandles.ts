@@ -1,3 +1,4 @@
+import logger from '@/lib/logger';
 /**
  * @feature DynamicHandleSelection
  * @protected true
@@ -93,7 +94,7 @@ export function getDynamicHandles(
   }
 
   if (debug) {
-    console.log('[DynamicHandles] Calculation:', {
+    logger.info('[DynamicHandles] Calculation:', {
       edgeId,
       sourceId,
       targetId,
@@ -106,7 +107,7 @@ export function getDynamicHandles(
       dominantAxis,
     });
 
-    console.log('[DynamicHandles] Selected handles:', {
+    logger.info('[DynamicHandles] Selected handles:', {
       edgeId,
       sourceId,
       targetId,
@@ -114,7 +115,7 @@ export function getDynamicHandles(
       targetPosition,
     });
 
-    console.log('[DynamicHandles] Performance:', {
+    logger.info('[DynamicHandles] Performance:', {
       edgeId,
       elapsedMs: (typeof performance !== 'undefined' ? performance.now() : Date.now()) - start,
     });
@@ -130,14 +131,33 @@ export function getDynamicHandles(
 export function getHandleCoordinate(
   rect: NodeRect,
   position: Position,
+  type?: 'source' | 'target'
 ): { x: number; y: number } {
   const cx = rect.x + rect.width / 2;
   const cy = rect.y + rect.height / 2;
+  
+  let offset = 0;
+  if (type === 'source') {
+    switch (position) {
+      case Position.Right:  offset = -6; break;
+      case Position.Left:   offset = 6; break;
+      case Position.Top:    offset = -6; break;
+      case Position.Bottom: offset = 6; break;
+    }
+  } else if (type === 'target') {
+    switch (position) {
+      case Position.Right:  offset = 6; break;
+      case Position.Left:   offset = -6; break;
+      case Position.Top:    offset = 6; break;
+      case Position.Bottom: offset = -6; break;
+    }
+  }
 
   switch (position) {
-    case Position.Top:    return { x: cx, y: rect.y - 14 };
-    case Position.Bottom: return { x: cx, y: rect.y + rect.height + 24 };
-    case Position.Left:   return { x: rect.x - 14, y: cy };
-    case Position.Right:  return { x: rect.x + rect.width + 24, y: cy };
+    case Position.Top:    return { x: cx + offset, y: rect.y - 14 };
+    case Position.Bottom: return { x: cx + offset, y: rect.y + rect.height + 24 };
+    case Position.Left:   return { x: rect.x - 14, y: cy + offset };
+    case Position.Right:  return { x: rect.x + rect.width + 24, y: cy + offset };
+    default:              return { x: cx, y: cy };
   }
 }

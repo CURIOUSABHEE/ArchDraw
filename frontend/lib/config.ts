@@ -88,9 +88,18 @@ export const ELK_DIRECTION_OVERRIDE: Record<string, string> = {
 // ─── STORAGE ─────────────────────────────────────────────────
 
 export const STORAGE_VERSION = 2;
-export const STORAGE_KEY = typeof window !== 'undefined'
-  ? `archdraw-state-${process.env.NODE_ENV}-${window.location.port}`
-  : 'archdraw-state';
+
+export const STORAGE_KEYS = {
+  theme: 'archdraw-theme',
+  guestCanvases: 'guestCanvases',
+  pendingAction: 'pendingAction',
+  guideDismissed: 'archdraw_guide_dismissed',
+  customComponents: 'archdraw_custom_components',
+  introCount: 'archdraw-intro-shown-count',
+  state: typeof window !== 'undefined' ? window.location.port : 'archdraw-state',
+} as const;
+
+export const STORAGE_KEY = STORAGE_KEYS.state; // Backwards compatibility for existing code
 
 // ─── THEME ───────────────────────────────────────────────────
 

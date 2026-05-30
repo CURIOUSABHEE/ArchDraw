@@ -1,3 +1,4 @@
+import logger from '@/lib/logger';
 import type { RawNode, RawFlow, DiagramEdge, ValidatedDiagram, PipelineLayer, ValidationFeedback, ValidationIssue, PreGenerationChecklist } from './types';
 import { ensurePromptRequiredNodes, prunePromptIrrelevantNodes, repairStoryEdges } from './storyGuard';
 
@@ -43,11 +44,11 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
     }
   });
 
-  console.log(`[Validate] Starting with ${nodes.length} nodes and ${parsed.flows.length} flows`);
+  logger.info(`[Validate] Starting with ${nodes.length} nodes and ${parsed.flows.length} flows`);
 
   // STEP 1: Parse flows into edges
   const edges = flowsToEdges(parsed.flows);
-  console.log(`[Validate] Parsed ${edges.length} edges from flows`);
+  logger.info(`[Validate] Parsed ${edges.length} edges from flows`);
 
   // STEP 2: Fix nodes with missing data
   nodes = repairNodeData(nodes, issues, tiersRepaired);
@@ -98,7 +99,7 @@ export function validateAndRepair(parsed: { nodes: RawNode[]; flows: RawFlow[] }
   // STEP 7: Enforce granular layer structure
   const finalNodes = enforceHierarchy(enrichedNodes, issues, tiersRepaired);
 
-  console.log(`[Validate] Final: ${finalNodes.length} nodes and ${enrichedEdges.length} edges`);
+  logger.info(`[Validate] Final: ${finalNodes.length} nodes and ${enrichedEdges.length} edges`);
 
   // Calculate score
   let score = 100;
@@ -171,14 +172,14 @@ function repairNodeData(nodes: RawNode[], issues: ValidationIssue[], tiersRepair
       repaired.layer = inferLayerFromLabel(repaired.label) as PipelineLayer;
       tiersRepaired.push(repaired.id);
       issues.push({ severity: 'warning', type: 'missing_layer', nodeId: repaired.id, message: `Node '${repaired.label || repaired.id}' lacked a layer and was automatically assigned to '${repaired.layer}'. Ensure every node specifies a correct layer.` });
-      console.log(`[Validate] Repaired missing layer for "${repaired.label}" → ${repaired.layer}`);
+      logger.info(`[Validate] Repaired missing layer for "${repaired.label}" → ${repaired.layer}`);
     }
 
     // Fix missing label
     if (!repaired.label || repaired.label.trim() === '') {
       repaired.label = generateLabelFromId(repaired.id);
       issues.push({ severity: 'warning', type: 'missing_label', nodeId: repaired.id, message: `Node '${repaired.id}' was missing a label. It must have a descriptive label.` });
-      console.log(`[Validate] Repaired missing label for "${repaired.id}" → "${repaired.label}"`);
+      logger.info(`[Validate] Repaired missing label for "${repaired.id}" → "${repaired.label}"`);
     }
 
     // Fix missing icon
@@ -201,7 +202,7 @@ function ensureNodeIdentity(nodes: RawNode[], issues: ValidationIssue[]): RawNod
     if (!id || id.trim() === '') {
       id = `node-${idx}-${Date.now()}`;
       issues.push({ severity: 'warning', type: 'missing_id', nodeId: id, message: `A node was missing an ID and had to be assigned '${id}'. Every node must have a valid ID.` });
-      console.log(`[Validate] Generated ID for node ${idx}: "${id}"`);
+      logger.info(`[Validate] Generated ID for node ${idx}: "${id}"`);
     }
 
     const count = seenIds.get(id) || 0;
@@ -210,7 +211,7 @@ function ensureNodeIdentity(nodes: RawNode[], issues: ValidationIssue[]): RawNod
     if (count > 0) {
       const newId = `${id}-${count + 1}`;
       issues.push({ severity: 'warning', type: 'duplicate_id', nodeId: newId, message: `Node had a duplicate ID '${id}' and was renamed to '${newId}'.` });
-      console.log(`[Validate] Renamed duplicate ID "${id}" to "${newId}"`);
+      logger.info(`[Validate] Renamed duplicate ID "${id}" to "${newId}"`);
       return { ...node, id: newId };
     }
 
@@ -231,14 +232,14 @@ function repairEdges(edges: DiagramEdge[], nodes: RawNode[], issues: ValidationI
     // Remove edges pointing to non-existent nodes
     if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
       issues.push({ severity: 'warning', type: 'dangling_edge', message: `Edge from '${edge.source}' to '${edge.target}' references a non-existent node and was removed.` });
-      console.log(`[Validate] Edge ${edge.source}->${edge.target} references non-existent node, removing`);
+      logger.info(`[Validate] Edge ${edge.source}->${edge.target} references non-existent node, removing`);
       continue;
     }
 
     // Only deduplicate if same source, target, AND label
     const key = `${edge.source}->${edge.target}->${edge.label || ''}`;
     if (seen.has(key)) {
-      console.log(`[Validate] Duplicate edge removed: ${edge.source}->${edge.target} [${edge.label}]`);
+      logger.info(`[Validate] Duplicate edge removed: ${edge.source}->${edge.target} [${edge.label}]`);
       continue;
     }
 
@@ -738,7 +739,7 @@ function enforceHierarchy(nodes: RawNode[], issues: ValidationIssue[], tiersRepa
       tiersRepaired.push(node.id);
       issues.push({ severity: 'warning', type: 'missing_layer', nodeId: node.id, message: `Node '${node.label || node.id}' lacked a valid layer hierarchy and was assigned to '${inferredLayer}'. Ensure nodes follow the left-to-right tier rule.` });
     }
-    console.log(`[Validate] Enforcing hierarchy: assigned "${node.label}" to layer "${inferredLayer}"`);
+    logger.info(`[Validate] Enforcing hierarchy: assigned "${node.label}" to layer "${inferredLayer}"`);
     return { ...node, layer: inferredLayer as PipelineLayer };
   });
 }
@@ -843,7 +844,7 @@ function addMissingNodes(nodes: RawNode[]): RawNode[] {
         subtitle: '',
       };
       result.push(newNode);
-      console.log(`[Validate] Added missing node for layer: ${layer}`);
+      logger.info(`[Validate] Added missing node for layer: ${layer}`);
     }
   }
 

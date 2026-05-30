@@ -223,8 +223,8 @@ export default function EditorPage() {
         stream: boolean;
       } = { description, diagramSize, stream: true };
 
-      // Use streaming endpoint for real-time feedback
-      const response = await fetch('/api/generate-diagram/streaming', {
+      // Use standard JSON endpoint
+      const response = await fetch('/api/generate-diagram', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -237,51 +237,14 @@ export default function EditorPage() {
         throw new Error(errorData.details || errorData.error || 'Generation failed');
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
+      const responseData = await response.json();
+      
+      if (responseData.progress && responseData.progress.length > 0) {
+        const lastProgress = responseData.progress[responseData.progress.length - 1];
+        setProgress(lastProgress);
       }
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const event = JSON.parse(line.slice(6));
-              
-              if (event.type === 'progress') {
-                setProgress({
-                  phase: event.phase || 'generating',
-                  iteration: event.iteration || 0,
-                  currentAgent: event.currentAgent || event.phase || 'generating',
-                  score: event.score || 0,
-                  message: event.message || 'Generating...',
-                  progress: event.progress || 50,
-                });
-              } else if (event.type === 'complete') {
-                handleGenerationComplete(event.data, canvasName);
-                return;
-              } else if (event.type === 'cached') {
-                handleGenerationComplete(event.data, canvasName, true);
-                return;
-              } else if (event.type === 'error') {
-                throw new Error(event.message);
-              }
-            } catch {
-              // Skip invalid JSON
-            }
-          }
-        }
-      }
+      
+      handleGenerationComplete(responseData.data, canvasName);
 
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Generation failed';

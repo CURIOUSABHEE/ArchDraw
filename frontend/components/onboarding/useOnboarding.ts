@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useDiagramStore } from '@/store/diagramStore';
+import { STORAGE_KEYS } from '@/lib/config';
 
 export interface OnboardingStep {
   id: string;
@@ -75,7 +76,7 @@ export function useOnboarding() {
 
   // Auto-open on first visit
   useEffect(() => {
-    const dismissed = localStorage.getItem('archdraw_guide_dismissed');
+    const dismissed = localStorage.getItem(STORAGE_KEYS.guideDismissed);
     if (!dismissed) {
       storeOpen();
     }

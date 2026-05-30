@@ -1,3 +1,4 @@
+import logger from '@/lib/logger';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ValidationIssue } from './types';
@@ -36,6 +37,6 @@ export function logGenerationResult(entry: Omit<FeedbackLogEntry, 'id' | 'timest
     const logLine = JSON.stringify(fullEntry) + '\n';
     fs.appendFileSync(LOG_FILE, logLine, 'utf-8');
   } catch (error) {
-    console.warn('[FeedbackLogger] Failed to write feedback log:', error);
+    logger.warn('[FeedbackLogger] Failed to write feedback log:', error);
   }
 }

@@ -1,4 +1,4 @@
-import { EDGE_CONFIG } from '@/lib/config';
+import { EDGE_CONFIG, ELK_CONFIG } from '@/lib/config';
 
 export const LAYER_ORDER = ['client', 'edge', 'gateway', 'application', 'queue', 'data', 'infrastructure', 'observability', 'external'];
 
@@ -34,22 +34,7 @@ export const EDGE_MARKER_IDS: Record<string, string> = {
   dotted: 'arrow-dotted',
 };
 
-export const DEFAULT_ELK_OPTIONS: Record<string, string> = {
-  'elk.algorithm': 'layered',
-  'elk.direction': 'RIGHT',
-  'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-  'elk.spacing.nodeNode': '50',
-  'elk.spacing.edgeNode': '50',
-  'elk.spacing.edgeEdge': '20',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '200',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '50',
-  'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-  'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-  'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
-  'elk.edgeRouting': 'ORTHOGONAL',
-  'elk.portConstraints': 'FIXED_SIDE',
-  'elk.padding': '[top=40, left=40, bottom=40, right=40]',
-};
+export const DEFAULT_ELK_OPTIONS: Record<string, string> = { ...ELK_CONFIG };
 
 export const REASONING_PROMPT = `ROLE: Software architect. JSON-only. No prose.
 

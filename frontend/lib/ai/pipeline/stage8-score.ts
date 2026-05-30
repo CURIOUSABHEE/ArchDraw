@@ -1,3 +1,4 @@
+import logger from '@/lib/logger';
 import { Node, Edge } from 'reactflow';
 import type { DiagramScore } from './types';
 
@@ -113,21 +114,21 @@ export function scoreDiagram(
     if (options.nodesRemoved && options.nodesRemoved > 0) {
       const penalty = Math.min(30, options.nodesRemoved * 5);
       preservationPenalty += penalty;
-      console.log(`[Score] Penalty: -${penalty} for ${options.nodesRemoved} nodes removed`);
+      logger.info(`[Score] Penalty: -${penalty} for ${options.nodesRemoved} nodes removed`);
     }
 
     // Penalize edge loss
     if (options.edgesRemoved && options.edgesRemoved > 0) {
       const penalty = Math.min(20, options.edgesRemoved * 3);
       preservationPenalty += penalty;
-      console.log(`[Score] Penalty: -${penalty} for ${options.edgesRemoved} edges removed`);
+      logger.info(`[Score] Penalty: -${penalty} for ${options.edgesRemoved} edges removed`);
     }
 
     // Penalize group loss
     if (options.groupsRemoved && options.groupsRemoved > 0) {
       const penalty = options.groupsRemoved * 10;
       preservationPenalty += penalty;
-      console.log(`[Score] Penalty: -${penalty} for ${options.groupsRemoved} groups removed`);
+      logger.info(`[Score] Penalty: -${penalty} for ${options.groupsRemoved} groups removed`);
     }
   }
 

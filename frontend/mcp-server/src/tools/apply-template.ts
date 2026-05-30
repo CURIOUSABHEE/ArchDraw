@@ -239,6 +239,7 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
   };
   diagramUrl?: string;
   sessionId?: string;
+  shareUrl?: string;
   embeddedDiagram?: { nodes: ReactFlowNode[]; edges: ReactFlowEdge[] };
   message?: string;
   errors?: string[];
@@ -391,7 +392,8 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
         const saveData = await saveResponse.json() as { sessionId: string; url: string };
         diagramUrl = `${API_BASE}${saveData.url}`;
         sessionId = saveData.sessionId;
-        message = `✅ Template loaded! Open this URL to view and edit the diagram:\n\n${diagramUrl}\n\nOr copy and paste this link in your browser. The template has ${reactFlowNodes.length} nodes and ${reactFlowEdges.length} edges.\n\n**To export**: Use the session ID "${sessionId}" with the export_diagram tool (format: json/png/svg).`;
+        const shareUrl = `${API_BASE}/share/${sessionId}`;
+        message = `✅ Template loaded! Open this URL to view and edit the diagram:\n\n${diagramUrl}\n\n🔗 Shareable link:\n${shareUrl}\n\nOr copy and paste this link in your browser. The template has ${reactFlowNodes.length} nodes and ${reactFlowEdges.length} edges.\n\n**To export**: Use the session ID "${sessionId}" with the export_diagram tool (format: json/png/svg).`;
       }
     } catch {
       message = `Template applied with ${reactFlowNodes.length} nodes and ${reactFlowEdges.length} edges.`;
@@ -408,6 +410,7 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
       },
       diagramUrl,
       sessionId,
+      shareUrl: sessionId ? `${API_BASE}/share/${sessionId}` : undefined,
       embeddedDiagram: {
         nodes: reactFlowNodes,
         edges: reactFlowEdges,

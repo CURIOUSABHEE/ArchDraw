@@ -1,3 +1,4 @@
+import logger from '@/lib/logger';
 import type { Node } from 'reactflow';
 
 export const sortNodesWithParentsFirst = (nodes: Node[]): Node[] => {
@@ -29,7 +30,7 @@ export const cleanOrphanedChildren = (nodes: Node[]): Node[] => {
   const cleaned = nodes.map(node => {
     const parentId = node.parentId || (node as Node & { parentNode?: string }).parentNode;
     if (parentId && !allNodeIds.has(parentId)) {
-      console.warn(`Cleaning orphaned child ${node.id}: parent ${parentId} not found`);
+      logger.warn(`Cleaning orphaned child ${node.id}: parent ${parentId} not found`);
       hasChanges = true;
       const { parentNode: _p, parentId: __p, extent: _e, ...rest } = node as Node & { parentNode?: string, parentId?: string };
       return rest as Node;

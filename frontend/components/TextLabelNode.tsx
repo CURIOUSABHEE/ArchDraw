@@ -191,6 +191,10 @@ function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
       <Handle type="target" position={Position.Bottom} id="bottom" style={handleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" style={handleStyle} />
 
+      {/* Dummy handles for edges that don't specify sourceHandle/targetHandle */}
+      <Handle type="source" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
+      <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
+
       {editing && (
         <div
           className="nodrag nopan"

@@ -2,6 +2,7 @@ import type { ArchitectureNode, ArchitectureEdge } from '../types';
 import type { TierType } from '../domain/tiers';
 import { getTierFromLayer, TIER_ORDER } from '../domain/tiers';
 import { ArchitectureGraph } from '../graph/ArchitectureGraph';
+import { EDGE_CONFIG } from '@/lib/config';
 
 export interface EdgeValidationResult {
   valid: boolean;
@@ -275,7 +276,7 @@ export function enforceMinimumConnections(
           pathType: 'smooth',
           label: '',
           animated: node.layer === 'async' || node.layer === 'queue' || candidate.layer === 'async' || candidate.layer === 'queue',
-          style: { stroke: '#94a3b8', strokeWidth: 2 },
+          style: { stroke: EDGE_CONFIG.strokeColor, strokeWidth: EDGE_CONFIG.strokeWidth },
           markerEnd: 'arrowclosed',
         } as ArchitectureEdge;
 

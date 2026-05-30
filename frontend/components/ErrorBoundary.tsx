@@ -59,7 +59,7 @@ export class ErrorBoundary extends Component<Props, State> {
         const validatedNodes = validateAndFixNodes(fixedNodes);
         
         // Update store
-        useDiagramStore.setState({ nodes: validatedNodes });
+        useDiagramStore.getState().setNodes(validatedNodes);
         
         logger.log('[ErrorBoundary] Recovery successful');
         

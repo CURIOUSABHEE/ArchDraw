@@ -19,26 +19,28 @@ const ES = {
   style: { animation: 'dash 0.8s linear infinite' },
 };
 
+import { createNode, createEdge } from '@/lib/factory';
+
 const initialNodes: Node[] = [
-  { id: 'client_web',   type: 'heroNode', position: { x: 0,   y: 140 }, data: { label: 'Web',          category: 'Entry',    icon: 'Monitor',  color: '#5A5A5A' } },
-  { id: 'api-gateway',  type: 'heroNode', position: { x: 160, y: 140 }, data: { label: 'API Gateway',  category: 'Gateway',  icon: 'Webhook',  color: '#5A5A5A' } },
-  { id: 'auth-service', type: 'heroNode', position: { x: 340, y: 60  }, data: { label: 'Auth Service', category: 'Security', icon: 'Shield',   color: '#5A5A5A' } },
-  { id: 'chat-service', type: 'heroNode', position: { x: 340, y: 200 }, data: { label: 'Chat Service', category: 'Compute',  icon: 'Boxes',    color: '#3b82f6' } },
-  { id: 'llm-api',      type: 'heroNode', position: { x: 540, y: 50  }, data: { label: 'LLM API',      category: 'AI / ML',  icon: 'Brain',    color: '#ec4899' } },
-  { id: 'rag-pipeline', type: 'heroNode', position: { x: 540, y: 200 }, data: { label: 'RAG Pipeline', category: 'AI / ML',  icon: 'GitMerge', color: '#ec4899' } },
-  { id: 'vector-db',    type: 'heroNode', position: { x: 740, y: 80  }, data: { label: 'Vector DB',    category: 'Storage',  icon: 'Cpu',      color: '#ec4899' } },
-  { id: 'nosql-db',     type: 'heroNode', position: { x: 740, y: 260 }, data: { label: 'NoSQL DB',     category: 'Storage',  icon: 'Leaf',     color: '#334155' } },
+  createNode('heroNode', 'Web', { x: 0, y: 140 }, { id: 'client_web', data: { category: 'Entry', icon: 'Monitor', color: '#5A5A5A' } }),
+  createNode('heroNode', 'API Gateway', { x: 160, y: 140 }, { id: 'api-gateway', data: { category: 'Gateway', icon: 'Webhook', color: '#5A5A5A' } }),
+  createNode('heroNode', 'Auth Service', { x: 340, y: 60 }, { id: 'auth-service', data: { category: 'Security', icon: 'Shield', color: '#5A5A5A' } }),
+  createNode('heroNode', 'Chat Service', { x: 340, y: 200 }, { id: 'chat-service', data: { category: 'Compute', icon: 'Boxes', color: '#3b82f6' } }),
+  createNode('heroNode', 'LLM API', { x: 540, y: 50 }, { id: 'llm-api', data: { category: 'AI / ML', icon: 'Brain', color: '#ec4899' } }),
+  createNode('heroNode', 'RAG Pipeline', { x: 540, y: 200 }, { id: 'rag-pipeline', data: { category: 'AI / ML', icon: 'GitMerge', color: '#ec4899' } }),
+  createNode('heroNode', 'Vector DB', { x: 740, y: 80 }, { id: 'vector-db', data: { category: 'Storage', icon: 'Cpu', color: '#ec4899' } }),
+  createNode('heroNode', 'NoSQL DB', { x: 740, y: 260 }, { id: 'nosql-db', data: { category: 'Storage', icon: 'Leaf', color: '#334155' } }),
 ];
 
 const initialEdges: Edge[] = [
-  { id: 'e1', source: 'client_web',    target: 'api-gateway',  sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
-  { id: 'e2', source: 'api-gateway',  target: 'auth-service', sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
-  { id: 'e3', source: 'api-gateway',  target: 'chat-service', sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
-  { id: 'e4', source: 'chat-service', target: 'llm-api',      sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
-  { id: 'e5', source: 'chat-service', target: 'rag-pipeline', sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
-  { id: 'e6', source: 'rag-pipeline', target: 'vector-db',    sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
-  { id: 'e7', source: 'rag-pipeline', target: 'nosql-db',     sourceHandle: 'bottom', targetHandle: 'top',   type: 'default', animated: true, style: ES },
-  { id: 'e8', source: 'llm-api',      target: 'vector-db',    sourceHandle: 'right',  targetHandle: 'left',  type: 'default', animated: true, style: ES },
+  createEdge('client_web', 'api-gateway', '', { id: 'e1', sourceHandle: 'right', targetHandle: 'left', type: 'default', animated: true, style: ES }),
+  createEdge('api-gateway', 'auth-service', '', { id: 'e2', sourceHandle: 'right', targetHandle: 'left', type: 'default', animated: true, style: ES }),
+  createEdge('api-gateway', 'chat-service', '', { id: 'e3', sourceHandle: 'right', targetHandle: 'left', type: 'default', animated: true, style: ES }),
+  createEdge('chat-service', 'llm-api', '', { id: 'e4', sourceHandle: 'right', targetHandle: 'left', type: 'default', animated: true, style: ES }),
+  createEdge('chat-service', 'rag-pipeline', '', { id: 'e5', sourceHandle: 'right', targetHandle: 'left', type: 'default', animated: true, style: ES }),
+  createEdge('rag-pipeline', 'vector-db', '', { id: 'e6', sourceHandle: 'right', targetHandle: 'left', type: 'default', animated: true, style: ES }),
+  createEdge('rag-pipeline', 'nosql-db', '', { id: 'e7', sourceHandle: 'bottom', targetHandle: 'top', type: 'default', animated: true, style: ES }),
+  createEdge('llm-api', 'vector-db', '', { id: 'e8', sourceHandle: 'right', targetHandle: 'left', type: 'default', animated: true, style: ES }),
 ];
 
 const animatedNodeIds = ['auth-service', 'llm-api', 'rag-pipeline'];

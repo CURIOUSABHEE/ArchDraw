@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, X, Command, Layers, FileText, ArrowRight } from 'lucide-react';
 import { useDiagramStore } from '@/store/diagramStore';
 import { componentRegistry, type ComponentDefinition } from '@/lib/componentRegistry';
-import { createNode } from '@/lib/nodeFactory';
+import { createNode } from '@/lib/factory';
 import { getViewportCenter } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -109,19 +109,22 @@ export function CommandPalette() {
   }, [selectedIndex, open]);
 
   const handleSelectComponent = useCallback((comp: ComponentDefinition) => {
-    const result = createNode(
+    const node = createNode(
+      comp.id,
+      comp.label,
+      getViewportCenter(),
       {
-        componentId: comp.id,
-        label: comp.label,
-        category: comp.category,
-        color: comp.color,
-        icon: comp.icon,
-        technology: comp.technology,
-        position: getViewportCenter(),
-      },
-      'cmdk'
+        type: 'systemNode',
+        data: {
+          componentId: comp.id,
+          category: comp.category,
+          color: comp.color,
+          icon: comp.icon,
+          technology: comp.technology,
+        }
+      }
     );
-    addNode(result.node);
+    addNode(node);
     setOpen(false);
     setSearch('');
   }, [addNode]);

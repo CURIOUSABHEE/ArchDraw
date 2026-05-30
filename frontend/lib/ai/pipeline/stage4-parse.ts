@@ -1,3 +1,4 @@
+import logger from '@/lib/logger';
 import type { ParsedDiagram, RawFlow, RawNode, PipelineLayer as LayerType } from './types';
 
 function parseNode(obj: Record<string, unknown>): RawNode | null {
@@ -57,11 +58,11 @@ export function parseNDJSON(rawText: string): ParsedDiagram {
       const node = parseNode(obj);
       if (node) nodes.push(node);
     } catch (e) {
-      console.log(`[Parse] Skipped - JSON parse failed: ${trimmed.slice(0, 50)}...`);
+      logger.info(`[Parse] Skipped - JSON parse failed: ${trimmed.slice(0, 50)}...`);
       continue;
     }
   }
 
-  console.log(`[Parse] Parsed ${nodes.length} nodes, ${flows.length} flows`);
+  logger.info(`[Parse] Parsed ${nodes.length} nodes, ${flows.length} flows`);
   return { nodes, flows };
 }

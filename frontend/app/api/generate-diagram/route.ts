@@ -150,7 +150,7 @@ function inferSystemType(description: string): string {
     return 'SaaS Platform';
   }
 
-  return 'Microservices Architecture';
+  return 'Monolith Architecture';
 }
 
 function inferComplexity(description: string): 'low' | 'medium' | 'high' {

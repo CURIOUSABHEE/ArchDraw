@@ -204,6 +204,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
   };
   diagramUrl?: string;
   sessionId?: string;
+  shareUrl?: string;
   embeddedDiagram?: { nodes: ReactFlowNode[]; edges: ReactFlowEdge[] };
   message?: string;
   errors?: string[];
@@ -400,6 +401,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         const saveData = await saveResponse.json() as { sessionId: string; url: string };
         diagramUrl = `${API_BASE}${saveData.url}`;
         sessionId = saveData.sessionId;
+        const shareUrl = `${API_BASE}/share/${sessionId}`;
         const nodeCount = layoutResult.nodes.filter(n => !n.data?.isGroup).length;
         const groupCount = layoutResult.nodes.filter(n => n.data?.isGroup).length;
 
@@ -413,7 +415,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         const promptLine = input.userPrompt
           ? `\n\n💬 **From prompt**: "${input.userPrompt.substring(0, 100)}${input.userPrompt.length > 100 ? '...' : ''}"` : '';
 
-        message = `✅ Diagram ready! Open this URL to view and edit:\n\n${diagramUrl}\n\n📊 ${nodeCount} nodes, ${groupCount} groups, ${layoutResult.edges.length} edges.${techLine}${featuresLine}${promptLine}\n\n**To export**: Use session ID "${sessionId}" with the export_diagram tool.`;
+        message = `✅ Diagram ready! Open this URL to view and edit:\n\n${diagramUrl}\n\n🔗 Shareable link:\n${shareUrl}\n\n📊 ${nodeCount} nodes, ${groupCount} groups, ${layoutResult.edges.length} edges.${techLine}${featuresLine}${promptLine}\n\n**To export**: Use session ID "${sessionId}" with the export_diagram tool.`;
       }
     } catch {
       message = `Diagram generated with ${layoutResult.nodes.length} nodes and ${layoutResult.edges.length} edges, but couldn't save to generate a link. Make sure Next.js is running on ${API_BASE}.`;
@@ -435,6 +437,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
       },
       diagramUrl,
       sessionId,
+      shareUrl: sessionId ? `${API_BASE}/share/${sessionId}` : undefined,
       embeddedDiagram: { nodes: layoutResult.nodes, edges: layoutResult.edges },
       message,
       errors: errors.length > 0 ? errors : undefined,

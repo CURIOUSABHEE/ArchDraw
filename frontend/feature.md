@@ -37,23 +37,29 @@ The dominant axis (horizontal vs vertical) is determined by comparing
 This recalculates on EVERY node position change — drag, programmatic move,
 ELK layout settle. It must NEVER be computed once at edge creation and stored.
 
-### How it works
-- Uses `useStore((s) => s.nodeInternals.get(id))` inside `SimpleFloatingEdge` to get live positions (React Flow v11 equivalent of `useInternalNode`)
-- Reads from `node.positionAbsolute` — NOT `node.position`
-- Node dimensions from `node.width` / `node.height`
-- `getDynamicHandles()` returns `{ sourcePosition, targetPosition }` based on node rects
-- `getSimpleHandlePosition()` (from `lib/utils/simpleFloatingEdge.ts`) converts Position side + HANDLE_OFFSETS to exact XY for rendering; `getHandleCoordinate()` in the feature file provides the raw edge-midpoint XY without offsets
+### How it works (React Flow v11 — current version)
+- Uses `useStore()` inside `SimpleFloatingEdge` to subscribe to live node state
+- Reads from `node.positionAbsolute` directly — v11 API (NOT `node.internals.positionAbsolute`)
+- Node dimensions from `node.width` / `node.height` — v11 API (NOT `node.measured`)
+- Handle position computed via `getSimpleHandlePosition()` which applies `HANDLE_OFFSETS`
+- `getHandleCoordinate()` is exported from the feature file but not in the active render path —
+  do not delete it, but do not assume it is being called during edge rendering
+
+> ⚠️ If upgrading to React Flow v12, update to `node.internals.positionAbsolute`
+> and `node.measured?.width` / `node.measured?.height` across all edge files.
 
 ### What must NOT happen
 - Do not hardcode `sourceHandle` / `targetHandle` IDs on edge objects
 - Do not read node positions from `props.data`, `useState`, or `initialNodes`
 - Do not compute handle position once in `onConnect` and freeze it
+- Do not replace `useStore()` with `useNodes()` — `useNodes()` does not
+  trigger re-renders on position change during drag
 
 ---
 
 ## 2. Simple Floating Edges
 
-**File:** `components/edges/SimpleFloatingEdge.tsx`
+**File:** `components/edges/SimpleFloatingEdge.ts`
 **Status:** 🔴 Protected — do not replace with standard fixed edges
 
 ### What it does
@@ -61,13 +67,18 @@ Edges dynamically attach to the closest available boundary point of a node
 rather than being locked to a fixed named handle. Combined with Dynamic Handle
 Selection (§1), edges always take the most geometrically direct path.
 
+### Current implementation (actual)
+- Renders a `<path>` element directly — does NOT use `<BaseEdge />`
+- Does NOT use `getSimpleFloatingEdgePosition` — that function does not exist
+- Path is drawn using `getSmoothStepPath` or equivalent with computed XY values
+- All visual props (`markerEnd`, `markerStart`, `style`) must be read from
+  edge props and applied directly to the `<path>` element
+
 ### Rules
-- Handle position is computed from `getDynamicHandles()` (feature file) for side selection + `getSimpleHandlePosition()` for exact XY with HANDLE_OFFSETS
-- Edge shift offset (`getEdgeShiftOffset`) spaces parallel edges and merges incoming edges at center
-- Edge type is `smoothstep` for adjacent-layer connections, computed via `getSmoothStepPath()`
-- Visual edge rendered as raw `<path>` elements (no `<BaseEdge />`)
-- `ConnectionMode.Loose` is set on `<ReactFlow />` in `Canvas.tsx`
-- `edgeTypes` map (e.g. `EDGE_TYPES` in `Canvas.tsx`) is defined OUTSIDE the component function
+- `edgeTypes` map must be defined OUTSIDE the component function — never inside
+- `ConnectionMode.Loose` must be verified as set on `<ReactFlow />` — check this
+- Do not switch rendering to `<BaseEdge />` without updating all prop forwarding
+- Do not add `sourceHandle` or `targetHandle` keys to any edge object
 
 ---
 
@@ -135,7 +146,7 @@ const EDGE_COLORS = {
 
 ## 5. ELK Layout — Fixed Spacing Constants
 
-**Files:** `stage6-layout.ts`, `elkLayoutService.ts`
+**Files:** `stage6-layout.ts`, `elkLayoutService.ts` (all instances in both files)
 **Status:** 🔴 Protected — spacing values are fixed, not dynamic
 
 ### Fixed ELK options (apply to ALL diagrams regardless of node count)
@@ -151,44 +162,58 @@ const ELK_OPTIONS = {
   'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
   'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
-  'elk.portConstraints': 'FIXED_SIDE',
-  'elk.layered.mergeEdges': 'true',
+  'elk.portConstraints': 'FIXED_SIDE',    // current: FIXED_SIDE (not FIXED_ORDER)
+  'elk.layered.mergeEdges': 'true',       // current: true (edges merge at shared ports)
+  // portPort spacing: removed from all files — do not re-add
 };
 ```
 
-### The ONLY allowed overrides
-Direction can change per diagram type. Layer hints and sink-node push are also
-applied after option construction:
+> ⚠️ Note on portConstraints: the codebase currently uses `FIXED_SIDE` across all
+> 7 option blocks. A previous iteration attempted `FIXED_ORDER` + `portPort: 24`
+> but this was reverted. Do not change back to `FIXED_ORDER` without testing.
+
+> ⚠️ Note on mergeEdges: currently `true` in all 6 files. Do not set to `false`
+> without explicit instruction — it was reverted from `false` deliberately.
+
+### The ONLY allowed override
+Direction can change per diagram type. Nothing else:
 ```ts
 if (diagramType === 'mvc' || diagramType === 'flow_diagram') {
   ELK_OPTIONS['elk.direction'] = 'DOWN';
 }
 ```
-- `LAYER_HINTS` assign strict ELK layer IDs per node label pattern (client→0, router→1, controller→2, service→3, model/cache→4, external/observability→5)
-- Sink nodes (no outgoing edges) get `layerId: '99'` to force rightmost column
-- `wrapOver: 'false'` prevents edge wrapping around layers
 
 ### What must NOT happen
 - Do not add if/else or ternary blocks that change spacing based on node count
 - Do not reduce spacing for "large" diagrams — spacing is fixed at all sizes
-- Do not revert `portConstraints` from `FIXED_SIDE` to `FIXED_ORDER`
-- Do not add `elk.spacing.portPort` — port spacing must be left at default so edges can merge
+- Do not change `portConstraints` or `mergeEdges` without explicit instruction
 
 ---
 
-## 6. Column Alignment Post-Processing
+## 6. Column Alignment Post-Processing — PENDING REMOVAL
 
 **File:** `lib/utils/columnAlignNodes.ts`
-**Status:** 🟢 Active — applied after ELK layout in stage6-layout and elkLayoutService
+**Status:** ⚫ Marked for removal — but still active in codebase
 
-After ELK layout completes, `snapNodesToColumns()` groups nodes by their
-X coordinate (within 60px proximity threshold) and snaps all nodes in each
-group to the same X. This ensures nodes in the same ELK layer share an
-identical X position, producing clean vertical columns.
+This feature was decided to be removed but is still called in:
+- `stage6-layout.ts` line 233 (`snapNodesToColumns`)
+- `elkLayoutService.ts` line 686 (`snapNodesToColumns`)
 
-### Where it runs
-- `stage6-layout.ts` — post-ELK, before returning layouted nodes
-- `elkLayoutService.ts` — post-`postProcessLayout`, before caching
+### Action required
+Remove both call sites and delete `columnAlignNodes.ts`.
+ELK layout output must be used as-is without X-coordinate snapping.
+
+```ts
+// DELETE these lines from stage6-layout.ts and elkLayoutService.ts:
+const alignedNodes = snapNodesToColumns(layoutedNodes, 60);
+// and replace with:
+const alignedNodes = layoutedNodes;
+// then delete the import of snapNodesToColumns
+```
+
+### Do not re-introduce
+Once removed, column alignment must not be added back in any form —
+not as a post-layout step, not on drag stop, not as a toolbar button.
 
 ---
 
@@ -234,25 +259,31 @@ Maximum 2 retries.
 
 ---
 
-## 8. Self-Loop Edges — FILTERED
+## 8. Self-Loop Edges — ALLOWED (pending fix)
 
-**Status:** 🟡 Filtered — self-loop edges (source === target) are stripped before ELK layout
+**Status:** 🟢 Permitted — but currently being incorrectly filtered in codebase
 
-Self-loop edges cannot be processed by ELK (elkjs throws on source===target
-edges), so they are filtered out before the ELK graph is constructed. This
-happens in two places:
+Self-loop edges (where `source === target`) are intentionally allowed in ArchDraw.
+They represent valid architectural relationships such as a service calling itself,
+a retry mechanism, or a recursive process.
+
+### Action required
+Remove the self-loop filter from both locations:
 
 ```ts
-// stage6-layout.ts
-const cleanEdges = edges.filter(e => e.source !== e.target);
+// DELETE from stage6-layout.ts line 107:
+edges.filter(e => e.source !== e.target)
 
-// elkLayoutService.ts
-const validEdges = validatedEdges.filter(e => e.source !== e.target);
+// DELETE from elkLayoutService.ts line 564:
+edges.filter(e => e.source !== e.target)
 ```
 
-### Rule
-Self-loop edges must be filtered BEFORE ELK graph construction to prevent
-elkjs runtime errors. They are silently dropped — no warning is shown.
+Replace both with the unfiltered edges array.
+
+### Rule going forward
+Self-loop edges must pass through to ELK, React Flow state, and rendering
+without being stripped at any stage of the pipeline. Do not add this filter
+back anywhere — not in layout, not in onConnect, not in the AI pipeline.
 
 ---
 
@@ -301,14 +332,17 @@ the "colors visible in export but not on canvas" bug.
 | Edge routing / path shape     | `SimpleFloatingEdge.ts` (§2)                  |
 | Edge colors / markers         | `lib/edgeColors.ts` (§3, §4)                  |
 | ELK spacing or layout config  | `stage6-layout.ts`, `elkLayoutService.ts` (§5)|
-| Column alignment              | `columnAlignNodes.ts` (§6)                    |
+| Column alignment              | REMOVED — do not re-add (§6)                  |
 | Diagram generation prompts    | Stage 0 classifier + NODE_GUIDELINES (§7)     |
-| Self-loop edges               | Filtered before ELK (§8)                      |
+| Self-loop edges               | Allowed — do not filter them (§8)             |
 | Edge label rendering          | EdgeLabelRenderer styles (§9)                 |
 | Global CSS / theme files      | No stroke overrides on edge paths (§10)       |
 
 ---
 
-> Last updated: May 2026
+> Last updated: May 2026 — synced with actual codebase audit
 > Maintained by: Abhishek Jamdade
 > Project: ArchDraw
+>
+> Sections marked "Action required" reflect decisions made but not yet
+> implemented in code. Complete those before the next session.

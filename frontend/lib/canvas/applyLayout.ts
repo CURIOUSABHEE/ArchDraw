@@ -2,6 +2,7 @@ import type { Node, Edge } from 'reactflow';
 import type { LayoutPreset } from './layoutPresets';
 import { getNodeShapeConfig } from '@/constants/nodeShapeConfig';
 import logger from '@/lib/logger';
+import { ELK_CONFIG } from '@/lib/config';
 
 let elkInstance: any = null;
 async function getELK() {
@@ -16,34 +17,7 @@ async function getELK() {
 const DEFAULT_GROUP_WIDTH = 400;
 const DEFAULT_GROUP_HEIGHT = 300;
 
-const BASE_ELK_OPTIONS: Record<string, string> = {
-  'elk.algorithm': 'layered',
-  'elk.direction': 'RIGHT',
-  'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-  'elk.spacing.nodeNode': '80',
-  'elk.spacing.edgeNode': '40',
-  'elk.spacing.edgeEdge': '20',
-  'elk.spacing.labelNode': '50',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '120',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '40',
-  'elk.layered.spacing.edgeEdgeBetweenLayers': '20',
-  'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-  'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-  'elk.layered.crossingMinimization.forceNodeModelOrder': 'false',
-  'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-  'elk.layered.separatingEdges.strategy': 'CENTERING',
-  'elk.layered.unnecessaryBendpoints': 'false',
-  'elk.layered.mergeEdges': 'true',
-  'elk.layered.wrapping.multiEdge.improveCuts': 'true',
-  'elk.layered.cycleBreaking.strategy': 'GREEDY',
-  'elk.layered.nodeSize.constraints': 'MINIMUM_SIZE',
-  'elk.edgeRouting': 'ORTHOGONAL',
-  'elk.portConstraints': 'FIXED_SIDE',
-  'elk.edgeLabels.inline': 'false',
-  'elk.edgeLabels.placement': 'CENTER',
-  'elk.padding': '[top=60, left=40, bottom=60, right=40]',
-  'elk.separateConnectedComponents': 'false',
-};
+
 
 export async function applyLayoutPreset(
   nodes: Node[],
@@ -120,7 +94,7 @@ export async function applyLayoutPreset(
     }));
 
   const mergedOptions: Record<string, string> = {
-    ...BASE_ELK_OPTIONS,
+    ...ELK_CONFIG,
     ...preset.elkOptions,
   };
 

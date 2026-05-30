@@ -1,3 +1,4 @@
+import logger from '@/lib/logger';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type { LayoutedNode, ValidatedDiagram, RawNode } from './types';
 import { resolveNodeCollisions } from '@/lib/collision';
@@ -85,7 +86,7 @@ export async function applyLayout(
   diagramType?: string
 ): Promise<LayoutedNode[]> {
   const { nodes, edges } = validated;
-  console.log(`[Layout] Processing ${nodes.length} nodes, ${edges.length} edges using ELK with partitioning (size: ${diagramSize})`);
+  logger.info(`[Layout] Processing ${nodes.length} nodes, ${edges.length} edges using ELK with partitioning (size: ${diagramSize})`);
 
   const baseNodeSep = 160;
   const layerSep = 240;
@@ -215,7 +216,7 @@ export async function applyLayout(
         }
       }
     } catch (err) {
-      console.error('[Layout Refinement] Symmetrization failed:', err);
+      logger.error('[Layout Refinement] Symmetrization failed:', err);
     }
 
     // Column alignment: snap same-column nodes to identical X
@@ -230,7 +231,7 @@ export async function applyLayout(
     return alignedNodes;
 
   } catch (e) {
-    console.error('[Layout] ELK failed, falling back to basic layout:', e);
+    logger.error('[Layout] ELK failed, falling back to basic layout:', e);
     return fallbackLayout(nodes);
   }
 }
