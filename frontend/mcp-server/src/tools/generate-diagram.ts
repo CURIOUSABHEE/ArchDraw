@@ -347,8 +347,7 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
       const commType = edge.communicationType || 'sync';
       const commStyle = commColors[commType] || commColors.sync;
       // Use provided label; for async/stream/event, fall back to comm type description
-      const label = edge.label?.trim() ||
-        (commType !== 'sync' && commType !== 'dep' ? commType : '');
+      const label = edge.label?.trim() || 'Connection';
 
       return {
         id: edge.id || `edge-${index}`,

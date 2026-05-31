@@ -39,7 +39,7 @@ export const EdgeInputSchema = z.object({
     '  dep   = Build-time dependency (dotted gray)'
   ),
   pathType: z.enum(['smooth', 'Smoothstep', 'bezier', 'step', 'straight']).default('Smoothstep').describe('Edge path style. Smoothstep for most cases, bezier for curved, step for right-angle bends.'),
-  label: z.string().optional().describe('Label shown on the edge. REQUIRED for async/stream/event edges — describe the message/event. E.g. "user.created", "checkout event", "JWT token", "orders queue"'),
+  label: z.string().min(1).describe('Label shown on the edge. REQUIRED for EVERY edge. Describe the protocol, action, or event. E.g. "HTTPS", "REST", "SQL Query", "user.created", "gRPC"'),
   animated: z.boolean().optional().describe('Override animation. Async/stream/event are animated by default.'),
 });
 
