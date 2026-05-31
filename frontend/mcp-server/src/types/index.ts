@@ -51,8 +51,8 @@ export interface ArchitectureEdge {
   id: string;
   source: string;
   target: string;
-  sourceHandle: HandlePosition;
-  targetHandle: HandlePosition;
+  sourceHandle?: HandlePosition;
+  targetHandle?: HandlePosition;
   communicationType: CommunicationType;
   pathType: PathType;
   label: string;
@@ -100,8 +100,8 @@ export interface ReactFlowEdge {
   id: string;
   source: string;
   target: string;
-  sourceHandle: HandlePosition;
-  targetHandle: HandlePosition;
+  sourceHandle?: HandlePosition;
+  targetHandle?: HandlePosition;
   type: string;
   animated: boolean;
   label: string;

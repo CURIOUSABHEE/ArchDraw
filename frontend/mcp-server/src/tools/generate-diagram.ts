@@ -354,8 +354,6 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
         id: edge.id || `edge-${index}`,
         source: edge.source,
         target: edge.target,
-        sourceHandle: 'right' as const,
-        targetHandle: 'left' as const,
         communicationType: commType as ArchitectureEdge['communicationType'],
         pathType: (edge.pathType ?? 'Smoothstep') as ArchitectureEdge['pathType'],
         label,

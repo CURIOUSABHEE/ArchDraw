@@ -347,8 +347,6 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
         id: `edge-${idx}`,
         source: edge.source,
         target: edge.target,
-        sourceHandle: 'right',
-        targetHandle: 'left',
         type: 'smooth',
         animated: commStyle.animated,
         label: '',

@@ -14,7 +14,7 @@ function inferSystemType(description: string): string {
   if (lower.includes('iot') || lower.includes('sensor')) return 'IoT Platform';
   if (lower.includes('ml') || lower.includes('machine learning') || lower.includes('ai')) return 'ML/AI Platform';
   if (lower.includes('saas') || lower.includes('multi-tenant')) return 'SaaS Platform';
-  return 'Microservices Architecture';
+  return 'Monolith Architecture';
 }
 
 function inferComplexity(description: string): 'low' | 'medium' | 'high' {
@@ -31,7 +31,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 const generateDiagramSchema = z.object({
-  description: z.string().min(1).max(2000),
+  description: z.string().min(1),
   systemType: z.string().optional(),
   complexity: z.enum(['low', 'medium', 'high']).optional(),
   model: z.string().optional(),

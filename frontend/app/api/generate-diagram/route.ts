@@ -9,7 +9,7 @@ export const maxDuration = 300;
 
 // Zod validation schema
 const generateDiagramSchema = z.object({
-  description: z.string().min(1, 'Description is required').max(2000, 'Description must be under 2000 characters'),
+  description: z.string().min(1, 'Description is required'),
   systemType: z.string().optional(),
   complexity: z.enum(['low', 'medium', 'high']).optional(),
   model: z.string().optional(),
