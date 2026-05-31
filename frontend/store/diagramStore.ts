@@ -1122,7 +1122,7 @@ export const useDiagramStore = create<DiagramState>()(
         const { source, target, sourceHandle, targetHandle } = connection;
         if (!source || !target) return;
 
-        const newEdge = createEdge(source, target, '', {
+        const newEdge = createEdge(source, target, 'Connection', {
             sourceHandle,
             targetHandle,
         });
@@ -1133,7 +1133,7 @@ export const useDiagramStore = create<DiagramState>()(
         );
         const edges = distributeTargetHandles(get().nodes, rawEdges);
         const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases });
+        set({ edges, canvases, pendingLabelEdgeId: newEdge.id });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 

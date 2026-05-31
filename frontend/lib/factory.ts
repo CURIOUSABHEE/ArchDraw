@@ -40,7 +40,7 @@ export function createNode(
 export function createEdge(
   source: string,
   target: string,
-  label = '',
+  label = 'Connection',
   extra: Record<string, unknown> = {}
 ): Edge {
   return {
