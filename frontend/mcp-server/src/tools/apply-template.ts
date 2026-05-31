@@ -389,8 +389,9 @@ export async function applyTemplate(input: ApplyTemplateInput): Promise<{
       });
 
       if (saveResponse.ok) {
-        const saveData = await saveResponse.json() as { sessionId: string; url: string };
-        diagramUrl = `${API_BASE}${saveData.url}`;
+        const saveData = await saveResponse.json() as { sessionId: string; url?: string };
+        const urlPath = saveData.url || `/editor?session=${saveData.sessionId}`;
+        diagramUrl = `${API_BASE}${urlPath}`;
         sessionId = saveData.sessionId;
         const shareUrl = `${API_BASE}/share/${sessionId}`;
         message = `✅ Template loaded! Open this URL to view and edit the diagram:\n\n${diagramUrl}\n\n🔗 Shareable link:\n${shareUrl}\n\nOr copy and paste this link in your browser. The template has ${reactFlowNodes.length} nodes and ${reactFlowEdges.length} edges.\n\n**To export**: Use the session ID "${sessionId}" with the export_diagram tool (format: json/png/svg).`;

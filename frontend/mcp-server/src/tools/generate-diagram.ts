@@ -398,8 +398,9 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
       });
 
       if (saveResponse.ok) {
-        const saveData = await saveResponse.json() as { sessionId: string; url: string };
-        diagramUrl = `${API_BASE}${saveData.url}`;
+        const saveData = await saveResponse.json() as { sessionId: string; url?: string };
+        const urlPath = saveData.url || `/editor?session=${saveData.sessionId}`;
+        diagramUrl = `${API_BASE}${urlPath}`;
         sessionId = saveData.sessionId;
         const shareUrl = `${API_BASE}/share/${sessionId}`;
         const nodeCount = layoutResult.nodes.filter(n => !n.data?.isGroup).length;
