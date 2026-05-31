@@ -69,6 +69,15 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
     setCanvasDarkMode(true);
   }, [setCanvasDarkMode]);
 
+  // We must call hooks unconditionally. Compute coloredEdges even if canvas is undefined,
+  // returning an empty array as a safe fallback.
+  const coloredEdges = useMemo(() => {
+    if (!canvas || !canvas.edges) return [];
+    return assignEdgeColors(canvas.edges as Edge[]);
+  }, [canvas]);
+
+  // Now we can safely exit early if the canvas is missing (e.g. invalid share ID)
+  // This prevents the runtime 'Cannot read properties of undefined' error while rendering.
   if (!canvas) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-[#0f172a] text-white">
@@ -76,8 +85,6 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
       </div>
     );
   }
-
-  const coloredEdges = useMemo(() => assignEdgeColors(canvas.edges as Edge[]), [canvas.edges]);
 
   const doDownload = async () => {
     const el = document.querySelector('.react-flow') as HTMLElement | null;
