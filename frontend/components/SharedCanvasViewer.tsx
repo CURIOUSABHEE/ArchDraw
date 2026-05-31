@@ -69,6 +69,14 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
     setCanvasDarkMode(true);
   }, [setCanvasDarkMode]);
 
+  if (!canvas) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#0f172a] text-white">
+        <p>Canvas not found or has no data.</p>
+      </div>
+    );
+  }
+
   const coloredEdges = useMemo(() => assignEdgeColors(canvas.edges as Edge[]), [canvas.edges]);
 
   const doDownload = async () => {
