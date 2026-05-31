@@ -22,14 +22,14 @@ const ES = {
 import { createNode, createEdge } from '@/lib/factory';
 
 const initialNodes: Node[] = [
-  createNode('heroNode', 'Web', { x: 0, y: 140 }, { id: 'client_web', data: { category: 'Entry', icon: 'Monitor', color: '#5A5A5A' } }),
-  createNode('heroNode', 'API Gateway', { x: 160, y: 140 }, { id: 'api-gateway', data: { category: 'Gateway', icon: 'Webhook', color: '#5A5A5A' } }),
-  createNode('heroNode', 'Auth Service', { x: 340, y: 60 }, { id: 'auth-service', data: { category: 'Security', icon: 'Shield', color: '#5A5A5A' } }),
-  createNode('heroNode', 'Chat Service', { x: 340, y: 200 }, { id: 'chat-service', data: { category: 'Compute', icon: 'Boxes', color: '#3b82f6' } }),
-  createNode('heroNode', 'LLM API', { x: 540, y: 50 }, { id: 'llm-api', data: { category: 'AI / ML', icon: 'Brain', color: '#ec4899' } }),
-  createNode('heroNode', 'RAG Pipeline', { x: 540, y: 200 }, { id: 'rag-pipeline', data: { category: 'AI / ML', icon: 'GitMerge', color: '#ec4899' } }),
-  createNode('heroNode', 'Vector DB', { x: 740, y: 80 }, { id: 'vector-db', data: { category: 'Storage', icon: 'Cpu', color: '#ec4899' } }),
-  createNode('heroNode', 'NoSQL DB', { x: 740, y: 260 }, { id: 'nosql-db', data: { category: 'Storage', icon: 'Leaf', color: '#334155' } }),
+  createNode('heroNode', 'Web', { x: 0, y: 140 }, { type: 'heroNode', id: 'client_web', data: { category: 'Entry', icon: 'Monitor', color: '#5A5A5A' } }),
+  createNode('heroNode', 'API Gateway', { x: 160, y: 140 }, { type: 'heroNode', id: 'api-gateway', data: { category: 'Gateway', icon: 'Webhook', color: '#5A5A5A' } }),
+  createNode('heroNode', 'Auth Service', { x: 340, y: 60 }, { type: 'heroNode', id: 'auth-service', data: { category: 'Security', icon: 'Shield', color: '#5A5A5A' } }),
+  createNode('heroNode', 'Chat Service', { x: 340, y: 200 }, { type: 'heroNode', id: 'chat-service', data: { category: 'Compute', icon: 'Boxes', color: '#3b82f6' } }),
+  createNode('heroNode', 'LLM API', { x: 540, y: 50 }, { type: 'heroNode', id: 'llm-api', data: { category: 'AI / ML', icon: 'Brain', color: '#ec4899' } }),
+  createNode('heroNode', 'RAG Pipeline', { x: 540, y: 200 }, { type: 'heroNode', id: 'rag-pipeline', data: { category: 'AI / ML', icon: 'GitMerge', color: '#ec4899' } }),
+  createNode('heroNode', 'Vector DB', { x: 740, y: 80 }, { type: 'heroNode', id: 'vector-db', data: { category: 'Storage', icon: 'Cpu', color: '#ec4899' } }),
+  createNode('heroNode', 'NoSQL DB', { x: 740, y: 260 }, { type: 'heroNode', id: 'nosql-db', data: { category: 'Storage', icon: 'Leaf', color: '#334155' } }),
 ];
 
 const initialEdges: Edge[] = [
