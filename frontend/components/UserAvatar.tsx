@@ -27,6 +27,7 @@ import {
   Mail,
   Search,
   LayoutGrid,
+  Trash2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
@@ -267,6 +268,23 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
                     <option value="fr">French</option>
                     <option value="de">German</option>
                   </select>
+                </SettingRow>
+              </div>
+
+              <div className="p-4 rounded-[16px]" style={{ background: '#FFF4F4', border: '1px solid #FFE5E5' }}>
+                <SettingRow icon={Trash2} title="Reset all data" desc="Clear all diagrams and local storage">
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete all diagrams and settings? This cannot be undone.')) {
+                        localStorage.clear();
+                        window.location.reload();
+                      }
+                    }}
+                    className="px-4 py-2 text-sm font-medium rounded-lg text-white hover:opacity-90 transition-opacity"
+                    style={{ background: '#E5484D' }}
+                  >
+                    Reset Data
+                  </button>
                 </SettingRow>
               </div>
             </div>
