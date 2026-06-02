@@ -59,10 +59,10 @@ export default function SimpleFloatingEdge({
       const tY = (targetNode as any).positionAbsolute?.y ?? targetNode.position.y;
 
       // Handle both v11 (width/height directly on node) and v12 (measured object)
-      const sWidth = (sourceNode as any).measured?.width ?? sourceNode.width ?? 200;
-      const sHeight = (sourceNode as any).measured?.height ?? sourceNode.height ?? 80;
-      const tWidth = (targetNode as any).measured?.width ?? targetNode.width ?? 200;
-      const tHeight = (targetNode as any).measured?.height ?? targetNode.height ?? 80;
+      const sWidth = (sourceNode as any).measured?.width ?? sourceNode.width ?? sourceNode.data?.nodeWidth ?? 200;
+      const sHeight = (sourceNode as any).measured?.height ?? sourceNode.height ?? sourceNode.data?.nodeHeight ?? 80;
+      const tWidth = (targetNode as any).measured?.width ?? targetNode.width ?? targetNode.data?.nodeWidth ?? 200;
+      const tHeight = (targetNode as any).measured?.height ?? targetNode.height ?? targetNode.data?.nodeHeight ?? 80;
 
       const sourceRect = { x: sX, y: sY, width: sWidth, height: sHeight };
       const targetRect = { x: tX, y: tY, width: tWidth, height: tHeight };

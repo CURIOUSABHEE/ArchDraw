@@ -1,84 +1,99 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import gsap from 'gsap';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
 export function CTASection() {
   const router = useRouter();
-  const sectionRef = useRef<HTMLElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
 
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    const els = section.querySelectorAll('.reveal');
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-    els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
+  const springConfig = { damping: 15, stiffness: 150, mass: 0.1 };
+  const springX = useSpring(x, springConfig);
+  const springY = useSpring(y, springConfig);
 
-  useEffect(() => {
-    const btn = btnRef.current;
-    if (!btn) return;
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = btn.getBoundingClientRect();
-      const deltaX = (e.clientX - (rect.left + rect.width / 2)) * 0.25;
-      const deltaY = (e.clientY - (rect.top + rect.height / 2)) * 0.25;
-      gsap.to(btn, { x: deltaX, y: deltaY, duration: 0.3, ease: 'power2.out' });
-    };
-    const handleMouseLeave = () => {
-      gsap.to(btn, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.4)' });
-    };
-    btn.addEventListener('mousemove', handleMouseMove);
-    btn.addEventListener('mouseleave', handleMouseLeave);
-    return () => {
-      btn.removeEventListener('mousemove', handleMouseMove);
-      btn.removeEventListener('mouseleave', handleMouseLeave);
-    };
-  }, []);
+  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    x.set((e.clientX - centerX) * 0.25);
+    y.set((e.clientY - centerY) * 0.25);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
 
   return (
-    <section ref={sectionRef} className="py-32 px-6 relative overflow-hidden">
+    <section className="py-32 px-6 relative overflow-hidden">
       {/* Floating card container */}
-      <div className="max-w-3xl mx-auto bg-card rounded-3xl p-12 shadow-soft-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+        className="max-w-3xl mx-auto bg-card rounded-3xl p-12 shadow-soft-4"
+      >
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="reveal text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-foreground">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-foreground"
+          >
             <span>Start building your</span>
             <br />
             <span className="bg-gradient-to-r from-primary to-gray-500 bg-clip-text text-transparent">
               architecture today.
             </span>
-          </h2>
-          <p className="reveal reveal-delay-1 text-lg mb-10 text-muted-foreground">
+          </motion.h2>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-lg mb-10 text-muted-foreground"
+          >
             No account needed. No credit card. Just your ideas.
-          </p>
-          <button
+          </motion.p>
+          
+          <motion.button
             ref={btnRef}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            style={{ x: springX, y: springY }}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
             onClick={() => router.push('/editor')}
-            className="reveal reveal-delay-2 will-change-transform text-lg px-10 py-4 rounded-xl hover:opacity-90 transition-all shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-gray-500 text-white"
+            className="text-lg px-10 py-4 rounded-xl transition-all shadow-soft-2 hover:shadow-soft-3 bg-primary text-primary-foreground"
           >
             Open the canvas →
-          </button>
-          <p className="text-sm mt-4 text-muted-foreground">
+          </motion.button>
+          
+          <motion.p 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.5 }}
+            className="text-sm mt-6 text-muted-foreground"
+          >
             New to system design?{' '}
             <Link href="/tutorials" className="text-primary hover:opacity-80 transition-opacity">
               Start with an interactive tutorial →
             </Link>
-          </p>
+          </motion.p>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

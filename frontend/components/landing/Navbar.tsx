@@ -16,10 +16,8 @@ export function Navbar() {
   return (
     <>
       <header
-        className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[1200px] mx-auto rounded-2xl"
+        className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[1200px] mx-auto rounded-2xl bg-card shadow-soft-2"
         style={{ 
-          background: '#ffffff', 
-          boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
           padding: '18px 24px',
           marginTop: '16px'
         }}
@@ -27,7 +25,7 @@ export function Navbar() {
         <div className="flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2.5 group">
             <Image src="/image.png" alt="ArchDraw Logo" width={28} height={28} className="transition-transform group-hover:scale-105" />
-            <span className="text-lg font-semibold text-gray-800 tracking-tight">ArchDraw</span>
+            <span className="text-lg font-semibold text-foreground tracking-tight">ArchDraw</span>
           </Link>
 
           <nav className="hidden md:flex gap-8">
@@ -35,7 +33,7 @@ export function Navbar() {
               <Link
                 key={item}
                 href={item === 'Tutorials' ? '/tutorials' : item === 'Blog' ? '/blog' : `#${item.toLowerCase().replace(' ', '-')}`}
-                className="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {item}
               </Link>
@@ -45,21 +43,20 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             <button
               onClick={() => setAuthModalOpen(true)}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 rounded-xl hover:bg-gray-100 transition-all"
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-xl hover:bg-accent transition-all"
             >
               Sign in
             </button>
             <button
               onClick={() => router.push('/editor')}
-              className="px-4 py-2 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-all shadow-md hover:shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #595959, #8A8A8A)' }}
+              className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-all shadow-soft-2"
             >
               Start designing
             </button>
           </div>
 
           <button
-            className="md:hidden text-gray-500 hover:text-gray-800 p-2"
+            className="md:hidden text-muted-foreground hover:text-foreground p-2"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
@@ -71,13 +68,13 @@ export function Navbar() {
         </div>
 
         {mobileOpen && (
-          <div className="md:hidden border-t border-gray-100 rounded-b-2xl mt-3 pt-2">
+          <div className="md:hidden border-t border-border rounded-b-2xl mt-3 pt-2">
             <div className="px-2 pt-2 pb-6 space-y-1">
               {NAV_LINKS.map((item) => (
                 <Link
                   key={item}
                   href={item === 'Tutorials' ? '/tutorials' : item === 'Blog' ? '/blog' : `#${item.toLowerCase().replace(' ', '-')}`}
-                  className="block px-3 py-3 text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-xl"
+                  className="block px-3 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl"
                   onClick={() => setMobileOpen(false)}
                 >
                   {item}
@@ -90,14 +87,13 @@ export function Navbar() {
                     setMobileOpen(false);
                     setAuthModalOpen(true);
                   }}
-                  className="w-full px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-xl transition-all"
+                  className="w-full px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl transition-all"
                 >
                   Sign in
                 </button>
                 <button
                   onClick={() => router.push('/editor')}
-                  className="w-full px-4 py-2.5 text-sm font-medium text-white rounded-xl hover:opacity-90 transition-all"
-                  style={{ background: 'linear-gradient(135deg, #595959, #8A8A8A)' }}
+                  className="w-full px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-all shadow-soft-2"
                 >
                   Start designing
                 </button>

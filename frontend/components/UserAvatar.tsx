@@ -271,22 +271,7 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
                 </SettingRow>
               </div>
 
-              <div className="p-4 rounded-[16px]" style={{ background: '#FFF4F4', border: '1px solid #FFE5E5' }}>
-                <SettingRow icon={Trash2} title="Reset all data" desc="Clear all diagrams and local storage">
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to delete all diagrams and settings? This cannot be undone.')) {
-                        localStorage.clear();
-                        window.location.reload();
-                      }
-                    }}
-                    className="px-4 py-2 text-sm font-medium rounded-lg text-white hover:opacity-90 transition-opacity"
-                    style={{ background: '#E5484D' }}
-                  >
-                    Reset Data
-                  </button>
-                </SettingRow>
-              </div>
+
             </div>
           )}
 
@@ -351,6 +336,23 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
               <button className="w-full py-3 text-sm font-medium text-white rounded-[14px] hover:opacity-90" style={{ background: '#1A1A1A', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' }}>
                 Save changes
               </button>
+
+              <div className="p-4 mt-6 rounded-[16px]" style={{ background: '#FFF4F4', border: '1px solid #FFE5E5' }}>
+                <SettingRow icon={Trash2} title="Reset all data" desc="Clear all diagrams and local storage">
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete all diagrams and settings? This cannot be undone.')) {
+                        localStorage.clear();
+                        window.location.reload();
+                      }
+                    }}
+                    className="px-4 py-2 text-sm font-medium rounded-lg text-white hover:opacity-90 transition-opacity"
+                    style={{ background: '#E5484D' }}
+                  >
+                    Reset Data
+                  </button>
+                </SettingRow>
+              </div>
             </div>
           )}
 

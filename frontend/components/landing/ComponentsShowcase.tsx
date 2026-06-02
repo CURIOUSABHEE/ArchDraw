@@ -37,10 +37,10 @@ export function ComponentsShowcase() {
     <section ref={sectionRef} className="py-28 px-6" id="components">
       <div className="max-w-5xl mx-auto">
         {/* Floating card container */}
-        <div className="bg-white rounded-3xl p-8 md:p-12" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+        <div className="bg-card rounded-3xl p-8 md:p-12 shadow-soft-4">
           <header className="reveal text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#5A5A5A' }}>Components</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: '#1e293b' }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-4 text-muted-foreground">Components</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
               150+ components. Every layer covered.
             </h2>
           </header>
@@ -51,7 +51,7 @@ export function ComponentsShowcase() {
                 key={cat.label}
                 className={`reveal reveal-delay-${Math.min(i + 1, 5)} flex items-start gap-6`}
               >
-                <span className="text-xs font-medium uppercase tracking-wider w-28 shrink-0 pt-2" style={{ color: '#94a3b8' }}>{cat.label}</span>
+                <span className="text-xs font-medium uppercase tracking-wider w-28 shrink-0 pt-2 text-muted-foreground">{cat.label}</span>
                 <div className="flex flex-wrap gap-2">
                   {cat.chips.map((chip) => (
                     <span
