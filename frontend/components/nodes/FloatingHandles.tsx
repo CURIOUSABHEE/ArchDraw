@@ -5,93 +5,103 @@ import { Handle, Position, useUpdateNodeInternals } from 'reactflow';
 
 interface FloatingHandlesProps {
   nodeId: string;
-  rightOffset?: number;
-  leftOffset?: number;
-  topOffset?: number;
-  bottomOffset?: number;
 }
 
-export function FloatingHandles({
-  nodeId,
-  rightOffset = 24,
-  leftOffset = -14,
-  topOffset = -14,
-  bottomOffset = 24,
-}: FloatingHandlesProps) {
+/**
+ * FloatingHandles renders one invisible source+target handle per side.
+ *
+ * SimpleFloatingEdge computes all geometry independently — these handles
+ * exist solely so React Flow does not drop edges that reference this node.
+ * They are fully transparent, pointer-events: none, and positioned at the
+ * exact centre of each edge so only ONE dot appears per side when hovered.
+ */
+export function FloatingHandles({ nodeId }: FloatingHandlesProps) {
   const updateNodeInternals = useUpdateNodeInternals();
 
   useEffect(() => {
     updateNodeInternals(nodeId);
   }, [nodeId, updateNodeInternals]);
 
-  const handleStyle = {
+  const ghost: React.CSSProperties = {
     opacity: 0,
-    width: 8,
-    height: 8,
+    width: 1,
+    height: 1,
     border: 'none',
     background: 'transparent',
+    pointerEvents: 'none',
+    minWidth: 0,
+    minHeight: 0,
   };
 
   return (
     <>
+      {/* Left — single centred handle pair */}
       <Handle
         type="target"
         position={Position.Left}
         id="target-left"
-        style={{ ...handleStyle, left: leftOffset, top: 'calc(50% - 20px)', transform: 'translateY(-50%)' }}
+        style={{ ...ghost, left: 0, top: '50%', transform: 'translate(-50%, -50%)' }}
       />
       <Handle
         type="source"
         position={Position.Left}
         id="source-left"
-        style={{ ...handleStyle, left: leftOffset, top: 'calc(50% + 20px)', transform: 'translateY(-50%)' }}
+        style={{ ...ghost, left: 0, top: '50%', transform: 'translate(-50%, -50%)' }}
       />
 
+      {/* Right — single centred handle pair */}
       <Handle
         type="target"
         position={Position.Right}
         id="target-right"
-        style={{ ...handleStyle, right: -rightOffset, top: 'calc(50% + 20px)', transform: 'translateY(-50%)' }}
+        style={{ ...ghost, right: 0, top: '50%', transform: 'translate(50%, -50%)' }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="source-right"
-        style={{ ...handleStyle, right: -rightOffset, top: 'calc(50% - 20px)', transform: 'translateY(-50%)' }}
+        style={{ ...ghost, right: 0, top: '50%', transform: 'translate(50%, -50%)' }}
       />
 
+      {/* Top — single centred handle pair */}
       <Handle
         type="target"
         position={Position.Top}
         id="target-top"
-        style={{ ...handleStyle, top: topOffset, left: 'calc(50% + 20px)', transform: 'translateX(-50%)' }}
+        style={{ ...ghost, top: 0, left: '50%', transform: 'translate(-50%, -50%)' }}
       />
       <Handle
         type="source"
         position={Position.Top}
         id="source-top"
-        style={{ ...handleStyle, top: topOffset, left: 'calc(50% - 20px)', transform: 'translateX(-50%)' }}
+        style={{ ...ghost, top: 0, left: '50%', transform: 'translate(-50%, -50%)' }}
       />
 
+      {/* Bottom — single centred handle pair */}
       <Handle
         type="target"
         position={Position.Bottom}
         id="target-bottom"
-        style={{ ...handleStyle, bottom: -bottomOffset, left: 'calc(50% - 20px)', transform: 'translateX(-50%)' }}
+        style={{ ...ghost, bottom: 0, left: '50%', transform: 'translate(-50%, 50%)' }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="source-bottom"
-        style={{ ...handleStyle, bottom: -bottomOffset, left: 'calc(50% + 20px)', transform: 'translateX(-50%)' }}
+        style={{ ...ghost, bottom: 0, left: '50%', transform: 'translate(-50%, 50%)' }}
       />
 
-      {/* Dummy handles for edges that don't specify sourceHandle/targetHandle.
-          React Flow will drop edges if it can't find a matching handle.
-          Our SimpleFloatingEdge component calculates the actual routing dynamically,
-          so these just need to exist to satisfy React Flow's validation. */}
-      <Handle type="source" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
-      <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
+      {/* Generic fallback handles for edges that don't specify a handleId */}
+      <Handle
+        type="source"
+        position={Position.Top}
+        style={{ ...ghost, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+      />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ ...ghost, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+      />
     </>
   );
 }
