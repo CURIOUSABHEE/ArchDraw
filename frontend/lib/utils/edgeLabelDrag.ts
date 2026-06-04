@@ -5,9 +5,9 @@
 export function getPointOnPath(
   pathD: string,
   t: number
-): { x: number; y: number } {
+): { x: number; y: number; angle: number } {
   if (typeof window === 'undefined') {
-    return { x: 0, y: 0 };
+    return { x: 0, y: 0, angle: 0 };
   }
 
   try {
@@ -23,12 +23,35 @@ export function getPointOnPath(
 
     const totalLength = path.getTotalLength();
     const clamped = Math.max(0, Math.min(1, t));
-    const point = path.getPointAtLength(totalLength * clamped);
+    const tLength = totalLength * clamped;
+    const point = path.getPointAtLength(tLength);
+
+    // Calculate tangent angle at position
+    const offset = 1; // 1px sample distance
+    const length2 = (tLength + offset <= totalLength) 
+      ? tLength + offset 
+      : tLength - offset;
+    const point2 = path.getPointAtLength(length2);
+
+    const multiplier = (tLength + offset <= totalLength) ? 1 : -1;
+    const dx = (point2.x - point.x) * multiplier;
+    const dy = (point2.y - point.y) * multiplier;
+
+    let angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+    // Normalize to [-180, 180]
+    while (angle < -180) angle += 360;
+    while (angle > 180) angle -= 360;
+
+    // Keep text upright
+    if (angle > 90 || angle < -90) {
+      angle += 180;
+    }
 
     document.body.removeChild(svg);
-    return { x: point.x, y: point.y };
+    return { x: point.x, y: point.y, angle };
   } catch {
-    return { x: 0, y: 0 };
+    return { x: 0, y: 0, angle: 0 };
   }
 }
 

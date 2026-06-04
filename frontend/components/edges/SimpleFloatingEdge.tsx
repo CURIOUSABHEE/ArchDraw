@@ -111,15 +111,7 @@ export default function SimpleFloatingEdge({
     [edges, source, target]
   );
   const labelOrder = Math.max(0, parallelEdges.findIndex((edge) => edge.id === id));
-  
-  // Calculate canonical distribution of label along path to avoid overlaps
-  const canonicalT = parallelEdges.length > 1
-    ? Math.max(0.2, Math.min(0.8, 0.5 + ((labelOrder - (parallelEdges.length - 1) / 2) * 0.18)))
-    : 0.5;
-
-  // Determine direction canonicality based on node IDs comparison
-  const isCanonical = source.localeCompare(target) < 0;
-  const labelT = data?.labelT ?? (isCanonical ? canonicalT : 1 - canonicalT);
+  const labelT = data?.labelT ?? (parallelEdges.length > 1 ? Math.max(0.2, Math.min(0.8, 0.5 + ((labelOrder - (parallelEdges.length - 1) / 2) * 0.15))) : 0.5);
 
   // Calculate edge offset for parallel edges
   const edgeOffset = parallelEdges.length > 1 
@@ -155,11 +147,11 @@ export default function SimpleFloatingEdge({
 
   // Compute label position from labelT along the SVG path
   const labelPos = useMemo(() => {
-    if (!edgeLabel) return { x: (finalSx + finalTx) / 2 || 0, y: (finalSy + finalTy) / 2 || 0 };
+    if (!edgeLabel) return { x: (finalSx + finalTx) / 2 || 0, y: (finalSy + finalTy) / 2 || 0, angle: 0 };
     try {
       return getPointOnPath(edgePath, labelT);
     } catch (e) {
-      return { x: (finalSx + finalTx) / 2 || 0, y: (finalSy + finalTy) / 2 || 0 };
+      return { x: (finalSx + finalTx) / 2 || 0, y: (finalSy + finalTy) / 2 || 0, angle: 0 };
     }
   }, [edgePath, labelT, edgeLabel, finalSx, finalSy, finalTx, finalTy]);
 
@@ -243,7 +235,7 @@ export default function SimpleFloatingEdge({
             }}
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelPos.x}px, ${labelPos.y}px)`,
+              transform: `translate(-50%, -50%) translate(${labelPos.x}px, ${labelPos.y}px) rotate(${labelPos.angle ?? 0}deg)`,
               pointerEvents: 'all',
               cursor: dragging ? 'grabbing' : 'grab',
               zIndex: 1000,

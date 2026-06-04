@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { SupabaseClient, User, Session, AuthError } from '@supabase/supabase-js';
+import { SupabaseClient, User, Session } from '@supabase/supabase-js';
 import { getSupabaseClient, isSupabaseConfigured, checkSupabaseReachability, isReachable } from '@/lib/supabase';
 import logger from '@/lib/logger';
 
@@ -54,7 +54,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Wrap getSession in a timeout to prevent indefinite hangs (e.g. from Web Locks API issues)
       const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<{ data: { session: Session | null }, error: AuthError | null }>((_, reject) => {
+      const timeoutPromise = new Promise<{ data: { session: Session | null }, error: unknown }>((_, reject) => {
         setTimeout(() => reject(new Error('Supabase getSession timed out - operating in offline mode')), 3000);
       });
       
@@ -62,7 +62,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       if (error) {
         // Specifically catch and silence AuthRetryableFetchError in logs if we are offline
-        if (error.name === 'AuthRetryableFetchError') {
+        const errName = (error && typeof error === 'object' && 'name' in error)
+          ? (error as { name?: string }).name
+          : undefined;
+
+        if (errName === 'AuthRetryableFetchError') {
           logger.warn('[Auth] Operating in offline mode due to fetch error');
           set({ user: { id: 'guest', email: 'guest@local' } as User, loading: false, initialized: true });
           return;
