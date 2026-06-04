@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AuthModal } from '@/components/AuthModal';
@@ -17,14 +17,294 @@ import {
   MousePointer2,
   Lock,
   Menu,
-  X
+  X,
+  Laptop,
+  Network,
+  Database
 } from 'lucide-react';
+
+interface MockupNodeProps {
+  id: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  title: string;
+  subtitle: string;
+  accentColor: string;
+  hasLeftHandle?: boolean;
+  hasRightHandle?: boolean;
+  icon: React.ReactNode;
+  isDragging?: boolean;
+  onDragStart?: (id: string, clientX: number, clientY: number, e: React.MouseEvent | React.TouchEvent) => void;
+}
+
+function MockupNode({ 
+  id,
+  left, 
+  top, 
+  width, 
+  height, 
+  title, 
+  subtitle, 
+  accentColor, 
+  hasLeftHandle = true, 
+  hasRightHandle = true, 
+  icon,
+  isDragging = false,
+  onDragStart
+}: MockupNodeProps) {
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (onDragStart) {
+      onDragStart(id, e.clientX, e.clientY, e);
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches && e.touches[0] && onDragStart) {
+      onDragStart(id, e.touches[0].clientX, e.touches[0].clientY, e);
+    }
+  };
+
+  return (
+    <div 
+      className="absolute z-10 select-none"
+      style={{ 
+        left: `${left}px`, 
+        top: `${top}px`, 
+        width: `${width}px`, 
+        height: `${height}px`,
+        cursor: isDragging ? 'grabbing' : 'grab'
+      }}
+    >
+      {/* Stacked Backplates (plate design) */}
+      <div 
+        className="absolute inset-0 rounded-[16px] bg-[#0d0f1b] translate-x-[10px] translate-y-[10px] z-0 border border-[#2a2d38]/20 transition-all duration-75"
+        style={{
+          transform: isDragging ? 'translate(6px, 6px)' : 'translate(10px, 10px)'
+        }}
+      />
+      <div 
+        className="absolute inset-0 rounded-[16px] bg-[#151828] translate-x-[5px] translate-y-[5px] z-10 border border-[#2a2d38]/40 transition-all duration-75"
+        style={{
+          transform: isDragging ? 'translate(3px, 3px)' : 'translate(5px, 5px)'
+        }}
+      />
+      
+      {/* Main Node Card */}
+      <div 
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        className={`absolute inset-0 rounded-[16px] bg-[#1e2235] border p-3.5 flex items-center gap-3 z-20 shadow-lg select-none transition-all duration-75 ${
+          isDragging 
+            ? 'border-[#6b74e8] shadow-[0_0_15px_rgba(107,116,232,0.3)] scale-[1.02]' 
+            : 'border-[#2a2d38] hover:border-[#6b74e8]/50'
+        }`}
+      >
+        {/* Left handle */}
+        {hasLeftHandle && (
+          <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-[#6b74e8] z-30" />
+        )}
+        
+        {/* Icon Box */}
+        <div 
+          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: `${accentColor}12`, color: accentColor }}
+        >
+          {icon}
+        </div>
+        
+        {/* Text Details */}
+        <div className="flex flex-col min-w-0 flex-grow text-left pointer-events-none">
+          <span className="text-[12px] font-bold text-[#f0f2f7] truncate leading-tight">{title}</span>
+          <span className="text-[10px] text-[#9099b0] truncate mt-0.5">{subtitle}</span>
+        </div>
+        
+        {/* Status Dot */}
+        <div className="w-1.5 h-1.5 rounded-full bg-[#2db563] shrink-0 self-end mb-0.5" />
+        
+        {/* Right handle */}
+        {hasRightHandle && (
+          <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-[#6b74e8] z-30" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+const getIcon = (type: string) => {
+  switch (type) {
+    case 'laptop': return <Laptop size={14} />;
+    case 'network': return <Network size={14} />;
+    case 'lock': return <Lock size={14} />;
+    case 'terminal': return <Terminal size={14} />;
+    case 'database': return <Database size={14} />;
+    default: return null;
+  }
+};
+
+function getRoundedStepPath(x1: number, y1: number, x2: number, y2: number, r = 8) {
+  if (Math.abs(y1 - y2) < 4) {
+    return `M ${x1} ${y1} L ${x2} ${y2}`;
+  }
+  const mx = (x1 + x2) / 2;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  
+  const signX = Math.sign(dx) || 1;
+  const signY = Math.sign(dy) || 1;
+  
+  const radius = Math.min(r, Math.abs(mx - x1), Math.abs(dy) / 2);
+  
+  if (radius < 2) {
+    return `M ${x1} ${y1} L ${mx} ${y1} L ${mx} ${y2} L ${x2} ${y2}`;
+  }
+  
+  const turn1Start = mx - signX * radius;
+  const turn1End = y1 + signY * radius;
+  const turn2Start = y2 - signY * radius;
+  const turn2End = mx + signX * radius;
+  
+  return `M ${x1} ${y1} ` +
+         `L ${turn1Start} ${y1} ` +
+         `Q ${mx} ${y1} ${mx} ${turn1End} ` +
+         `L ${mx} ${turn2Start} ` +
+         `Q ${mx} ${y2} ${turn2End} ${y2} ` +
+         `L ${x2} ${y2}`;
+}
 
 export default function Home() {
   const router = useRouter();
   const [isAnnual, setIsAnnual] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Responsive scaling for mockup canvas
+  const [scale, setScale] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth;
+        if (width < 1200) {
+          setScale(width / 1200);
+        } else {
+          setScale(1);
+        }
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Mockup Node coordinates and attributes state
+  const [mockupNodes, setMockupNodes] = useState([
+    { id: 'web-app', title: 'Web App', subtitle: 'React, Next.js', x: 80, y: 265, width: 160, height: 70, accentColor: '#6b74e8', iconType: 'laptop', hasLeftHandle: false, hasRightHandle: true },
+    { id: 'api-gateway', title: 'API Gateway', subtitle: 'AWS API Gateway', x: 440, y: 265, width: 160, height: 70, accentColor: '#6b74e8', iconType: 'network', hasLeftHandle: true, hasRightHandle: true },
+    { id: 'auth-service', title: 'Auth Service', subtitle: 'JWT / OAuth2', x: 760, y: 155, width: 160, height: 70, accentColor: '#6b74e8', iconType: 'lock', hasLeftHandle: true, hasRightHandle: true },
+    { id: 'order-service', title: 'Order Service', subtitle: 'Go, gRPC', x: 760, y: 375, width: 160, height: 70, accentColor: '#6b74e8', iconType: 'terminal', hasLeftHandle: true, hasRightHandle: true },
+    { id: 'postgresql', title: 'PostgreSQL', subtitle: 'Primary DB', x: 1000, y: 265, width: 160, height: 70, accentColor: '#1a9e75', iconType: 'database', hasLeftHandle: true, hasRightHandle: false },
+  ]);
+
+  // Drag tracking refs
+  const dragInfoRef = useRef<{
+    nodeId: string;
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+  } | null>(null);
+
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+
+  const handleDragStart = useCallback((id: string, clientX: number, clientY: number, e: React.MouseEvent | React.TouchEvent) => {
+    // Prevent default behaviour for synthetic mouse/touch events to stop selections
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+    const node = mockupNodes.find((n) => n.id === id);
+    if (!node) return;
+
+    dragInfoRef.current = {
+      nodeId: id,
+      startX: clientX,
+      startY: clientY,
+      initialX: node.x,
+      initialY: node.y,
+    };
+    setDraggingNodeId(id);
+  }, [mockupNodes]);
+
+  useEffect(() => {
+    const handleMove = (clientX: number, clientY: number) => {
+      if (!dragInfoRef.current) return;
+      const { nodeId, startX, startY, initialX, initialY } = dragInfoRef.current;
+      
+      const dx = (clientX - startX) / (scale || 1);
+      const dy = (clientY - startY) / (scale || 1);
+
+      setMockupNodes((prevNodes) =>
+        prevNodes.map((n) => {
+          if (n.id !== nodeId) return n;
+
+          // Clamp node coordinates to keep them inside the bounds of the mockup canvas [1200, 600]
+          const newX = Math.max(10, Math.min(1200 - n.width - 25, initialX + dx));
+          const newY = Math.max(10, Math.min(600 - n.height - 25, initialY + dy));
+
+          return { ...n, x: newX, y: newY };
+        })
+      );
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handleMove(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches && e.touches[0]) {
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleEnd = () => {
+      if (dragInfoRef.current) {
+        dragInfoRef.current = null;
+        setDraggingNodeId(null);
+      }
+    };
+
+    if (draggingNodeId) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleEnd);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleEnd);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [draggingNodeId]);
+
+  const getNodeCenterOrHandle = (id: string, handleSide: 'left' | 'right') => {
+    const node = mockupNodes.find((n) => n.id === id);
+    if (!node) return { x: 0, y: 0 };
+    const x = handleSide === 'left' ? node.x : node.x + node.width;
+    const y = node.y + node.height / 2;
+    return { x, y };
+  };
+
+  const edgesData = [
+    { source: 'web-app', target: 'api-gateway', label: 'HTTPS' },
+    { source: 'api-gateway', target: 'auth-service', label: 'REST' },
+    { source: 'api-gateway', target: 'order-service', label: 'gRPC' },
+    { source: 'auth-service', target: 'postgresql', label: '' },
+    { source: 'order-service', target: 'postgresql', label: 'SQL' },
+  ];
 
   return (
     <>
@@ -137,104 +417,150 @@ export default function Home() {
           </div>
 
           {/* Product Editor Mockup */}
-          <div id="example" className="relative w-full aspect-[16/10] max-w-[950px] mx-auto rounded-xl border border-[#2a2d38] bg-[#13151a] overflow-hidden select-none">
-            {/* Grid Canvas Background */}
+          <div ref={containerRef} className="w-full flex justify-center py-4 overflow-hidden">
             <div 
-              className="absolute inset-0 z-0" 
-              style={{
-                backgroundImage: 'radial-gradient(#1e2130 1.5px, transparent 1.5px)',
-                backgroundSize: '24px 24px'
+              style={{ 
+                width: `${1200 * scale}px`, 
+                height: `${600 * scale}px`,
+                position: 'relative'
               }}
-            />
+              className="shrink-0 transition-all duration-150"
+            >
+              <div 
+                style={{ 
+                  transform: `scale(${scale})`, 
+                  transformOrigin: 'top left',
+                  width: '1200px',
+                  height: '600px',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0
+                }}
+                className="shrink-0"
+              >
+                <div id="example" className="relative w-[1200px] h-[600px] mx-auto rounded-xl border border-[#2a2d38] bg-[#0c0d0f] overflow-hidden select-none shrink-0 shadow-2xl">
+              {/* Grid Canvas Background */}
+              <div 
+                className="absolute inset-0 z-0" 
+                style={{
+                  backgroundImage: 'radial-gradient(#1e2130 1.5px, transparent 1.5px)',
+                  backgroundSize: '24px 24px'
+                }}
+              />
 
-            {/* Left Toolbar */}
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-11 rounded-lg bg-[#1a1d24] border border-[#2a2d38] py-4 flex flex-col items-center gap-5 shadow-lg">
-              <div className="p-1.5 rounded bg-[#6b74e8]/10 text-[#6b74e8]">
-                <MousePointer2 size={16} />
+              {/* Top Editor Header Panel */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 bg-[#1a1d24] border border-[#2a2d38] rounded-full px-5 py-2.5 text-xs text-[#9099b0] shadow-lg select-none">
+                <div className="flex items-center gap-2 border-r border-[#2a2d38] pr-4">
+                  <span className="font-bold text-[#f0f2f7]">Dashboard</span>
+                  <span className="text-[#5a6278]">/</span>
+                  <span className="text-[#f0f2f7]">Real-time chat application</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span>6 nodes</span>
+                  <span>8 edges</span>
+                </div>
               </div>
-              <div className="p-1.5 rounded text-[#9099b0] hover:text-[#f0f2f7] hover:bg-[#21242d] cursor-pointer">
-                <Layout size={16} />
-              </div>
-              <div className="p-1.5 rounded text-[#9099b0] hover:text-[#f0f2f7] hover:bg-[#21242d] cursor-pointer">
-                <Users size={16} />
-              </div>
-              <div className="p-1.5 rounded text-[#9099b0] hover:text-[#f0f2f7] hover:bg-[#21242d] cursor-pointer">
-                <Terminal size={16} />
-              </div>
-              <div className="w-6 h-px bg-[#2a2d38]" />
-              <div className="p-1.5 rounded text-[#9099b0] hover:text-[#f0f2f7] hover:bg-[#21242d] cursor-pointer">
-                <History size={16} />
-              </div>
-            </div>
 
-            {/* Editor Canvas Nodes */}
-            <div className="absolute inset-0 z-10 p-8 flex items-center justify-center">
-              
+              {/* Left Toolbar */}
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-11 rounded-lg bg-[#1a1d24] border border-[#2a2d38] py-4 flex flex-col items-center gap-5 shadow-lg">
+                <div className="p-1.5 rounded bg-[#6b74e8]/10 text-[#6b74e8]">
+                  <MousePointer2 size={16} />
+                </div>
+                <div className="p-1.5 rounded text-[#9099b0] hover:text-[#f0f2f7] hover:bg-[#21242d] cursor-pointer">
+                  <Layout size={16} />
+                </div>
+                <div className="p-1.5 rounded text-[#9099b0] hover:text-[#f0f2f7] hover:bg-[#21242d] cursor-pointer">
+                  <Users size={16} />
+                </div>
+                <div className="p-1.5 rounded text-[#9099b0] hover:text-[#f0f2f7] hover:bg-[#21242d] cursor-pointer">
+                  <Terminal size={16} />
+                </div>
+                <div className="w-6 h-px bg-[#2a2d38]" />
+                <div className="p-1.5 rounded text-[#9099b0] hover:text-[#f0f2f7] hover:bg-[#21242d] cursor-pointer">
+                  <History size={16} />
+                </div>
+              </div>
+
               {/* SVG Edges connecting nodes */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+              <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                     <path d="M 0 2 L 10 5 L 0 8 z" fill="#3a3d50" />
                   </marker>
                 </defs>
-                {/* Web App -> API Gateway */}
-                <path d="M 210 240 Q 280 240 310 240" stroke="#3a3d50" strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
-                {/* API Gateway -> Auth Service */}
-                <path d="M 470 220 Q 520 180 570 140" stroke="#3a3d50" strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
-                {/* API Gateway -> Order Service */}
-                <path d="M 470 260 Q 520 300 570 340" stroke="#3a3d50" strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
-                {/* Auth Service -> Database */}
-                <path d="M 730 140 Q 770 180 810 220" stroke="#3a3d50" strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
-                {/* Order Service -> Database */}
-                <path d="M 730 340 Q 770 300 810 260" stroke="#3a3d50" strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
+                
+                {edgesData.map((edge, index) => {
+                  const p1 = getNodeCenterOrHandle(edge.source, 'right');
+                  const p2 = getNodeCenterOrHandle(edge.target, 'left');
+                  const path = getRoundedStepPath(p1.x, p1.y, p2.x, p2.y);
+                  return (
+                    <path 
+                      key={index}
+                      d={path} 
+                      stroke="#3a3d50" 
+                      strokeWidth="2" 
+                      fill="none" 
+                      strokeLinejoin="round" 
+                      markerEnd="url(#arrow)" 
+                    />
+                  );
+                })}
               </svg>
 
-              {/* Node 1: Web App */}
-              <div className="absolute left-[8%] top-[38%] w-40 rounded-lg bg-[#1a1d24] border border-[#2a2d38] border-l-[4px] border-l-[#6b74e8] p-3 text-left shadow-lg">
-                <span className="text-[10px] font-bold tracking-wider text-[#6b74e8] block mb-1">COMPUTE</span>
-                <span className="text-[13px] font-bold text-[#f0f2f7] block leading-tight">Web App</span>
-                <span className="text-[11px] font-medium text-[#9099b0]">React, Next.js</span>
+              {/* Edge labels overlay */}
+              <div className="absolute inset-0 pointer-events-none z-30">
+                {edgesData.map((edge, index) => {
+                  if (!edge.label) return null;
+                  const p1 = getNodeCenterOrHandle(edge.source, 'right');
+                  const p2 = getNodeCenterOrHandle(edge.target, 'left');
+                  
+                  const labelX = (p1.x + p2.x) / 2;
+                  const labelY = Math.abs(p1.y - p2.y) < 5 ? p1.y : (p1.y + p2.y) / 2;
+                  
+                  return (
+                    <div 
+                      key={index}
+                      className="absolute bg-[#1a1d24] border border-[#2a2d38]/80 rounded px-1.5 py-0.5 text-[9px] font-bold text-[#9099b0] -translate-x-1/2 -translate-y-1/2 select-none shadow-md"
+                      style={{ left: `${labelX}px`, top: `${labelY}px` }}
+                    >
+                      {edge.label}
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Node 2: API Gateway */}
-              <div className="absolute left-[34%] top-[38%] w-40 rounded-lg bg-[#1a1d24] border border-[#2a2d38] border-l-[4px] border-l-[#6b74e8] p-3 text-left shadow-lg">
-                <span className="text-[10px] font-bold tracking-wider text-[#6b74e8] block mb-1">GATEWAY</span>
-                <span className="text-[13px] font-bold text-[#f0f2f7] block leading-tight">API Gateway</span>
-                <span className="text-[11px] font-medium text-[#9099b0]">AWS API Gateway</span>
-              </div>
+              {/* Editor Canvas Nodes with Stacked Plates & Handles */}
+              {mockupNodes.map((node) => (
+                <MockupNode
+                  key={node.id}
+                  id={node.id}
+                  left={node.x}
+                  top={node.y}
+                  width={node.width}
+                  height={node.height}
+                  title={node.title}
+                  subtitle={node.subtitle}
+                  accentColor={node.accentColor}
+                  hasLeftHandle={node.hasLeftHandle}
+                  hasRightHandle={node.hasRightHandle}
+                  icon={getIcon(node.iconType)}
+                  isDragging={draggingNodeId === node.id}
+                  onDragStart={handleDragStart}
+                />
+              ))}
 
-              {/* Node 3: Auth Service */}
-              <div className="absolute left-[60%] top-[18%] w-40 rounded-lg bg-[#1a1d24] border border-[#2a2d38] border-l-[4px] border-l-[#6b74e8] p-3 text-left shadow-lg">
-                <span className="text-[10px] font-bold tracking-wider text-[#6b74e8] block mb-1">SECURITY</span>
-                <span className="text-[13px] font-bold text-[#f0f2f7] block leading-tight">Auth Service</span>
-                <span className="text-[11px] font-medium text-[#9099b0]">JWT / OAuth2</span>
+              {/* Bottom: AI Prompt Bar */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-xl rounded-lg bg-[#21242d] border border-[#2a2d38] px-4 py-2.5 flex items-center justify-between shadow-2xl z-20">
+                <div className="flex items-center gap-2 text-left min-w-0">
+                  <span className="text-[#6b74e8] shrink-0 font-bold">✦</span>
+                  <span className="text-xs text-[#9099b0] truncate">Describe your architecture, or paste a GitHub repo link...</span>
+                </div>
+                <button className="bg-[#6b74e8] hover:bg-[#8990ff] text-white p-1 rounded transition-colors shrink-0">
+                  <ArrowRight size={14} />
+                </button>
               </div>
-
-              {/* Node 4: Order Service */}
-              <div className="absolute left-[60%] top-[58%] w-40 rounded-lg bg-[#1a1d24] border border-[#2a2d38] border-l-[4px] border-l-[#6b74e8] p-3 text-left shadow-lg">
-                <span className="text-[10px] font-bold tracking-wider text-[#6b74e8] block mb-1">SERVICE</span>
-                <span className="text-[13px] font-bold text-[#f0f2f7] block leading-tight">Order Service</span>
-                <span className="text-[11px] font-medium text-[#9099b0]">Go, gRPC</span>
+                </div>
               </div>
-
-              {/* Node 5: Database */}
-              <div className="absolute left-[83%] top-[38%] w-36 rounded-lg bg-[#1a1d24] border border-[#2a2d38] border-l-[4px] border-l-[#1a9e75] p-3 text-left shadow-lg">
-                <span className="text-[10px] font-bold tracking-wider text-[#1a9e75] block mb-1">DATABASE</span>
-                <span className="text-[13px] font-bold text-[#f0f2f7] block leading-tight">PostgreSQL</span>
-                <span className="text-[11px] font-medium text-[#9099b0]">Primary DB</span>
-              </div>
-
-            </div>
-
-            {/* Bottom: AI Prompt Bar */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-xl rounded-lg bg-[#21242d] border border-[#2a2d38] px-4 py-2.5 flex items-center justify-between shadow-2xl z-20">
-              <div className="flex items-center gap-2 text-left min-w-0">
-                <span className="text-[#6b74e8] shrink-0 font-bold">✦</span>
-                <span className="text-xs text-[#9099b0] truncate">Describe your architecture, or paste a GitHub repo link...</span>
-              </div>
-              <button className="bg-[#6b74e8] hover:bg-[#8990ff] text-white p-1 rounded transition-colors shrink-0">
-                <ArrowRight size={14} />
-              </button>
             </div>
           </div>
         </section>
