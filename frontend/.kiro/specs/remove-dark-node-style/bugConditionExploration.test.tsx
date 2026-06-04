@@ -67,9 +67,10 @@ function getBackplates(container: HTMLElement): HTMLElement[] {
     return style.position === 'absolute' &&
            style.borderRadius &&
            style.background &&
-           style.zIndex === '0';
+           (style.zIndex === '0' || style.zIndex === '1' || style.zIndex === '2');
   });
 }
+
 
 describe('Bug Condition Exploration: Dark Mode Gradient and Missing Backplates', () => {
   describe('Property 1: SystemNode Dark Mode Uses Plate Design (Not Gradient)', () => {
@@ -194,13 +195,15 @@ describe('Bug Condition Exploration: Dark Mode Gradient and Missing Backplates',
       // EXPECTED BEHAVIOR: Backplate offsets should match (10px and 5px)
       if (darkBackplates.length > 0 && lightBackplates.length > 0) {
         const darkOffsets = darkBackplates.map(bp => {
-          const top = parseInt((bp as HTMLElement).style.top) || 0;
-          return top;
+          const style = (bp as HTMLElement).style;
+          const match = style.transform.match(/translate\((\d+)px/);
+          return match ? parseInt(match[1]) : (parseInt(style.top) || 0);
         });
 
         const lightOffsets = lightBackplates.map(bp => {
-          const top = parseInt((bp as HTMLElement).style.top) || 0;
-          return top;
+          const style = (bp as HTMLElement).style;
+          const match = style.transform.match(/translate\((\d+)px/);
+          return match ? parseInt(match[1]) : (parseInt(style.top) || 0);
         });
 
         expect(darkOffsets).toEqual(lightOffsets);

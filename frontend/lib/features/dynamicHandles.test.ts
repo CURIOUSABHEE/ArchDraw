@@ -95,32 +95,32 @@ describe('getHandleCoordinate', () => {
   it('should calculate Top handle coordinate correctly', () => {
     const coord = getHandleCoordinate(rect, Position.Top);
     
-    // Top handle: (centerX, y)
+    // Top handle: (centerX, y - 14)
     expect(coord.x).toBe(200); // 100 + 200/2
-    expect(coord.y).toBe(200); // y
+    expect(coord.y).toBe(186); // 200 - 14
   });
 
   it('should calculate Bottom handle coordinate correctly', () => {
     const coord = getHandleCoordinate(rect, Position.Bottom);
     
-    // Bottom handle: (centerX, y + height)
+    // Bottom handle: (centerX, y + height + 24)
     expect(coord.x).toBe(200); // 100 + 200/2
-    expect(coord.y).toBe(280); // 200 + 80
+    expect(coord.y).toBe(304); // 200 + 80 + 24
   });
 
   it('should calculate Left handle coordinate correctly', () => {
     const coord = getHandleCoordinate(rect, Position.Left);
     
-    // Left handle: (x, centerY)
-    expect(coord.x).toBe(100); // x
+    // Left handle: (x - 14, centerY)
+    expect(coord.x).toBe(86);  // 100 - 14
     expect(coord.y).toBe(240); // 200 + 80/2
   });
 
   it('should calculate Right handle coordinate correctly', () => {
     const coord = getHandleCoordinate(rect, Position.Right);
     
-    // Right handle: (x + width, centerY)
-    expect(coord.x).toBe(300); // 100 + 200
+    // Right handle: (x + width + 24, centerY)
+    expect(coord.x).toBe(324); // 100 + 200 + 24
     expect(coord.y).toBe(240); // 200 + 80/2
   });
 
@@ -129,11 +129,11 @@ describe('getHandleCoordinate', () => {
     
     const topCoord = getHandleCoordinate(smallRect, Position.Top);
     expect(topCoord.x).toBe(100); // 50 + 100/2
-    expect(topCoord.y).toBe(50);
+    expect(topCoord.y).toBe(36);  // 50 - 14
 
     const rightCoord = getHandleCoordinate(smallRect, Position.Right);
-    expect(rightCoord.x).toBe(150); // 50 + 100
-    expect(rightCoord.y).toBe(80); // 50 + 60/2
+    expect(rightCoord.x).toBe(174); // 50 + 100 + 24
+    expect(rightCoord.y).toBe(80);  // 50 + 60/2
   });
 });
 

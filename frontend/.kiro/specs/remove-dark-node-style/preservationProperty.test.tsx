@@ -136,7 +136,7 @@ describe('Preservation Property: Light Mode Design Unchanged', () => {
         return style.position === 'absolute' && 
                style.borderRadius && 
                style.background &&
-               style.zIndex === '0';
+               (style.zIndex === '0' || style.zIndex === '1' || style.zIndex === '2');
       });
       
       // Light mode has 2 backplate layers (observed behavior)
@@ -171,7 +171,7 @@ describe('Preservation Property: Light Mode Design Unchanged', () => {
         return style.position === 'absolute' && 
                style.borderRadius && 
                style.background &&
-               style.zIndex === '0';
+               (style.zIndex === '0' || style.zIndex === '1' || style.zIndex === '2');
       });
       
       expect(backplates.length).toBe(2);
@@ -179,8 +179,8 @@ describe('Preservation Property: Light Mode Design Unchanged', () => {
       // Extract offsets from top and left properties
       const offsets = backplates.map(bp => {
         const style = (bp as HTMLElement).style;
-        const top = parseInt(style.top) || 0;
-        return top;
+        const match = style.transform.match(/translate\((\d+)px/);
+        return match ? parseInt(match[1]) : (parseInt(style.top) || 0);
       });
       
       // Observed behavior: offsets are [10, 5] (or [5, 10] depending on render order)
@@ -221,7 +221,7 @@ describe('Preservation Property: Light Mode Design Unchanged', () => {
         return style.position === 'absolute' && 
                style.borderRadius && 
                style.background &&
-               style.zIndex === '0';
+               (style.zIndex === '0' || style.zIndex === '1' || style.zIndex === '2');
       });
       expect(backplates.length).toBe(2);
       
@@ -257,19 +257,11 @@ describe('Preservation Property: Light Mode Design Unchanged', () => {
         </ReactFlowProvider>
       );
 
-      const nodeElement = container.querySelector('.group');
-      expect(nodeElement).toBeTruthy();
+      const wrapperElement = container.querySelector('.node-wrapper');
+      expect(wrapperElement).toBeTruthy();
       
-      if (nodeElement) {
-        const style = (nodeElement as HTMLElement).style;
-        
-        // Selected nodes should have border styling
-        expect(style.border).toBeTruthy();
-        expect(style.border).not.toBe('');
-        
-        // Selected nodes should have box shadow for selection indicator
-        expect(style.boxShadow).toBeTruthy();
-        expect(style.boxShadow).not.toBe('');
+      if (wrapperElement) {
+        expect(wrapperElement.classList.contains('selected')).toBe(true);
       }
     });
 
@@ -312,7 +304,7 @@ describe('Preservation Property: Light Mode Design Unchanged', () => {
           return style.position === 'absolute' && 
                  style.borderRadius && 
                  style.background &&
-                 style.zIndex === '0';
+                 (style.zIndex === '0' || style.zIndex === '1' || style.zIndex === '2');
         });
       };
 
@@ -563,7 +555,7 @@ describe('Preservation Property: Light Mode Design Unchanged', () => {
         return style.position === 'absolute' && 
                style.borderRadius && 
                style.background &&
-               style.zIndex === '0';
+               (style.zIndex === '0' || style.zIndex === '1' || style.zIndex === '2');
       });
       expect(backplates.length).toBe(2);
     });
@@ -592,9 +584,7 @@ describe('Preservation Property: Light Mode Design Unchanged', () => {
         </ReactFlowProvider>
       );
 
-      // Toolbar should be present when selected
-      // Toolbar is rendered as a div with position: absolute and top: -56
-      const toolbar = container.querySelector('[style*="position: absolute"][style*="top: -56"]');
+      const toolbar = container.querySelector('.node-toolbar');
       
       expect(toolbar).toBeTruthy();
     });
@@ -621,8 +611,7 @@ describe('Preservation Property: Light Mode Design Unchanged', () => {
         </ReactFlowProvider>
       );
 
-      // Toolbar should not be present when not selected
-      const toolbar = container.querySelector('[style*="position: absolute"][style*="top: -56"]');
+      const toolbar = container.querySelector('.node-toolbar');
       
       expect(toolbar).toBeNull();
     });

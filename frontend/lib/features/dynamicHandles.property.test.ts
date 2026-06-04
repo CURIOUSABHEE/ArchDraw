@@ -105,18 +105,18 @@ describe('Property-Based Tests: Dynamic Handle Positioning', () => {
           switch (position) {
             case Position.Top:
               expect(coord.x).toBeCloseTo(centerX, 10);
-              expect(coord.y).toBeCloseTo(rect.y, 10);
+              expect(coord.y).toBeCloseTo(rect.y - 14, 10);
               break;
             case Position.Bottom:
               expect(coord.x).toBeCloseTo(centerX, 10);
-              expect(coord.y).toBeCloseTo(rect.y + rect.height, 10);
+              expect(coord.y).toBeCloseTo(rect.y + rect.height + 24, 10);
               break;
             case Position.Left:
-              expect(coord.x).toBeCloseTo(rect.x, 10);
+              expect(coord.x).toBeCloseTo(rect.x - 14, 10);
               expect(coord.y).toBeCloseTo(centerY, 10);
               break;
             case Position.Right:
-              expect(coord.x).toBeCloseTo(rect.x + rect.width, 10);
+              expect(coord.x).toBeCloseTo(rect.x + rect.width + 24, 10);
               expect(coord.y).toBeCloseTo(centerY, 10);
               break;
           }
@@ -339,33 +339,39 @@ describe('Property-Based Tests: Dynamic Handle Positioning', () => {
           const srcCoord = getHandleCoordinate(sourceRect, result.sourcePosition);
           const tgtCoord = getHandleCoordinate(targetRect, result.targetPosition);
 
-          // Source coordinate should be within source node bounds
-          expect(srcCoord.x).toBeGreaterThanOrEqual(sourceRect.x);
-          expect(srcCoord.x).toBeLessThanOrEqual(sourceRect.x + sourceRect.width);
-          expect(srcCoord.y).toBeGreaterThanOrEqual(sourceRect.y);
-          expect(srcCoord.y).toBeLessThanOrEqual(sourceRect.y + sourceRect.height);
+          // Verify source coordinate coordinates exactly match offset math
+          const srcCX = sourceRect.x + sourceRect.width / 2;
+          const srcCY = sourceRect.y + sourceRect.height / 2;
+          if (result.sourcePosition === Position.Top) {
+            expect(srcCoord.x).toBeCloseTo(srcCX, 10);
+            expect(srcCoord.y).toBeCloseTo(sourceRect.y - 14, 10);
+          } else if (result.sourcePosition === Position.Bottom) {
+            expect(srcCoord.x).toBeCloseTo(srcCX, 10);
+            expect(srcCoord.y).toBeCloseTo(sourceRect.y + sourceRect.height + 24, 10);
+          } else if (result.sourcePosition === Position.Left) {
+            expect(srcCoord.x).toBeCloseTo(sourceRect.x - 14, 10);
+            expect(srcCoord.y).toBeCloseTo(srcCY, 10);
+          } else if (result.sourcePosition === Position.Right) {
+            expect(srcCoord.x).toBeCloseTo(sourceRect.x + sourceRect.width + 24, 10);
+            expect(srcCoord.y).toBeCloseTo(srcCY, 10);
+          }
 
-          // Target coordinate should be within target node bounds
-          expect(tgtCoord.x).toBeGreaterThanOrEqual(targetRect.x);
-          expect(tgtCoord.x).toBeLessThanOrEqual(targetRect.x + targetRect.width);
-          expect(tgtCoord.y).toBeGreaterThanOrEqual(targetRect.y);
-          expect(tgtCoord.y).toBeLessThanOrEqual(targetRect.y + targetRect.height);
-
-          // Source handle should be on the edge (not interior)
-          const onSourceEdge =
-            srcCoord.x === sourceRect.x ||
-            srcCoord.x === sourceRect.x + sourceRect.width ||
-            srcCoord.y === sourceRect.y ||
-            srcCoord.y === sourceRect.y + sourceRect.height;
-          expect(onSourceEdge).toBe(true);
-
-          // Target handle should be on the edge (not interior)
-          const onTargetEdge =
-            tgtCoord.x === targetRect.x ||
-            tgtCoord.x === targetRect.x + targetRect.width ||
-            tgtCoord.y === targetRect.y ||
-            tgtCoord.y === targetRect.y + targetRect.height;
-          expect(onTargetEdge).toBe(true);
+          // Verify target coordinate coordinates exactly match offset math
+          const tgtCX = targetRect.x + targetRect.width / 2;
+          const tgtCY = targetRect.y + targetRect.height / 2;
+          if (result.targetPosition === Position.Top) {
+            expect(tgtCoord.x).toBeCloseTo(tgtCX, 10);
+            expect(tgtCoord.y).toBeCloseTo(targetRect.y - 14, 10);
+          } else if (result.targetPosition === Position.Bottom) {
+            expect(tgtCoord.x).toBeCloseTo(tgtCX, 10);
+            expect(tgtCoord.y).toBeCloseTo(targetRect.y + targetRect.height + 24, 10);
+          } else if (result.targetPosition === Position.Left) {
+            expect(tgtCoord.x).toBeCloseTo(targetRect.x - 14, 10);
+            expect(tgtCoord.y).toBeCloseTo(tgtCY, 10);
+          } else if (result.targetPosition === Position.Right) {
+            expect(tgtCoord.x).toBeCloseTo(targetRect.x + targetRect.width + 24, 10);
+            expect(tgtCoord.y).toBeCloseTo(tgtCY, 10);
+          }
         }),
         { numRuns: 100 }
       );

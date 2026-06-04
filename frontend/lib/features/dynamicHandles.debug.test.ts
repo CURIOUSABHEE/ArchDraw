@@ -6,18 +6,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Position } from 'reactflow';
 import { getDynamicHandles, type NodeRect } from './dynamicHandles';
+import logger from '@/lib/logger';
 
 describe('getDynamicHandles - Debug Logging', () => {
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let loggerInfoSpy: ReturnType<typeof vi.spyOn>;
   let originalEnv: string | undefined;
 
   beforeEach(() => {
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    loggerInfoSpy = vi.spyOn(logger, 'info').mockImplementation(() => {});
     originalEnv = process.env.NEXT_PUBLIC_DEBUG_HANDLES;
   });
 
   afterEach(() => {
-    consoleLogSpy.mockRestore();
+    loggerInfoSpy.mockRestore();
     process.env.NEXT_PUBLIC_DEBUG_HANDLES = originalEnv;
   });
 
@@ -29,7 +30,7 @@ describe('getDynamicHandles - Debug Logging', () => {
 
     getDynamicHandles(sourceRect, targetRect);
 
-    expect(consoleLogSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).not.toHaveBeenCalled();
   });
 
   it('should NOT log when NEXT_PUBLIC_DEBUG_HANDLES is false', () => {
@@ -40,7 +41,7 @@ describe('getDynamicHandles - Debug Logging', () => {
 
     getDynamicHandles(sourceRect, targetRect);
 
-    expect(consoleLogSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).not.toHaveBeenCalled();
   });
 
   it('should log node centers, dx, dy, and dominant axis when debug is enabled', () => {
@@ -52,10 +53,10 @@ describe('getDynamicHandles - Debug Logging', () => {
     getDynamicHandles(sourceRect, targetRect, 'edge-1', 'node-1', 'node-2');
 
     // Should have been called 3 times: calculation, selected handles, performance
-    expect(consoleLogSpy).toHaveBeenCalledTimes(3);
+    expect(loggerInfoSpy).toHaveBeenCalledTimes(3);
 
     // First call should log calculation details
-    const firstCall = consoleLogSpy.mock.calls[0];
+    const firstCall = loggerInfoSpy.mock.calls[0];
     expect(firstCall[0]).toBe('[DynamicHandles] Calculation:');
     expect(firstCall[1]).toMatchObject({
       edgeId: 'edge-1',
@@ -71,7 +72,7 @@ describe('getDynamicHandles - Debug Logging', () => {
     });
 
     // Second call should log selected handles
-    const secondCall = consoleLogSpy.mock.calls[1];
+    const secondCall = loggerInfoSpy.mock.calls[1];
     expect(secondCall[0]).toBe('[DynamicHandles] Selected handles:');
     expect(secondCall[1]).toMatchObject({
       edgeId: 'edge-1',
@@ -90,14 +91,14 @@ describe('getDynamicHandles - Debug Logging', () => {
 
     getDynamicHandles(sourceRect, targetRect, 'edge-2', 'node-3', 'node-4');
 
-    const firstCall = consoleLogSpy.mock.calls[0];
+    const firstCall = loggerInfoSpy.mock.calls[0];
     expect(firstCall[1]).toMatchObject({
       dominantAxis: 'vertical',
       dx: 0,
       dy: 200,
     });
 
-    const secondCall = consoleLogSpy.mock.calls[1];
+    const secondCall = loggerInfoSpy.mock.calls[1];
     expect(secondCall[1]).toMatchObject({
       sourcePosition: Position.Bottom,
       targetPosition: Position.Top,
@@ -112,9 +113,9 @@ describe('getDynamicHandles - Debug Logging', () => {
 
     getDynamicHandles(sourceRect, targetRect);
 
-    expect(consoleLogSpy).toHaveBeenCalledTimes(3);
+    expect(loggerInfoSpy).toHaveBeenCalledTimes(3);
 
-    const firstCall = consoleLogSpy.mock.calls[0];
+    const firstCall = loggerInfoSpy.mock.calls[0];
     expect(firstCall[1]).toMatchObject({
       edgeId: undefined,
       sourceId: undefined,
@@ -131,7 +132,7 @@ describe('getDynamicHandles - Debug Logging', () => {
     getDynamicHandles(sourceRect, targetRect, 'edge-1', 'node-1', 'node-2');
 
     // Third call should log performance
-    const thirdCall = consoleLogSpy.mock.calls[2];
+    const thirdCall = loggerInfoSpy.mock.calls[2];
     expect(thirdCall[0]).toBe('[DynamicHandles] Performance:');
     expect(thirdCall[1]).toMatchObject({
       edgeId: 'edge-1',

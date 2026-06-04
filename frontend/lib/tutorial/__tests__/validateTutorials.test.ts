@@ -63,42 +63,32 @@ function validateTutorialDefinition(tutorial: unknown, filePath: string): TestRe
   return { file: filePath, passed: errors.length === 0, errors };
 }
 
-function test() {
-  console.log('Testing tutorial definitions...\n');
-  
-  let passed = 0;
-  let failed = 0;
-  
-  for (const [path, mod] of Object.entries(tutorialFiles)) {
-    if (path.includes('TUTORIAL_TEMPLATE') || path.includes('.schema.')) continue;
-    if (!path.includes('-architecture.ts')) continue;
-    
-    const tutorial = (mod as { default?: TutorialDefinition }).default;
-    if (!tutorial) {
-      console.log(`❌ ${path}: No default export`);
-      failed++;
-      continue;
-    }
-    
-    const result = validateTutorialDefinition(tutorial, path);
-    if (result.passed) {
-      console.log(`✅ ${tutorial.id}: ${tutorial.title}`);
-      passed++;
-    } else {
-      console.log(`❌ ${path}:`);
-      result.errors.forEach(e => console.log(`   - ${e}`));
-      failed++;
-    }
-  }
-  
-  console.log(`\n─────────────────────────`);
-  console.log(`Passed: ${passed}`);
-  console.log(`Failed: ${failed}`);
-  console.log(`Total: ${passed + failed}`);
-  
-  if (failed > 0) {
-    process.exit(1);
-  }
-}
+import { describe, it, expect } from 'vitest';
 
-test();
+describe('Tutorial Definitions Validation', () => {
+  it('should validate all tutorial definitions without errors', () => {
+    let failed = 0;
+    const failures: string[] = [];
+
+    for (const [path, mod] of Object.entries(tutorialFiles)) {
+      if (path.includes('TUTORIAL_TEMPLATE') || path.includes('.schema.')) continue;
+      if (!path.includes('-architecture.ts')) continue;
+
+      const tutorial = (mod as { default?: TutorialDefinition }).default;
+      if (!tutorial) {
+        failures.push(`${path}: No default export`);
+        failed++;
+        continue;
+      }
+
+      const result = validateTutorialDefinition(tutorial, path);
+      if (!result.passed) {
+        failures.push(`${path}: ${result.errors.join(', ')}`);
+        failed++;
+      }
+    }
+
+    expect(failures).toEqual([]);
+    expect(failed).toBe(0);
+  });
+});

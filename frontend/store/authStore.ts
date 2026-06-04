@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { SupabaseClient, User } from '@supabase/supabase-js';
+import { SupabaseClient, User, Session } from '@supabase/supabase-js';
 import { getSupabaseClient, isSupabaseConfigured, checkSupabaseReachability, isReachable } from '@/lib/supabase';
 import logger from '@/lib/logger';
 
@@ -54,7 +54,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Wrap getSession in a timeout to prevent indefinite hangs (e.g. from Web Locks API issues)
       const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<{ data: { session: any }, error: any }>((_, reject) => {
+      const timeoutPromise = new Promise<{ data: { session: Session | null }, error: unknown }>((_, reject) => {
         setTimeout(() => reject(new Error('Supabase getSession timed out - operating in offline mode')), 3000);
       });
       
