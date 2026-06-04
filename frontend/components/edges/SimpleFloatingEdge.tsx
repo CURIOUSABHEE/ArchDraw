@@ -104,11 +104,22 @@ export default function SimpleFloatingEdge({
 
   const edgeLabel = data?.label?.trim();
   const parallelEdges = useMemo(
-    () => edges.filter((edge) => edge.source === source && edge.target === target).sort((a, b) => a.id.localeCompare(b.id)),
+    () => edges.filter((edge) => 
+      (edge.source === source && edge.target === target) ||
+      (edge.source === target && edge.target === source)
+    ).sort((a, b) => a.id.localeCompare(b.id)),
     [edges, source, target]
   );
   const labelOrder = Math.max(0, parallelEdges.findIndex((edge) => edge.id === id));
-  const labelT = data?.labelT ?? (parallelEdges.length > 1 ? Math.max(0.2, Math.min(0.8, 0.5 + ((labelOrder - (parallelEdges.length - 1) / 2) * 0.15))) : 0.5);
+  
+  // Calculate canonical distribution of label along path to avoid overlaps
+  const canonicalT = parallelEdges.length > 1
+    ? Math.max(0.2, Math.min(0.8, 0.5 + ((labelOrder - (parallelEdges.length - 1) / 2) * 0.18)))
+    : 0.5;
+
+  // Determine direction canonicality based on node IDs comparison
+  const isCanonical = source.localeCompare(target) < 0;
+  const labelT = data?.labelT ?? (isCanonical ? canonicalT : 1 - canonicalT);
 
   // Calculate edge offset for parallel edges
   const edgeOffset = parallelEdges.length > 1 
