@@ -25,17 +25,17 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
     return `rgba(${r},${g},${b},${alpha})`;
   };
 
-  const bg = isDark ? 'rgba(255,255,255,0.02)' : hexToRgba(color, 0.12);
+  const bg = isDark ? hexToRgba(color, 0.05) : hexToRgba(color, 0.08);
   const borderColor = isDark 
-    ? (selected ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)')
-    : (selected ? hexToRgba(color, 0.8) : hexToRgba(color, 0.35));
+    ? (selected ? hexToRgba(color, 0.75) : hexToRgba(color, 0.35))
+    : (selected ? hexToRgba(color, 0.9) : hexToRgba(color, 0.45));
 
-  const borderStyle = isDark ? 'dashed' : (selected ? 'solid' : 'dashed');
-  const borderWidth = isDark ? 1 : 1.5;
+  const borderStyle = 'dashed';
+  const borderWidth = selected ? 2.5 : 2;
 
-  const tagText = isDark ? '#475569' : hexToRgba(color, 0.9);
-  const tagBg = isDark ? 'rgba(15, 17, 23, 0.9)' : 'rgba(255,255,255,0.9)';
-  const tagBorder = isDark ? 'rgba(255,255,255,0.08)' : hexToRgba(color, 0.5);
+  const tagText = isDark ? '#f0f2f7' : hexToRgba(color, 0.95);
+  const tagBg = isDark ? '#13151a' : 'rgba(255,255,255,0.95)';
+  const tagBorder = isDark ? hexToRgba(color, 0.5) : hexToRgba(color, 0.45);
 
   const label =
     (data as { groupLabel?: string; label?: string })?.groupLabel ||
@@ -86,7 +86,9 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
         position: 'relative',
         boxSizing: 'border-box',
         cursor: 'pointer',
-        boxShadow: isDark ? 'inset 0 4px 12px rgba(0,0,0,0.5)' : 'none',
+        boxShadow: isDark 
+          ? `inset 0 4px 16px rgba(0,0,0,0.6), 0 2px 8px ${hexToRgba(color, 0.08)}` 
+          : `0 2px 8px ${hexToRgba(color, 0.05)}`,
       }}
       onClick={handleContainerClick}
     >

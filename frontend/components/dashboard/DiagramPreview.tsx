@@ -288,6 +288,7 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
           const isGroup = node.type === 'group' || node.data?.isGroup;
 
           if (isGroup) {
+            const groupColor = node.data?.groupColor || '#3b82f6';
             return (
               <g key={node.id}>
                 <rect
@@ -295,12 +296,12 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
                   y={y}
                   width={w}
                   height={h}
-                  rx={6 * scale}
-                  fill={node.data?.groupColor || '#8B5CF6'}
-                  fillOpacity={0.15}
-                  stroke={node.data?.groupColor || '#8B5CF6'}
-                  strokeWidth={1 * scale}
-                  strokeDasharray="4,2"
+                  rx={8 * scale}
+                  fill={groupColor}
+                  fillOpacity={0.06}
+                  stroke={groupColor}
+                  strokeWidth={2 * scale}
+                  strokeDasharray="5,3"
                 />
               </g>
             );
