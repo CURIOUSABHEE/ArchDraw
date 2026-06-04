@@ -120,6 +120,7 @@ export function assignHandlesToEdges(
   nodes: ArchitectureNode[],
   portAssignments: Map<string, PortAssignment>
 ): ArchitectureEdge[] {
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const outgoingByNode = new Map<string, string[]>();
   const incomingByNode = new Map<string, string[]>();
 
@@ -142,17 +143,62 @@ export function assignHandlesToEdges(
     const sourceIndex = outgoingByNode.get(edge.source)?.indexOf(edge.id) || 0;
     const targetIndex = incomingByNode.get(edge.target)?.indexOf(edge.id) || 0;
 
-    let sourceHandle = 'right';
-    let targetHandle = 'left';
+    const sourceNode = nodeMap.get(edge.source);
+    const targetNode = nodeMap.get(edge.target);
 
-    if (sourcePorts) {
-      const portIndex = Math.min(sourceIndex, sourcePorts.ports.source.length - 1);
-      sourceHandle = sourcePorts.ports.source[portIndex] || 'right';
+    // Directional handles: pick the side facing the other node.
+    // This matches `getDynamicHandles()` used by `SimpleFloatingEdge`.
+    let desiredSource: 'left' | 'right' | 'top' | 'bottom' = 'right';
+    let desiredTarget: 'left' | 'right' | 'top' | 'bottom' = 'left';
+    if (sourceNode && targetNode) {
+      const sx = sourceNode.position?.x ?? 0;
+      const sy = sourceNode.position?.y ?? 0;
+      const tx = targetNode.position?.x ?? 0;
+      const ty = targetNode.position?.y ?? 0;
+      const sw = sourceNode.width ?? 180;
+      const sh = sourceNode.height ?? 70;
+      const tw = targetNode.width ?? 180;
+      const th = targetNode.height ?? 70;
+
+      const scx = sx + sw / 2;
+      const scy = sy + sh / 2;
+      const tcx = tx + tw / 2;
+      const tcy = ty + th / 2;
+
+      const dx = tcx - scx;
+      const dy = tcy - scy;
+
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        if (dx >= 0) {
+          desiredSource = 'right';
+          desiredTarget = 'left';
+        } else {
+          desiredSource = 'left';
+          desiredTarget = 'right';
+        }
+      } else {
+        if (dy >= 0) {
+          desiredSource = 'bottom';
+          desiredTarget = 'top';
+        } else {
+          desiredSource = 'top';
+          desiredTarget = 'bottom';
+        }
+      }
     }
 
-    if (targetPorts) {
+    // Our nodes expose handle IDs like `source-right` and `target-left`.
+    let sourceHandle = (`source-${desiredSource}`) as unknown as ArchitectureEdge['sourceHandle'];
+    let targetHandle = (`target-${desiredTarget}`) as unknown as ArchitectureEdge['targetHandle'];
+
+    // If a port allocator exists, keep it only for fallback (older node types might not expose source-/target- handles).
+    if (sourcePorts && (sourceHandle as any).startsWith('source-') === false) {
+      const portIndex = Math.min(sourceIndex, sourcePorts.ports.source.length - 1);
+      sourceHandle = (sourcePorts.ports.source[portIndex] || 'right') as any;
+    }
+    if (targetPorts && (targetHandle as any).startsWith('target-') === false) {
       const portIndex = Math.min(targetIndex, targetPorts.ports.target.length - 1);
-      targetHandle = targetPorts.ports.target[portIndex] || 'left';
+      targetHandle = (targetPorts.ports.target[portIndex] || 'left') as any;
     }
 
     return {

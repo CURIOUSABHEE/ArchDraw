@@ -19,12 +19,19 @@ export function useTheme() {
 }
 
 export function useCanvasTheme() {
-  const canvasDarkMode = useDiagramStore((s) => s.canvasDarkMode);
-  const isDark = canvasDarkMode;
+  const darkMode = useDiagramStore((s) => s.darkMode);
+  
+  let isDark = darkMode;
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname;
+    if (path.startsWith('/share') || path.startsWith('/embed')) {
+      isDark = true;
+    }
+  }
   
   return {
     isDark,
-    resolvedTheme: (canvasDarkMode ? 'dark' : 'light') as Theme,
+    resolvedTheme: (isDark ? 'dark' : 'light') as Theme,
   };
 }
 

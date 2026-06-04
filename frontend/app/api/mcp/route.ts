@@ -32,14 +32,56 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   const tools: Tool[] = [
     {
       name: 'generate_diagram',
-      description: 'Generates an architecture diagram based on a natural language description.',
+      description: 'Generates an architecture diagram with auto-layout and saving.',
       inputSchema: {
         type: 'object',
         properties: {
-          description: { type: 'string', description: 'Description of the system architecture to generate' },
-          direction: { type: 'string', enum: ['LR', 'TB', 'RL', 'BT'], default: 'LR' },
+          nodes: {
+            type: 'array',
+            description: 'Array of nodes. RULES: (1) every node needs id+label+tier+subtitle, (2) include at least one isGroup:true node, (3) use parentId to nest nodes inside groups.',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                label: { type: 'string' },
+                tier: { type: 'string' },
+                layer: { type: 'string' },
+                subtitle: { type: 'string' },
+                isGroup: { type: 'boolean' },
+                parentId: { type: 'string' },
+                groupColor: { type: 'string' },
+                icon: { type: 'string' },
+                tierColor: { type: 'string' },
+                accentColor: { type: 'string' },
+                status: { type: 'string' },
+                width: { type: 'number' },
+                height: { type: 'number' },
+                shape: { type: 'string' },
+              },
+              required: ['label'],
+            },
+          },
+          edges: {
+            type: 'array',
+            description: 'Array of edges.',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                source: { type: 'string' },
+                target: { type: 'string' },
+                communicationType: { type: 'string', enum: ['sync', 'async', 'stream', 'event', 'dep'] },
+                pathType: { type: 'string', enum: ['smooth', 'Smoothstep', 'bezier', 'step', 'straight'] },
+                label: { type: 'string' },
+              },
+              required: ['source', 'target'],
+            },
+          },
+          direction: { type: 'string', enum: ['RIGHT', 'DOWN', 'LEFT', 'UP'], default: 'RIGHT' },
+          label: { type: 'string' },
+          diagramDescription: { type: 'string' },
         },
-        required: ['description'],
+        required: ['nodes', 'edges'],
       },
     },
     {
@@ -91,8 +133,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case 'generate_diagram': {
-        const genArgs = args as { description: string; direction?: 'LR' | 'TB' | 'RL' | 'BT' };
-        const result = await generateDiagram(genArgs as any);
+        const result = await generateDiagram(args as any);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       }
       case 'fix_layout': {

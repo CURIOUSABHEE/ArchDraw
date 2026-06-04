@@ -4,6 +4,9 @@ import dbData from '@/data/db-components.json';
 import servicesData from '@/data/services-components.json';
 import logger from '@/lib/logger';
 import { STORAGE_KEYS } from '@/lib/config';
+import type { Node } from 'reactflow';
+import { getSupabaseClient, isSupabaseConfigured, isReachable } from '@/lib/supabase';
+
 
 export interface ComponentDefinition {
   id: string;
@@ -28,13 +31,28 @@ const ALL_COMPONENTS: ComponentDefinition[] = [
   ...SERVICES_COMPONENTS,
 ];
 
+interface TemplateRow {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  technology: string | null;
+  component_categories: { name: string } | null;
+}
+
 class ComponentRegistry {
   private components = new Map<string, ComponentDefinition>();
   private customComponents = new Map<string, ComponentDefinition>();
+  private syncedAt = 0;
+  private cacheVersion = 1;
 
   constructor() {
     ALL_COMPONENTS.forEach(comp => this.components.set(comp.id, comp));
     this.loadCustomComponents();
+    if (typeof window !== 'undefined') {
+      this.backgroundRefresh().catch(() => {});
+    }
   }
 
   private loadCustomComponents() {
@@ -42,7 +60,17 @@ class ComponentRegistry {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.customComponents);
       if (saved) {
-        const custom = JSON.parse(saved) as ComponentDefinition[];
+        const parsed = JSON.parse(saved);
+        let custom: ComponentDefinition[] = [];
+        if (Array.isArray(parsed)) {
+          custom = parsed;
+          this.syncedAt = 0;
+          this.cacheVersion = 1;
+        } else if (parsed && typeof parsed === 'object') {
+          custom = parsed.components || [];
+          this.syncedAt = parsed.syncedAt || 0;
+          this.cacheVersion = parsed.cacheVersion || 1;
+        }
         custom.forEach(comp => this.customComponents.set(comp.id, { ...comp, isCustom: true }));
       }
     } catch (e) {
@@ -54,9 +82,96 @@ class ComponentRegistry {
     if (typeof window === 'undefined') return;
     try {
       const custom = Array.from(this.customComponents.values());
-      localStorage.setItem(STORAGE_KEYS.customComponents, JSON.stringify(custom));
+      const data = {
+        syncedAt: this.syncedAt || Date.now(),
+        cacheVersion: this.cacheVersion || 1,
+        components: custom,
+      };
+      localStorage.setItem(STORAGE_KEYS.customComponents, JSON.stringify(data));
     } catch (e) {
       logger.error('Failed to save custom components:', e);
+    }
+  }
+
+  async ensureCustomComponentsForNodes(nodes: Node[]) {
+    if (typeof window === 'undefined') return;
+    const ids = new Set<string>();
+    nodes.forEach(node => {
+      const typeId = node.data?.typeId as string | undefined;
+      const compType = node.data?.componentType as string | undefined;
+      if (typeId && !this.components.has(typeId) && !this.customComponents.has(typeId)) {
+        ids.add(typeId);
+      }
+      if (compType && !this.components.has(compType) && !this.customComponents.has(compType)) {
+        ids.add(compType);
+      }
+    });
+
+    const idList = Array.from(ids);
+    if (idList.length > 0 && isSupabaseConfigured && isReachable) {
+      try {
+        const supabase = getSupabaseClient();
+        const { data, error } = await supabase
+          .from('component_templates')
+          .select('id, name, description, color, icon, technology, component_categories(name)')
+          .in('id', idList);
+        
+        if (data && data.length > 0) {
+          (data as unknown as TemplateRow[]).forEach((row) => {
+            const comp: ComponentDefinition = {
+              id: row.id,
+              label: row.name,
+              category: row.component_categories?.name || 'Other',
+              color: row.color || '#94a3b8',
+              icon: row.icon || undefined,
+              technology: row.technology || undefined,
+              description: row.description || undefined,
+              isCustom: true,
+            };
+            this.customComponents.set(comp.id, comp);
+          });
+          this.saveCustomComponents();
+        }
+      } catch (err) {
+        logger.error('Failed to fetch missing custom components:', err);
+      }
+    }
+  }
+
+  async backgroundRefresh() {
+    if (typeof window === 'undefined') return;
+    if (!isSupabaseConfigured || !isReachable) return;
+    
+    const age = Date.now() - (this.syncedAt || 0);
+    if (age < 24 * 60 * 60 * 1000) {
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('component_templates')
+        .select('id, name, description, color, icon, technology, component_categories(name)');
+      
+      if (data && data.length > 0) {
+        (data as unknown as TemplateRow[]).forEach((row) => {
+          const comp: ComponentDefinition = {
+            id: row.id,
+            label: row.name,
+            category: row.component_categories?.name || 'Other',
+            color: row.color || '#94a3b8',
+            icon: row.icon || undefined,
+            technology: row.technology || undefined,
+            description: row.description || undefined,
+            isCustom: true,
+          };
+          this.customComponents.set(comp.id, comp);
+        });
+        this.syncedAt = Date.now();
+        this.saveCustomComponents();
+      }
+    } catch (err) {
+      logger.error('Failed to refresh custom components in background:', err);
     }
   }
 

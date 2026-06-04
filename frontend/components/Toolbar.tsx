@@ -5,10 +5,11 @@ import { generatePureSVG } from '@/lib/svgExport';
 import {
   Download, Trash2, Upload,
   Undo2, Redo2, Share2, Loader2, Check,
-  GraduationCap, Sparkles, MoreHorizontal, HelpCircle,
+  GraduationCap, MoreHorizontal, HelpCircle,
   PanelLeftClose, LayoutTemplate, FolderOpen,
   AlignCenterHorizontal,
   LayoutDashboard,
+  Github,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
@@ -189,7 +190,7 @@ export function Toolbar() {
   const {
     clearDiagram, nodes, edges, importDiagram,
     undo, redo, past, future,
-    canvases, activeCanvasId, removeCanvas, renameCanvas,
+    canvases, activeCanvasId, removeCanvas,
     getVisibleCanvases,
     savingState, userProfile, setSidebarOpen, sidebarOpen,
   } = useDiagramStore();
@@ -297,21 +298,14 @@ export function Toolbar() {
     
     const { fitView } = useDiagramStore.getState();
     
-    // We strictly use the user's current canvas node style (canvasDarkMode).
+    // We strictly use the user's current canvas node style (darkMode).
     // Exporting with a different background should NOT change the nodes' styling
     // to prevent the "Nodes losing plates" issue.
-    const originalCanvasDarkMode = useDiagramStore.getState().canvasDarkMode;
-    const targetDarkMode = originalCanvasDarkMode;
-    const themeChanged = false; // Never change theme during export
+    const originalCanvasDarkMode = useDiagramStore.getState().darkMode;
 
     setIsExporting(true);
     
     try {
-      if (themeChanged) {
-        useDiagramStore.getState().setCanvasDarkMode(targetDarkMode);
-        // wait for rendering to update
-        await new Promise((r) => setTimeout(r, 500));
-      }
 
       if (isSvg) {
         const { nodes, edges } = useDiagramStore.getState();
@@ -376,8 +370,7 @@ export function Toolbar() {
       fitView({ padding: 0.1, duration: 300 });
       await new Promise((r) => setTimeout(r, 350));
 
-      let dataUrl: string;
-      dataUrl = await toPng(element, {
+      const dataUrl = await toPng(element, {
         backgroundColor: bgColor,
         pixelRatio,
         cacheBust: true,
@@ -415,9 +408,6 @@ export function Toolbar() {
       toast.error('Export failed. Please try again.');
       logger.error(err);
     } finally {
-      if (themeChanged) {
-        useDiagramStore.getState().setCanvasDarkMode(originalCanvasDarkMode);
-      }
       setIsExporting(false);
     }
   };
@@ -503,6 +493,24 @@ export function Toolbar() {
     }
     doShare();
   };
+
+  useEffect(() => {
+    const handleTriggerShare = () => {
+      handleShare();
+    };
+    const handleTriggerDownload = () => {
+      const currentIsDark = useDiagramStore.getState().darkMode;
+      doExport(currentIsDark ? 'png-dark-4x' : 'png-light-4x');
+    };
+
+    window.addEventListener('trigger-share', handleTriggerShare);
+    window.addEventListener('trigger-download', handleTriggerDownload);
+    return () => {
+      window.removeEventListener('trigger-share', handleTriggerShare);
+      window.removeEventListener('trigger-download', handleTriggerDownload);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGuest]);
 
   const handleClear = () => {
     if (nodes.length === 0) return;
@@ -617,16 +625,7 @@ export function Toolbar() {
 
           <ThemeToggle />
 
-          <span className="w-px h-4 bg-border/50 mx-1" />
 
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-ai-generate'))}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 hover:bg-primary/15 text-primary transition-all"
-            title="AI Generate Architecture"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI</span>
-          </button>
 
           <button
             onClick={handleDeleteCanvas}
@@ -791,6 +790,13 @@ export function Toolbar() {
                   >
                     <Upload className="w-3.5 h-3.5" />
                     Import JSON
+                  </button>
+                  <button
+                    onClick={() => { window.dispatchEvent(new CustomEvent('open-repo-ingest')); setMoreOpen(false); }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  >
+                    <Github className="w-3.5 h-3.5" />
+                    Ingest GitHub Repo
                   </button>
                   
                   {/* Danger Zone */}

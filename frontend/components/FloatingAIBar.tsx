@@ -106,7 +106,7 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Describe your architecture... e.g. a food delivery app with real-time tracking, payments, and notifications"
+              placeholder="Describe your architecture, or paste a GitHub repo link… (e.g. https://github.com/owner/repo)"
               className="w-full bg-transparent border-0 border-transparent outline-none focus:outline-none focus:ring-0 focus:border-transparent focus:border-0 focus-visible:ring-0 resize-none text-sm text-foreground placeholder:text-muted-foreground/60 p-2 min-h-[56px] shadow-none focus:shadow-none focus-visible:!outline-none focus:!outline-none focus-visible:!ring-0"
               disabled={isGenerating}
             />

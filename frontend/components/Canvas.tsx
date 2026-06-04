@@ -85,14 +85,13 @@ function CanvasInner() {
   const {
     nodes, edges, onNodesChange, onEdgesChange, onConnect, onReconnect,
     selectedEdgeId,
+    selectedNodeIds,
     setSelectedNodeId, setSelectedNodeIds, setSelectedEdgeId,
     showGrid,
     pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData, setCanvasMode,
-    canvasDarkMode,
     setNodes,
   } = useDiagramStore();
-  const { isDark: appIsDark } = useCanvasTheme();
-  const isDark = canvasDarkMode;
+  const { isDark } = useCanvasTheme();
 
   const reactFlowInstance = useReactFlow();
   const { onNodeDrag, onNodeDragStop: onNodeDragStopSnap } = useSnapping();
@@ -285,6 +284,16 @@ function CanvasInner() {
     setContextMenu(null);
   }, [setSelectedNodeIds, setSelectedEdgeId]);
 
+  const onSelectionChange = useCallback(
+    ({ nodes: selectedNodes, edges: selectedEdges }: OnSelectionChangeParams) => {
+      const nodeIds = (selectedNodes || []).map((n) => n.id);
+      setSelectedNodeIds(nodeIds);
+      setSelectedNodeId(nodeIds.length === 1 ? nodeIds[0] : null);
+      setSelectedEdgeId(selectedEdges && selectedEdges.length === 1 ? selectedEdges[0].id : null);
+    },
+    [setSelectedNodeIds, setSelectedNodeId, setSelectedEdgeId]
+  );
+
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
@@ -353,6 +362,7 @@ function CanvasInner() {
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onPaneClick={onPaneClick}
+        onSelectionChange={onSelectionChange}
         onNodeContextMenu={onNodeContextMenu}
         onPaneContextMenu={onPaneContextMenu}
         onEdgeDoubleClick={(e, edge) => {
@@ -365,9 +375,14 @@ function CanvasInner() {
         edgeTypes={useMemo(() => EDGE_TYPES, [])}
         fitView
         selectionMode={SelectionMode.Full}
-        selectionOnDrag
-        panOnScroll
-        panOnDrag={[2]}
+        // Keep canvas panning on middle/right mouse so left-drag can draw selection box.
+        panOnDrag={[1, 2]}
+        // Trackpad/touchpad two-finger gesture should move (pan) the canvas.
+        panOnScroll={true}
+        selectionOnDrag={true}
+        // Avoid hijacking two-finger scroll for zoom; zoom still works via controls/pinch.
+        zoomOnScroll={false}
+        zoomOnPinch={true}
         connectionMode={CANVAS_CONFIG.connectionMode as any}
         connectionLineType={ConnectionLineType.SmoothStep}
         snapToGrid={CANVAS_CONFIG.snapToGrid}
@@ -415,6 +430,14 @@ function CanvasInner() {
           menu={contextMenu}
           onClose={() => setContextMenu(null)}
         />
+      )}
+
+      {selectedNodeIds.length >= 1 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          <div className="px-3 py-1.5 rounded-lg border border-border/40 bg-card/90 backdrop-blur-sm text-xs text-muted-foreground shadow-sm">
+            Drag to select • Cmd/Ctrl+G to group
+          </div>
+        </div>
       )}
 
       {/* Floating UI Elements */}

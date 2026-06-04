@@ -2,37 +2,37 @@ import { Node, Edge } from 'reactflow';
 import type { ArchitectureNode, ArchitectureEdge, UserIntent, ReactFlowNode, LayerType, ServiceType } from '../types';
 import { detectSystemIntent } from '../graph/ArchitectureGraph';
 import { detectAWSInPrompt, enrichNodes } from '../agents/component';
-import { ArchitectureGraph } from '../graph/ArchitectureGraph';
-// import { validateEdges } from '../edges/edgeValidator'; // Removed as it is imported below
-import { repairEdges, generateMissingEdges } from '../edges/edgeRepair';
 import { allocatePorts, assignHandlesToEdges } from '../edges/portAllocator';
-import { apiKeyManager } from '../utils/apiKeyManager';
 import logger from '@/lib/logger';
-import {
-  buildEdgePrompt,
-} from '../prompts/promptBuilder';
-import { ensureConnectivity } from '../graph/connectivityEnforcer';
-import { autoAddCompensatingComponents } from '../graph/compensatingComponents';
 import { validateDiagramQuality, type DiagramQualityReport } from '../validation/diagramQualityValidator';
 import { EDGE_CONFIG } from '@/lib/config';
-import * as diagramCache from '../services/diagramCache';
-import { detectDomain } from '../graph/componentValidator';
-import { enforceMinimumConnections, validateEdges } from '../edges/edgeValidator';
-import type { ValidationIssue } from '../types';
-import { applyDomainEdgePatterns } from '../graph/domainEdgePatterns';
-import { findConnectedComponents, bridgeComponents } from '../graph/graphConnectivity';
+import { validateEdges } from '../edges/edgeValidator';
 import { COMMUNICATION_STYLES } from '../constants';
 
-// NEW: Import redesigned 8-stage pipeline
 import { detectIntent } from './stage1-intent';
-import { callReasoningLLM, type ReasoningResult } from './stage2-reasoning';
+import { callReasoningLLM, inferStylePlan } from './stage2-reasoning';
 import { callDiagramLLM } from './stage3-diagram';
-import { validateAndRepair } from './stage5-validate';
+import {
+  validateAndRepair,
+  flowsToEdges,
+  shouldRetryGeneration,
+  mergeFeedbackForRetry,
+} from './stage5-validate';
 import { applyLayout } from './stage6-layout';
+import { applySemanticLayerGroups } from './applySemanticLayerGroups';
 import { convertToReactFlow } from './stage7-convert';
 import { scoreDiagram } from './stage8-score';
 import { buildFeedbackPrompt } from './buildFeedbackPrompt';
-import type { DiagramScore, LayoutedNode, RawNode, RawFlow, ValidationFeedback, ValidatedDiagram } from './types';
+import type {
+  DiagramScore,
+  LayoutedNode,
+  RawNode,
+  RawFlow,
+  ValidationFeedback,
+  ValidatedDiagram,
+  PipelineDiagnostics,
+  DiagramEdge,
+} from './types';
 import { logGenerationResult } from './feedbackLogger';
 
 export interface PipelineState {
@@ -41,20 +41,20 @@ export interface PipelineState {
   enrichedNodes: ArchitectureNode[];
   edges: ArchitectureEdge[];
   reactFlowNodes: ReactFlowNode[];
-  graph: ArchitectureGraph | null;
+  graph: null;
   score: number;
   iteration: number;
   history: PipelineHistoryEntry[];
   errors: PipelineError[];
   useAWS: boolean;
   systemIntent: ReturnType<typeof detectSystemIntent>;
-  // NEW: Pipeline stage results
   intentResult?: ReturnType<typeof detectIntent>;
-  reasoningResult?: ReasoningResult;
+  reasoningResult?: Awaited<ReturnType<typeof callReasoningLLM>>;
+  pipelineDiagnostics?: PipelineDiagnostics;
 }
 
 export interface PipelineHistoryEntry {
-  step: 'normalize' | 'intent' | 'reasoning' | 'diagram' | 'validate' | 'layout' | 'convert' | 'score' | 'enrich' | 'edges' | 'repair';
+  step: 'normalize' | 'intent' | 'reasoning' | 'diagram' | 'validate' | 'layout' | 'convert' | 'score' | 'enrich';
   timestamp: number;
   input?: unknown;
   output?: unknown;
@@ -74,15 +74,29 @@ export interface PipelineResult {
   edges: ArchitectureEdge[];
   state: PipelineState;
   score: number;
+  error?: 'generation_failed';
   qualityReport?: DiagramQualityReport;
   diagramScore?: DiagramScore;
+  diagnostics?: PipelineDiagnostics;
 }
 
-const MAX_ITERATIONS = 3;
 const MAX_RETRIES = 2;
-const SCORE_THRESHOLD = 75;
 
-const FORBIDDEN_MVC_TECH = ['lambda', 'sqs', 'kafka', 'api gateway', 'docker', 'kubernetes', 'ecs', 'eks', 'sns', 'eventbridge', 'step function', 'cloudwatch', 'sagemaker'];
+const FORBIDDEN_MVC_TECH = [
+  'lambda',
+  'sqs',
+  'kafka',
+  'api gateway',
+  'docker',
+  'kubernetes',
+  'ecs',
+  'eks',
+  'sns',
+  'eventbridge',
+  'step function',
+  'cloudwatch',
+  'sagemaker',
+];
 
 function getTypeOverride(userInput: string): string | null {
   const input = userInput.toLowerCase();
@@ -93,13 +107,28 @@ function getTypeOverride(userInput: string): string | null {
   return null;
 }
 
+function getExistingNodeIds(userIntent: UserIntent): string[] {
+  const nodes = userIntent.existingContext?.nodes;
+  if (!nodes?.length) return [];
+  return nodes
+    .map((n) => {
+      const raw = n as { id?: string; data?: { id?: string } };
+      return raw.id || raw.data?.id || '';
+    })
+    .filter(Boolean);
+}
+
 /**
- * MAIN PIPELINE ORCHESTRATOR
+ * MAIN PIPELINE ORCHESTRATOR (custom-first)
+ * Diagram LLM nodes + flows are the source of truth; no second edge-generation pass.
  */
 export async function runArchitecturePipeline(
   userIntent: UserIntent,
   onProgress?: (step: string, progress: number) => void
 ): Promise<PipelineResult> {
+  const diagramSize = userIntent.diagramSize ?? 'medium';
+  const existingNodeIds = getExistingNodeIds(userIntent);
+
   const state: PipelineState = {
     userIntent,
     rawNodes: [],
@@ -115,340 +144,174 @@ export async function runArchitecturePipeline(
     systemIntent: { primary: [], useAWS: false, useAzure: false, useGCP: false },
   };
 
+  let pipelineDiagnostics: PipelineDiagnostics | undefined;
+
   try {
-    // ── STAGE 0: Normalize Input ──
     onProgress?.('Normalizing input', 5);
     state.history.push({ step: 'normalize', timestamp: Date.now(), input: userIntent });
 
-    // Check semantic cache before LLM call
-    const cached = diagramCache.get(userIntent.description);
-    if (cached && !userIntent.existingContext) {
-      logger.log('[Pipeline] Cache hit for prompt, returning cached diagram');
-      onProgress?.('Complete', 100);
-      return {
-        success: true,
-        nodes: [],
-        edges: cached.edges,
-        state,
-        score: 0,
-        qualityReport: cached.qualityReport,
-      };
-    }
-
     let attempt = 0;
     let currentPrompt = userIntent.description;
-    
+
     let validationResult!: ValidatedDiagram;
     let finalFeedback!: ValidationFeedback;
     let nodesForValidation: RawNode[] = [];
     let flowsForValidation: RawFlow[] = [];
 
     while (attempt <= MAX_RETRIES) {
-      // ── STAGE 1: Intent Detection ──
       onProgress?.(`Detecting intent (Attempt ${attempt + 1})`, 10);
       state.systemIntent = detectSystemIntent(currentPrompt);
       state.useAWS = state.systemIntent.useAWS || detectAWSInPrompt(currentPrompt);
-      
-      // Keyword override before LLM/rule-based classifier
+
       const typeOverride = getTypeOverride(currentPrompt);
       if (typeOverride) {
         logger.log(`[Pipeline] Keyword override: "${typeOverride}" (matched from input)`);
         state.intentResult = { type: typeOverride, confidence: 1.0, ambiguous: false };
       } else {
-        // NEW: Improved intent detection with confidence
         state.intentResult = detectIntent(currentPrompt);
       }
-      logger.log(`[Pipeline] Intent: ${state.intentResult.type} (confidence: ${state.intentResult.confidence.toFixed(2)}, ambiguous: ${state.intentResult.ambiguous})`);
-      
-      state.history.push({
-        step: 'intent',
-        timestamp: Date.now(),
-        output: state.intentResult,
-      });
 
-      // Detect domain early for validation rules
-      const domain = detectDomain(currentPrompt);
-      logger.log(`[Pipeline] Detected domain: ${domain}`);
+      const stylePlan = inferStylePlan(currentPrompt, state.intentResult.type);
+      logger.log(
+        `[Pipeline] Intent: ${state.intentResult.type}, style: ${stylePlan.style}, productionDepth: ${stylePlan.productionDepth}`
+      );
 
-      // ── STAGE 2: Reasoning ──
+      state.history.push({ step: 'intent', timestamp: Date.now(), output: { intent: state.intentResult, stylePlan } });
+
       onProgress?.('Reasoning about architecture', 20);
-      state.reasoningResult = await callReasoningLLM(currentPrompt, state.intentResult.type);
-      logger.log(`[Pipeline] Reasoning complete: ${state.reasoningResult.systemType}`);
-      logger.log(`[Pipeline] Architectural plan: ${state.reasoningResult.architecturalPlan}`);
-      
-      if (state.reasoningResult.layers) {
-        logger.log(`[Pipeline] Layers defined: ${Object.keys(state.reasoningResult.layers).join(', ')}`);
-      }
-      
-      state.history.push({
-        step: 'reasoning',
-        timestamp: Date.now(),
-        output: state.reasoningResult,
-      });
+      state.reasoningResult = await callReasoningLLM(
+        currentPrompt,
+        state.intentResult.type,
+        diagramSize,
+        stylePlan
+      );
 
-      // ── STAGE 3: Diagram Generation (LLM) ──
+      state.history.push({ step: 'reasoning', timestamp: Date.now(), output: state.reasoningResult });
+
       onProgress?.('Generating diagram', 35);
-      
       const diagramResult = await callDiagramLLM(
         state.reasoningResult,
-        (node) => {
-          logger.log(`[Pipeline] Generated node: ${node.label} (${node.id})`);
-        },
-        (flow) => {
-          logger.log(`[Pipeline] Generated flow: ${flow.path.join(' → ')}`);
-        },
+        (node) => logger.log(`[Pipeline] Generated node: ${node.label} (${node.id})`),
+        (flow) => logger.log(`[Pipeline] Generated flow: ${flow.path.join(' → ')}`),
         userIntent.existingContext,
-        'medium',
-        state.intentResult.type
+        diagramSize,
+        state.intentResult.type,
+        stylePlan
       );
 
-      // Convert RawNode[] to ArchitectureNode[]
-      state.rawNodes = diagramResult.nodes.map(n => 
-        rawNodeToArchitectureNode(n)
-      );
-      
-      logger.log(`[Pipeline] Generated ${state.rawNodes.length} nodes and ${diagramResult.flows.length} flows`);
+      if (diagramResult.nodes.length === 0) {
+        throw new Error('generation_failed: diagram model returned no nodes');
+      }
 
-      // MVC post-generation validation
+      state.rawNodes = diagramResult.nodes.map((n) => rawNodeToArchitectureNode(n));
+      flowsForValidation = diagramResult.flows;
+
+      logger.log(
+        `[Pipeline] Generated ${state.rawNodes.length} nodes and ${flowsForValidation.length} flows (custom-first, no edge LLM pass)`
+      );
+
       if (state.intentResult.type === 'mvc') {
-        const mvcViolations = state.rawNodes.filter(n => {
+        const mvcViolations = state.rawNodes.filter((n) => {
           const label = (n.label || '').toLowerCase();
-          return FORBIDDEN_MVC_TECH.some(t => label.includes(t));
+          return FORBIDDEN_MVC_TECH.some((t) => label.includes(t));
         });
         if (mvcViolations.length > 0 && attempt < MAX_RETRIES) {
-          logger.warn(`[Pipeline] MVC violation: found MS/cloud nodes (${mvcViolations.map(n => n.label).join(', ')}). Retrying with stricter prompt.`);
-          currentPrompt = `You MUST generate an MVC diagram. ONLY three layers allowed: View, Controller, Model. NO microservices, NO AWS services, NO message queues, NO API Gateway, NO Docker/Kubernetes. Every node must be a class, module, or layer within the MVC pattern.
+          currentPrompt = `You MUST generate an MVC diagram. ONLY three layers allowed: View, Controller, Model. NO microservices, NO AWS services, NO message queues, NO API Gateway, NO Docker/Kubernetes.
 
 ORIGINAL REQUEST: ${userIntent.description}
 
-PREVIOUS ATTEMPT contained forbidden nodes: ${mvcViolations.map(n => n.label).join(', ')}. Do NOT repeat these.`;
+PREVIOUS ATTEMPT contained forbidden nodes: ${mvcViolations.map((n) => n.label).join(', ')}. Do NOT repeat these.`;
           attempt++;
-          state.rawNodes = [];
-          state.enrichedNodes = [];
-          state.edges = [];
           continue;
         }
       }
-      
+
       state.history.push({
         step: 'diagram',
         timestamp: Date.now(),
-        output: { nodeCount: state.rawNodes.length, flowCount: diagramResult.flows.length },
+        output: { nodeCount: state.rawNodes.length, flowCount: flowsForValidation.length },
       });
 
-      // ── Enrich Nodes ──
       onProgress?.('Enriching nodes', 45);
       state.enrichedNodes = enrichNodes(state.rawNodes);
-      state.history.push({
-        step: 'enrich',
-        timestamp: Date.now(),
-        output: state.enrichedNodes.length,
-      });
+      state.history.push({ step: 'enrich', timestamp: Date.now(), output: state.enrichedNodes.length });
 
-      // ── Generate Edges ──
-      onProgress?.('Generating edges', 50);
-      state.edges = await generateEdges(state);
-      
-      // Apply domain-specific edge patterns
-      const domainResult = applyDomainEdgePatterns(state.enrichedNodes, domain, state.edges);
-      if (domainResult.added > 0) {
-        logger.log(`[Pipeline] Domain edge patterns added: ${domainResult.added}`);
-        state.edges = [...state.edges, ...domainResult.edges];
-      }
-      
-      state.history.push({
-        step: 'edges',
-        timestamp: Date.now(),
-        output: state.edges.length,
-      });
+      nodesForValidation = state.enrichedNodes.map((n) => architectureNodeToRawNode(n));
 
-      // Ensure minimum edges
-      const minRequiredEdges = Math.max(10, Math.floor(state.enrichedNodes.length * 0.5));
-      if (state.edges.length < minRequiredEdges) {
-        logger.warn(`[Pipeline] Low edge count (${state.edges.length} < ${minRequiredEdges}), adding missing edges`);
-        const missingEdges = generateMissingEdges(state.enrichedNodes, state.edges);
-        if (missingEdges.length > 0) {
-          state.edges = [...state.edges, ...missingEdges];
-        }
-      }
-
-      // Enforce minimum connections per node
-      const connectionFix = enforceMinimumConnections(state.enrichedNodes, state.edges);
-      if (connectionFix.fixes.length > 0) {
-        logger.log('[Pipeline] Connection fixes applied:', connectionFix.fixes);
-        state.edges = connectionFix.edges;
-      }
-
-      // Ensure connectivity for orphaned nodes
-      const connectivityResult = ensureConnectivity(state.enrichedNodes, state.edges);
-      state.edges = connectivityResult.edges;
-      logger.log(`[Pipeline] Connectivity enforcement complete`);
-
-      // Auto-add compensating resilience components
-      const resilientResult = autoAddCompensatingComponents(state.enrichedNodes, state.edges);
-      state.enrichedNodes = resilientResult.nodes;
-      state.edges = resilientResult.edges;
-      logger.log(`[Pipeline] Compensating components added`);
-
-      // ── STAGE 4/5: NON-DESTRUCTIVE Validation ──
-      onProgress?.('Validating and repairing', 65);
-      
-      // Convert ArchitectureNode[] to RawNode[] for validation
-      nodesForValidation = state.enrichedNodes.map(n => 
-        architectureNodeToRawNode(n)
+      onProgress?.('Validating diagram', 65);
+      const valObj = validateAndRepair(
+        { nodes: nodesForValidation, flows: flowsForValidation },
+        currentPrompt,
+        state.reasoningResult?.preGenerationChecklist,
+        { prompt: currentPrompt, stylePlan, existingNodeIds }
       );
 
-      // Convert ArchitectureEdge[] to RawFlow[]
-      flowsForValidation = state.edges.map(e => ({
-        path: [e.source, e.target],
-        label: e.label || '',
-        async: e.communicationType === 'async',
-        communicationType: e.communicationType,
-        edgeVariant: e.edgeVariant,
-      }));
-
-      // RUN NON-DESTRUCTIVE VALIDATION
-      const valObj = validateAndRepair({ nodes: nodesForValidation, flows: flowsForValidation }, currentPrompt, state.reasoningResult?.preGenerationChecklist);
       validationResult = valObj.diagram;
       finalFeedback = valObj.feedback;
-      const feedback = valObj.feedback;
+      pipelineDiagnostics = valObj.diagnostics;
+      state.pipelineDiagnostics = pipelineDiagnostics;
 
-      logger.log(`[Pipeline] Validation score: ${feedback.score}/100. Critical issues: ${feedback.issues.filter(i => i.severity === 'critical').length}`);
+      logger.log(
+        `[Pipeline] Validation score: ${finalFeedback.score}/100. Semantic issues: ${pipelineDiagnostics.semanticIssues.length}, mechanical repairs: ${pipelineDiagnostics.mechanicalRepairs.length}`
+      );
 
-      if (!feedback.isValid && feedback.score < SCORE_THRESHOLD && attempt < MAX_RETRIES) {
-        logger.warn(`[Pipeline] Triggering retry ${attempt + 1} due to structural issues.`);
-        
-        // Build an enriched prompt containing the feedback
-        currentPrompt = buildFeedbackPrompt(userIntent.description, feedback, attempt + 1);
+      if (shouldRetryGeneration(finalFeedback, pipelineDiagnostics) && attempt < MAX_RETRIES) {
+        const retryFeedback = mergeFeedbackForRetry(finalFeedback, pipelineDiagnostics);
+        logger.warn(
+          `[Pipeline] Retrying generation (attempt ${attempt + 2}/${MAX_RETRIES + 1}): ${retryFeedback.issues.length} issue(s)`
+        );
+        currentPrompt = buildFeedbackPrompt(userIntent.description, retryFeedback, attempt + 1);
         attempt++;
-        
-        // Reset node/edge state for retry
-        state.rawNodes = [];
-        state.enrichedNodes = [];
-        state.edges = [];
         continue;
       }
-      
+
       break;
     }
 
-    // Log the final feedback result
     logGenerationResult({
       originalPrompt: userIntent.description,
       finalScore: finalFeedback.score,
       totalAttempts: attempt,
-      wasRepaired: finalFeedback.injectedNodes.length > 0 || 
-                   finalFeedback.prunedNodes.length > 0 || 
-                   finalFeedback.orphansFixed > 0 || 
-                   finalFeedback.tiersRepaired.length > 0,
+      wasRepaired: pipelineDiagnostics!.mechanicalRepairs.length > 0,
       issues: finalFeedback.issues,
-      injectedNodes: finalFeedback.injectedNodes,
-      prunedNodes: finalFeedback.prunedNodes,
-      orphansFixed: finalFeedback.orphansFixed,
+      injectedNodes: [],
+      prunedNodes: [],
+      orphansFixed: 0,
       tiersRepaired: finalFeedback.tiersRepaired,
-      detectedDomain: null, // StoryGuard doesn't output detected domain to PipelineState yet
+      detectedDomain: null,
     });
 
-    // Convert back to ArchitectureNode[] and ArchitectureEdge[] using the best valid result
-    const nodesRemoved = nodesForValidation.length - validationResult.nodes.length;
-    const edgesRemoved = flowsForValidation.length - validationResult.edges.length;
-    
-    if (nodesRemoved > 0) {
-      logger.warn(`[Pipeline] WARNING: ${nodesRemoved} nodes removed during validation`);
-    }
-    if (edgesRemoved > 0) {
-      logger.warn(`[Pipeline] WARNING: ${edgesRemoved} edges removed during validation`);
-    }
+    state.enrichedNodes = validationResult.nodes.map((n) => rawNodeToArchitectureNode(n));
+    state.edges = diagramEdgesToArchitectureEdges(validationResult.edges);
 
-    // Update state with validated nodes/edges
-    state.enrichedNodes = validationResult.nodes.map(n => rawNodeToArchitectureNode(n));
-    state.edges = validationResult.edges.map(e => {
-      const commType = (e.communicationType || (e.async ? 'async' : 'sync')) as any;
-      const styleConfig = COMMUNICATION_STYLES[commType] || COMMUNICATION_STYLES.sync;
-      return {
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        sourceHandle: 'right',
-        targetHandle: 'left',
-        communicationType: commType,
-        pathType: 'smooth',
-        label: e.label || '',
-        labelPosition: 'center',
-        animated: styleConfig.animated,
-        edgeVariant: (e.edgeVariant || (e.communicationType === 'dotted' ? 'dotted' : (e.async ? 'dashed' : 'solid'))) as any,
-        style: {
-          stroke: styleConfig.color || EDGE_CONFIG.strokeColor,
-          strokeDasharray: styleConfig.strokeDasharray || '',
-          strokeWidth: EDGE_CONFIG.strokeWidth,
-        },
-        markerEnd: styleConfig.markerEnd || 'arrowclosed',
-        markerStart: 'none',
-      } as ArchitectureEdge;
-    });
-    
     state.history.push({
       step: 'validate',
       timestamp: Date.now(),
-      output: { nodeCount: state.enrichedNodes.length, edgeCount: state.edges.length },
+      output: { nodeCount: state.enrichedNodes.length, edgeCount: state.edges.length, diagnostics: pipelineDiagnostics },
     });
 
-    // Additional validation
     const validationResult2 = validateEdges(state.edges, state.enrichedNodes);
     if (!validationResult2.valid) {
-      state.errors.push(...validationResult2.errors.map(e => ({
-        type: e.type,
-        severity: e.severity,
-        message: e.message,
-      })));
-    }
-
-    // Repair edges
-    onProgress?.('Repairing edges', 75);
-    const repairResult = repairEdges(state.enrichedNodes, state.edges);
-    state.edges = repairResult.edges;
-    if (repairResult.repaired.length > 0) {
-      state.history.push({
-        step: 'repair',
-        timestamp: Date.now(),
-        output: repairResult.repaired.length,
-        issues: repairResult.repaired.map(r => ({
-          type: 'repair',
-          severity: r.severity,
-          message: r.message,
-        })),
-      });
-    }
-
-    // Bridge disconnected components
-    const componentsAfterRepair = findConnectedComponents(state.enrichedNodes, state.edges);
-    if (componentsAfterRepair.length > 1) {
-      logger.warn(
-        `[Pipeline] ${componentsAfterRepair.length} disconnected components detected after repair, adding bridge edges`
+      state.errors.push(
+        ...validationResult2.errors.map((e) => ({
+          type: e.type,
+          severity: e.severity,
+          message: e.message,
+        }))
       );
-      const bridges = bridgeComponents(componentsAfterRepair, state.enrichedNodes, state.edges);
-      if (bridges.length > 0) {
-        state.edges = [...state.edges, ...bridges];
-        logger.log(`[Pipeline] Added ${bridges.length} bridge edge(s)`);
-      }
     }
 
-    // Generate any remaining missing edges
-    const missingEdges = generateMissingEdges(state.enrichedNodes, state.edges);
-    if (missingEdges.length > 0) {
-      state.edges = [...state.edges, ...missingEdges];
-      logger.log(`[Pipeline] Added ${missingEdges.length} missing edges`);
-    }
+    // Custom-first contract: do NOT semantically repair/reroute edges after generation.
+    // The legacy repairEdges() can prune and even invent reroutes (e.g. insert a gateway),
+    // which violates validate-only semantics and can silently drop model flows.
+    onProgress?.('Finalizing edges', 75);
 
-    // Allocate ports
     const portAssignments = allocatePorts(state.enrichedNodes, state.edges);
     state.edges = assignHandlesToEdges(state.edges, state.enrichedNodes, portAssignments);
 
-    // ── STAGE 6: Layout ──
     onProgress?.('Computing layout', 85);
-    
-    // Convert to LayoutedNode[] for layout
-    const nodesForLayout: LayoutedNode[] = state.enrichedNodes.map(n => {
+
+    const nodesForLayout: LayoutedNode[] = state.enrichedNodes.map((n) => {
       const raw = architectureNodeToRawNode(n);
       return {
         ...raw,
@@ -459,52 +322,49 @@ PREVIOUS ATTEMPT contained forbidden nodes: ${mvcViolations.map(n => n.label).jo
       };
     });
 
-    const layoutResult = await applyLayout({ 
-      nodes: nodesForLayout, 
-      edges: state.edges.map(e => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        label: e.label || '',
-        async: e.communicationType === 'async',
-      }))
-    });
-    
-    // Convert layout result back to ArchitectureNode[]
-    state.reactFlowNodes = layoutResult.map(n => rawNodeToArchitectureNode(n as RawNode) as unknown as ReactFlowNode);
-    state.graph = null; 
-    
-    state.history.push({
-      step: 'layout',
-      timestamp: Date.now(),
-      output: layoutResult.length,
-    });
-
-    // ── STAGE 7: React Flow Conversion ──
-    onProgress?.('Converting to React Flow', 90);
-    
-    const { nodes: rfNodes, edges: rfEdges } = convertToReactFlow(
-      layoutResult,
-      { 
-        nodes: layoutResult.map(n => ({
-          id: n.id,
-          label: n.label,
-          subtitle: n.subtitle || '',
-          layer: n.layer,
-          icon: n.icon || 'box',
-          serviceType: (n.serviceType || 'generic') as ServiceType,
-        })),
-        edges: state.edges.map(e => ({
+    const { nodes: layoutResult, diagnostics: layoutDiagnostics } = await applyLayout(
+      {
+        nodes: nodesForLayout,
+        edges: state.edges.map((e) => ({
           id: e.id,
           source: e.source,
           target: e.target,
           label: e.label || '',
           async: e.communicationType === 'async',
-        }))
-      }
+        })),
+      },
+      diagramSize,
+      state.intentResult?.type
+    );
+    logger.info(`[Pipeline] Layout stage diagnostics:`, layoutDiagnostics);
+
+    const groupedLayout = applySemanticLayerGroups(layoutResult);
+    logger.info(
+      `[Pipeline] Semantic groups: ${groupedLayout.filter((n) => n.isGroup).length} groups, ${groupedLayout.length} total nodes`
     );
 
-    // Use the converted nodes/edges
+    state.history.push({ step: 'layout', timestamp: Date.now(), output: groupedLayout.length });
+
+    onProgress?.('Converting to React Flow', 90);
+
+    const { nodes: rfNodes, edges: rfEdges } = convertToReactFlow(groupedLayout, {
+      nodes: groupedLayout.map((n) => ({
+        id: n.id,
+        label: n.label,
+        subtitle: n.subtitle || '',
+        layer: n.layer,
+        icon: n.icon || 'box',
+        serviceType: (n.serviceType || 'generic') as ServiceType,
+      })),
+      edges: state.edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        label: e.label || '',
+        async: e.communicationType === 'async',
+      })),
+    });
+
     state.reactFlowNodes = rfNodes as ReactFlowNode[];
     state.edges = rfEdges as unknown as ArchitectureEdge[];
 
@@ -514,45 +374,47 @@ PREVIOUS ATTEMPT contained forbidden nodes: ${mvcViolations.map(n => n.label).jo
       output: { nodeCount: rfNodes.length, edgeCount: rfEdges.length },
     });
 
-    // ── STAGE 8: Quality Scoring ──
     onProgress?.('Scoring output', 95);
-    
-    const diagramScore = scoreDiagram(
-      rfNodes as Node[],
-      rfEdges as Edge[],
-      {
-        nodesRemoved: Math.max(0, nodesForLayout.length - rfNodes.length),
-        edgesRemoved: Math.max(0, state.edges.length - rfEdges.length),
-      }
-    );
-    
-    state.score = diagramScore.score;
-    
-    state.history.push({
-      step: 'score',
-      timestamp: Date.now(),
-      output: diagramScore,
+
+    const stylePlan = inferStylePlan(userIntent.description, state.intentResult?.type ?? 'generic');
+
+    const diagramScore = scoreDiagram(rfNodes as Node[], rfEdges as Edge[], {
+      nodesRemoved: Math.max(0, nodesForLayout.length - rfNodes.length),
+      edgesRemoved: Math.max(0, state.edges.length - rfEdges.length),
+      diagramSize,
+      stylePlan,
+      prompt: userIntent.description,
     });
 
-    // Log quality report
-    const qualityReport = validateDiagramQuality(
-      state.enrichedNodes,
-      state.edges
-    );
+    state.score = diagramScore.score;
+    state.history.push({ step: 'score', timestamp: Date.now(), output: diagramScore });
+
+    const qualityReport = validateDiagramQuality(state.enrichedNodes, state.edges);
     logger.log('[ArchDraw Quality Gate]', qualityReport);
 
-    // Iteration check
-    if (state.score < SCORE_THRESHOLD && state.iteration < MAX_ITERATIONS) {
-      logger.log(`[Pipeline] Score ${state.score} < ${SCORE_THRESHOLD}, iteration ${state.iteration + 1}/${MAX_ITERATIONS}`);
-      state.iteration++;
+    if (!qualityReport.blockingPassed) {
+      const blockingDetail = [
+        ...qualityReport.checks.connectivity.issues,
+        ...qualityReport.checks.edgeQuality.issues,
+      ].join('; ');
+      logger.warn(`[Pipeline] Blocking quality gate failed: ${blockingDetail}`);
+      state.errors.push({
+        type: 'quality_gate',
+        severity: 'critical',
+        message: `generation_failed: ${blockingDetail}`,
+      });
+      return {
+        success: false,
+        nodes: state.reactFlowNodes,
+        edges: state.edges,
+        state,
+        score: state.score,
+        error: 'generation_failed',
+        qualityReport,
+        diagramScore,
+        diagnostics: pipelineDiagnostics,
+      };
     }
-
-    // Store in semantic cache
-    diagramCache.set(userIntent.description, {
-      nodes: state.enrichedNodes,
-      edges: state.edges,
-      qualityReport,
-    });
 
     onProgress?.('Complete', 100);
 
@@ -564,6 +426,7 @@ PREVIOUS ATTEMPT contained forbidden nodes: ${mvcViolations.map(n => n.label).jo
       score: state.score,
       qualityReport,
       diagramScore,
+      diagnostics: pipelineDiagnostics,
     };
   } catch (error) {
     const pipelineError: PipelineError = {
@@ -580,8 +443,11 @@ PREVIOUS ATTEMPT contained forbidden nodes: ${mvcViolations.map(n => n.label).jo
       edges: state.edges,
       state,
       score: state.score,
+      error: 'generation_failed',
+      diagnostics: pipelineDiagnostics,
       qualityReport: {
         passed: false,
+        blockingPassed: false,
         checks: {
           structural: { passed: false, issues: ['Pipeline failed'] },
           connectivity: { passed: false, issues: [] },
@@ -593,11 +459,40 @@ PREVIOUS ATTEMPT contained forbidden nodes: ${mvcViolations.map(n => n.label).jo
   }
 }
 
-// ── Helper Functions ──
+/** Convert validated diagram edges to ArchitectureEdge with communication styles. */
+export function diagramEdgesToArchitectureEdges(edges: DiagramEdge[]): ArchitectureEdge[] {
+  return edges.map((e) => {
+    const commType = (e.communicationType || (e.async ? 'async' : 'sync')) as keyof typeof COMMUNICATION_STYLES;
+    const styleConfig = COMMUNICATION_STYLES[commType] || COMMUNICATION_STYLES.sync;
+    return {
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: 'right',
+      targetHandle: 'left',
+      communicationType: commType,
+      pathType: 'smooth',
+      label: e.label || '',
+      labelPosition: 'center',
+      animated: styleConfig.animated,
+      edgeVariant: (e.edgeVariant ||
+        (e.communicationType === 'dotted' ? 'dotted' : e.async ? 'dashed' : 'solid')) as ArchitectureEdge['edgeVariant'],
+      style: {
+        stroke: styleConfig.color || EDGE_CONFIG.strokeColor,
+        strokeDasharray: styleConfig.strokeDasharray || '',
+        strokeWidth: EDGE_CONFIG.strokeWidth,
+      },
+      markerEnd: styleConfig.markerEnd || 'arrowclosed',
+      markerStart: 'none',
+    } as ArchitectureEdge;
+  });
+}
 
-/**
- * Convert RawNode to ArchitectureNode
- */
+/** Build edges directly from LLM flows (exported for tests). */
+export function buildEdgesFromFlows(flows: RawFlow[]): DiagramEdge[] {
+  return flowsToEdges(flows);
+}
+
 function rawNodeToArchitectureNode(raw: RawNode): ArchitectureNode {
   return {
     id: raw.id,
@@ -614,9 +509,6 @@ function rawNodeToArchitectureNode(raw: RawNode): ArchitectureNode {
   };
 }
 
-/**
- * Convert ArchitectureNode to RawNode
- */
 function architectureNodeToRawNode(node: ArchitectureNode): RawNode {
   return {
     id: node.id,
@@ -626,123 +518,4 @@ function architectureNodeToRawNode(node: ArchitectureNode): RawNode {
     icon: node.icon,
     serviceType: node.serviceType,
   };
-}
-
-async function generateEdges(state: PipelineState): Promise<ArchitectureEdge[]> {
-  const { userIntent, enrichedNodes } = state;
-
-  const nodeSummaries = enrichedNodes
-    .filter(n => !n.isGroup)
-    .map(n => ({
-      id: n.id,
-      label: n.label,
-      tier: n.layer,
-    }));
-
-  const prompt = buildEdgePrompt(userIntent.description, nodeSummaries);
-
-  try {
-    const result = await apiKeyManager.executeWithRetry(async (groq) => {
-      const completion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: 'You are a JSON-only output system. Always respond with valid JSON object with an "edges" array. Do NOT wrap in markdown code blocks.' },
-          { role: 'user', content: prompt + '\n\nIMPORTANT: Every edge label must describe the specific data or action being transmitted, not just the relationship type. BAD: "CONNECTS TO", "REQUESTS", "EMITS TELEMETRY", "CALLS". GOOD: "submits expense data", "returns JWT token", "publishes job event", "streams video chunk". Labels must be 2-5 words describing what is actually flowing.' },
-        ],
-        temperature: 0.1,
-        max_tokens: 4096,
-      });
-      return completion.choices[0]?.message?.content ?? '';
-    });
-
-    const cleaned = result
-      .replace(/```json\s*/gi, '')
-      .replace(/```\s*/gi, '')
-      .trim();
-
-    const parsed = JSON.parse(cleaned);
-    
-    return (parsed.edges || []).map((edge: Partial<ArchitectureEdge>) => ({
-      id: edge.id || `edge-${Date.now()}`,
-      source: edge.source || '',
-      target: edge.target || '',
-      sourceHandle: 'right',
-      targetHandle: 'left',
-      communicationType: edge.communicationType || 'sync',
-      pathType: 'smooth',
-      label: edge.label || '',
-      labelPosition: 'center',
-      animated: false,
-      style: {
-        stroke: EDGE_CONFIG.strokeColor,
-        strokeDasharray: '',
-        strokeWidth: EDGE_CONFIG.strokeWidth,
-      },
-      markerEnd: 'arrowclosed',
-      markerStart: 'none',
-    } as ArchitectureEdge));
-  } catch (error) {
-    logger.error('[Pipeline] Edge generation failed:', error);
-    return generateDeterministicEdges(enrichedNodes);
-  }
-}
-
-function generateDeterministicEdges(nodes: ArchitectureNode[]): ArchitectureEdge[] {
-  const edges: ArchitectureEdge[] = [];
-  const columnOrder: string[] = ['presentation', 'application', 'data'];
-  
-  const edgeExists = (source: string, target: string) =>
-    edges.some((e) => e.source === source && e.target === target);
-
-  const pushEdge = (source: ArchitectureNode, target: ArchitectureNode, communicationType: 'sync' | 'async') => {
-    if (edgeExists(source.id, target.id)) return;
-    edges.push({
-      id: `auto-${source.id}-${target.id}`,
-      source: source.id,
-      target: target.id,
-      sourceHandle: 'right',
-      targetHandle: 'left',
-      communicationType,
-      pathType: 'smooth',
-      label: '',
-      labelPosition: 'center',
-      animated: communicationType === 'async',
-      style: {
-        stroke: EDGE_CONFIG.strokeColor,
-        strokeDasharray: communicationType === 'async' ? '5,5' : '',
-        strokeWidth: EDGE_CONFIG.strokeWidth,
-      },
-      markerEnd: 'arrowclosed',
-      markerStart: 'none',
-    } as ArchitectureEdge);
-  };
-
-  for (let i = 0; i < columnOrder.length - 1; i++) {
-    const sourceLayer = columnOrder[i];
-    const targetLayer = columnOrder[i + 1];
-
-    const sources = nodes.filter(n => n.layer === sourceLayer);
-    const targets = nodes.filter(n => n.layer === targetLayer);
-
-    if (sources.length > 0 && targets.length > 0) {
-      const commType: 'sync' | 'async' = 'sync';
-
-      for (let s = 0; s < sources.length; s++) {
-        const source = sources[s];
-        const primaryTarget = targets[s % targets.length];
-        pushEdge(source, primaryTarget, commType);
-      }
-
-      for (let t = 0; t < targets.length; t++) {
-        const target = targets[t];
-        const incomingExists = edges.some((e) => e.target === target.id);
-        if (!incomingExists) {
-          const source = sources[t % sources.length];
-          pushEdge(source, target, commType);
-        }
-      }
-    }
-  }
-
-  return edges;
 }

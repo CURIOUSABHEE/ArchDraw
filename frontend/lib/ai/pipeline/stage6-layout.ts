@@ -1,116 +1,412 @@
 import logger from '@/lib/logger';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type { LayoutedNode, ValidatedDiagram, RawNode } from './types';
-import { resolveNodeCollisions } from '@/lib/collision';
-import { snapNodesToColumns } from '@/lib/utils/columnAlignNodes';
+import { calculateNodeDimensions } from '@/lib/utils/nodeSizing';
 import { ELK_CONFIG, ELK_DIRECTION_OVERRIDE } from '@/lib/config';
 
-/**
- * STAGE 6 — LAYOUT ENGINE
- * 
- * Mandates from GEMINI.md:
- * 1. Use ELK for layered layout (direction=RIGHT)
- * 2. Adaptive node sizing (no truncation)
- * 3. Min rank separation: 120px
- * 4. Min node separation: 60px
- * 5. Collision detection pass
- * 6. Use partitioning for tier discipline
- */
+export interface LayoutDiagnostics {
+  elkFailed: boolean;
+  collisionCountBefore: number;
+  collisionCountAfter: number;
+  snappedColumns: number;
+  unrecognizedLayers: string[];
+  groupLayoutApplied: boolean;
+}
 
-const MIN_NODE_WIDTH = 180;
-const NODE_HEIGHT = 80;
-const CHAR_WIDTH = 8.5; // Estimated width per character at 14px bold
-const PADDING_X = 40; // 20px on each side
-const PADDING_Y = 40; // 20px on each side
+export interface LayoutResult {
+  nodes: LayoutedNode[];
+  diagnostics: LayoutDiagnostics;
+}
 
-const RANK_SEPARATION = 220;
-const NODE_SEPARATION = 130;
-
-const SUBTITLE_CHAR_WIDTH = 6.5; // 11px font for subtitles
+const CANONICAL_TIERS = [
+  'client',        // 0
+  'edge',          // 1
+  'gateway',       // 2
+  'application',   // 3
+  'queue',         // 4
+  'data',          // 5
+  'observability', // 6
+  'external'       // 7
+];
 
 const TIER_LAYER: Record<string, number> = {
   client: 0,
   edge: 1,
+  infrastructure: 1,
   gateway: 2,
   application: 3,
+  compute: 3,
   queue: 4,
+  async: 4,
   data: 5,
-  infrastructure: 5,
+  cache: 5,
+  storage: 5,
   observability: 6,
+  monitoring: 6,
   external: 7,
+  thirdparty: 7,
 };
 
-// Label-pattern-based layer hints for strict column placement
+// Patterns are tightened to avoid false matches on common words (non-greedy, word boundaries)
 const LAYER_HINTS: { pattern: RegExp; layer: number }[] = [
-  { pattern: /\bclient\b|\bbrowser\b|\bmobile\b|\bspa\b|\bapp\b|\bui\b/i, layer: 0 },
-  { pattern: /\brouter\b|\broutes?\b|\bdispatcher\b|\bnginx\b/i, layer: 1 },
-  { pattern: /\bcontroller\b|\bhandler\b|\bendpoint\b/i, layer: 2 },
-  { pattern: /\bservice\b|\bworker\b|\bprocess/i, layer: 3 },
-  { pattern: /\bmodel\b|\brepository\b|\borm\b|\bentity\b|\bdomain\b/i, layer: 4 },
-  { pattern: /\bcache\b|\bredis\b|\bmemcached\b/i, layer: 4 },
-  { pattern: /\bobserv/i, layer: 5 },
-  { pattern: /\bexternal\b|\bthird.?party\b|\bapi\b/i, layer: 5 },
+  { pattern: /^(web app|mobile app|browser|spa|frontend|client)$/i, layer: 0 },
+  { pattern: /^(cdn|dns|route\s*53|cloudfront)$/i, layer: 1 },
+  { pattern: /^(load\s*balancer|api gateway|nginx|traefik|ingress)$/i, layer: 2 },
+  { pattern: /\b(queue|kafka|rabbitmq|amqp|pub.?sub|sqs)\b/i, layer: 4 },
+  { pattern: /\b(database|postgres|mysql|mongo|dynamodb|redis|cache|s3|blob\s*storage|object\s*storage)\b/i, layer: 5 },
+  { pattern: /\b(prometheus|grafana|datadog|newrelic|jaeger|zipkin)\b/i, layer: 6 },
+  { pattern: /\b(stripe|twilio|sendgrid|paypal|sns)\b/i, layer: 7 },
 ];
 
-function getLayerHint(node: RawNode): number {
+export function normalizeLayer(layer?: string): string {
+  if (!layer) return 'application';
+  const clean = layer.toLowerCase().trim().replace(/[\s-]/g, '');
+
+  if (clean === 'presentation' || clean === 'client' || clean === 'frontend') return 'client';
+  if (clean === 'edge' || clean === 'infrastructure') return 'edge';
+  if (clean === 'gateway') return 'gateway';
+  if (clean === 'compute' || clean === 'application' || clean === 'compute/application') return 'application';
+  if (clean === 'async' || clean === 'queue') return 'queue';
+  if (clean === 'data' || clean === 'cache' || clean === 'storage') return 'data';
+  if (clean === 'observe' || clean === 'observability' || clean === 'monitoring') return 'observability';
+  if (clean === 'thirdparty' || clean === 'external') return 'external';
+
+  // Substring matches as a fallback
+  if (clean.includes('client') || clean.includes('present') || clean.includes('frontend')) return 'client';
+  if (clean.includes('edge') || clean.includes('infra')) return 'edge';
+  if (clean.includes('gate')) return 'gateway';
+  if (clean.includes('compute') || (clean.includes('app') && !clean.includes('frontend'))) return 'application';
+  if (clean.includes('async') || clean.includes('queue') || clean.includes('bus') || clean.includes('stream')) return 'queue';
+  if (clean.includes('data') || clean.includes('db') || clean.includes('cache') || clean.includes('store') || clean.includes('sql') || clean.includes('mongo')) return 'data';
+  if (clean.includes('observe') || clean.includes('monitor') || clean.includes('log') || clean.includes('trace') || clean.includes('alert')) return 'observability';
+  if (clean.includes('third') || clean.includes('ext') || clean.includes('api') || clean.includes('vendor')) return 'external';
+
+  return 'application';
+}
+
+export function getLayerHint(node: RawNode): number {
+  // 1. TRUST the AI-assigned layer field first
+  if (node.layer) {
+    const norm = normalizeLayer(node.layer);
+    const index = CANONICAL_TIERS.indexOf(norm);
+    if (index !== -1) return index;
+  }
+
+  // 2. Only fall back to label pattern matching if layer is missing or unrecognized
   const label = node.label || '';
   for (const hint of LAYER_HINTS) {
     if (hint.pattern.test(label)) return hint.layer;
   }
-  const layer = node.layer ? node.layer.toLowerCase() : 'application';
-  return TIER_LAYER[layer] ?? 3;
+
+  // 3. Default to application tier
+  return 3;
+}
+
+// Bounding box interface for collision detection
+interface CollisionBox {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+function getNodeBox(node: LayoutedNode, margin: number): CollisionBox {
+  return {
+    x1: node.x - margin,
+    y1: node.y - margin,
+    x2: node.x + node.width + margin,
+    y2: node.y + node.height + margin,
+  };
+}
+
+function checkOverlap(boxA: CollisionBox, boxB: CollisionBox): { x: number; y: number } | null {
+  const overlapX = Math.min(boxA.x2, boxB.x2) - Math.max(boxA.x1, boxB.x1);
+  const overlapY = Math.min(boxA.y2, boxB.y2) - Math.max(boxA.y1, boxB.y1);
+  if (overlapX > 0 && overlapY > 0) {
+    return { x: overlapX, y: overlapY };
+  }
+  return null;
 }
 
 /**
- * Calculate required node width based on label and subtitle
+ * Resolves node overlaps using a basic iterative layout adjustment.
+ * Shifting group nodes will also shift all of their child nodes.
  */
-function calculateNodeDimensions(node: RawNode): { width: number; height: number } {
-  const labelLen = node.label.length;
-  const subtitleLen = node.subtitle?.length || 0;
+function resolveCollisions(nodes: LayoutedNode[], margin: number = 40): { nodes: LayoutedNode[], before: number, after: number } {
+  const result = nodes.map(n => ({ ...n }));
   
-  const labelWidth = (labelLen * CHAR_WIDTH) + PADDING_X;
-  const subtitleWidth = (subtitleLen * SUBTITLE_CHAR_WIDTH) + PADDING_X;
-  
-  const calculatedWidth = Math.max(labelWidth, subtitleWidth);
-  const width = Math.max(MIN_NODE_WIDTH, calculatedWidth);
-  
-  // Height adapts if there is a subtitle
-  const height = node.subtitle ? NODE_HEIGHT + 20 : NODE_HEIGHT;
-  
-  return { width, height };
+  let beforeCount = 0;
+  for (let i = 0; i < result.length; i++) {
+    for (let j = i + 1; j < result.length; j++) {
+      if (result[i].parentId === result[j].id || result[j].parentId === result[i].id) continue;
+      const boxA = getNodeBox(result[i], margin);
+      const boxB = getNodeBox(result[j], margin);
+      if (checkOverlap(boxA, boxB)) {
+        beforeCount++;
+      }
+    }
+  }
+
+  const maxIterations = 50;
+  for (let iter = 0; iter < maxIterations; iter++) {
+    let moved = false;
+    for (let i = 0; i < result.length; i++) {
+      for (let j = i + 1; j < result.length; j++) {
+        const a = result[i];
+        const b = result[j];
+        
+        if (a.parentId === b.id || b.parentId === a.id) continue;
+        
+        const boxA = getNodeBox(a, margin);
+        const boxB = getNodeBox(b, margin);
+        const overlap = checkOverlap(boxA, boxB);
+        
+        if (overlap) {
+          let dx = 0;
+          let dy = 0;
+          const shiftAmount = margin + 5;
+          if (overlap.x < overlap.y) {
+            dx = a.x < b.x ? -shiftAmount : shiftAmount;
+          } else {
+            dy = a.y < b.y ? -shiftAmount : shiftAmount;
+          }
+          
+          a.x += dx / 2;
+          a.y += dy / 2;
+          if (a.isGroup) {
+            for (const child of result) {
+              if (child.parentId === a.id) {
+                child.x += dx / 2;
+                child.y += dy / 2;
+              }
+            }
+          }
+          
+          b.x -= dx / 2;
+          b.y -= dy / 2;
+          if (b.isGroup) {
+            for (const child of result) {
+              if (child.parentId === b.id) {
+                child.x -= dx / 2;
+                child.y -= dy / 2;
+              }
+            }
+          }
+          
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+
+  let afterCount = 0;
+  for (let i = 0; i < result.length; i++) {
+    for (let j = i + 1; j < result.length; j++) {
+      if (result[i].parentId === result[j].id || result[j].parentId === result[i].id) continue;
+      const boxA = getNodeBox(result[i], margin);
+      const boxB = getNodeBox(result[j], margin);
+      if (checkOverlap(boxA, boxB)) {
+        afterCount++;
+      }
+    }
+  }
+
+  return { nodes: result, before: beforeCount, after: afterCount };
+}
+
+function positionGroupsAbsolute(
+  layoutedLeafNodes: LayoutedNode[],
+  groupNodes: RawNode[]
+): LayoutedNode[] {
+  const resultNodes = [...layoutedLeafNodes];
+  const padding = 40;
+
+  for (const group of groupNodes) {
+    const children = resultNodes.filter(n => n.parentId === group.id);
+    if (children.length > 0) {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+
+      for (const child of children) {
+        minX = Math.min(minX, child.x);
+        minY = Math.min(minY, child.y);
+        maxX = Math.max(maxX, child.x + child.width);
+        maxY = Math.max(maxY, child.y + child.height);
+      }
+
+      resultNodes.push({
+        ...group,
+        x: minX - padding,
+        y: minY - padding,
+        width: (maxX - minX) + 2 * padding,
+        height: (maxY - minY) + 2 * padding
+      });
+    } else {
+      resultNodes.push({
+        ...group,
+        x: 100,
+        y: 100,
+        width: 200,
+        height: 150
+      });
+    }
+  }
+
+  return resultNodes;
+}
+
+/**
+ * After collision resolution moves children, group positions may be stale.
+ * This recomputes each group's bounding box from the current (post-collision)
+ * positions of its children, ensuring parent-relative conversion is correct.
+ */
+function recomputeGroupBounds(nodes: LayoutedNode[]): LayoutedNode[] {
+  const result = nodes.map(n => ({ ...n }));
+  const padding = 40;
+
+  for (const group of result) {
+    if (!group.isGroup) continue;
+    const children = result.filter(n => n.parentId === group.id);
+    if (children.length === 0) continue;
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const child of children) {
+      minX = Math.min(minX, child.x);
+      minY = Math.min(minY, child.y);
+      maxX = Math.max(maxX, child.x + child.width);
+      maxY = Math.max(maxY, child.y + child.height);
+    }
+
+    group.x = minX - padding;
+    group.y = minY - padding;
+    group.width = (maxX - minX) + 2 * padding;
+    group.height = (maxY - minY) + 2 * padding;
+  }
+
+  return result;
+}
+
+function convertChildrenToParentRelative(nodes: LayoutedNode[]): LayoutedNode[] {
+  return nodes.map(node => {
+    if (node.parentId) {
+      const parent = nodes.find(p => p.id === node.parentId);
+      if (parent) {
+        return {
+          ...node,
+          x: node.x - parent.x,
+          y: node.y - parent.y
+        };
+      }
+    }
+    return node;
+  });
+}
+
+function fallbackLayoutLeafs(nonGroupNodes: RawNode[]): LayoutedNode[] {
+  const layerGroups: Record<number, RawNode[]> = {};
+  for (const node of nonGroupNodes) {
+    const layerIdx = getLayerHint(node);
+    layerGroups[layerIdx] ||= [];
+    layerGroups[layerIdx].push(node);
+  }
+
+  const layoutedLeafNodes: LayoutedNode[] = [];
+  let currentX = 100;
+  const paddingX = 150;
+  const spacingY = 80;
+
+  for (let layerIdx = 0; layerIdx < 8; layerIdx++) {
+    const layerNodes = layerGroups[layerIdx];
+    if (!layerNodes || layerNodes.length === 0) continue;
+
+    let currentY = 100;
+    let maxColumnWidth = 0;
+
+    for (const node of layerNodes) {
+      const { width, height } = calculateNodeDimensions(node.label, node.subtitle);
+      layoutedLeafNodes.push({
+        ...node,
+        x: currentX,
+        y: currentY,
+        width,
+        height
+      });
+      currentY += height + spacingY;
+      maxColumnWidth = Math.max(maxColumnWidth, width);
+    }
+
+    currentX += maxColumnWidth + paddingX;
+  }
+
+  return layoutedLeafNodes;
 }
 
 export async function applyLayout(
   validated: ValidatedDiagram,
   diagramSize: 'small' | 'medium' | 'large' = 'medium',
   diagramType?: string
-): Promise<LayoutedNode[]> {
+): Promise<LayoutResult> {
   const { nodes, edges } = validated;
   logger.info(`[Layout] Processing ${nodes.length} nodes, ${edges.length} edges using ELK with partitioning (size: ${diagramSize})`);
 
-  const baseNodeSep = 160;
-  const layerSep = 240;
+  // Track diagnostics
+  const unrecognizedLayers: string[] = [];
+  for (const node of nodes) {
+    if (node.layer) {
+      const normalized = node.layer.toLowerCase().replace(/[\s-]/g, '');
+      if (TIER_LAYER[normalized] === undefined) {
+        unrecognizedLayers.push(node.layer);
+      }
+    }
+  }
 
-  // Check if there are any edges connecting nodes in the same layer (vertical edges)
-  const hasVerticalEdges = edges.some(edge => {
+  const nonGroupNodes = nodes.filter(n => !n.isGroup);
+  const groupNodes = nodes.filter(n => n.isGroup);
+  const nonGroupIds = new Set(nonGroupNodes.map(n => n.id));
+
+  // Determine dynamic ELK spacing options
+  // 1. Spacing base adjustments by size
+  let sizeNodeSpacing = 160;
+  let sizeLayerSpacing = 240;
+  if (diagramSize === 'small') {
+    sizeNodeSpacing = 120;
+    sizeLayerSpacing = 180;
+  } else if (diagramSize === 'large') {
+    sizeNodeSpacing = 220;
+    sizeLayerSpacing = 320;
+  }
+
+  // 2. Adjustments based on edge pressure (edges - nodes)
+  const edgePressure = Math.max(0, edges.length - nodes.length);
+  const extraNodeSpacing = edgePressure * 10;
+  const extraLayerSpacing = edgePressure * 15;
+
+  // 3. Same-layer edge pressure
+  const sameLayerEdges = edges.filter(edge => {
     const src = nodes.find(n => n.id === edge.source);
     const tgt = nodes.find(n => n.id === edge.target);
-    return src && tgt && src.layer === tgt.layer;
-  });
+    return src && tgt && getLayerHint(src) === getLayerHint(tgt);
+  }).length;
+  const sameLayerSpacingExtra = sameLayerEdges * 15;
 
-  const edgePressure = Math.max(0, edges.length - nodes.length);
-  const dynamicNodeSep = Math.max(
-    hasVerticalEdges ? (baseNodeSep + 60) : baseNodeSep,
-    baseNodeSep + edgePressure * 8
-  );
+  // Combine them with bounds/clamping
+  const finalNodeNode = Math.min(Math.max(sizeNodeSpacing + extraNodeSpacing + sameLayerSpacingExtra, 120), 400);
+  const finalNodeLayer = Math.min(Math.max(sizeLayerSpacing + extraLayerSpacing + sameLayerSpacingExtra, 180), 500);
+  const finalEdgeNode = Math.min(Math.max(100 + edgePressure * 5, 80), 200);
+  const finalEdgeEdge = Math.min(Math.max(60 + edgePressure * 5, 50), 150);
 
   const elk = new ELK();
-  
-  // Filter out self-loops (source === target) before ELK
   const cleanEdges = edges.filter(e => e.source !== e.target);
 
-  const elkNodes = nodes.map(node => {
-    const { width, height } = calculateNodeDimensions(node);
+  const elkNodes = nonGroupNodes.map(node => {
+    const { width, height } = calculateNodeDimensions(node.label, node.subtitle);
     return {
       id: node.id,
       width,
@@ -121,26 +417,23 @@ export async function applyLayout(
     };
   });
 
-  // Push sink nodes (only incoming edges, no outgoing) to the last layer
-  const sinkIds = new Set(
-    nodes.map(n => n.id).filter(id => !cleanEdges.some(e => e.source === id))
-  );
-  for (const elkNode of elkNodes) {
-    if (sinkIds.has(elkNode.id)) {
-      elkNode.layoutOptions['elk.layered.layering.layerId'] = '99';
-    }
-  }
+  const elkEdges = cleanEdges
+    .filter(edge => nonGroupIds.has(edge.source) && nonGroupIds.has(edge.target))
+    .map(edge => ({
+      id: edge.id,
+      sources: [edge.source],
+      targets: [edge.target]
+    }));
 
-  const elkEdges = cleanEdges.map(edge => ({
-    id: edge.id,
-    sources: [edge.source],
-    targets: [edge.target]
-  }));
-  
-    const graph = {
+  const graph = {
     id: 'root',
     layoutOptions: {
       ...ELK_CONFIG,
+      'elk.layered.layering.strategy': 'INTERACTIVE',
+      'elk.spacing.nodeNode': String(finalNodeNode),
+      'elk.layered.spacing.nodeNodeBetweenLayers': String(finalNodeLayer),
+      'elk.spacing.edgeNode': String(finalEdgeNode),
+      'elk.spacing.edgeEdge': String(finalEdgeEdge),
       'elk.direction': diagramType && ELK_DIRECTION_OVERRIDE[diagramType] 
                        ? ELK_DIRECTION_OVERRIDE[diagramType] 
                        : ELK_CONFIG['elk.direction'],
@@ -151,15 +444,13 @@ export async function applyLayout(
 
   try {
     const layoutedGraph = await elk.layout(graph);
-    
     if (!layoutedGraph.children) throw new Error("ELK returned no children");
 
-    // Map positions back and create LayoutedNodes
-    const layoutedNodes: LayoutedNode[] = nodes.map(node => {
+    // Map positions back
+    const layoutedLeafNodes: LayoutedNode[] = nonGroupNodes.map(node => {
       const elkNode = layoutedGraph.children!.find(n => n.id === node.id);
       if (!elkNode) throw new Error(`Node ${node.id} missing from layout`);
-      
-      const { width, height } = calculateNodeDimensions(node);
+      const { width, height } = calculateNodeDimensions(node.label, node.subtitle);
       return {
         ...node,
         x: elkNode.x || 0,
@@ -169,121 +460,90 @@ export async function applyLayout(
       };
     });
 
-    // Layout Refinement: Symmetrize targets when a node has multiple outgoing edges to the same tier
-    try {
-      for (const sourceNode of layoutedNodes) {
-        // Find all outgoing edges from this node
-        const outgoingEdges = edges.filter(e => e.source === sourceNode.id);
-        if (outgoingEdges.length < 2) continue;
-
-        // Find the target nodes
-        const targetNodes = outgoingEdges
-          .map(e => layoutedNodes.find(n => n.id === e.target))
-          .filter(Boolean) as LayoutedNode[];
-
-        if (targetNodes.length < 2) continue;
-
-        // Group targets by tier/layer to handle only same-layer targets
-        const tierGroups: Record<string, LayoutedNode[]> = {};
-        for (const target of targetNodes) {
-          const tier = target.layer || 'application';
-          tierGroups[tier] ||= [];
-          tierGroups[tier].push(target);
-        }
-
-        for (const [tier, group] of Object.entries(tierGroups)) {
-          if (group.length < 2) continue;
-
-          // Sort them by their current Y coordinates (top to bottom)
-          group.sort((a, b) => a.y - b.y);
-
-          // Find average X to align them vertically
-          const avgX = group.reduce((sum, n) => sum + n.x, 0) / group.length;
-
-          // Source center Y
-          const sourceCenterY = sourceNode.y + sourceNode.height / 2;
-
-          // Align vertically and space them symmetrically
-          const spacing = 220; // Symmetrical center-to-center spacing
-          const totalHeight = (group.length - 1) * spacing;
-          const startY = sourceCenterY - totalHeight / 2;
-
-          for (let i = 0; i < group.length; i++) {
-            const target = group[i];
-            target.x = avgX;
-            target.y = (startY + i * spacing) - target.height / 2;
-          }
-        }
-      }
-    } catch (err) {
-      logger.error('[Layout Refinement] Symmetrization failed:', err);
+    // Column snapping: group by canonical layer first, snap only in same canonical layer
+    const nodesByLayer: Record<number, LayoutedNode[]> = {};
+    for (const node of layoutedLeafNodes) {
+      const layerIdx = getLayerHint(node);
+      nodesByLayer[layerIdx] ||= [];
+      nodesByLayer[layerIdx].push(node);
     }
 
-    // Column alignment: snap same-column nodes to identical X
-    const alignedNodes = snapNodesToColumns(
-      layoutedNodes,
-      n => n.x,
-      (n, x) => ({ ...n, x }),
-      60
-    );
+    const activeLayers = Object.keys(nodesByLayer).map(Number).sort((a, b) => a - b);
+    const layerAvgX: Record<number, number> = {};
+    for (const layerIdx of activeLayers) {
+      const layerNodes = nodesByLayer[layerIdx];
+      if (layerNodes.length > 0) {
+        const sumX = layerNodes.reduce((sum, n) => sum + n.x, 0);
+        layerAvgX[layerIdx] = sumX / layerNodes.length;
+      }
+    }
 
-    // Final layout formatting
-    return alignedNodes;
+    for (const layerIdx of activeLayers) {
+      const avgX = Math.round(layerAvgX[layerIdx]);
+      let canSnap = true;
+      for (const otherIdx of activeLayers) {
+        if (otherIdx === layerIdx) continue;
+        const otherAvg = layerAvgX[otherIdx];
+        if (layerIdx > otherIdx && avgX < otherAvg + 120) {
+          canSnap = false;
+          break;
+        }
+        if (layerIdx < otherIdx && avgX > otherAvg - 120) {
+          canSnap = false;
+          break;
+        }
+      }
+
+      if (canSnap) {
+        for (const node of nodesByLayer[layerIdx]) {
+          node.x = avgX;
+        }
+      }
+    }
+
+    // Position group nodes absolutely around their children
+    const absoluteNodes = positionGroupsAbsolute(layoutedLeafNodes, groupNodes);
+
+    // Run collision resolution on all absolute-positioned nodes (leaf nodes only,
+    // then recompute groups so groups enclose their post-collision children)
+    const { nodes: collisionResolvedNodes, before, after } = resolveCollisions(absoluteNodes, 40);
+
+    // Recompute group bounds from final (post-collision) child positions
+    const reboundedNodes = recomputeGroupBounds(collisionResolvedNodes);
+
+    // Convert children to parent-relative coordinates
+    const finalNodes = convertChildrenToParentRelative(reboundedNodes);
+
+    return {
+      nodes: finalNodes,
+      diagnostics: {
+        elkFailed: false,
+        collisionCountBefore: before,
+        collisionCountAfter: after,
+        snappedColumns: new Set(collisionResolvedNodes.map(n => n.x)).size,
+        unrecognizedLayers,
+        groupLayoutApplied: groupNodes.length > 0
+      }
+    };
 
   } catch (e) {
     logger.error('[Layout] ELK failed, falling back to basic layout:', e);
-    return fallbackLayout(nodes);
-  }
-}
+    const fallbackLeafNodes = fallbackLayoutLeafs(nonGroupNodes);
+    const absoluteNodes = positionGroupsAbsolute(fallbackLeafNodes, groupNodes);
+    const { nodes: collisionResolvedNodes, before, after } = resolveCollisions(absoluteNodes, 40);
+    const reboundedNodes = recomputeGroupBounds(collisionResolvedNodes);
+    const finalNodes = convertChildrenToParentRelative(reboundedNodes);
 
-function fallbackLayout(nodes: RawNode[]): LayoutedNode[] {
-  const layerGroups: Record<string, RawNode[]> = {};
-  for (const node of nodes) {
-    const layer = node.layer ? node.layer.toLowerCase() : 'application';
-    if (!layerGroups[layer]) layerGroups[layer] = [];
-    layerGroups[layer].push(node);
+    return {
+      nodes: finalNodes,
+      diagnostics: {
+        elkFailed: true,
+        collisionCountBefore: before,
+        collisionCountAfter: after,
+        snappedColumns: new Set(collisionResolvedNodes.map(n => n.x)).size,
+        unrecognizedLayers,
+        groupLayoutApplied: groupNodes.length > 0
+      }
+    };
   }
-
-  // Sort layers
-  const layerOrder = Object.keys(TIER_LAYER).sort((a, b) => TIER_LAYER[a] - TIER_LAYER[b]);
-  
-  const layouted: LayoutedNode[] = [];
-  let currentX = 100;
-
-  for (const layer of layerOrder) {
-    if (!layerGroups[layer]) continue;
-    let currentY = 100;
-    let maxLayerWidth = 0;
-    
-    for (const node of layerGroups[layer]) {
-      const { width, height } = calculateNodeDimensions(node);
-      layouted.push({
-        ...node,
-        x: currentX,
-        y: currentY,
-        width,
-        height,
-      });
-      currentY += height + 80;
-      maxLayerWidth = Math.max(maxLayerWidth, width);
-    }
-    currentX += maxLayerWidth + 150;
-  }
-  
-  // Also add any nodes that didn't match a valid layer
-  const remainingNodes = nodes.filter(n => !layouted.find(l => l.id === n.id));
-  let currentY = 100;
-  for (const node of remainingNodes) {
-    const { width, height } = calculateNodeDimensions(node);
-    layouted.push({
-      ...node,
-      x: currentX,
-      y: currentY,
-      width,
-      height,
-    });
-    currentY += height + 80;
-  }
-
-  return layouted;
 }

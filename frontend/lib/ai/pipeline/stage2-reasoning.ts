@@ -1,8 +1,8 @@
-import type { ReasoningResult } from './types';
+import type { ReasoningResult, ArchitectureStylePlan, ArchitectureStyle, ProductionDepth } from './types';
 import { MODEL_CONFIG } from '../constants';
 import logger from '@/lib/logger';
 
-// Re-export ReasoningResult for other modules
+// Re-export for other modules
 export type { ReasoningResult };
 
 const GROQ_KEY_ENV_VARS = [
@@ -22,23 +22,103 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null
   }
 }
 
+// ── Style Plan Inference ─────────────────────────────────────────────────────
+
+const PRODUCTION_SIGNALS = [
+  'production', ' ha ', 'high availability', 'cloud', 'aws', 'gcp', 'azure',
+  'kubernetes', 'k8s', 'observability', 'resilient', 'reliability',
+  'deployment pipeline', 'fault tolerant', 'scalab', 'at scale',
+];
+
+const STYLE_SIGNAL_MAP: Array<{ patterns: RegExp; style: ArchitectureStyle }> = [
+  { patterns: /\bmvc\b|model.?view.?controller|layered architecture/i, style: 'mvc' },
+  { patterns: /\bmicroservice|\bservice mesh\b|independent deploy|team autonomy/i, style: 'microservices' },
+  { patterns: /\bserverless\b|\bfaas\b|\blambda\b|pay per use|aws lambda/i, style: 'serverless' },
+  { patterns: /\bevent.driven\b|real.time stream|event stream|streaming architecture/i, style: 'event_driven' },
+  { patterns: /\bdata pipeline\b|\bdata platform\b|\bdbt\b|etl|elt|lakehouse|medallion/i, style: 'data_pipeline' },
+  { patterns: /\bml pipeline\b|model training|model inference|feature store|mlops/i, style: 'ml' },
+  { patterns: /\bsaas\b|multi.tenant|per.tenant/i, style: 'saas' },
+  { patterns: /\benterprise\b|\bsoa\b|\berp\b|legacy integration/i, style: 'enterprise' },
+  { patterns: /\bmobile backend\b|offline.first|push notification.*backend/i, style: 'mobile_backend' },
+  { patterns: /\biot\b|\bedge device\b|embedded|firmware|sensor/i, style: 'iot' },
+  { patterns: /\breal.time collab\b|collaborative edit|multiplayer|crdt|operational transform/i, style: 'realtime_collab' },
+  { patterns: /\bmonolith\b|modular monolith/i, style: 'monolith' },
+];
+
+/**
+ * Infer architecture style and production depth from prompt + intentType.
+ * This is the canonical source of truth used by stages 2, 3, 5, and 8.
+ */
+export function inferStylePlan(prompt: string, intentType: string): ArchitectureStylePlan {
+  const p = prompt.toLowerCase();
+
+  // Production depth
+  const isProduction = PRODUCTION_SIGNALS.some(s => p.includes(s));
+  const isApplication =
+    !isProduction &&
+    /\b(backend|api server|application layer|web application)\b/.test(p);
+  const productionDepth: ProductionDepth = isProduction ? 'production' : isApplication ? 'application' : 'conceptual';
+
+  // Style — check prompt signals first, then fall back to intentType
+  let style: ArchitectureStyle = 'generic';
+  let strictness: 'explicit' | 'inferred' = 'inferred';
+
+  for (const entry of STYLE_SIGNAL_MAP) {
+    if (entry.patterns.test(prompt)) {
+      style = entry.style;
+      strictness = 'explicit';
+      break;
+    }
+  }
+
+  // Fall back to intentType mapping
+  if (style === 'generic' && intentType) {
+    const intentStyleMap: Record<string, ArchitectureStyle> = {
+      mvc: 'mvc',
+      microservices: 'microservices',
+      serverless: 'serverless',
+      event_driven: 'event_driven',
+      data_pipeline: 'data_pipeline',
+      ml: 'ml',
+      saas: 'saas',
+      enterprise: 'enterprise',
+      mobile_backend: 'mobile_backend',
+      iot: 'iot',
+      realtime_collab: 'realtime_collab',
+      monolith: 'monolith',
+      modular_monolith: 'modular_monolith',
+    };
+    const mapped = intentStyleMap[intentType];
+    if (mapped) {
+      style = mapped;
+      strictness = 'explicit';
+    }
+  }
+
+  return { style, strictness, productionDepth };
+}
+
+// ── Reasoning LLM ────────────────────────────────────────────────────────────
+
 /**
  * STAGE 2 — REASONING
  * Produces a structured architectural plan before diagram generation.
- * 
+ *
  * Output includes:
  * - system type (e.g., video streaming platform)
  * - layers: clients, entry, services, async systems, data layer
  * - key flows: request flow, async/background processing
- * 
+ *
  * This stage defines STRUCTURE, not nodes.
  */
 export async function callReasoningLLM(
   prompt: string,
   intentType: string,
-  diagramSize: 'small' | 'medium' | 'large' = 'medium'
+  diagramSize: 'small' | 'medium' | 'large' = 'medium',
+  stylePlan?: ArchitectureStylePlan
 ): Promise<ReasoningResult> {
-  const systemPrompt = buildReasoningPrompt(prompt, intentType, diagramSize);
+  const plan = stylePlan ?? inferStylePlan(prompt, intentType);
+  const systemPrompt = buildReasoningPrompt(prompt, intentType, diagramSize, plan);
 
   for (const envVar of GROQ_KEY_ENV_VARS) {
     const apiKey = process.env[envVar];
@@ -62,29 +142,51 @@ export async function callReasoningLLM(
       if (res) {
         const content = res.choices[0]?.message?.content ?? '';
         const cleaned = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-        const parsed = JSON.parse(cleaned);
+        let parsed: Record<string, unknown>;
+        try {
+          parsed = JSON.parse(cleaned) as Record<string, unknown>;
+        } catch {
+          logger.log(`[Reasoning] Invalid JSON from ${envVar}`);
+          continue;
+        }
+
+        const systemType = String(parsed.systemType || '').trim();
+        const architecturalPlan = String(parsed.architecturalPlan || '').trim();
+        const layers = sanitizeLayers(parsed.layers, prompt);
+
+        if (!systemType) {
+          logger.log(`[Reasoning] Missing required field: systemType`);
+          continue;
+        }
+        if (!layers && !architecturalPlan) {
+          logger.log(`[Reasoning] Missing required fields: layers and architecturalPlan`);
+          continue;
+        }
 
         return {
-          systemType: parsed.systemType || intentType || 'system-architecture',
+          systemType,
           sourcePrompt: prompt,
-          nfrs: parsed.nfrs || {},
-          capPosition: parsed.capPosition || 'AP',
-          boundaries: parsed.boundaries || { entryPoints: [], exitPoints: [], trustZones: [] },
-          layerAssignment: parsed.layerAssignment || {},
-          patterns: parsed.patterns || [],
-          stressTests: parsed.stressTests || [],
-          keyDecisions: parsed.keyDecisions || [],
-          // NEW: Structured architectural plan
-          layers: sanitizeLayers(parsed.layers, prompt) || buildPromptDerivedLayers(prompt, intentType),
-          keyFlows: parsed.keyFlows || [],
-          architecturalPlan: parsed.architecturalPlan || '',
-          extractedBehaviors: parsed.extractedBehaviors || [],
-          preGenerationChecklist: parsed.preGenerationChecklist || {
+          nfrs: (parsed.nfrs as Record<string, string>) || {},
+          capPosition: String(parsed.capPosition || 'AP'),
+          boundaries: (parsed.boundaries as ReasoningResult['boundaries']) || {
+            entryPoints: [],
+            exitPoints: [],
+            trustZones: [],
+          },
+          layerAssignment: (parsed.layerAssignment as Record<string, string>) || {},
+          patterns: (parsed.patterns as ReasoningResult['patterns']) || [],
+          stressTests: (parsed.stressTests as ReasoningResult['stressTests']) || [],
+          keyDecisions: (parsed.keyDecisions as string[]) || [],
+          layers: layers || {},
+          keyFlows: (parsed.keyFlows as ReasoningResult['keyFlows']) || [],
+          architecturalPlan,
+          extractedBehaviors: (parsed.extractedBehaviors as string[]) || [],
+          preGenerationChecklist: (parsed.preGenerationChecklist as ReasoningResult['preGenerationChecklist']) || {
             humanActors: [],
             dataStores: [],
             backgroundJobs: [],
             externalIntegrations: [],
-            featureRequirements: []
+            featureRequirements: [],
           },
         };
       }
@@ -94,93 +196,75 @@ export async function callReasoningLLM(
     }
   }
 
-  // Fallback with prompt-derived structure, not a fixed web-app template.
-  return buildFallbackReasoning(prompt, intentType);
+  // All providers failed — throw generation_failed instead of silently producing a generic diagram.
+  throw new Error('generation_failed: all reasoning providers failed');
 }
 
-import { ARCHITECTURE_RULES } from '../prompts/architectureRules';
+const REASONING_RULES = `Architecture rules:
+- Default to Monolith/Modular Monolith unless user explicitly says "microservices".
+- Map user signals to style: "MVC/layered/Django/Rails"→MVC; "microservices/service mesh"→Microservices;
+  "event-driven/streaming/IoT"→Event-Driven; "serverless/Lambda/FaaS"→Serverless;
+  "ML/training/inference/feature store"→ML; "data/analytics/warehouse/ETL"→Data Platform;
+  "enterprise/SOA/ERP/legacy"→Enterprise; "SaaS/multi-tenant"→SaaS;
+  "mobile/push notifications/offline"→Mobile Backend; "embedded/edge/IoT"→Edge/IoT;
+  "collaborative/CRDT/multiplayer"→Real-Time Collab.
+- Production depth: ONLY add CDN, LB, Observability, DLQ, CI/CD, Secrets Manager if prompt says:
+  production, scale, HA, cloud, AWS, GCP, Azure, Kubernetes, observability, resilient, fault tolerant.
+  Without these signals, generate only components directly implied by the prompt.
+- No web-app template — only include layers/components justified by this specific prompt.
+- Use domain-specific service names ("Feed Ranking Service", not "Business Logic Service").
+- Flows must be directional: client/producer → edge/gateway → compute → async/data/external.`;
 
-function buildReasoningPrompt(prompt: string, intentType: string, diagramSize: 'small' | 'medium' | 'large' = 'medium'): string {
-  let sizeConstraintPrompt = "";
-  if (diagramSize === 'small') {
-    sizeConstraintPrompt = "SIZE CONSTRAINT: Generate a focused diagram with 4–6 nodes maximum. Show only the core architectural components.";
-  } else if (diagramSize === 'large') {
-    sizeConstraintPrompt = "SIZE CONSTRAINT: Generate a comprehensive diagram with 13–20 nodes. Include all services, background workers, caching layers, observability stack, and external integrations.";
-  } else {
-    sizeConstraintPrompt = "SIZE CONSTRAINT: Generate a standard diagram with 8–12 nodes. Include primary services, databases, and one observability node.";
-  }
+function buildReasoningPrompt(
+  prompt: string,
+  intentType: string,
+  diagramSize: 'small' | 'medium' | 'large' = 'medium',
+  stylePlan?: ArchitectureStylePlan
+): string {
+  const sizeConstraintPrompt = diagramSize === 'small'
+    ? 'SIZE: 3-7 nodes. Core components only.'
+    : diagramSize === 'large'
+    ? 'SIZE: 10-20 nodes. Include services, workers, caches, observability (if appropriate), external integrations.'
+    : 'SIZE: 6-12 nodes. Primary services + key data stores. No padding.';
 
-  return `You are an expert systems architect. Analyze the following system description and produce a structured architectural plan.
+  const depthInstruction = stylePlan?.productionDepth === 'production'
+    ? 'DEPTH: Production/scale signaled. May include CDN, LB, Observability, DLQ, Circuit Breaker, Secrets Manager, CI/CD where appropriate.'
+    : stylePlan?.productionDepth === 'application'
+    ? 'DEPTH: Application-level only. Do NOT add production-hardening infra (CDN, LB, Service Mesh, Observability, DLQ, Circuit Breaker, Secrets Manager, CI/CD) unless explicitly requested.'
+    : 'DEPTH: Conceptual only. Domain-specific nodes only. No production-hardening components.';
+
+  return `You are an expert systems architect. Produce a structured architectural plan.
 
 ${sizeConstraintPrompt}
 
-${ARCHITECTURE_RULES}
+${depthInstruction}
 
-SYSTEM DESCRIPTION: ${prompt}
-DETECTED INTENT: ${intentType}
+${REASONING_RULES}
 
-OUTPUT A JSON OBJECT with the following structure:
+SYSTEM: ${prompt}
+INTENT: ${intentType}
+
+JSON output:
 {
-  "systemType": "specific system type (e.g., video streaming platform, e-commerce platform, real-time chat system)",
+  "systemType": "specific type (e.g. video streaming platform)",
   "layers": {
-    "client": { "description": "only if the request has users/apps", "components": ["specific client from prompt"] },
-    "edge": { "description": "only if routing/CDN/WAF/load balancing is needed", "components": ["specific edge component"] },
-    "compute": { "description": "domain services and workers actually needed", "components": ["specific service from prompt"] },
-    "async": { "description": "only if events, queues, streams, jobs, or background work are needed", "components": ["specific async component"] },
-    "data": { "description": "stores explicitly required by the workload", "components": ["specific database/storage/cache"] },
-    "observe": { "description": "only if observability is requested or essential", "components": ["specific monitoring/logging component"] },
-    "external": { "description": "only if third-party systems are involved", "components": ["specific external dependency"] }
+    "client": {"components":["Client1"]},
+    "edge": {"components":[]},
+    "compute": {"components":["Service1"]},
+    "async": {"components":[]},
+    "data": {"components":["Store1"]},
+    "observe": {"components":[]},
+    "external": {"components":[]}
   },
-  "keyFlows": [
-    {
-      "name": "Request Flow",
-      "description": "Primary user request flow through the system",
-      "path": ["client", "gateway", "service", "data"]
-    },
-    {
-      "name": "Async Processing",
-      "description": "Background job processing",
-      "path": ["service", "queue", "worker"]
-    }
-  ],
-  "nfrs": {
-    "scale": "expected scale (e.g., 10K users, 1M requests/day)",
-    "latency": "latency requirements",
-    "availability": "availability requirements"
-  },
-  "patterns": [
-    { "pattern": "pattern name", "justification": "why it's needed" }
-  ],
-  "layerAssignment": {
-    "component-id": "layer-name"
-  },
-  "architecturalPlan": "Brief 2-3 sentence summary of the architecture",
+  "keyFlows": [{"name":"Request Flow","path":["client","gateway","service","data"]}],
+  "nfrs": {"scale":"","latency":"","availability":""},
+  "patterns": [{"pattern":"name","justification":"why"}],
+  "architecturalPlan": "2-3 sentence summary",
   "preGenerationChecklist": {
-    "humanActors": ["actor1", "actor2"],
-    "dataStores": ["store1", "store2"],
-    "backgroundJobs": ["job1"],
-    "externalIntegrations": ["integration1"],
-    "featureRequirements": ["verb phrase 1"]
+    "humanActors":[],"dataStores":[],"backgroundJobs":[],"externalIntegrations":[],"featureRequirements":[]
   }
 }
-
-REQUIREMENTS:
-1. Do NOT follow a fixed web-app template. Include only layers and components justified by the user's prompt.
-2. Never add "Web Client", "Mobile App", "Auth Service", "Load Balancer", "Message Queue", or "Database" unless requested or architecturally necessary for this specific system.
-3. Prefer domain-specific services over generic names. For example, use "Feed Ranking Service" or "Transcoding Worker", not "Business Logic Service".
-4. Define key flows using the exact component names you chose. Flows should be directional: client/producer → edge/gateway → compute → async/data/external.
-5. Be specific about the system type (not just "web app").
-6. Output ONLY valid JSON, no markdown blocks.
-7. CRITICAL RULE FOR CDNs: A CDN (Content Delivery Network) must ONLY be used for serving static assets and media from an Object Storage origin to a Client. It must NEVER route API requests, and it must NEVER connect to an Application Service, API Gateway, or Database.
-8. Before completing the plan, complete this pre-generation checklist based on the user prompt:
- - humanActors: List every distinct HUMAN ACTOR in the prompt. Each distinct actor will become a separate client node. A 'rider' and a 'driver' are two actors. Never merge multiple human actors into one UI node.
- - dataStores: List every distinct DATA STORE mentioned or implied.
- - backgroundJobs: List every BACKGROUND JOB or async process.
- - externalIntegrations: List every EXTERNAL INTEGRATION (payment, maps, email, SMS).
- - featureRequirements: List every explicit FEATURE REQUIREMENT as a verb phrase.
- Every item in this checklist must map to at least one node or edge in the final diagram. Output this structured checklist in the "preGenerationChecklist" field.
-
-Analyze and output JSON now:`;
+Requirements: (1) Only include layers justified by prompt. (2) No generic names — use domain-specific ones. (3) Flows are directional: producer→gateway→service→data. (4) Complete the preGenerationChecklist based on the prompt. (5) Output valid JSON only.`;  
 }
 
 const TEMPLATE_COMPONENTS = new Set([
@@ -228,35 +312,6 @@ function sanitizeLayers(
   return Object.keys(sanitized).length > 0 ? sanitized : null;
 }
 
-function buildPromptDerivedLayers(prompt: string, intentType: string): Record<string, { description: string; components: string[] }> {
-  const p = prompt.toLowerCase();
-  const layers: Record<string, { description: string; components: string[] }> = {};
-  const add = (layer: string, description: string, component: string) => {
-    const key = normalizeLayerName(layer);
-    layers[key] ||= { description, components: [] };
-    if (!layers[key].components.includes(component)) layers[key].components.push(component);
-  };
-
-  if (/\b(web|browser|frontend|client|user)\b/.test(p)) add('client', 'User-facing entry points', 'Web App');
-  if (/\b(mobile|ios|android)\b/.test(p)) add('client', 'User-facing entry points', 'Mobile App');
-  if (/\bcdn|cloudfront|akamai|static|media delivery\b/.test(p)) add('edge', 'Edge delivery and routing', 'CDN');
-  if (/\bapi gateway|gateway|graphql|rest|ingress|nginx\b/.test(p)) add('edge', 'API ingress', p.includes('graphql') ? 'GraphQL Gateway' : 'API Gateway');
-  if (/\bqueue|kafka|sqs|rabbitmq|pub.?sub|event|stream\b/.test(p)) add('async', 'Asynchronous/event processing', p.includes('kafka') ? 'Kafka Event Stream' : 'Message Queue');
-  if (/\bworker|job|background|transcod|process|pipeline\b/.test(p)) add('compute', 'Background and domain processing', /\btranscod/.test(p) ? 'Transcoding Worker' : 'Worker Service');
-  if (/\bpostgres|mysql|mongodb|database|db\b/.test(p)) add('data', 'Operational persistence', p.includes('mongo') ? 'MongoDB Database' : p.includes('mysql') ? 'MySQL Database' : 'PostgreSQL Database');
-  if (/\bredis|cache\b/.test(p)) add('data', 'Low-latency state', 'Redis Cache');
-  if (/\bs3|storage|bucket|blob|file|media|upload\b/.test(p)) add('data', 'Object/file persistence', 'Object Storage');
-  if (/\bmonitor|metric|log|trace|observability|grafana|prometheus|sentry\b/.test(p)) add('observe', 'System telemetry', 'Observability Stack');
-  if (/\bstripe|payment|twilio|sendgrid|firebase|auth0\b/.test(p)) add('external', 'Third-party integrations', p.includes('stripe') || p.includes('payment') ? 'Payment Provider' : 'External Service');
-
-  if (Object.keys(layers).length === 0) {
-    add('compute', 'Core domain logic inferred from the request', titleCase(`${intentType.replace(/-/g, ' ')} service`));
-    add('data', 'Persistence inferred from the request', 'Primary Data Store');
-  }
-
-  return layers;
-}
-
 function normalizeLayerName(layer: string): string {
   const lower = layer.toLowerCase();
   if (lower === 'clients' || lower === 'presentation') return 'client';
@@ -267,40 +322,3 @@ function normalizeLayerName(layer: string): string {
   return lower;
 }
 
-function titleCase(value: string): string {
-  return value.replace(/\b\w/g, c => c.toUpperCase());
-}
-
-function buildFallbackReasoning(prompt: string, intentType: string): ReasoningResult {
-  const layers = buildPromptDerivedLayers(prompt, intentType);
-  const flowPath = Object.values(layers).flatMap(layer => layer.components.slice(0, 1)).slice(0, 5);
-
-  return {
-    systemType: intentType || 'system-architecture',
-    sourcePrompt: prompt,
-    nfrs: { scale: 'unknown', latency: 'unknown', availability: 'unknown' },
-    capPosition: 'AP',
-    boundaries: { entryPoints: [], exitPoints: [], trustZones: [] },
-    layerAssignment: {},
-    patterns: [],
-    stressTests: [],
-    keyDecisions: [],
-    layers,
-    keyFlows: [
-      {
-        name: 'Primary Flow',
-        description: 'Main flow inferred from the user request',
-        path: flowPath.length >= 2 ? flowPath : Object.values(layers).flatMap(layer => layer.components),
-      },
-    ],
-    architecturalPlan: `A prompt-derived ${intentType || 'system'} architecture using only components indicated by the request or required by the inferred workload.`,
-    extractedBehaviors: [],
-    preGenerationChecklist: {
-      humanActors: [],
-      dataStores: [],
-      backgroundJobs: [],
-      externalIntegrations: [],
-      featureRequirements: []
-    }
-  };
-}

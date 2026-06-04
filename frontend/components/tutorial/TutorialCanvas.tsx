@@ -127,6 +127,7 @@ const NODE_TYPES = {
   annotationNode:    AnnotationNode,
   messageBrokerNode: TutorialSystemNodeWrapper,
   customNode:        TutorialSystemNodeWrapper,
+  custom:            TutorialSystemNodeWrapper,
 };
 
 interface TutorialCanvasInnerProps {

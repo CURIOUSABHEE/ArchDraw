@@ -104,10 +104,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        error: 'Diagram generation failed',
+        success: false,
+        error: 'generation_failed',
         details: message,
       },
-      { status: 500 }
+      { status: 502 }
     );
   }
 }

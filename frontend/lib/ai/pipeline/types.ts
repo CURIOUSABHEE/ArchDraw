@@ -131,3 +131,47 @@ export interface ValidationFeedback {
   orphansFixed: number;
   tiersRepaired: string[];
 }
+
+// ── Custom-first pipeline types ──────────────────────────────────────────────
+
+export type ArchitectureStyle =
+  | 'monolith'
+  | 'modular_monolith'
+  | 'microservices'
+  | 'mvc'
+  | 'event_driven'
+  | 'data_pipeline'
+  | 'serverless'
+  | 'ml'
+  | 'saas'
+  | 'enterprise'
+  | 'mobile_backend'
+  | 'iot'
+  | 'realtime_collab'
+  | 'generic';
+
+export type ProductionDepth = 'conceptual' | 'application' | 'production';
+
+export interface ArchitectureStylePlan {
+  /** Detected or inferred architecture style */
+  style: ArchitectureStyle;
+  /** Whether style was explicitly stated or inferred from prompt keywords */
+  strictness: 'explicit' | 'inferred';
+  /** How deeply the user wants production-hardening components */
+  productionDepth: ProductionDepth;
+}
+
+export interface PipelineDiagnostics {
+  style: ArchitectureStyle;
+  productionDepth: ProductionDepth;
+  /** Warnings / info about architectural issues — diagnostic only, no mutations */
+  semanticIssues: ValidationIssue[];
+  /** Low-level structural repairs (ID dedup, icon fill, dangling edge removal) */
+  mechanicalRepairs: ValidationIssue[];
+  /** Edge IDs that were dropped because they referenced non-existent nodes */
+  removedInvalidEdgeIds: string[];
+  /** True when semantic auto-injection was intentionally skipped */
+  rejectedAutoInjection: boolean;
+  /** Existing diagram node IDs dropped by the model (not re-injected during validation) */
+  removedExistingNodeIds?: string[];
+}

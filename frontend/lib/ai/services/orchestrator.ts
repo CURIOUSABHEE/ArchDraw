@@ -1,5 +1,5 @@
 import type { UserIntent, GenerationResult, GenerationProgress, ReactFlowNode, ReactFlowEdge } from '../types';
-import { generateDiagramPipeline } from '../pipeline';
+import { runArchitecturePipeline } from '../pipeline/pipelineOrchestrator';
 import logger from '@/lib/logger';
 
 export type ProgressCallback = (progress: GenerationProgress) => void;
@@ -15,55 +15,41 @@ export async function generateDiagram(
   try {
     logger.log('[Orchestrator] Starting diagram generation:', userIntent.description);
 
-    const result = await generateDiagramPipeline(
-      userIntent.description,
-      (event) => {
-        if (event.type === 'thinking') {
-          onProgress?.({
-            phase: 'reasoning',
-            iteration: 0,
-            currentAgent: 'reasoning',
-            score: 0,
-            message: 'Reasoning about architecture...',
-            progress: 20,
-          });
-        } else if (event.type === 'node') {
-          onProgress?.({
-            phase: 'generating',
-            iteration: 0,
-            currentAgent: 'diagram',
-            score: 0,
-            message: `Adding component: ${event.data && typeof event.data === 'object' && 'label' in event.data ? event.data.label : '...'}`,
-            progress: 40,
-          });
-        } else if (event.type === 'flow') {
-          onProgress?.({
-            phase: 'generating',
-            iteration: 0,
-            currentAgent: 'diagram',
-            score: 0,
-            message: `Connecting services...`,
-            progress: 60,
-          });
-        }
-      },
-      userIntent.existingContext,
-      userIntent.diagramSize || 'medium'
-    );
+    const result = await runArchitecturePipeline(userIntent, (step, progress) => {
+      onProgress?.({
+        phase: progress >= 100 ? 'complete' : phaseForStep(step),
+        iteration: 0,
+        currentAgent: step,
+        score: 0,
+        message: step,
+        progress,
+      });
+    });
 
-    logger.log('[Orchestrator] Generation complete. Score:', result.score.score);
+    if (!result.success) {
+      throw new GenerationFailedError(result.state.errors.at(-1)?.message || 'generation_failed');
+    }
+
+    logger.log('[Orchestrator] Generation complete. Score:', result.score);
+
+    const qualityWarnings = [
+      ...(result.diagnostics?.semanticIssues.map((i) => i.message) ?? []),
+      ...(result.diagnostics?.mechanicalRepairs.map((i) => i.message) ?? []),
+    ];
 
     return {
       type: 'architecture',
       nodes: result.nodes as ReactFlowNode[],
-      edges: result.edges as ReactFlowEdge[],
+      edges: result.edges as unknown as ReactFlowEdge[],
       metadata: {
         totalNodes: result.nodes.length,
         totalEdges: result.edges.length,
         systemType: 'architecture',
         generatedAt: new Date().toISOString(),
-        score: result.score.score,
-        grade: (result.score.grade === 'F' ? 'D' : result.score.grade) as 'A' | 'B' | 'C' | 'D',
+        score: result.score,
+        grade: (result.diagramScore?.grade === 'F' ? 'D' : result.diagramScore?.grade || 'D') as 'A' | 'B' | 'C' | 'D',
+        qualityWarnings: qualityWarnings.length > 0 ? qualityWarnings : undefined,
+        pipelineDiagnostics: result.diagnostics,
       },
     };
   } catch (error) {
@@ -78,4 +64,24 @@ export async function generateDiagram(
     });
     throw error;
   }
+}
+
+export class GenerationFailedError extends Error {
+  code = 'generation_failed' as const;
+
+  constructor(details: string) {
+    super(details);
+    this.name = 'GenerationFailedError';
+  }
+}
+
+function phaseForStep(step: string): GenerationProgress['phase'] {
+  const lower = step.toLowerCase();
+  if (lower.includes('reason')) return 'reasoning';
+  if (lower.includes('layout')) return 'layout';
+  if (lower.includes('edge') || lower.includes('connect')) return 'edges';
+  if (lower.includes('validat') || lower.includes('repair')) return 'validating';
+  if (lower.includes('scor')) return 'scoring';
+  if (lower.includes('generat') || lower.includes('enrich')) return 'generating';
+  return 'planning';
 }

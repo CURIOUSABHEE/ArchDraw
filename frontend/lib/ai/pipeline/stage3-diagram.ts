@@ -1,5 +1,5 @@
-import type { RawNode, RawFlow, ParsedDiagram, ReasoningResult, PipelineLayer } from './types';
-import { DIAGRAM_PROMPT, MODEL_CONFIG, DIAGRAM_SYSTEM_MESSAGE } from '../constants';
+import type { RawNode, RawFlow, ParsedDiagram, ReasoningResult, PipelineLayer, ArchitectureStylePlan } from './types';
+import { MODEL_CONFIG, DIAGRAM_SYSTEM_MESSAGE } from '../constants';
 import { parseNDJSON } from './stage4-parse';
 import logger from '@/lib/logger';
 
@@ -18,22 +18,40 @@ class IncrementalParser {
     
     const newItems: Record<string, unknown>[] = [];
     for (const line of lines) {
-      try {
-        const trimmed = line.trim();
-        if (trimmed && trimmed.startsWith('{') && trimmed.endsWith('}')) {
-          const item = JSON.parse(trimmed);
-          newItems.push(item);
-          this.completed.push(item);
-        }
-      } catch {
-        // Skip malformed lines
+      const item = this.parseLine(line);
+      if (item) {
+        newItems.push(item);
+        this.completed.push(item);
       }
     }
     return newItems;
   }
 
+  finish(): Record<string, unknown>[] {
+    const item = this.parseLine(this.buffer);
+    this.buffer = '';
+    if (!item) return [];
+    this.completed.push(item);
+    return [item];
+  }
+
   getResults(): Record<string, unknown>[] {
     return this.completed;
+  }
+
+  private parseLine(line: string): Record<string, unknown> | null {
+    const trimmed = line.trim();
+    if (!trimmed) return null;
+    if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
+      throw new Error(`Malformed NDJSON line: ${trimmed.slice(0, 120)}`);
+    }
+
+    try {
+      return JSON.parse(trimmed) as Record<string, unknown>;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Invalid JSON';
+      throw new Error(`Malformed NDJSON line: ${message}: ${trimmed.slice(0, 120)}`);
+    }
   }
 }
 
@@ -47,9 +65,10 @@ export async function callDiagramLLM(
   onFlow?: (flow: RawFlow) => void,
   existingContext?: { nodes: any[]; edges: any[] },
   diagramSize: 'small' | 'medium' | 'large' = 'medium',
-  intentType?: string
+  intentType?: string,
+  stylePlan?: ArchitectureStylePlan
 ): Promise<ParsedDiagram> {
-  const prompt = buildDiagramPrompt(reasoning, existingContext, diagramSize, intentType);
+  const prompt = buildDiagramPrompt(reasoning, existingContext, diagramSize, intentType, stylePlan);
   const parser = new IncrementalParser();
 
   const GROQ_KEY_ENV_VARS = [
@@ -90,6 +109,14 @@ export async function callDiagramLLM(
         }
       }
 
+      for (const item of parser.finish()) {
+        if (item.path && Array.isArray(item.path)) {
+          onFlow?.(item as unknown as RawFlow);
+        } else if (item.id && item.label) {
+          onNode?.(item as unknown as RawNode);
+        }
+      }
+
       const results = parser.getResults();
       const nodes = results.filter(i => i.id && i.label) as unknown as RawNode[];
       const flows = results.filter(i => i.path && Array.isArray(i.path)) as unknown as RawFlow[];
@@ -101,162 +128,126 @@ export async function callDiagramLLM(
       
       return enforced;
     } catch (error) {
+      if (error instanceof Error && error.message.startsWith('Malformed NDJSON line:')) {
+        throw error;
+      }
       logger.log(`[Diagram] Groq key ${envVar} failed:`, error instanceof Error ? error.message : 'unknown');
       continue;
     }
   }
 
-  // Fallback if all keys fail
-  logger.log('[Diagram] All providers failed, using fallback prompt');
-  return { nodes: [], flows: [] };
+  throw new Error('generation_failed: all diagram providers failed');
 }
 
-import { ARCHITECTURE_RULES } from '../prompts/architectureRules';
+const DIAGRAM_RULES = `Rules:
+- Default to Monolith unless "microservices" in prompt. Style-specific rules:
+  MVC: 3 groups (View/Controller/Model). No microservices, queues, gateways, cloud infra.
+  Monolith: layered (Presentation→Services→Data). Shared DB. Queue only if async in prompt.
+  Microservices: API Gateway + BFF. Saga for distributed tx. CQRS for read-heavy. No shared DBs.
+  Event-Driven: topics, consumers, outbox pattern, CDC. Schema registry if production.
+  Serverless: trigger→function→destination. No sync chains >2. Step Functions for workflows.
+  Data Platform: Medallion (Bronze→Silver→Gold). Ingestion→Storage→Compute→Serving.
+  ML: Training pipeline→Feature Store→Serving. Drift detection if production.
+  SaaS: tenant isolation (Silo/Pool/Bridge), tenant routing, metering, billing.
+  Enterprise: ESB, Anti-Corruption Layer for legacy, ETL pipelines.
+  Mobile Backend: BFF per client, push notifications, offline sync.
+  Edge/IoT: Device→Edge Gateway→Fog→Cloud hierarchy. MQTT/AMQP.
+  Real-Time Collab: WebSocket/SSE, CRDT/OT, Pub/Sub fan-out.
+- Labels: EVERY edge must have a 2-5 word label describing what data moves. BANNED: "connects to", "calls", "uses", "requests", "integrates with".
+- Return edges: every flow starting at a client must trace the full cycle back (what does the user receive?).
+- No orphan nodes — every node must appear in ≥1 flow. If disconnected, omit it.
+- No generic web-app template. Domain-specific nodes only.`;
 
 function buildDiagramPrompt(
   reasoning: ReasoningResult,
   existingContext?: { nodes: any[]; edges: any[] },
   diagramSize: 'small' | 'medium' | 'large' = 'medium',
-  intentType?: string
+  intentType?: string,
+  stylePlan?: ArchitectureStylePlan
 ): string {
-  let sizeInstructions = "";
-  if (diagramSize === 'small') {
-    sizeInstructions = "CRITICAL LIMIT: Generate a focused diagram with exactly 4 to 6 nodes total. Omit all optional or secondary components.";
-  } else if (diagramSize === 'large') {
-    sizeInstructions = "CRITICAL LIMIT: Generate a comprehensive diagram with 13 to 20 nodes total. Include primary, secondary, worker, cache, observability, and external services to show the complete production setup.";
-  } else {
-    sizeInstructions = "CRITICAL LIMIT: Generate a standard diagram with exactly 8 to 12 nodes total. Include primary components, primary databases, and basic observability.";
-  }
+  const sizeInstructions = diagramSize === 'small'
+    ? 'SIZE: 3-7 nodes. Core components only.'
+    : diagramSize === 'large'
+    ? 'SIZE: 10-20 nodes. Include services, workers, caches, observability (if appropriate), external integrations.'
+    : 'SIZE: 6-12 nodes. Primary services + key data stores. No padding.';
 
-  let intentInject = "";
+  const depthInstruction = stylePlan?.productionDepth === 'production'
+    ? 'DEPTH: Production/scale signaled. May include CDN, LB, Observability, DLQ, Circuit Breaker, Secrets Manager, CI/CD.'
+    : stylePlan?.productionDepth === 'application'
+    ? 'DEPTH: Application-level only. No production-hardening infra unless explicitly requested.'
+    : 'DEPTH: Conceptual only. Domain nodes only. No production-hardening components.';
+
+  let intentInject = '';
   if (intentType === 'mvc') {
-    intentInject = `
-STRICT RULE: This is an MVC diagram. You MUST structure nodes into exactly three groups:
-- View layer: UI screens, templates, components, API responses
-- Controller layer: route handlers, business logic, request processing
-- Model layer: database tables, ORM models, data classes, validation
-
-DO NOT generate: microservices, AWS services, message queues, API gateways, separate backend services, or any cloud infrastructure.
-Every node must belong to one of the three MVC layers.
-`;
+    intentInject = 'MVC: structure into View/Controller/Model groups. No microservices, queues, gateways, or cloud infra.';
   }
 
-  let prompt = `${ARCHITECTURE_RULES}
+  const layersText = Object.entries(reasoning.layers || {})
+    .filter(([_, l]) => l.components.length > 0)
+    .map(([id, l]) => `- ${id}: ${l.components.join(', ')}`)
+    .join('\n');
+
+  const flowsText = (reasoning.keyFlows || [])
+    .map(f => `- ${f.name}: ${f.path.join(' -> ')}`)
+    .join('\n');
+
+  let prompt = `${DIAGRAM_RULES}
 ${intentInject}
 
 ${sizeInstructions}
+${depthInstruction}
 
-Create a custom diagram for: ${reasoning.systemType}.
-USER PROMPT: ${reasoning.sourcePrompt || reasoning.systemType}
-PLAN: ${reasoning.architecturalPlan}
-
-LAYERS:
-${Object.entries(reasoning.layers || {}).map(([id, l]) => `- ${id}: ${l.description} (${l.components.join(', ')})`).join('\n')}
-
-FLOWS:
-${(reasoning.keyFlows || []).map(f => `- ${f.name}: ${f.description} (${f.path.join(' -> ')})`).join('\n')}
+System: ${reasoning.systemType}
+Prompt: ${reasoning.sourcePrompt || reasoning.systemType}
+Plan: ${reasoning.architecturalPlan}
+Layers:
+${layersText || '(none)'}
+Flows:
+${flowsText || '(none)'}
 `;
 
   if (existingContext && existingContext.nodes.length > 0) {
     prompt += `
-EXISTING DIAGRAM (IMPORTANT: Preserve existing nodes if they are still relevant. Use their exact IDs so custom styling is retained!):
-Nodes:
-${existingContext.nodes.map(n => `- {"id": "${n.id}", "label": "${n.data?.label || n.label}", "layer": "${n.data?.layer || n.layer}", "subtitle": "${n.data?.subtitle || n.subtitle || ''}"}`).join('\n')}
-Edges:
-${existingContext.edges.map(e => `- {"path": ["${e.source}", "${e.target}"], "label": "${e.data?.label || e.label || ''}"}`).join('\n')}
-
-INSTRUCTIONS:
-You are modifying an existing diagram. 
-1. If an existing node should remain, OUTPUT IT AGAIN EXACTLY with its current "id". This is critical!
-2. If you are adding a new node, create a NEW "id" for it.
-3. If an existing node is no longer needed, omit it.
-4. Output edges between the nodes (both old and new).
+Existing diagram (preserve these node IDs exactly for custom styling):
+${existingContext.nodes.map(n => `- {"id":"${n.id}","label":"${n.data?.label || n.label}","layer":"${n.data?.layer || n.layer}"}`).join('\n')}
+Modify: keep relevant nodes with exact IDs, add new nodes with new IDs, omit outdated ones. Include edges between all kept and new nodes.
 `;
   }
 
   prompt += `
-OUTPUT NDJSON ONLY. ONE OBJECT PER LINE.
-- {"id": "id", "label": "Service (Concise)", "layer": "client|edge|gateway|application|queue|data|observability|external", "subtitle": "Tech Stack (Max 3 words)"}
-- {"path": ["src", "dst"], "label": "action/explanation (e.g. 'fetches data', 'authenticates')", "async": false}
-
-CUSTOMIZATION RULES:
-- Do not copy a generic web-app template. Use the layers, components, and flows that match the user prompt.
-- Do not add Web Client, Mobile App, Auth Service, Load Balancer, Message Queue, Database, or Cache unless the prompt or plan makes them necessary.
-- Never use a client node as the central target for backend services. Client nodes initiate flows; backend/data/queue nodes should not point back to clients.
-- Prefer specific nodes named after the domain workflow over generic placeholders.
-- NEVER use these edge labels: 'integrates with', 'connects to', 'calls', 'uses', 'requests'. These are banned. Every label must describe the specific data being transmitted.
-  WRONG: GPS Service --INTEGRATES WITH--> Mapping Service
-  RIGHT: GPS Service --sends lat/lng coordinates--> Mapping Service
-  WRONG: Appointment Service --INTEGRATES WITH--> Payment Service
-  RIGHT: Appointment Service --submits payment request--> Payment Service
-- For every service that delivers a result to a user (recommendations, notifications, payments, search results, video streams), you MUST draw a return edge from that service back toward the client or API gateway. A flow that only shows the request path without the response path is architecturally incomplete.
-- For every flow that starts at a client node, you must trace the complete cycle back to that client. Ask yourself: 'What does the user actually receive at the end of this flow?' That answer must be an edge. Examples:
-  - User requests recommendations → ... → Recommendation Engine returns ranked list → API Gateway → User
-  - User uploads video → ... → CDN delivers stream → Video Player
-  - User books appointment → ... → Confirmation Service sends confirmation → Patient App
-`;
+Output NDJSON only. One object per line.
+Node: {"id":"str","label":"Service Name","layer":"client|edge|gateway|application|queue|data|observability|external","subtitle":"Tech (≤3 words)"}
+Flow: {"path":["src","dst"],"label":"action (2-5 words)","async":false}`;
   return prompt.trim();
 }
 
+/**
+ * Enforce minimum constraints — mechanical only.
+ * Orphaned nodes are LOGGED but NOT auto-connected here.
+ * Auto-connecting invents architecture the LLM didn't produce.
+ * Stage5 will report orphans as diagnostic warnings.
+ */
 function enforceMinimumConstraints(
   nodes: RawNode[],
   flows: RawFlow[],
-  reasoning: ReasoningResult
+  _reasoning: ReasoningResult
 ): ParsedDiagram {
   const result: ParsedDiagram = { nodes: [...nodes], flows: [...flows] };
-  
+
   if (result.nodes.length === 0) {
     logger.log('[Diagram] WARNING: No nodes generated, returning empty diagram');
     return result;
   }
 
-  // Identify orphaned nodes
+  // Report orphans diagnostically — stage5 will handle them
   const connectedNodeIds = new Set<string>();
-  result.flows.forEach(f => {
-    f.path.forEach(id => connectedNodeIds.add(id));
-  });
-
+  result.flows.forEach(f => f.path.forEach(id => connectedNodeIds.add(id)));
   const orphanNodes = result.nodes.filter(n => !n.isGroup && !connectedNodeIds.has(n.id));
-  
   if (orphanNodes.length > 0) {
-    logger.log(`[Diagram] Found ${orphanNodes.length} orphan nodes - connecting them`);
-    
-    orphanNodes.forEach(orphan => {
-      const targetNode = findBestConnectionPartner(orphan, result.nodes);
-
-      if (targetNode) {
-        const orphanRank = getLayerRank(orphan.layer);
-        const targetRank = getLayerRank(targetNode.layer);
-        const orphanShouldSource = orphanRank <= targetRank;
-        const source = orphanShouldSource ? orphan.id : targetNode.id;
-        const target = orphanShouldSource ? targetNode.id : orphan.id;
-
-        result.flows.push({
-          path: [source, target],
-          label: getConnectionLabel(source === orphan.id ? orphan : targetNode, target === orphan.id ? orphan : targetNode),
-          async: orphan.layer === 'queue' || orphan.layer === 'async' || targetNode.layer === 'queue' || targetNode.layer === 'async',
-        });
-        logger.log(`[Diagram] Connected orphan ${source} to ${target}`);
-      }
-    });
+    logger.log(`[Diagram] ${orphanNodes.length} orphan node(s) detected: ${orphanNodes.map(n => n.label).join(', ')} — will be reported in diagnostics`);
   }
 
   return result;
-}
-
-function findBestConnectionPartner(orphan: RawNode, nodes: RawNode[]): RawNode | undefined {
-  const leafNodes = nodes.filter(n => !n.isGroup && n.id !== orphan.id);
-  const rank = getLayerRank(orphan.layer);
-  const downstream = leafNodes
-    .filter(n => getLayerRank(n.layer) >= rank)
-    .sort((a, b) => getLayerRank(a.layer) - getLayerRank(b.layer));
-  const upstream = leafNodes
-    .filter(n => getLayerRank(n.layer) < rank)
-    .sort((a, b) => getLayerRank(b.layer) - getLayerRank(a.layer));
-
-  if (rank === 0) return downstream.find(n => getLayerRank(n.layer) > rank) || downstream[0] || upstream[0];
-  if (rank >= 4) return upstream[0] || downstream[0];
-  return downstream.find(n => getLayerRank(n.layer) > rank) || upstream[0] || downstream[0];
 }
 
 function getLayerRank(layer?: string): number {
@@ -273,16 +264,6 @@ function normalizeLayer(layer?: string): string {
   if (layer === 'async') return 'queue';
   if (layer === 'observe') return 'observability';
   return layer;
-}
-
-function getConnectionLabel(source: RawNode, target: RawNode): string {
-  const targetLayer = normalizeLayer(target.layer);
-  if (targetLayer === 'data') return 'reads/writes';
-  if (targetLayer === 'queue') return 'publishes';
-  if (targetLayer === 'observability') return 'emits telemetry';
-  if (targetLayer === 'external') return 'calls';
-  if (normalizeLayer(source.layer) === 'client') return 'requests';
-  return 'routes to';
 }
 
 export function parseLLMOutput(text: string): ParsedDiagram {

@@ -118,7 +118,12 @@ export async function POST(req: NextRequest) {
         } catch (error) {
           logger.error('[StreamingAPI] Error:', error);
           if (!controllerClosed) {
-            sendEvent({ type: 'error', message: error instanceof Error ? error.message : 'Generation failed' });
+            sendEvent({
+              type: 'error',
+              success: false,
+              error: 'generation_failed',
+              details: error instanceof Error ? error.message : 'Generation failed',
+            });
             controller.close();
           }
         }
@@ -157,13 +162,25 @@ async function handleNonStreaming(req: NextRequest, data: z.infer<typeof generat
     diagramSize,
   };
 
-  const result = await generateDiagram(userIntent);
+  try {
+    const result = await generateDiagram(userIntent);
 
-  // Disabled: Writing to cache was causing repeated diagrams
-  // diagramCache.set(description, { ... });
+    // Disabled: Writing to diagramCache was causing repeated diagrams
+    // diagramCache.set(description, { ... });
 
-  return NextResponse.json({
-    success: true,
-    data: result,
-  });
+    return NextResponse.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    logger.error('[StreamingAPI] Non-streaming generation failed:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'generation_failed',
+        details: error instanceof Error ? error.message : 'Generation failed',
+      },
+      { status: 502 }
+    );
+  }
 }

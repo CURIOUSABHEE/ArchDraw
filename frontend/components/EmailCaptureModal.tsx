@@ -20,11 +20,7 @@ const COPY = {
 
 function saveGuestState(reason: EmailCaptureReason) {
   if (typeof window === 'undefined') return;
-  import('@/store/diagramStore').then(({ useDiagramStore }) => {
-    const { canvases, activeCanvasId } = useDiagramStore.getState();
-    localStorage.setItem(STORAGE_KEYS.guestCanvases, JSON.stringify(canvases));
-    localStorage.setItem(STORAGE_KEYS.pendingAction, JSON.stringify({ type: reason, canvasId: activeCanvasId }));
-  });
+  sessionStorage.setItem('pendingAction', reason);
 }
 
 function getRedirectTo() {

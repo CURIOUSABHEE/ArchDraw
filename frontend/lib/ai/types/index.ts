@@ -264,6 +264,7 @@ export interface GenerationResult {
     truncated?: boolean;
     droppedEdgeCount?: number;
     qualityWarnings?: string[];
+    pipelineDiagnostics?: import('../pipeline/types').PipelineDiagnostics;
     edgeLayoutMetrics?: {
       pathOptimizationScore: number;
       labelPositioningScore: number;
@@ -314,7 +315,31 @@ export type CommunicationType = 'sync' | 'async' | 'stream' | 'event' | 'dep' | 
 
 export type PathType = 'smooth' | 'bezier' | 'step' | 'straight';
 
-export type HandlePosition = 'right' | 'left' | 'top' | 'bottom' | 'right-top' | 'right-mid' | 'right-bot' | 'left-top' | 'left-mid' | 'left-bot' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+// Handle IDs used by our node handle components (`FloatingHandles`) and legacy layout.
+// React Flow validates edges by matching these IDs, so keep this union in sync with node handle ids.
+export type HandlePosition =
+  | 'right'
+  | 'left'
+  | 'top'
+  | 'bottom'
+  | 'right-top'
+  | 'right-mid'
+  | 'right-bot'
+  | 'left-top'
+  | 'left-mid'
+  | 'left-bot'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'source-left'
+  | 'source-right'
+  | 'source-top'
+  | 'source-bottom'
+  | 'target-left'
+  | 'target-right'
+  | 'target-top'
+  | 'target-bottom';
 
 export type MarkerType = 'arrowclosed' | 'arrow' | 'none';
 

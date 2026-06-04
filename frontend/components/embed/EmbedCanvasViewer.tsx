@@ -35,6 +35,7 @@ const NODE_TYPES = {
   annotationNode:    AnnotationNode,
   messageBrokerNode: SystemNode,
   customNode:        SystemNode,
+  custom:            SystemNode,
 };
 
 const EDGE_TYPES = {

@@ -2,6 +2,8 @@ import type { ArchitectureNode, ArchitectureEdge } from '../types';
 
 export interface DiagramQualityReport {
   passed: boolean;
+  /** True when connectivity and edge labels meet minimum bar for shipping to users */
+  blockingPassed: boolean;
   checks: {
     structural: { passed: boolean; issues: string[] };
     connectivity: { passed: boolean; issues: string[] };
@@ -154,8 +156,12 @@ export function validateDiagramQuality(
     edgeQualityPassed &&
     resiliencePassed;
 
+  /** User-visible failures: orphans and missing edge labels (not legacy tier/resilience rules). */
+  const blockingPassed = connectivityPassed && edgeQualityPassed;
+
   return {
     passed: allPassed,
+    blockingPassed,
     checks: {
       structural: { passed: structuralPassed, issues: structuralIssues },
       connectivity: { passed: connectivityPassed, issues: connectivityIssues },

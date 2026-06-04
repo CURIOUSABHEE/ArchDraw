@@ -1,4 +1,4 @@
-import type { DiagramEdge, RawNode } from './types';
+import type { DiagramEdge, RawNode, ValidationIssue } from './types';
 
 const MEDIA_PROMPT = /\b(video|audio|streaming|media|vod|hls|dash|transcod|playback|watch|live stream)\b/ig;
 const PAYMENT_PROMPT = /\b(payment|billing|checkout|cart|subscription|purchase|order|invoice|stripe)\b/ig;
@@ -23,6 +23,41 @@ function hasDrmDomain(prompt?: string): boolean {
   return getDomainConfidence(prompt, DRM_PROMPT) >= 2;
 }
 
+/**
+ * Diagnostic-only: reports domain/story gaps without mutating nodes or edges.
+ */
+export function diagnoseStoryIssues(
+  nodes: RawNode[],
+  _edges: DiagramEdge[],
+  prompt?: string
+): ValidationIssue[] {
+  if (!prompt) return [];
+  const issues: ValidationIssue[] = [];
+  const nodeText = nodes.map((n) => `${n.label} ${n.subtitle || ''}`.toLowerCase()).join(' ');
+
+  const wouldInject: Array<{ label: string; when: boolean }> = [
+    { label: 'API Gateway', when: /\b(api|gateway|backend)\b/i.test(prompt) && !/api gateway|gateway/i.test(nodeText) },
+    { label: 'Auth Service', when: /\b(auth|login|oauth)\b/i.test(prompt) && !/auth|identity/i.test(nodeText) },
+    { label: 'Search Service', when: /\bsearch\b/i.test(prompt) && !/search/i.test(nodeText) },
+    { label: 'Payment Service', when: hasPaymentDomain(prompt) && !/payment|checkout|stripe/i.test(nodeText) },
+    { label: 'CDN', when: hasMediaDomain(prompt) && !/\bcdn\b|content delivery/i.test(nodeText) },
+    { label: 'Recommendation Engine', when: /\b(recommend|personaliz|ranking)\b/i.test(prompt) && !/recommend/i.test(nodeText) },
+  ];
+
+  for (const item of wouldInject) {
+    if (item.when) {
+      issues.push({
+        severity: 'warning',
+        type: 'story_gap',
+        message: `Prompt may imply '${item.label}' but it is not present (auto-injection disabled).`,
+      });
+    }
+  }
+
+  return issues;
+}
+
+/** @deprecated Diagnostic-only pipeline — do not mutate diagrams */
 export function prunePromptIrrelevantNodes(nodes: RawNode[], prompt?: string): RawNode[] {
   if (!prompt) return nodes;
 

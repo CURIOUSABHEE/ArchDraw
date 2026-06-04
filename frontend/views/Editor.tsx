@@ -23,6 +23,8 @@ import { toast } from 'sonner';
 import type { GenerationProgress } from '@/lib/ai/types';
 import { SequenceDiagramViewer } from '@/components/SequenceDiagramViewer';
 import { ContextualSidebar } from '@/components/editor/ContextualSidebar';
+import { RepoDiagramGenerator } from '@/components/RepoDiagramGenerator';
+import { parseRepoNdjsonToReactFlow } from '@/lib/utils/parseRepoNdjson';
 
 function generateCanvasName(prompt: string): string {
   const words = prompt.trim().split(/\s+/);
@@ -36,15 +38,18 @@ function generateCanvasName(prompt: string): string {
 
 export default function EditorPage() {
   const { 
-    selectedNodeId, selectedEdgeId, nodes, edges, sidebarOpen, setSidebarOpen, 
+    selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, 
     importDiagram, importSequenceDiagram, fitView, renameCanvas, 
-    activeCanvasId, sequenceDiagrams 
+    activeCanvasId, sequenceDiagrams, canvases 
   } = useDiagramStore();
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editComponent, setEditComponent] = useState<ComponentToEdit | null>(null);
   const [progress, setProgress] = useState<GenerationProgress | null>(null);
+  const guestCanvas = canvases.find(c => c.id === 'guest-canvas');
+  const showExpirationNudge = !user && guestCanvas && guestCanvas.createdAt && (Date.now() - (guestCanvas.createdAt || 0) > 72 * 60 * 60 * 1000);
   const [canvasSidebarOpen, setCanvasSidebarOpen] = useState(false);
+  const [showRepoIngestModal, setShowRepoIngestModal] = useState(false);
   
   // Refs for useEffect to avoid dependency issues
   const sidebarOpenRef = useRef(sidebarOpen);
@@ -136,6 +141,12 @@ export default function EditorPage() {
     };
   }, [setSidebarOpen]);
 
+  useEffect(() => {
+    const handleOpen = () => setShowRepoIngestModal(true);
+    window.addEventListener('open-repo-ingest', handleOpen);
+    return () => window.removeEventListener('open-repo-ingest', handleOpen);
+  }, []);
+
   const handleGenerationComplete = useCallback((result: { type?: string; nodes?: unknown[]; edges?: unknown[]; metadata?: Record<string, unknown> }, canvasName: string, cached = false) => {
     if (result.type === 'sequence') {
       const mermaidSyntax = result.metadata?.mermaidSyntax as string;
@@ -197,11 +208,29 @@ export default function EditorPage() {
     });
   }, [fitView, importDiagram, importSequenceDiagram, renameCanvas]);
 
+  const isGitHubRepoUrl = (value: string): boolean => {
+    const cleaned = value.trim().replace(/\/+$/, '');
+    return /^https?:\/\/(?:www\.)?github\.com\/([a-zA-Z0-9-._]+)\/([a-zA-Z0-9-._]+?)(?:\.git)?$/.test(cleaned);
+  };
+
+  const extractRepoName = (url: string): string => {
+    try {
+      const cleanUrl = url.trim().replace(/\/+$/, '');
+      const parts = cleanUrl.split('/');
+      return parts[parts.length - 1] || 'Repository';
+    } catch {
+      return 'Repository';
+    }
+  };
+
+
   const handleGenerate = async (description: string, diagramSize?: 'small' | 'medium' | 'large') => {
     setProgress(null);
 
     const isCurrentCanvasEmpty = nodes.length === 0;
-    const canvasName = generateCanvasName(description);
+    const canvasName = isGitHubRepoUrl(description)
+      ? `${extractRepoName(description)} Architecture`
+      : generateCanvasName(description);
 
     let targetCanvasId = activeCanvasId;
 
@@ -217,6 +246,50 @@ export default function EditorPage() {
     }
 
     try {
+      // GitHub repo ingest path — same input box, different pipeline
+      if (isGitHubRepoUrl(description)) {
+        setProgress({
+          phase: 'generating',
+          iteration: 0,
+          currentAgent: 'repo-ingest',
+          score: 0,
+          message: 'Analyzing GitHub repository...',
+          progress: 10,
+        });
+
+        const response = await fetch('/api/repo-diagram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repoUrl: description.trim() }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Repo ingest failed');
+        }
+
+        const { nodes: rfNodes, edges: rfEdges } = parseRepoNdjsonToReactFlow(data.ndjson);
+        if (rfNodes.length === 0) {
+          throw new Error('No architectural components could be detected in this repository.');
+        }
+
+        importDiagram(rfNodes, rfEdges);
+        renameCanvas(targetCanvasId, canvasName);
+        setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 100);
+
+        setProgress({
+          phase: 'complete',
+          iteration: 0,
+          currentAgent: 'complete',
+          score: 0,
+          message: `Ingested repo: ${rfNodes.length} nodes`,
+          progress: 100,
+        });
+
+        toast.success(`Generated repo diagram: ${rfNodes.length} nodes, ${rfEdges.length} edges`);
+        return;
+      }
+
       const payload: {
         description: string;
         diagramSize?: 'small' | 'medium' | 'large';
@@ -274,6 +347,27 @@ export default function EditorPage() {
         )}
         
         <Toolbar />
+
+        {showExpirationNudge && (
+          <div className="absolute top-[80px] left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 bg-[#1e293b]/95 backdrop-blur border border-amber-500/30 rounded-xl shadow-xl">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-500 text-base">⚠️</span>
+                <p className="text-xs text-[#f1f5f9] font-medium leading-normal">
+                  Your unsaved guest work is older than 72 hours and will expire soon. <strong>Sign in</strong> to save it permanently.
+                </p>
+              </div>
+              <button 
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('trigger-share'));
+                }}
+                className="px-3 py-1.5 bg-[#f1f5f9] text-[#0f172a] text-xs font-semibold rounded-lg hover:bg-[#e2e8f0] transition-colors shrink-0"
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        )}
         
         {canvasSidebarOpen && (
           <CanvasSidebar onClose={() => setCanvasSidebarOpen(false)} />
@@ -336,6 +430,9 @@ export default function EditorPage() {
           existingNames={componentRegistry.getAll().map(c => c.label.toLowerCase())}
           editComponent={editComponent}
         />
+        {showRepoIngestModal && (
+          <RepoDiagramGenerator onClose={() => setShowRepoIngestModal(false)} />
+        )}
       </div>
     </ErrorBoundary>
   );

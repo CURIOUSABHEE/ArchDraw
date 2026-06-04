@@ -12,7 +12,22 @@ export function createNode(
 ): Node {
   const def = componentRegistry.get(typeId);
 
-  if (!def && typeId !== 'textLabelNode' && typeId !== 'groupNode' && typeId !== 'annotationNode' && typeId !== 'heroNode' && typeId !== 'systemNode' && typeId !== 'baseNode') {
+  const isBuiltInNode = [
+    'textLabelNode',
+    'groupNode',
+    'annotationNode',
+    'heroNode',
+    'systemNode',
+    'baseNode',
+    'architectureNode',
+    'databaseNode',
+    'cacheNode',
+    'shapeNode',
+    'messageBrokerNode',
+    'customNode',
+  ].includes(typeId);
+
+  if (!def && !isBuiltInNode) {
     logger.warn(`[createNode] Unknown typeId: "${typeId}". 
                   Check components.json.`);
   }

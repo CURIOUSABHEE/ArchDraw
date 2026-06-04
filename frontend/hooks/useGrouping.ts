@@ -46,8 +46,10 @@ export function useGrouping(): UseGroupingResult {
           });
         }
       } else {
-        // Cmd + G: Group selected nodes
-        if (store.selectedNodeIds.length > 1) {
+        // Cmd + G: Group selected node(s) — works with one or more
+        const hasSelection =
+          store.selectedNodeIds.length >= 1 || store.selectedNodeId != null;
+        if (hasSelection) {
           store.createGroup();
         }
       }

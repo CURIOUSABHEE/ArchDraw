@@ -59,14 +59,17 @@ export function convertToReactFlow(
     return createNode(type, node.label, { x: node.x, y: node.y }, {
       id: node.id,
       type,
-      parentNode: node.parentId,
+      ...(node.parentId
+        ? { parentId: node.parentId, parentNode: node.parentId, extent: 'parent' as const }
+        : {}),
+      ...(isGroup ? { style: { width: node.width, height: node.height } } : {}),
       data: {
         subtitle: node.subtitle || '',
         layer: node.layer,
         icon: node.icon || 'box',
         serviceType: node.serviceType || '',
         isGroup,
-        groupLabel: node.groupLabel,
+        groupLabel: node.groupLabel ?? node.label,
         groupColor: node.groupColor,
         nodeWidth: node.width,
         nodeHeight: node.height,
@@ -109,7 +112,9 @@ export function convertToReactFlow(
         data: {
           connectionType,
           pathType: 'smooth',
-        }
+          // SimpleFloatingEdge reads data.label (not top-level edge.label)
+          label: edgeLabel && edgeLabel.length > 0 ? edgeLabel : undefined,
+        },
       });
     });
 

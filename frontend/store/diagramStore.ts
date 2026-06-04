@@ -1,8 +1,58 @@
-import { create } from 'zustand';
+import { create, type StateCreator } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from 'reactflow';
+import { componentRegistry } from '@/lib/componentRegistry';
+import { STORAGE_KEYS } from '@/lib/config';
+import { toast } from 'sonner';
 
 const isBrowser = typeof window !== 'undefined';
+const MAX_GUEST_CANVASES = 2;
+
+// --- Migration for Problem 1: Duplicate Nodes and Edges ---
+if (isBrowser) {
+  try {
+    const raw = localStorage.getItem('archdraw-storage');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.state) {
+        const state = parsed.state;
+        if ((state.nodes !== undefined || state.edges !== undefined) && state.activeCanvasId) {
+          const activeId = state.activeCanvasId;
+          const canvases = state.canvases || [];
+          const canvasIndex = canvases.findIndex((c: any) => c.id === activeId);
+          if (canvasIndex !== -1) {
+            const canvas = canvases[canvasIndex];
+            const topNodes = state.nodes || [];
+            const canvasNodes = canvas.nodes || [];
+            const topEdges = state.edges || [];
+            const canvasEdges = canvas.edges || [];
+            
+            const useTop = topNodes.length > canvasNodes.length || (state.updatedAt || 0) > (canvas.updatedAt || 0);
+            
+            const winnerNodes = useTop ? topNodes : canvasNodes;
+            const winnerEdges = useTop ? topEdges : canvasEdges;
+            
+            canvases[canvasIndex] = {
+              ...canvas,
+              nodes: winnerNodes,
+              edges: winnerEdges,
+              updatedAt: Math.max(state.updatedAt || 0, canvas.updatedAt || 0, Date.now())
+            };
+          }
+          delete state.nodes;
+          delete state.edges;
+          localStorage.setItem('archdraw-storage', JSON.stringify({
+            ...parsed,
+            state
+          }));
+        }
+      }
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('[Migration] Failed to migrate duplicate nodes/edges:', e);
+  }
+}
 
 function isAbortError(e: unknown): boolean {
   return e instanceof Error && (e.name === 'AbortError' || e.message.includes('AbortError'));
@@ -232,6 +282,7 @@ export interface CanvasTab {
   nodes: Node[];
   edges: Edge[];
   updatedAt?: number;
+  createdAt?: number;
   isOpen?: boolean;
   isPinned?: boolean;
   isFavorite?: boolean;
@@ -301,7 +352,6 @@ interface DiagramState {
   edgeAnimations: boolean;
   showGrid: boolean;
   darkMode: boolean;
-  canvasDarkMode: boolean;
   sidebarOpen: boolean;
   canvasMode: 'empty' | 'editing' | 'template';
   activeLayoutPresetId: string;
@@ -309,8 +359,6 @@ interface DiagramState {
   toggleEdgeAnimations: () => void;
   toggleGrid: () => void;
   toggleDarkMode: () => void;
-  toggleCanvasDarkMode: () => void;
-  setCanvasDarkMode: (mode: boolean) => void;
   setSidebarOpen: (open: boolean) => void;
   setCanvasMode: (mode: 'empty' | 'editing' | 'template') => void;
   setActiveLayoutPresetId: (id: string) => void;
@@ -372,6 +420,7 @@ function makeCanvas(name: string, id?: string): CanvasTab {
     name, 
     nodes: [], 
     edges: [], 
+    createdAt: Date.now(),
     updatedAt: Date.now() 
   };
 }
@@ -519,10 +568,19 @@ function distributeTargetHandles(nodes: Node[], edges: Edge[]): Edge[] {
       targetHandle = handles[index % 3];
     }
 
+    const usesPrefixedHandles = (nodeType?: string): boolean => {
+      if (!nodeType) return true;
+      const specialTypes = ['shapeNode', 'groupNode', 'group', 'textLabelNode', 'annotationNode'];
+      return !specialTypes.includes(nodeType);
+    };
+
+    const finalSourceHandle = usesPrefixedHandles(srcNode?.type) ? `source-${sourceHandle}` : sourceHandle;
+    const finalTargetHandle = usesPrefixedHandles(tgtNode?.type) ? `target-${targetHandle}` : targetHandle;
+
     return {
       ...edge,
-      sourceHandle,
-      targetHandle,
+      sourceHandle: finalSourceHandle,
+      targetHandle: finalTargetHandle,
       type: 'smoothstep',
     };
   });
@@ -650,9 +708,20 @@ async function deleteCanvasFromDB(canvasId: string, get: () => DiagramState): Pr
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
-export const useDiagramStore = create<DiagramState>()(
+function wrapCreator(
+  creator: StateCreator<DiagramState, [["zustand/persist", unknown]]>
+): StateCreator<DiagramState, [["zustand/persist", unknown]]> {
+  return (set, getRaw, api) => {
+    const get = () => {
+      return deriveNodesAndEdges(getRaw());
+    };
+    return creator(set, get, api);
+  };
+}
+
+const useDiagramStoreRaw = create<DiagramState>()(
   persist(
-    (set, get) => ({
+    wrapCreator((set, get) => ({
       // ── Multi-canvas ───────────────────────────────────────────────────────
       canvases: [{ ...INITIAL_CANVAS, isOpen: true, lastAccessedAt: Date.now() }],
       activeCanvasId: INITIAL_CANVAS.id,
@@ -677,7 +746,43 @@ export const useDiagramStore = create<DiagramState>()(
       },
 
        addCanvas: (customName?: string, canvasId?: string) => {
-         const { canvases, openCanvasIds, getRandomAnimalName } = get();
+         const { canvases, openCanvasIds, getRandomAnimalName, userProfile } = get();
+         const isGuest = !userProfile || userProfile.id === 'guest';
+         if (isGuest) {
+          const guestCanvases = canvases.filter((c) => c.id.startsWith('guest-canvas'));
+          if (guestCanvases.length >= MAX_GUEST_CANVASES) {
+            toast.error(`Guests can have up to ${MAX_GUEST_CANVASES} canvases. Delete one to create a new canvas.`);
+            return get().activeCanvasId || 'guest-canvas';
+          }
+
+          const id = !canvases.some((c) => c.id === 'guest-canvas')
+            ? 'guest-canvas'
+            : !canvases.some((c) => c.id === 'guest-canvas-2')
+              ? 'guest-canvas-2'
+              : `guest-canvas-${Date.now()}`;
+
+          const name = customName || getRandomAnimalName();
+          const newCanvas = {
+            ...makeCanvas(name, id),
+            isOpen: true,
+            lastAccessedAt: Date.now(),
+          };
+
+          const nextCanvases = [...canvases, newCanvas];
+          const nextOpenIds = openCanvasIds.includes(id) ? openCanvasIds : [...openCanvasIds, id];
+
+          set({
+            canvases: nextCanvases,
+            openCanvasIds: nextOpenIds,
+            activeCanvasId: id,
+            past: [],
+            future: [],
+          });
+
+          // Persist guest canvases immediately
+          get().saveCanvasToDB(id);
+          return id;
+         }
          
          if (canvasId) {
            const existing = canvases.find(c => c.id === canvasId);
@@ -704,8 +809,6 @@ export const useDiagramStore = create<DiagramState>()(
            canvases: [...canvases, canvasWithMeta], 
            openCanvasIds: newOpenIds,
            activeCanvasId: newCanvas.id, 
-           nodes: [], 
-           edges: [], 
            past: [], 
            future: [] 
          });
@@ -713,7 +816,12 @@ export const useDiagramStore = create<DiagramState>()(
        },
 
        duplicateCanvas: (id: string) => {
-         const { canvases, openCanvasIds } = get();
+         const { canvases, openCanvasIds, userProfile } = get();
+         const isGuest = !userProfile || userProfile.id === 'guest';
+         if (isGuest) {
+           toast.error("Sign in to duplicate canvases.");
+           return;
+         }
          const source = canvases.find(c => c.id === id);
          if (!source) return;
          
@@ -743,8 +851,6 @@ export const useDiagramStore = create<DiagramState>()(
            canvases: [...canvases, duplicated],
            openCanvasIds: newOpenIds,
            activeCanvasId: newId,
-           nodes: duplicated.nodes,
-           edges: duplicated.edges,
            past: [],
            future: [],
          });
@@ -752,14 +858,58 @@ export const useDiagramStore = create<DiagramState>()(
        },
 
       removeCanvas: (id) => {
-        const { canvases, activeCanvasId, openCanvasIds, nodes, edges } = get();
+        const { canvases, activeCanvasId, openCanvasIds, userProfile } = get();
+        const isGuest = !userProfile || userProfile.id === 'guest';
+        if (isGuest) {
+          const guestCanvases = canvases.filter((c) => c.id.startsWith('guest-canvas'));
+          if (guestCanvases.length <= 1) {
+            // Keep at least one canvas in the UI; treat delete as "reset"
+            const replacementId = guestCanvases[0]?.id || 'guest-canvas';
+            const replacement: CanvasTab = {
+              id: replacementId,
+              name: get().getRandomAnimalName(),
+              nodes: [],
+              edges: [],
+              updatedAt: Date.now(),
+              createdAt: Date.now(),
+              isOpen: true,
+              lastAccessedAt: Date.now(),
+            };
+            set({
+              canvases: [replacement],
+              openCanvasIds: [replacementId],
+              activeCanvasId: replacementId,
+              past: [],
+              future: [],
+            });
+            get().saveCanvasToDB(replacementId);
+            return;
+          }
+
+          const idx = canvases.findIndex((c) => c.id === id);
+          const next = canvases.filter((c) => c.id !== id);
+          const newOpenIds = openCanvasIds.filter((cid) => cid !== id);
+
+          let nextActiveId = activeCanvasId;
+          if (activeCanvasId === id) {
+            const newIdx = Math.max(0, idx - 1);
+            nextActiveId = next[newIdx]?.id || next[0]?.id;
+          }
+
+          set({
+            canvases: next,
+            openCanvasIds: newOpenIds,
+            activeCanvasId: nextActiveId,
+            past: [],
+            future: [],
+          });
+          get().saveCanvasToDB(nextActiveId);
+          return;
+        }
         if (canvases.length <= 1) return;
         
-        // Sync active canvas before removing
-        const synced = syncActiveCanvas(canvases, activeCanvasId, nodes, edges);
-        
-        const idx = synced.findIndex((c) => c.id === id);
-        const next = synced.filter((c) => c.id !== id);
+        const idx = canvases.findIndex((c) => c.id === id);
+        const next = canvases.filter((c) => c.id !== id);
         const newOpenIds = openCanvasIds.filter((cid) => cid !== id);
         
         let nextActiveId = activeCanvasId;
@@ -767,13 +917,10 @@ export const useDiagramStore = create<DiagramState>()(
           const newIdx = Math.max(0, idx - 1);
           nextActiveId = next[newIdx]?.id || next[0]?.id;
         }
-        const active = next.find((c) => c.id === nextActiveId);
         set({ 
           canvases: next, 
           openCanvasIds: newOpenIds,
           activeCanvasId: nextActiveId, 
-          nodes: active?.nodes || [], 
-          edges: active?.edges || [], 
           past: [], 
           future: [] 
         });
@@ -782,22 +929,28 @@ export const useDiagramStore = create<DiagramState>()(
         deleteCanvasFromDB(id, get);
       },
 
-      switchCanvas: (id) => {
-        const { canvases, activeCanvasId, nodes, edges, openCanvasIds } = get();
+      switchCanvas: async (id) => {
+        const { canvases, activeCanvasId, openCanvasIds, userProfile } = get();
+        const isGuest = !userProfile || userProfile.id === 'guest';
+        if (isGuest && !id.startsWith('guest-canvas')) {
+          return;
+        }
         if (id === activeCanvasId) return;
         
-        const saved = syncActiveCanvas(canvases, activeCanvasId, nodes, edges);
-        const target = saved.find((c) => c.id === id);
-        
+        const target = canvases.find((c) => c.id === id);
         if (!target) return;
+
+        // Fetch custom components if missing from registry
+        await componentRegistry.ensureCustomComponentsForNodes(target.nodes);
         
         let newOpenIds = openCanvasIds;
         if (!openCanvasIds.includes(id)) {
           newOpenIds = [...openCanvasIds, id];
         }
         
-        const updatedCanvases = saved.map((c) => {
+        const updatedCanvases = canvases.map((c) => {
           if (c.id === id) {
+            // Qualifies for lastAccessedAt because activeCanvasId changes
             return { ...c, lastAccessedAt: Date.now() };
           }
           return c;
@@ -807,8 +960,6 @@ export const useDiagramStore = create<DiagramState>()(
           canvases: updatedCanvases, 
           openCanvasIds: newOpenIds,
           activeCanvasId: id, 
-          nodes: validateAndFixNodes(normalizeNodes(target.nodes || [])), 
-          edges: normalizeEdges(target.edges || []), 
           past: [], 
           future: [], 
           selectedNodeId: null, 
@@ -823,14 +974,15 @@ export const useDiagramStore = create<DiagramState>()(
         get().saveCanvasToDB(id);
       },
 
-      openCanvas: (id) => {
-        const { canvases, activeCanvasId, openCanvasIds, nodes, edges } = get();
+      openCanvas: async (id) => {
+        const { canvases, activeCanvasId, openCanvasIds } = get();
         const isAlreadyOpen = openCanvasIds.includes(id);
         
-        const saved = syncActiveCanvas(canvases, activeCanvasId, nodes, edges);
-        const target = saved.find((c) => c.id === id);
-        
+        const target = canvases.find((c) => c.id === id);
         if (!target) return;
+
+        // Fetch custom components if missing from registry
+        await componentRegistry.ensureCustomComponentsForNodes(target.nodes);
         
         let newOpenIds: string[];
         if (isAlreadyOpen) {
@@ -839,8 +991,9 @@ export const useDiagramStore = create<DiagramState>()(
           newOpenIds = [...openCanvasIds, id];
         }
         
-        const updatedCanvases = saved.map((c) => {
+        const updatedCanvases = canvases.map((c) => {
           if (c.id === id) {
+            // Qualifies for lastAccessedAt because activeCanvasId changes
             return { ...c, isOpen: true, lastAccessedAt: Date.now() };
           }
           return c;
@@ -850,8 +1003,6 @@ export const useDiagramStore = create<DiagramState>()(
           canvases: updatedCanvases, 
           openCanvasIds: newOpenIds,
           activeCanvasId: id,
-          nodes: validateAndFixNodes(normalizeNodes(target.nodes || [])),
-          edges: normalizeEdges(target.edges || []),
           past: [],
           future: [],
           selectedNodeId: null,
@@ -861,7 +1012,7 @@ export const useDiagramStore = create<DiagramState>()(
       },
 
       closeCanvas: (id) => {
-        const { canvases, activeCanvasId, openCanvasIds, nodes, edges } = get();
+        const { canvases, activeCanvasId, openCanvasIds } = get();
         
         if (openCanvasIds.length <= 1) return;
         
@@ -874,10 +1025,7 @@ export const useDiagramStore = create<DiagramState>()(
           nextActiveId = newOpenIds[newIdx] || newOpenIds[0];
         }
         
-        const saved = syncActiveCanvas(canvases, activeCanvasId, nodes, edges);
-        const nextActive = saved.find((c) => c.id === nextActiveId);
-        
-        const updatedCanvases = saved.map((c) => {
+        const updatedCanvases = canvases.map((c) => {
           if (c.id === id) {
             return { ...c, isOpen: false };
           }
@@ -888,8 +1036,6 @@ export const useDiagramStore = create<DiagramState>()(
           canvases: updatedCanvases,
           openCanvasIds: newOpenIds,
           activeCanvasId: nextActiveId,
-          nodes: validateAndFixNodes(normalizeNodes(nextActive?.nodes || [])),
-          edges: normalizeEdges(nextActive?.edges || []),
           past: [],
           future: [],
         });
@@ -985,7 +1131,51 @@ export const useDiagramStore = create<DiagramState>()(
 
       // ── User / Auth ────────────────────────────────────────────────────────
       userProfile: null,
-      setUserProfile: (profile) => set({ userProfile: profile }),
+      setUserProfile: (profile) => {
+        const isGuest = !profile || profile.id === 'guest';
+        if (isGuest) {
+          let guestCanvas;
+          const guestSaved = typeof window !== 'undefined' ? localStorage.getItem('archdraw-guest-canvas') : null;
+          if (guestSaved) {
+            try {
+              guestCanvas = JSON.parse(guestSaved);
+            } catch {
+              guestCanvas = {
+                id: 'guest-canvas',
+                name: 'Elephant',
+                nodes: [],
+                edges: [],
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                isOpen: true,
+                lastAccessedAt: Date.now(),
+              };
+            }
+          } else {
+            guestCanvas = {
+              id: 'guest-canvas',
+              name: 'Elephant',
+              nodes: [],
+              edges: [],
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              isOpen: true,
+              lastAccessedAt: Date.now(),
+            };
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('archdraw-guest-canvas', JSON.stringify(guestCanvas));
+            }
+          }
+          set({
+            userProfile: profile,
+            canvases: [guestCanvas],
+            activeCanvasId: 'guest-canvas',
+            openCanvasIds: ['guest-canvas'],
+          });
+        } else {
+          set({ userProfile: profile });
+        }
+      },
       savingState: 'idle',
       setSavingState: (s) => set({ savingState: s }),
 
@@ -1021,8 +1211,6 @@ export const useDiagramStore = create<DiagramState>()(
               canvases: mergedCanvases,
               openCanvasIds: openIds,
               activeCanvasId: targetCanvas.id,
-              nodes: validateAndFixNodes(normalizeNodes(targetCanvas.nodes || [])),
-              edges: normalizeEdges(targetCanvas.edges || []),
             });
           }
         } catch {
@@ -1031,6 +1219,29 @@ export const useDiagramStore = create<DiagramState>()(
       },
 
       saveCanvasToDB: (canvasId) => {
+        const state = get();
+        const isGuest = !state.userProfile || state.userProfile.id === 'guest';
+        if (isGuest) {
+          try {
+            const guestCanvases = state.canvases
+              .filter((c) => c.id.startsWith('guest-canvas'))
+              .slice(0, MAX_GUEST_CANVASES);
+            const serializedAll = JSON.stringify(guestCanvases);
+            if (serializedAll.length > 2 * 1024 * 1024) {
+              toast.warning('Your guest canvases are approaching the 2MB size limit. Please sign in to save without limits.');
+            }
+            localStorage.setItem(STORAGE_KEYS.guestCanvases, serializedAll);
+
+            // Backwards compatibility / migration path: keep active canvas under legacy key
+            const active = state.canvases.find((c) => c.id === canvasId) || guestCanvases[0];
+            if (active) {
+              localStorage.setItem('archdraw-guest-canvas', JSON.stringify(active));
+            }
+          } catch {
+            // ignore
+          }
+          return;
+        }
         _debouncedSave(canvasId, get);
       },
 
@@ -1046,8 +1257,7 @@ export const useDiagramStore = create<DiagramState>()(
       guideLines: [],
       edgeAnimations: true,
       showGrid: true,
-      darkMode: true,
-      canvasDarkMode: false,
+      darkMode: (typeof window !== 'undefined' ? (window.localStorage.getItem('archdraw-theme') !== 'light') : true),
       sidebarOpen: true,
       canvasMode: 'empty',
       activeLayoutPresetId: 'layered-lr',
@@ -1058,19 +1268,26 @@ export const useDiagramStore = create<DiagramState>()(
       toggleGrid: () => set({ showGrid: !get().showGrid }),
       toggleDarkMode: () => {
         const next = !get().darkMode;
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('archdraw-theme', next ? 'dark' : 'light');
+          if (next) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        }
         set({ darkMode: next });
-      },
-      toggleCanvasDarkMode: () => {
-        set((state) => ({ canvasDarkMode: !state.canvasDarkMode }));
-      },
-      setCanvasDarkMode: (mode: boolean) => {
-        set({ canvasDarkMode: mode });
       },
       toggleEdgeAnimations: () => {
         const next = !get().edgeAnimations;
         const edges = get().edges.map((e) => ({ ...e, animated: next }));
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edgeAnimations: next, edges, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because edges updated
+          c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
+        );
+        set({ edgeAnimations: next, canvases });
       },
 
       // ── History ────────────────────────────────────────────────────────────
@@ -1084,15 +1301,21 @@ export const useDiagramStore = create<DiagramState>()(
         const { past, nodes, edges, future, activeCanvasId, canvases } = get();
         if (!past.length) return;
         const prev = past[past.length - 1];
-        const newCanvases = syncActiveCanvas(canvases, activeCanvasId, prev.nodes, prev.edges);
-        set({ past: past.slice(0, -1), future: [{ nodes, edges }, ...future], nodes: prev.nodes, edges: prev.edges, canvases: newCanvases });
+        const newCanvases = canvases.map((c) =>
+          // Qualifies for updatedAt because nodes/edges updated due to undo
+          c.id === activeCanvasId ? { ...c, nodes: prev.nodes, edges: prev.edges, updatedAt: Date.now() } : c
+        );
+        set({ past: past.slice(0, -1), future: [{ nodes, edges }, ...future], canvases: newCanvases });
       },
       redo: () => {
         const { future, nodes, edges, past, activeCanvasId, canvases } = get();
         if (!future.length) return;
         const next = future[0];
-        const newCanvases = syncActiveCanvas(canvases, activeCanvasId, next.nodes, next.edges);
-        set({ future: future.slice(1), past: [...past, { nodes, edges }], nodes: next.nodes, edges: next.edges, canvases: newCanvases });
+        const newCanvases = canvases.map((c) =>
+          // Qualifies for updatedAt because nodes/edges updated due to redo
+          c.id === activeCanvasId ? { ...c, nodes: next.nodes, edges: next.edges, updatedAt: Date.now() } : c
+        );
+        set({ future: future.slice(1), past: [...past, { nodes, edges }], canvases: newCanvases });
       },
 
       // ── Node/edge operations ───────────────────────────────────────────────
@@ -1103,8 +1326,11 @@ export const useDiagramStore = create<DiagramState>()(
         if (structural.length > 0) {
           nodes = validateAndFixNodes(nodes);
         }
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
-        set({ nodes, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because nodes updated
+          c.id === get().activeCanvasId ? { ...c, nodes, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1112,8 +1338,11 @@ export const useDiagramStore = create<DiagramState>()(
         const structural = changes.filter((c) => c.type === 'remove');
         if (structural.length) get().pushHistory();
         const edges = applyEdgeChanges(changes, get().edges);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because edges updated
+          c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1132,8 +1361,11 @@ export const useDiagramStore = create<DiagramState>()(
           get().edges
         );
         const edges = distributeTargetHandles(get().nodes, rawEdges);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases, pendingLabelEdgeId: newEdge.id });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because edge was added/connected
+          c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
+        );
+        set({ canvases, pendingLabelEdgeId: newEdge.id });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1152,8 +1384,11 @@ export const useDiagramStore = create<DiagramState>()(
           return e;
         });
         const edges = distributeTargetHandles(get().nodes, rawEdges);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because edges reconnected
+          c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1196,8 +1431,11 @@ export const useDiagramStore = create<DiagramState>()(
         }
         
         const nodes = [...get().nodes, newNode];
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
-        set({ nodes, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because node was added
+          c.id === get().activeCanvasId ? { ...c, nodes, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1232,15 +1470,21 @@ export const useDiagramStore = create<DiagramState>()(
         const validatedNodes = validateAndFixNodes(updatedNodes);
         
         const edges = get().edges.filter((e) => e.source !== id && e.target !== id);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, validatedNodes, edges);
-        set({ nodes: validatedNodes, edges, canvases, selectedNodeId: get().selectedNodeId === id ? null : get().selectedNodeId });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because node was removed
+          c.id === get().activeCanvasId ? { ...c, nodes: validatedNodes, edges, updatedAt: Date.now() } : c
+        );
+        set({ canvases, selectedNodeId: get().selectedNodeId === id ? null : get().selectedNodeId });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
       updateNodeData: (id, data) => {
         const nodes = get().nodes.map((n) => n.id === id ? { ...n, data: { ...n.data, ...data } } : n);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
-        set({ nodes, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because node data changed
+          c.id === get().activeCanvasId ? { ...c, nodes, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1253,23 +1497,32 @@ export const useDiagramStore = create<DiagramState>()(
             ...(size.height !== undefined && { height: size.height }),
           };
         });
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
-        set({ nodes, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because node size changed
+          c.id === get().activeCanvasId ? { ...c, nodes, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
       updateEdgeData: (id, data) => {
         const edges = get().edges.map((e) => e.id === id ? { ...e, data: { ...e.data, ...data } } : e);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because edge data changed
+          c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
       deleteEdge: (edgeId) => {
         get().pushHistory();
         const edges = get().edges.filter((e) => e.id !== edgeId);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases, selectedEdgeId: null });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because edge was deleted
+          c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
+        );
+        set({ canvases, selectedEdgeId: null });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1284,15 +1537,21 @@ export const useDiagramStore = create<DiagramState>()(
         
         const edgesWithHandles = distributeTargetHandles(resolvedNodes, normalizedEdges);
         
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, edgesWithHandles);
-        set({ nodes: resolvedNodes, edges: edgesWithHandles, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because diagram was imported
+          c.id === get().activeCanvasId ? { ...c, nodes: resolvedNodes, edges: edgesWithHandles, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
       clearDiagram: () => {
         get().pushHistory();
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, [], []);
-        set({ nodes: [], edges: [], canvases, selectedNodeId: null });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because canvas was cleared
+          c.id === get().activeCanvasId ? { ...c, nodes: [], edges: [], updatedAt: Date.now() } : c
+        );
+        set({ canvases, selectedNodeId: null });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1332,20 +1591,29 @@ export const useDiagramStore = create<DiagramState>()(
           return true;
         });
         
-        const syncedCanvases = syncActiveCanvas(currentCanvases, activeCanvasId, finalNodes, newEdges);
+        const syncedCanvases = currentCanvases.map((c) =>
+          // Qualifies for updatedAt because selected items were deleted
+          c.id === activeCanvasId ? { ...c, nodes: finalNodes, edges: newEdges, updatedAt: Date.now() } : c
+        );
         
-        set({ nodes: finalNodes, edges: newEdges, canvases: syncedCanvases, selectedNodeIds: [], selectedNodeId: null });
+        set({ canvases: syncedCanvases, selectedNodeIds: [], selectedNodeId: null });
         get().saveCanvasToDB(activeCanvasId);
       },
 
       selectAll: () => set({ selectedNodeId: null }),
 
       createGroup: (parentId?: string) => {
-        const { nodes, selectedNodeIds, pushHistory, activeCanvasId, canvases, edges } = get();
-        if (selectedNodeIds.length < 2) return;
+        const { nodes, selectedNodeIds, selectedNodeId, pushHistory, activeCanvasId, canvases } = get();
+        const idsToGroup =
+          selectedNodeIds.length > 0
+            ? selectedNodeIds
+            : selectedNodeId
+              ? [selectedNodeId]
+              : [];
+        if (idsToGroup.length < 1) return;
         pushHistory();
         const PAD = 24;
-        const selected = nodes.filter((n) => selectedNodeIds.includes(n.id));
+        const selected = nodes.filter((n) => idsToGroup.includes(n.id));
         
         let minX = Math.min(...selected.map((n) => n.position.x)) - PAD;
         let minY = Math.min(...selected.map((n) => n.position.y)) - PAD;
@@ -1376,7 +1644,7 @@ export const useDiagramStore = create<DiagramState>()(
         
         const newNodes = [
           groupNode,
-          ...nodes.filter((n) => !selectedNodeIds.includes(n.id)),
+          ...nodes.filter((n) => !idsToGroup.includes(n.id)),
           ...selected.map((n) => ({
             ...n,
             parentId: groupId,
@@ -1386,8 +1654,11 @@ export const useDiagramStore = create<DiagramState>()(
           }))
         ];
         
-        const newCanvases = syncActiveCanvas(canvases, activeCanvasId, newNodes, edges);
-        set({ nodes: newNodes, canvases: newCanvases, selectedNodeIds: [], selectedNodeId: groupId });
+        const newCanvases = canvases.map((c) =>
+          // Qualifies for updatedAt because group was created
+          c.id === activeCanvasId ? { ...c, nodes: newNodes, updatedAt: Date.now() } : c
+        );
+        set({ canvases: newCanvases, selectedNodeIds: [], selectedNodeId: groupId });
         get().saveCanvasToDB(activeCanvasId);
       },
 
@@ -1416,8 +1687,11 @@ export const useDiagramStore = create<DiagramState>()(
           });
         newNodes = validateAndFixNodes(newNodes);
         
-        const newCanvases = syncActiveCanvas(canvases, activeCanvasId, newNodes, edges);
-        set({ nodes: newNodes, canvases: newCanvases, selectedNodeIds: children.map((c) => c.id) });
+        const newCanvases = canvases.map((c) =>
+          // Qualifies for updatedAt because nodes were ungrouped
+          c.id === activeCanvasId ? { ...c, nodes: newNodes, updatedAt: Date.now() } : c
+        );
+        set({ canvases: newCanvases, selectedNodeIds: children.map((c) => c.id) });
         get().saveCanvasToDB(activeCanvasId);
       },
 
@@ -1446,8 +1720,11 @@ export const useDiagramStore = create<DiagramState>()(
             : n
         );
         
-        const newCanvases = syncActiveCanvas(canvases, activeCanvasId, newNodes, edges);
-        set({ nodes: newNodes, canvases: newCanvases });
+        const newCanvases = canvases.map((c) =>
+          // Qualifies for updatedAt because node moved to group
+          c.id === activeCanvasId ? { ...c, nodes: newNodes, updatedAt: Date.now() } : c
+        );
+        set({ canvases: newCanvases });
         get().saveCanvasToDB(activeCanvasId);
       },
 
@@ -1458,8 +1735,11 @@ export const useDiagramStore = create<DiagramState>()(
         const validatedNodes = validateAndFixNodes(cleanedNodes);
         const resolvedNodes = resolveNodeCollisions(validatedNodes);
         const normalizedEdges = normalizeEdges(edges);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, resolvedNodes, normalizedEdges);
-        set({ nodes: resolvedNodes, edges: normalizedEdges, canvases, selectedNodeId: null, selectedEdgeId: null });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because template was loaded
+          c.id === get().activeCanvasId ? { ...c, nodes: resolvedNodes, edges: normalizedEdges, updatedAt: Date.now() } : c
+        );
+        set({ canvases, selectedNodeId: null, selectedEdgeId: null });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1480,34 +1760,49 @@ export const useDiagramStore = create<DiagramState>()(
         const edges = get().edges.map((e) =>
           e.id === edgeId ? { ...e, data: { ...e.data, label: label.trim() } } : e
         );
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because edge label changed
+          c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
       // ── AI Streaming ──────────────────────────────────────────────────────
       setNodes: (nodes) => {
         const validatedNodes = validateAndFixNodes(normalizeNodes(nodes));
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, validatedNodes, get().edges);
-        set({ nodes: validatedNodes, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because nodes set/updated by builder
+          c.id === get().activeCanvasId ? { ...c, nodes: validatedNodes, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
       setEdges: (edges) => {
         const normalized = normalizeEdges(edges);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, normalized);
-        set({ edges: normalized, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because edges set/updated by builder
+          c.id === get().activeCanvasId ? { ...c, edges: normalized, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
       appendNode: (node) => {
         const nodes = [...get().nodes, { ...node, type: normalizeNodeType(node.type as string | undefined) }];
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, nodes, get().edges);
-        set({ nodes, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because node size changed
+          c.id === get().activeCanvasId ? { ...c, nodes, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
       appendEdge: (edge) => {
         const edges = [...get().edges, normalizeEdge(edge)];
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, get().nodes, edges);
-        set({ edges, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because edge label changed
+          c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1532,8 +1827,10 @@ export const useDiagramStore = create<DiagramState>()(
             ...state.sequenceDiagrams,
             [canvasId]: { mermaidSyntax, title },
           },
-          nodes: [],
-          edges: [],
+          canvases: state.canvases.map((c) =>
+            // Qualifies for updatedAt because nodes/edges cleared for sequence diagram
+            c.id === canvasId ? { ...c, nodes: [], edges: [], updatedAt: Date.now() } : c
+          )
         }));
         get().saveCanvasToDB(canvasId);
       },
@@ -1571,8 +1868,11 @@ export const useDiagramStore = create<DiagramState>()(
         get().pushHistory();
         const normalizedNodes = normalizeNodes(defaultNodes);
         const normalizedEdges = normalizeEdges(defaultEdges);
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, normalizedNodes, normalizedEdges);
-        set({ nodes: normalizedNodes, edges: normalizedEdges, canvases, selectedNodeId: null, selectedEdgeId: null });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because default architecture loaded
+          c.id === get().activeCanvasId ? { ...c, nodes: normalizedNodes, edges: normalizedEdges, updatedAt: Date.now() } : c
+        );
+        set({ canvases, selectedNodeId: null, selectedEdgeId: null });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1614,63 +1914,159 @@ export const useDiagramStore = create<DiagramState>()(
           }
         }
 
-        const canvases = syncActiveCanvas(get().canvases, get().activeCanvasId, updated, get().edges);
-        set({ nodes: updated, canvases });
+        const canvases = get().canvases.map((c) =>
+          // Qualifies for updatedAt because connected nodes aligned
+          c.id === get().activeCanvasId ? { ...c, nodes: updated, updatedAt: Date.now() } : c
+        );
+        set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
-    }),
+    })),
     {
-      name: 'archdraw-storage',
+    name: 'archdraw-storage',
       storage: createJSONStorage(() => serializedStorage),
       partialize: (s) => ({
         canvases: s.canvases,
         activeCanvasId: s.activeCanvasId,
-        nodes: s.nodes,
-        edges: s.edges,
-        darkMode: s.darkMode,
-        canvasDarkMode: s.canvasDarkMode,
         edgeAnimations: s.edgeAnimations,
         showGrid: s.showGrid,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state && state.canvases && state.canvases.length > 0) {
-          // Ensure activeCanvasId is valid
-          if (!state.activeCanvasId || !state.canvases.find((c: CanvasTab) => c.id === state.activeCanvasId)) {
-            state.activeCanvasId = state.canvases[0].id;
+        if (state) {
+          // Problem 2: Load guest canvas if user is guest or not logged in
+          const isGuest = !state.userProfile || state.userProfile.id === 'guest';
+          if (isGuest) {
+            const guestListSaved = localStorage.getItem(STORAGE_KEYS.guestCanvases);
+            if (guestListSaved) {
+              try {
+                const list = JSON.parse(guestListSaved);
+                if (Array.isArray(list) && list.length > 0) {
+                  const guestCanvases = list
+                    .filter((c: any) => c && typeof c.id === 'string' && c.id.startsWith('guest-canvas'))
+                    .slice(0, MAX_GUEST_CANVASES)
+                    .map((c: any) => ({
+                      ...c,
+                      isOpen: true,
+                      lastAccessedAt: c.lastAccessedAt || c.updatedAt || Date.now(),
+                      createdAt: c.createdAt || Date.now(),
+                      updatedAt: c.updatedAt || Date.now(),
+                      nodes: c.nodes || [],
+                      edges: c.edges || [],
+                    }));
+
+                  state.canvases = guestCanvases;
+                  state.openCanvasIds = guestCanvases.map((c: any) => c.id);
+                  state.activeCanvasId =
+                    state.activeCanvasId && guestCanvases.some((c: any) => c.id === state.activeCanvasId)
+                      ? state.activeCanvasId
+                      : guestCanvases[0].id;
+
+                  // keep legacy key pointing at active
+                  const active = guestCanvases.find((c: any) => c.id === state.activeCanvasId) || guestCanvases[0];
+                  localStorage.setItem('archdraw-guest-canvas', JSON.stringify(active));
+                }
+              } catch {
+                // ignore
+              }
+            }
+
+            // Backwards compat fallback: single guest canvas
+            if (!state.canvases || state.canvases.length === 0) {
+              const guestSaved = localStorage.getItem('archdraw-guest-canvas');
+              if (guestSaved) {
+                try {
+                  const canvas = JSON.parse(guestSaved);
+                  state.canvases = [{ ...canvas, isOpen: true, lastAccessedAt: Date.now() }];
+                  state.activeCanvasId = canvas.id || 'guest-canvas';
+                  state.openCanvasIds = [state.activeCanvasId];
+                } catch {
+                  // ignore
+                }
+              }
+            }
+
+            if (!state.canvases || state.canvases.length === 0) {
+              const defaultGuest: CanvasTab = {
+                id: 'guest-canvas',
+                name: 'Elephant',
+                nodes: [],
+                edges: [],
+                updatedAt: Date.now(),
+                createdAt: Date.now(),
+                isOpen: true,
+                lastAccessedAt: Date.now(),
+              };
+              state.canvases = [defaultGuest];
+              state.activeCanvasId = 'guest-canvas';
+              state.openCanvasIds = ['guest-canvas'];
+              localStorage.setItem(STORAGE_KEYS.guestCanvases, JSON.stringify([defaultGuest]));
+              localStorage.setItem('archdraw-guest-canvas', JSON.stringify(defaultGuest));
+            }
           }
-          
-          const active = state.canvases.find((c: CanvasTab) => c.id === state.activeCanvasId);
-          if (active) {
-            // Strip reserved layer nodes, resolve collisions
-            const normalizedNodes = normalizeNodes(active.nodes || []);
-            const cleaned = stripReservedLayerNodes(normalizedNodes);
-            const validated = validateAndFixNodes(cleaned);
-            state.nodes = resolveNodeCollisions(sanitizeNodes(validated));
-            state.edges = sanitizeEdges(normalizeEdges(active.edges || []));
-            // Normalize node and edge types in all canvases
-            state.canvases = state.canvases.map((c: CanvasTab) => ({
-              ...c,
-              nodes: sanitizeNodes(validateAndFixNodes(normalizeNodes(c.nodes || []))),
-              edges: sanitizeEdges(normalizeEdges(c.edges || [])),
-            }));
-          } else {
-            // Fallback: create a default canvas if none exist
-            const defaultCanvas: CanvasTab = {
-              id: `canvas-${Date.now()}`,
-              name: 'Default',
-              nodes: [],
-              edges: [],
-              updatedAt: Date.now(),
-              isOpen: true,
-              lastAccessedAt: Date.now(),
-            };
-            state.canvases = [defaultCanvas];
-            state.activeCanvasId = defaultCanvas.id;
-            state.nodes = [];
-            state.edges = [];
+
+          if (state.canvases && state.canvases.length > 0) {
+            // Ensure activeCanvasId is valid
+            if (!state.activeCanvasId || !state.canvases.find((c: CanvasTab) => c.id === state.activeCanvasId)) {
+              state.activeCanvasId = state.canvases[0].id;
+            }
+            
+            // Clean up and normalize node and edge types in all canvases
+            state.canvases = state.canvases.map((c: CanvasTab) => {
+              const normalizedNodes = normalizeNodes(c.nodes || []);
+              const cleaned = stripReservedLayerNodes(normalizedNodes);
+              const validated = validateAndFixNodes(cleaned);
+              const resolved = resolveNodeCollisions(sanitizeNodes(validated));
+              const normalizedEdges = sanitizeEdges(normalizeEdges(c.edges || []));
+              
+              return {
+                ...c,
+                nodes: resolved,
+                edges: normalizedEdges,
+              };
+            });
           }
         }
       },
     }
   )
 );
+
+function deriveNodesAndEdges(state: any) {
+  if (!state) return state;
+  return new Proxy(state, {
+    get(target, prop, receiver) {
+      if (prop === 'nodes') {
+        const active = target.canvases?.find((c: any) => c.id === target.activeCanvasId);
+        return active?.nodes || [];
+      }
+      if (prop === 'edges') {
+        const active = target.canvases?.find((c: any) => c.id === target.activeCanvasId);
+        return active?.edges || [];
+      }
+      return Reflect.get(target, prop, receiver);
+    }
+  });
+}
+
+export const useDiagramStore = Object.assign(
+  (selector?: (state: DiagramState) => any, equalityFn?: any) => {
+    if (selector) {
+      const wrappedSelector = (state: DiagramState) => {
+        const proxied = deriveNodesAndEdges(state);
+        return selector(proxied);
+      };
+      return (useDiagramStoreRaw as any)(wrappedSelector, equalityFn);
+    }
+    const state = useDiagramStoreRaw();
+    return deriveNodesAndEdges(state);
+  },
+  {
+    getState: () => deriveNodesAndEdges(useDiagramStoreRaw.getState()),
+    setState: useDiagramStoreRaw.setState,
+    subscribe: (listener: any) => {
+      return (useDiagramStoreRaw.subscribe as any)((state: any, prevState: any) => {
+        listener(deriveNodesAndEdges(state), deriveNodesAndEdges(prevState));
+      });
+    },
+  }
+) as unknown as typeof useDiagramStoreRaw;

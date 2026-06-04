@@ -33,6 +33,7 @@ const NODE_TYPES = {
   annotationNode:    AnnotationNode,
   messageBrokerNode: SystemNode,
   customNode:        SystemNode,
+  custom:            SystemNode,
 };
 
 const EDGE_TYPES = {
@@ -62,12 +63,7 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
 
-  const setCanvasDarkMode = useDiagramStore(s => s.setCanvasDarkMode);
 
-  useEffect(() => {
-    // Force dark mode on mount for the viewer since the background is dark
-    setCanvasDarkMode(true);
-  }, [setCanvasDarkMode]);
 
   // We must call hooks unconditionally. Compute coloredEdges even if canvas is undefined,
   // returning an empty array as a safe fallback.
@@ -92,7 +88,7 @@ function Viewer({ canvas }: { canvas: SharedCanvas }) {
     setIsDownloading(true);
 
     try {
-      const isDark = useDiagramStore.getState().canvasDarkMode;
+      const isDark = true;
       const dataUrl = await toPng(el, {
         backgroundColor: isDark ? '#0f172a' : '#ffffff',
         pixelRatio: 3,

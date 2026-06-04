@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useTutorialStore } from '@/store/tutorialStore';
+import { toast } from 'sonner';
 import { isSupabaseConfigured, getSupabaseClient, isReachable, type TutorialProgressTable, type UserCanvasesTable } from '@/lib/supabase';
 import { STORAGE_KEYS } from '@/lib/config';
 
@@ -98,29 +99,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: u.user_metadata?.full_name ?? u.user_metadata?.name ?? undefined,
           avatar_url: u.user_metadata?.avatar_url ?? undefined,
         });
-        await loadCanvasesFromDB();
-        
-        // Restore guest canvases if they exist
-        const saved = localStorage.getItem(STORAGE_KEYS.guestCanvases);
-        if (saved) {
+        // Check and migrate guest canvas if it has nodes
+        let newCanvasId: string | null = null;
+        const guestListRaw = localStorage.getItem(STORAGE_KEYS.guestCanvases);
+        const legacyRaw = localStorage.getItem('archdraw-guest-canvas');
+        const candidates: any[] = [];
+
+        try {
+          const list = guestListRaw ? JSON.parse(guestListRaw) : null;
+          if (Array.isArray(list)) candidates.push(...list);
+        } catch {
+          // ignore
+        }
+        try {
+          if (legacyRaw) {
+            const single = JSON.parse(legacyRaw);
+            if (single) candidates.push(single);
+          }
+        } catch {
+          // ignore
+        }
+
+        const toMigrate = candidates
+          .filter((c) => c && Array.isArray(c.nodes) && c.nodes.length > 0)
+          .slice(0, 2); // guest max
+
+        if (toMigrate.length > 0) {
+          const toastId = toast.loading('Saving your guest diagrams to your account...');
           try {
-            const guestCanvases = JSON.parse(saved);
             const supabaseClient = getSupabaseClient();
-            for (const canvas of guestCanvases) {
-              if (canvas.nodes?.length > 0) {
-                await (supabaseClient.from('user_canvases') as unknown as UserCanvasesTable).upsert({
-                  id: canvas.id,
-                  user_id: u.id,
-                  name: canvas.name,
-                  nodes: canvas.nodes,
-                  edges: canvas.edges,
-                  updated_at: new Date().toISOString(),
-                });
-              }
+            for (const canvas of toMigrate) {
+              const id = `canvas-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              await (supabaseClient.from('user_canvases') as unknown as UserCanvasesTable).upsert({
+                id,
+                user_id: u.id,
+                name: canvas.name || 'Elephant',
+                nodes: canvas.nodes,
+                edges: canvas.edges || [],
+                updated_at: new Date().toISOString(),
+              });
+              if (!newCanvasId) newCanvasId = id;
             }
+            localStorage.removeItem('archdraw-guest-canvas');
             localStorage.removeItem(STORAGE_KEYS.guestCanvases);
-            await loadCanvasesFromDB();
-          } catch { /* ignore */ }
+            toast.success('Guest diagram(s) saved to your account!', { id: toastId });
+          } catch {
+            toast.error('Failed to save guest diagram(s) to account.', { id: toastId });
+          }
+        }
+
+        await loadCanvasesFromDB();
+
+        // Handle pendingAction from sessionStorage
+        const pendingAction = sessionStorage.getItem('pendingAction');
+        if (pendingAction) {
+          sessionStorage.removeItem('pendingAction');
+          // Wait briefly for editor components to load before dispatching
+          setTimeout(() => {
+            if (pendingAction === 'share') {
+              window.dispatchEvent(new CustomEvent('trigger-share'));
+            } else if (pendingAction === 'download') {
+              window.dispatchEvent(new CustomEvent('trigger-download'));
+            }
+          }, 800);
+        }
+
+        if (newCanvasId) {
+          window.location.href = `/editor?canvas=${newCanvasId}`;
         }
       } else if (event === 'SIGNED_OUT') {
         setUserProfile(null);
