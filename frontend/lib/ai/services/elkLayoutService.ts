@@ -270,13 +270,13 @@ function createDistributedPorts(nodeId: string, side: 'EAST' | 'WEST', count: nu
 }
 
 function calculateGroupDimensions(nodes: ArchitectureNode[]): ArchitectureNode[] {
-  const CHILD_WIDTH = 160;
-  const CHILD_HEIGHT = 60;
-  const CHILD_MARGIN = 20;
-  const GROUP_PADDING_H = 32;
-  const GROUP_PADDING_TOP = 48;
-  const GROUP_PADDING_BOTTOM = 24;
-  const ROW_GAP = 20;
+  const CHILD_WIDTH        = 200;   // actual node width
+  const CHILD_HEIGHT       = 80;    // actual node height
+  const CHILD_MARGIN       = 40;    // gap between siblings
+  const GROUP_PADDING_H    = 60;    // left + right padding each
+  const GROUP_PADDING_TOP  = 72;    // clears label tag (~28px) + breathing room
+  const GROUP_PADDING_BOT  = 60;
+  const ROW_GAP            = 40;
 
   return nodes.map(node => {
     if (node.isGroup !== true) return node;
@@ -286,13 +286,13 @@ function calculateGroupDimensions(nodes: ArchitectureNode[]): ArchitectureNode[]
 
     const columnsCount = Math.min(3, children.length);
     const rows = Math.ceil(children.length / columnsCount);
-    const groupWidth = (columnsCount * CHILD_WIDTH) + ((columnsCount - 1) * CHILD_MARGIN) + GROUP_PADDING_H;
-    const groupHeight = (rows * CHILD_HEIGHT) + ((rows - 1) * ROW_GAP) + GROUP_PADDING_TOP + GROUP_PADDING_BOTTOM;
+    const groupWidth  = (columnsCount * CHILD_WIDTH) + ((columnsCount - 1) * CHILD_MARGIN) + 2 * GROUP_PADDING_H;
+    const groupHeight = (rows * CHILD_HEIGHT) + ((rows - 1) * ROW_GAP) + GROUP_PADDING_TOP + GROUP_PADDING_BOT;
 
     return {
       ...node,
-      width: Math.max(groupWidth, 240),
-      height: Math.max(groupHeight, 160),
+      width:  Math.max(groupWidth,  320),
+      height: Math.max(groupHeight, 200),
     };
   });
 }

@@ -22,8 +22,10 @@ export const SEMANTIC_GROUP_META: Record<string, SemanticGroupMeta> = {
 export interface ApplySemanticLayerGroupsOptions {
   /** Minimum leaf nodes required to create a group (default 2). */
   minNodesPerGroup?: number;
-  /** Padding around grouped children in px (default 40). */
+  /** Side/bottom padding around grouped children in px (default 60). */
   padding?: number;
+  /** Top padding in px — extra clearance for the label tag (default 72). */
+  paddingTop?: number;
 }
 
 export function getSemanticGroupKey(node: Pick<LayoutedNode, 'layer' | 'label'>): string {
@@ -39,7 +41,10 @@ export function applySemanticLayerGroups(
   options: ApplySemanticLayerGroupsOptions = {}
 ): LayoutedNode[] {
   const minNodesPerGroup = options.minNodesPerGroup ?? 2;
-  const padding = options.padding ?? 40;
+  // Side/bottom padding. Top gets extra to clear the label tag (~28px) + breathing room.
+  const PAD_SIDE = options.padding    ?? 60;
+  const PAD_TOP  = options.paddingTop ?? 72;
+  const PAD_BOT  = PAD_SIDE;
 
   const existingGroups = nodes.filter((n) => n.isGroup);
   const alreadyGrouped = nodes.filter((n) => !n.isGroup && n.parentId);
@@ -78,10 +83,10 @@ export function applySemanticLayerGroups(
       maxY = Math.max(maxY, child.y + child.height);
     }
 
-    const groupX = minX - padding;
-    const groupY = minY - padding;
-    const groupWidth = maxX - minX + 2 * padding;
-    const groupHeight = maxY - minY + 2 * padding;
+    const groupX      = minX - PAD_SIDE;
+    const groupY      = minY - PAD_TOP;
+    const groupWidth  = maxX - minX + 2 * PAD_SIDE;
+    const groupHeight = maxY - minY + PAD_TOP + PAD_BOT;
 
     newGroups.push({
       id: groupId,

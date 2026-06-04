@@ -1637,21 +1637,24 @@ const useDiagramStoreRaw = create<DiagramState>()(
               : [];
         if (idsToGroup.length < 1) return;
         pushHistory();
-        const PAD = 24;
+        // Asymmetric padding: top clears the group label tag + has breathing room.
+        const PAD_SIDE = 60;
+        const PAD_TOP  = 72;
+        const PAD_BOT  = 60;
         const selected = nodes.filter((n) => idsToGroup.includes(n.id));
         
-        let minX = Math.min(...selected.map((n) => n.position.x)) - PAD;
-        let minY = Math.min(...selected.map((n) => n.position.y)) - PAD;
-        let maxX = Math.max(...selected.map((n) => n.position.x + (n.width ?? 160))) + PAD;
-        let maxY = Math.max(...selected.map((n) => n.position.y + (n.height ?? 80))) + PAD;
+        let minX = Math.min(...selected.map((n) => n.position.x)) - PAD_SIDE;
+        let minY = Math.min(...selected.map((n) => n.position.y)) - PAD_TOP;
+        let maxX = Math.max(...selected.map((n) => n.position.x + (n.width ?? 160))) + PAD_SIDE;
+        let maxY = Math.max(...selected.map((n) => n.position.y + (n.height ?? 80))) + PAD_BOT;
         
         if (parentId) {
           const parent = nodes.find((n) => n.id === parentId);
           if (parent) {
-            minX = parent.position.x + PAD;
-            minY = parent.position.y + PAD;
-            maxX = parent.position.x + (parent.width ?? 400) - PAD;
-            maxY = parent.position.y + (parent.height ?? 300) - PAD;
+            minX = parent.position.x + PAD_SIDE;
+            minY = parent.position.y + PAD_TOP;
+            maxX = parent.position.x + (parent.width ?? 400) - PAD_SIDE;
+            maxY = parent.position.y + (parent.height ?? 300) - PAD_BOT;
           }
         }
         

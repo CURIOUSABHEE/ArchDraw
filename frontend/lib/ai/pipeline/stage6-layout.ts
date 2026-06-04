@@ -220,9 +220,10 @@ function positionGroupsAbsolute(
   groupNodes: RawNode[]
 ): LayoutedNode[] {
   const resultNodes = [...layoutedLeafNodes];
-  // Generous padding so groups feel spacious and boundaries are clearly visible
-  const padding = 100;
-  const topPadding = 120; // extra headroom above children for the group label tag
+  // Extra top padding clears the group label tag (~28px) + breathing room.
+  const PAD_SIDE = 60;
+  const PAD_TOP  = 72;
+  const PAD_BOT  = 60;
 
   for (const group of groupNodes) {
     const children = resultNodes.filter(n => n.parentId === group.id);
@@ -241,18 +242,18 @@ function positionGroupsAbsolute(
 
       resultNodes.push({
         ...group,
-        x: minX - padding,
-        y: minY - topPadding,
-        width: (maxX - minX) + 2 * padding,
-        height: (maxY - minY) + topPadding + padding
+        x: minX - PAD_SIDE,
+        y: minY - PAD_TOP,
+        width:  (maxX - minX) + 2 * PAD_SIDE,
+        height: (maxY - minY) + PAD_TOP + PAD_BOT,
       });
     } else {
       resultNodes.push({
         ...group,
         x: 100,
         y: 100,
-        width: 300,
-        height: 200
+        width: 200,
+        height: 150
       });
     }
   }
@@ -267,9 +268,9 @@ function positionGroupsAbsolute(
  */
 function recomputeGroupBounds(nodes: LayoutedNode[]): LayoutedNode[] {
   const result = nodes.map(n => ({ ...n }));
-  // Match the generous padding used in positionGroupsAbsolute
-  const padding = 100;
-  const topPadding = 120;
+  const PAD_SIDE = 60;
+  const PAD_TOP  = 72;
+  const PAD_BOT  = 60;
 
   for (const group of result) {
     if (!group.isGroup) continue;
@@ -288,10 +289,10 @@ function recomputeGroupBounds(nodes: LayoutedNode[]): LayoutedNode[] {
       maxY = Math.max(maxY, child.y + child.height);
     }
 
-    group.x = minX - padding;
-    group.y = minY - topPadding;
-    group.width = (maxX - minX) + 2 * padding;
-    group.height = (maxY - minY) + topPadding + padding;
+    group.x = minX - PAD_SIDE;
+    group.y = minY - PAD_TOP;
+    group.width  = (maxX - minX) + 2 * PAD_SIDE;
+    group.height = (maxY - minY) + PAD_TOP + PAD_BOT;
   }
 
   return result;
@@ -322,15 +323,15 @@ function fallbackLayoutLeafs(nonGroupNodes: RawNode[]): LayoutedNode[] {
   }
 
   const layoutedLeafNodes: LayoutedNode[] = [];
-  let currentX = 160;
-  const paddingX = 280; // generous horizontal column gap
-  const spacingY = 160; // generous vertical node gap
+  let currentX = 100;
+  const paddingX = 150;
+  const spacingY = 80;
 
   for (let layerIdx = 0; layerIdx < 8; layerIdx++) {
     const layerNodes = layerGroups[layerIdx];
     if (!layerNodes || layerNodes.length === 0) continue;
 
-    let currentY = 160;
+    let currentY = 100;
     let maxColumnWidth = 0;
 
     for (const node of layerNodes) {
@@ -376,21 +377,21 @@ export async function applyLayout(
   const nonGroupIds = new Set(nonGroupNodes.map(n => n.id));
 
   // Determine dynamic ELK spacing options
-  // 1. Spacing base adjustments by size — values are deliberately large for an airy, spacious layout
-  let sizeNodeSpacing = 240;
-  let sizeLayerSpacing = 360;
+  // 1. Spacing base adjustments by size
+  let sizeNodeSpacing = 160;
+  let sizeLayerSpacing = 240;
   if (diagramSize === 'small') {
-    sizeNodeSpacing = 180;
-    sizeLayerSpacing = 260;
+    sizeNodeSpacing = 120;
+    sizeLayerSpacing = 180;
   } else if (diagramSize === 'large') {
-    sizeNodeSpacing = 320;
-    sizeLayerSpacing = 480;
+    sizeNodeSpacing = 220;
+    sizeLayerSpacing = 320;
   }
 
   // 2. Adjustments based on edge pressure (edges - nodes)
   const edgePressure = Math.max(0, edges.length - nodes.length);
-  const extraNodeSpacing = edgePressure * 12;
-  const extraLayerSpacing = edgePressure * 18;
+  const extraNodeSpacing = edgePressure * 10;
+  const extraLayerSpacing = edgePressure * 15;
 
   // 3. Same-layer edge pressure
   const sameLayerEdges = edges.filter(edge => {
@@ -398,13 +399,13 @@ export async function applyLayout(
     const tgt = nodes.find(n => n.id === edge.target);
     return src && tgt && getLayerHint(src) === getLayerHint(tgt);
   }).length;
-  const sameLayerSpacingExtra = sameLayerEdges * 20;
+  const sameLayerSpacingExtra = sameLayerEdges * 15;
 
-  // Combine them with bounds/clamping (raised ceilings for spacious diagrams)
-  const finalNodeNode = Math.min(Math.max(sizeNodeSpacing + extraNodeSpacing + sameLayerSpacingExtra, 180), 600);
-  const finalNodeLayer = Math.min(Math.max(sizeLayerSpacing + extraLayerSpacing + sameLayerSpacingExtra, 260), 800);
-  const finalEdgeNode = Math.min(Math.max(140 + edgePressure * 8, 120), 300);
-  const finalEdgeEdge = Math.min(Math.max(80 + edgePressure * 6, 60), 200);
+  // Combine them with bounds/clamping
+  const finalNodeNode = Math.min(Math.max(sizeNodeSpacing + extraNodeSpacing + sameLayerSpacingExtra, 120), 400);
+  const finalNodeLayer = Math.min(Math.max(sizeLayerSpacing + extraLayerSpacing + sameLayerSpacingExtra, 180), 500);
+  const finalEdgeNode = Math.min(Math.max(100 + edgePressure * 5, 80), 200);
+  const finalEdgeEdge = Math.min(Math.max(60 + edgePressure * 5, 50), 150);
 
   const elk = new ELK();
   const cleanEdges = edges.filter(e => e.source !== e.target);
@@ -510,7 +511,7 @@ export async function applyLayout(
 
     // Run collision resolution on all absolute-positioned nodes (leaf nodes only,
     // then recompute groups so groups enclose their post-collision children)
-    const { nodes: collisionResolvedNodes, before, after } = resolveCollisions(absoluteNodes, 60);
+    const { nodes: collisionResolvedNodes, before, after } = resolveCollisions(absoluteNodes, 40);
 
     // Recompute group bounds from final (post-collision) child positions
     const reboundedNodes = recomputeGroupBounds(collisionResolvedNodes);
@@ -534,7 +535,7 @@ export async function applyLayout(
     logger.error('[Layout] ELK failed, falling back to basic layout:', e);
     const fallbackLeafNodes = fallbackLayoutLeafs(nonGroupNodes);
     const absoluteNodes = positionGroupsAbsolute(fallbackLeafNodes, groupNodes);
-    const { nodes: collisionResolvedNodes, before, after } = resolveCollisions(absoluteNodes, 60);
+    const { nodes: collisionResolvedNodes, before, after } = resolveCollisions(absoluteNodes, 40);
     const reboundedNodes = recomputeGroupBounds(collisionResolvedNodes);
     const finalNodes = convertChildrenToParentRelative(reboundedNodes);
 

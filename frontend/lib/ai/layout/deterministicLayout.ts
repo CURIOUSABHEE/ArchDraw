@@ -9,10 +9,9 @@ import { ELK_CONFIG } from '@/lib/config';
 const DEFAULT_NODE_WIDTH = 180;
 const DEFAULT_NODE_HEIGHT = 70;
 
-// Generous spacing constants for an airy, readable layout
-const SPACING_X = 240; // horizontal gap between nodes in the same tier
-const SPACING_Y = 160; // vertical gap between nodes in the same tier
-const TIER_SPACING = 360; // gap between tiers (left-to-right direction)
+const SPACING_X = LAYOUT_SPACING.NODE_SPACING_X;
+const SPACING_Y = LAYOUT_SPACING.NODE_SPACING_Y;
+const TIER_SPACING = LAYOUT_SPACING.TIER_SPACING_Y;
 
 const TIER_X_POSITIONS: Record<Direction, Record<TierType, number>> = {
   RIGHT: {
@@ -313,16 +312,13 @@ export function runDeterministicLayout(
     const minY = Math.min(...childReactNodes.map(n => n.position.y));
     const maxY = Math.max(...childReactNodes.map(n => n.position.y + (n.height || DEFAULT_NODE_HEIGHT)));
   
-    // Generous group padding: 100px sides/bottom, 120px top for the label tag
-    const sidePad = 100;
-    const topPad = 120;
-    const groupWidth = maxX - minX + 2 * sidePad;
-    const groupHeight = maxY - minY + topPad + sidePad;
+    const groupWidth = maxX - minX + 60;
+    const groupHeight = maxY - minY + 60;
   
     reactFlowNodes.push({
       id: node.id,
       type: 'group',
-      position: { x: minX - sidePad, y: minY - topPad },
+      position: { x: minX - 30, y: minY - 30 },
       data: {
         label: node.label,
         icon: node.icon || 'box',
