@@ -2,10 +2,13 @@ import { useMemo } from 'react';
 import { MarkerType, useStore, Position } from 'reactflow';
 import type { Edge } from 'reactflow';
 import { getSimpleEdgePositions, getSimpleHandlePosition } from '@/lib/utils/simpleFloatingEdge';
+import { useCanvasTheme } from '@/lib/theme';
 
 const EDGE_COLORS = {
   default: '#94a3b8',
+  defaultDark: '#cbd5e1', // Slate-300 (whiter)
   overlap: '#1f2937',
+  overlapDark: '#334155',
 };
 
 type NodeRect = { x: number; y: number; w: number; h: number };
@@ -63,6 +66,7 @@ function getSmoothStepWaypoints(
 
 export function useEdgeColors(edges: Edge[]): Edge[] {
   const nodeInternals = useStore((s) => s.nodeInternals);
+  const { isDark } = useCanvasTheme();
 
   return useMemo(() => {
     const nodeRects = new Map<string, NodeRect>();
@@ -76,15 +80,18 @@ export function useEdgeColors(edges: Edge[]): Edge[] {
       });
     }
 
+    const defaultColor = isDark ? EDGE_COLORS.defaultDark : EDGE_COLORS.default;
+    const overlapColor = isDark ? EDGE_COLORS.overlapDark : EDGE_COLORS.overlap;
+
     return edges.map((edge) => {
       const src = nodeRects.get(edge.source);
       const tgt = nodeRects.get(edge.target);
       if (!src || !tgt) {
         return {
           ...edge,
-          style: { ...edge.style, stroke: EDGE_COLORS.default, strokeWidth: 1.5 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLORS.default, width: 20, height: 20 },
-          labelStyle: { ...edge.labelStyle, fill: EDGE_COLORS.default },
+          style: { ...edge.style, stroke: defaultColor, strokeWidth: 1.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: defaultColor, width: 20, height: 20 },
+          labelStyle: { ...edge.labelStyle, fill: defaultColor },
         };
       }
 
@@ -111,8 +118,8 @@ export function useEdgeColors(edges: Edge[]): Edge[] {
         if (passesThroughNode) break;
       }
 
-      const color = passesThroughNode ? EDGE_COLORS.overlap : EDGE_COLORS.default;
-      const labelColor = passesThroughNode ? '#000000' : EDGE_COLORS.default;
+      const color = passesThroughNode ? overlapColor : defaultColor;
+      const labelColor = passesThroughNode ? (isDark ? '#475569' : '#000000') : defaultColor;
 
       return {
         ...edge,
@@ -121,14 +128,15 @@ export function useEdgeColors(edges: Edge[]): Edge[] {
         labelStyle: { ...edge.labelStyle, fill: labelColor },
       };
     });
-  }, [edges, nodeInternals]);
+  }, [edges, nodeInternals, isDark]);
 }
 
-export function assignEdgeColors(edges: Edge[]): Edge[] {
+export function assignEdgeColors(edges: Edge[], isDark: boolean = true): Edge[] {
+  const defaultColor = isDark ? EDGE_COLORS.defaultDark : EDGE_COLORS.default;
   return edges.map((edge) => ({
     ...edge,
-    style: { ...edge.style, stroke: EDGE_COLORS.default, strokeWidth: 1.5 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLORS.default, width: 20, height: 20 },
-    labelStyle: { ...edge.labelStyle, fill: EDGE_COLORS.default },
+    style: { ...edge.style, stroke: defaultColor, strokeWidth: 1.5 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: defaultColor, width: 20, height: 20 },
+    labelStyle: { ...edge.labelStyle, fill: defaultColor },
   }));
 }
