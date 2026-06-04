@@ -42,30 +42,30 @@ export function GenerationProgressDisplay({ progress, onCancel }: GenerationProg
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-      <div className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white pointer-events-auto animate-in slide-in-from-bottom-4 fade-in duration-300"
-        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+      <div className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-card border border-border pointer-events-auto animate-in slide-in-from-bottom-4 fade-in duration-300"
+        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
         {getIcon()}
         
         <div className="flex flex-col gap-2 min-w-[280px]">
           <div className="flex items-center justify-between gap-4">
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-semibold text-foreground">
               {getAgentLabel(progress.phase)}
             </span>
-            <span className="text-sm font-bold text-indigo-600 shrink-0">
+            <span className="text-sm font-bold text-primary shrink-0">
               {progress.progress}%
             </span>
           </div>
           
-          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-2 rounded-full bg-muted/80 overflow-hidden">
             <div
-              className="h-full rounded-full bg-indigo-500 transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
               style={{ width: `${progress.progress}%` }}
             />
           </div>
           
-          <div className="flex items-center justify-between text-xs text-gray-400">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span className="flex items-center gap-1 min-w-0 flex-1">
-              <span className="font-medium text-gray-500 truncate" title={progress.message}>
+              <span className="font-medium text-muted-foreground/80 truncate" title={progress.message}>
                 {progress.message || getAgentLabel(progress.phase)}
               </span>
             </span>
@@ -81,11 +81,12 @@ export function GenerationProgressDisplay({ progress, onCancel }: GenerationProg
 
         {onCancel && progress.phase !== 'complete' && progress.phase !== 'error' && (
           <button
+            type="button"
             onClick={onCancel}
-            className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-xl hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
             title="Cancel"
           >
-            <XCircle className="w-4 h-4 text-gray-400" />
+            <XCircle className="w-4 h-4" />
           </button>
         )}
       </div>
