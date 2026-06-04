@@ -1,11 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
-import { Handle, Position, useUpdateNodeInternals } from 'reactflow';
-
-interface FloatingHandlesProps {
-  nodeId: string;
-}
+import { Handle, Position } from 'reactflow';
 
 /**
  * FloatingHandles renders one invisible source+target handle per side.
@@ -14,13 +9,12 @@ interface FloatingHandlesProps {
  * exist solely so React Flow does not drop edges that reference this node.
  * They are fully transparent, pointer-events: none, and positioned at the
  * exact centre of each edge so only ONE dot appears per side when hovered.
+ *
+ * NOTE: Do NOT call useUpdateNodeInternals here. It triggers a store update
+ * that feeds back through useEdgeColors → coloredEdges → ReactFlow re-render,
+ * creating an infinite update loop.
  */
-export function FloatingHandles({ nodeId }: FloatingHandlesProps) {
-  const updateNodeInternals = useUpdateNodeInternals();
-
-  useEffect(() => {
-    updateNodeInternals(nodeId);
-  }, [nodeId, updateNodeInternals]);
+export function FloatingHandles() {
 
   const ghost: React.CSSProperties = {
     opacity: 0,

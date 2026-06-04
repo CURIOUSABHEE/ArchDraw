@@ -1,8 +1,38 @@
 import { useMemo } from 'react';
 import { MarkerType, useStore, Position } from 'reactflow';
-import type { Edge } from 'reactflow';
+import type { Edge, ReactFlowState } from 'reactflow';
 import { getSimpleEdgePositions, getSimpleHandlePosition } from '@/lib/utils/simpleFloatingEdge';
 import { useCanvasTheme } from '@/lib/theme';
+
+// Stable selector: extract only the primitive values we need from nodeInternals.
+// Returning a new Map<string, NodeRect> built from primitives ensures React's
+// referential equality check fires ONLY when positions/sizes actually change,
+// not on every in-place mutation that ReactFlow makes to the shared Map.
+type NodeRect = { x: number; y: number; w: number; h: number };
+
+function selectNodeRects(s: ReactFlowState): Map<string, NodeRect> {
+  const rects = new Map<string, NodeRect>();
+  for (const [id, node] of s.nodeInternals) {
+    const pos = node.positionAbsolute ?? node.position;
+    rects.set(id, {
+      x: pos.x,
+      y: pos.y,
+      w: node.width ?? 200,
+      h: node.height ?? 80,
+    });
+  }
+  return rects;
+}
+
+// Equality: only re-subscribe when rect values change (not Map identity).
+function nodeRectsEqual(a: Map<string, NodeRect>, b: Map<string, NodeRect>): boolean {
+  if (a.size !== b.size) return false;
+  for (const [id, ra] of a) {
+    const rb = b.get(id);
+    if (!rb || ra.x !== rb.x || ra.y !== rb.y || ra.w !== rb.w || ra.h !== rb.h) return false;
+  }
+  return true;
+}
 
 const EDGE_COLORS = {
   default: '#94a3b8',
@@ -11,7 +41,7 @@ const EDGE_COLORS = {
   overlapDark: '#334155',
 };
 
-type NodeRect = { x: number; y: number; w: number; h: number };
+
 
 function lineIntersectsRect(
   x1: number, y1: number,
@@ -65,20 +95,14 @@ function getSmoothStepWaypoints(
 }
 
 export function useEdgeColors(edges: Edge[]): Edge[] {
-  const nodeInternals = useStore((s) => s.nodeInternals);
+  // Use the stable selector with custom equality to avoid infinite loops.
+  // ReactFlow mutates nodeInternals in-place; subscribing to the Map directly
+  // causes a new reference on every node update, which re-renders infinitely.
+  const nodeRects = useStore(selectNodeRects, nodeRectsEqual);
   const { isDark } = useCanvasTheme();
 
   return useMemo(() => {
-    const nodeRects = new Map<string, NodeRect>();
-    for (const [id, node] of nodeInternals) {
-      const pos = node.positionAbsolute ?? node.position;
-      nodeRects.set(id, {
-        x: pos.x,
-        y: pos.y,
-        w: node.width ?? 200,
-        h: node.height ?? 80,
-      });
-    }
+    // nodeRects is already a stable extracted Map of primitives — use directly.
 
     const defaultColor = isDark ? EDGE_COLORS.defaultDark : EDGE_COLORS.default;
     const overlapColor = isDark ? EDGE_COLORS.overlapDark : EDGE_COLORS.overlap;
@@ -128,7 +152,7 @@ export function useEdgeColors(edges: Edge[]): Edge[] {
         labelStyle: { ...edge.labelStyle, fill: labelColor },
       };
     });
-  }, [edges, nodeInternals, isDark]);
+  }, [edges, nodeRects, isDark]);
 }
 
 export function assignEdgeColors(edges: Edge[], isDark: boolean = true): Edge[] {

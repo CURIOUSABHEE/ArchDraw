@@ -1320,30 +1320,55 @@ const useDiagramStoreRaw = create<DiagramState>()(
 
       // ── Node/edge operations ───────────────────────────────────────────────
       onNodesChange: (changes) => {
+        // Structural changes = add/remove (infrequent). These justify history + save.
+        // Position/dimension/selection changes are high-frequency (60fps during drag).
+        // Writing `updatedAt: Date.now()` on EVERY change creates a new object on every
+        // tick, which always passes Zustand's shallow-equal check and causes an
+        // infinite render loop: change → set → re-render → onNodesChange → ∞
         const structural = changes.filter((c) => c.type === 'add' || c.type === 'remove');
-        if (structural.length) get().pushHistory();
+        const isStructural = structural.length > 0;
+
+        if (isStructural) get().pushHistory();
+
         let nodes = applyNodeChanges(changes, get().nodes);
-        if (structural.length > 0) {
+        if (isStructural) {
           nodes = validateAndFixNodes(nodes);
         }
+
+        const activeId = get().activeCanvasId;
         const canvases = get().canvases.map((c) =>
-          // Qualifies for updatedAt because nodes updated
-          c.id === get().activeCanvasId ? { ...c, nodes, updatedAt: Date.now() } : c
+          c.id === activeId
+            ? { ...c, nodes, ...(isStructural ? { updatedAt: Date.now() } : {}) }
+            : c
         );
         set({ canvases });
-        get().saveCanvasToDB(get().activeCanvasId);
+
+        // Only persist on structural changes — debounce is too slow to stop the loop
+        // on position updates; the drag-stop handler will trigger a save instead.
+        if (isStructural) {
+          get().saveCanvasToDB(activeId);
+        }
       },
 
       onEdgesChange: (changes) => {
+        // Only 'remove' is structural for edges.
         const structural = changes.filter((c) => c.type === 'remove');
-        if (structural.length) get().pushHistory();
+        const isStructural = structural.length > 0;
+
+        if (isStructural) get().pushHistory();
+
         const edges = applyEdgeChanges(changes, get().edges);
+        const activeId = get().activeCanvasId;
         const canvases = get().canvases.map((c) =>
-          // Qualifies for updatedAt because edges updated
-          c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
+          c.id === activeId
+            ? { ...c, edges, ...(isStructural ? { updatedAt: Date.now() } : {}) }
+            : c
         );
         set({ canvases });
-        get().saveCanvasToDB(get().activeCanvasId);
+
+        if (isStructural) {
+          get().saveCanvasToDB(activeId);
+        }
       },
 
       onConnect: (connection) => {

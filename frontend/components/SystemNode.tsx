@@ -247,7 +247,7 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
             <div className="node-status-dot" />
           )}
         </div>
-        <FloatingHandles nodeId={id} />
+        <FloatingHandles />
       </div>
     </div>
   );

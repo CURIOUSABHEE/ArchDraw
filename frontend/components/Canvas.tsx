@@ -124,6 +124,7 @@ function CanvasInner() {
   const addCanvas = useDiagramStore((s) => s.addCanvas);
   const switchCanvas = useDiagramStore((s) => s.switchCanvas);
   const activeCanvasId = useDiagramStore((s) => s.activeCanvasId);
+  const saveCanvasToDB = useDiagramStore((s) => s.saveCanvasToDB);
 
   const renameCanvas = useDiagramStore((s) => s.renameCanvas);
 
@@ -261,21 +262,27 @@ function CanvasInner() {
   const onNodeDragStop = useCallback(
     (event: React.MouseEvent, node: Node, draggedNodes: Node[]) => {
       onNodeDragStopSnap(event, node, draggedNodes);
-      
+
       // Collision resolution
       const currentNodes = useDiagramStore.getState().nodes;
       const resolvedNodes = resolveNodeCollisions(currentNodes);
-      
-      const hasChanges = currentNodes.some((n, i) => 
-        n.position.x !== resolvedNodes[i]?.position.x || 
+
+      const hasChanges = currentNodes.some((n, i) =>
+        n.position.x !== resolvedNodes[i]?.position.x ||
         n.position.y !== resolvedNodes[i]?.position.y
       );
-      
+
       if (hasChanges) {
+        // setNodes already calls saveCanvasToDB
         setNodes(resolvedNodes);
+      } else {
+        // Drag finished with no collision fix — persist the final positions.
+        // onNodesChange intentionally skips saveCanvasToDB on position changes
+        // (to prevent 60fps infinite loops), so we do one save here instead.
+        saveCanvasToDB(activeCanvasId);
       }
     },
-    [onNodeDragStopSnap, setNodes]
+    [onNodeDragStopSnap, setNodes, saveCanvasToDB, activeCanvasId]
   );
 
   const onPaneClick = useCallback(() => {
