@@ -113,6 +113,15 @@ export function getEdgeShiftOffset(
          (e.source === edge.target && e.target === edge.source)
   ).sort((a, b) => a.id.localeCompare(b.id));
 
+  // Determine if there are bidirectional connections between source and target nodes, in which case we center the handles
+  const forward = edges.filter(e => e.source === edge.source && e.target === edge.target);
+  const reverse = edges.filter(e => e.source === edge.target && e.target === edge.source);
+  const isBidirectionalConnection = forward.length > 0 && reverse.length > 0;
+
+  if (isBidirectionalConnection) {
+    return 0;
+  }
+
   // If this specific edge is part of a parallel/bidirectional group, spread them evenly
   if (parallelEdges.length > 1) {
     const index = parallelEdges.findIndex(e => e.id === edgeId);

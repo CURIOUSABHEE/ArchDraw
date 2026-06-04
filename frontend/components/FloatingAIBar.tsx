@@ -38,6 +38,29 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
     }
   }, [input]);
 
+  // Global keyboard shortcut: Shift+? (e.key === '?') to focus prompt input
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '?') {
+        const active = document.activeElement;
+        const isInput = active && (
+          active.tagName === 'INPUT' || 
+          active.tagName === 'TEXTAREA' || 
+          active.getAttribute('contenteditable') === 'true'
+        );
+        if (!isInput) {
+          e.preventDefault();
+          textareaRef.current?.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, []);
+
   const handleGenerate = useCallback(async () => {
     if (!input.trim()) {
       toast.error('Please describe your architecture');

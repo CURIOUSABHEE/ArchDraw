@@ -131,25 +131,28 @@ export function getDynamicHandles(
 export function getHandleCoordinate(
   rect: NodeRect,
   position: Position,
-  type?: 'source' | 'target'
+  type?: 'source' | 'target',
+  isBidirectional: boolean = true
 ): { x: number; y: number } {
   const cx = rect.x + rect.width / 2;
   const cy = rect.y + rect.height / 2;
   
   let offset = 0;
-  if (type === 'source') {
-    switch (position) {
-      case Position.Right:  offset = -6; break;
-      case Position.Left:   offset = 6; break;
-      case Position.Top:    offset = -6; break;
-      case Position.Bottom: offset = 6; break;
-    }
-  } else if (type === 'target') {
-    switch (position) {
-      case Position.Right:  offset = 6; break;
-      case Position.Left:   offset = -6; break;
-      case Position.Top:    offset = 6; break;
-      case Position.Bottom: offset = -6; break;
+  if (isBidirectional && type) {
+    if (type === 'source') {
+      switch (position) {
+        case Position.Right:  offset = -20; break;
+        case Position.Left:   offset = 20; break;
+        case Position.Top:    offset = -20; break;
+        case Position.Bottom: offset = 20; break;
+      }
+    } else if (type === 'target') {
+      switch (position) {
+        case Position.Right:  offset = 20; break;
+        case Position.Left:   offset = -20; break;
+        case Position.Top:    offset = 20; break;
+        case Position.Bottom: offset = -20; break;
+      }
     }
   }
 

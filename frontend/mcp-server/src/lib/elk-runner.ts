@@ -33,15 +33,6 @@ const TIER_ORDER: TierType[] = [
   'observe',
 ];
 
-const LAYER_ORDER: string[] = [
-  'client',
-  'edge',
-  'compute',
-  'async',
-  'data',
-  'external',
-  'observe',
-];
 
 const DEFAULT_NODE_WIDTH = 160;
 const DEFAULT_NODE_HEIGHT = 80;
@@ -76,11 +67,27 @@ interface PlacedNode {
   tier: TierType;
 }
 
-function normalizeTier(layer: string): TierType {
-  const normalized = layer.toLowerCase();
-  if (LAYER_ORDER.includes(normalized)) {
-    return normalized as TierType;
-  }
+function normalizeTier(layer?: string): TierType {
+  if (!layer) return 'compute';
+  const clean = layer.toLowerCase().trim().replace(/[\s-]/g, '');
+
+  if (clean === 'presentation' || clean === 'client' || clean === 'frontend') return 'client';
+  if (clean === 'edge' || clean === 'infrastructure' || clean === 'gateway') return 'edge';
+  if (clean === 'compute' || clean === 'application' || clean === 'compute/application') return 'compute';
+  if (clean === 'async' || clean === 'queue') return 'async';
+  if (clean === 'data' || clean === 'cache' || clean === 'storage') return 'data';
+  if (clean === 'observe' || clean === 'observability' || clean === 'monitoring') return 'observe';
+  if (clean === 'thirdparty' || clean === 'external') return 'external';
+
+  // Substring matches as fallback
+  if (clean.includes('client') || clean.includes('present') || clean.includes('frontend')) return 'client';
+  if (clean.includes('edge') || clean.includes('infra') || clean.includes('gate')) return 'edge';
+  if (clean.includes('compute') || (clean.includes('app') && !clean.includes('frontend'))) return 'compute';
+  if (clean.includes('async') || clean.includes('queue') || clean.includes('bus') || clean.includes('stream')) return 'async';
+  if (clean.includes('data') || clean.includes('db') || clean.includes('cache') || clean.includes('store') || clean.includes('sql') || clean.includes('mongo')) return 'data';
+  if (clean.includes('observe') || clean.includes('monitor') || clean.includes('log') || clean.includes('trace') || clean.includes('alert')) return 'observe';
+  if (clean.includes('third') || clean.includes('ext') || clean.includes('api') || clean.includes('vendor')) return 'external';
+
   return 'compute';
 }
 

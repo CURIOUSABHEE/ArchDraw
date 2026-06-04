@@ -206,16 +206,16 @@ function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
   
   if (isDark) {
     const catStyle = getDarkCategoryStyle(data.layer);
-    borderCol = catStyle.border;
+    borderCol = selected ? catStyle.border : '#334155';
     iconColor = catStyle.border;
-    fillBg = '#ffffff';
-    titleColor = '#1f2937';
-    subtitleColor = '#6b7280';
+    fillBg = '#1e2235';
+    titleColor = '#ffffff';
+    subtitleColor = '#94a3b8';
     
     if (selected) {
-      styleAttr = `style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));"`;
+      styleAttr = `style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));"`;
     } else {
-      styleAttr = `style="filter: drop-shadow(0 2px 6px rgba(0,0,0,0.1));"`;
+      styleAttr = `style="filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));"`;
     }
   } else {
     borderCol = selected ? accentColor : '#e5e7eb';
@@ -232,12 +232,12 @@ function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
   const backplateLayers = isDark
     ? (selected
         ? [
-            { offset: 10, color: '#d1d5db' },
-            { offset: 5, color: '#e5e7eb' },
+            { offset: 10, color: '#0d0f1b' },
+            { offset: 5, color: '#151828' },
           ]
         : [
-            { offset: 10, color: '#e5e7eb' },
-            { offset: 5, color: '#f3f4f6' },
+            { offset: 10, color: '#0d0f1b' },
+            { offset: 5, color: '#151828' },
           ])
     : (selected
         ? [
@@ -479,24 +479,26 @@ function renderEdge(edge: EdgeRenderData, isDark: boolean): string {
   const pathResult = getPath(pathType, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, isFloating);
   const d = pathResult.path;
   
+  const isBidirectional = (data as any)?.isBidirectional;
+
   const markerEndId = `arrow-${id}`;
   const markerStartId = `arrow-start-${id}`;
   
   let defsSVG = `<defs>
-    <marker id="${markerEndId}" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="${markerEndId}" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="${strokeColor}"/>
     </marker>`;
     
-  if (config.markerStart) {
+  if (config.markerStart || isBidirectional) {
     defsSVG += `
-    <marker id="${markerStartId}" markerWidth="6" markerHeight="6" refX="0" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
-      <path d="M 6 0 L 6 6 L 0 3 z" fill="${strokeColor}"/>
+    <marker id="${markerStartId}" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+      <path d="M 0 0 L 0 6 L 6 3 z" fill="${strokeColor}"/>
     </marker>`;
   }
   defsSVG += '\n  </defs>';
 
-  const markerEndAttr = config.markerEnd ? `marker-end="url(#${markerEndId})"` : '';
-  const markerStartAttr = config.markerStart ? `marker-start="url(#${markerStartId})"` : '';
+  const markerEndAttr = (config.markerEnd || isBidirectional) ? `marker-end="url(#${markerEndId})"` : '';
+  const markerStartAttr = (config.markerStart || isBidirectional) ? `marker-start="url(#${markerStartId})"` : '';
   
   let labelSVG = '';
   if (data?.label && !data?.hideLabel) {
@@ -665,7 +667,51 @@ export function generatePureSVG(
     }
   }
   
+  // Group bidirectional edges
+  const processedEdges: Edge[] = [];
+  const processedEdgeIds = new Set<string>();
+
   for (const edge of edges) {
+    if (processedEdgeIds.has(edge.id)) continue;
+
+    const source = edge.source;
+    const target = edge.target;
+
+    const forward = edges.filter(e => e.source === source && e.target === target);
+    const reverse = edges.filter(e => e.source === target && e.target === source);
+    const isBidirectional = forward.length > 0 && reverse.length > 0;
+
+    if (isBidirectional) {
+      const group = [...forward, ...reverse].sort((a, b) => a.id.localeCompare(b.id));
+      const leader = group[0];
+      
+      for (const e of group) {
+        processedEdgeIds.add(e.id);
+      }
+
+      // Combine labels
+      const combinedLabel = group
+        .map(e => e.data?.label?.trim())
+        .filter(Boolean)
+        .join(' / ');
+
+      // Create a modified copy of the leader edge
+      const modifiedEdge = {
+        ...leader,
+        data: {
+          ...leader.data,
+          label: combinedLabel || undefined,
+          isBidirectional: true,
+        }
+      };
+      processedEdges.push(modifiedEdge);
+    } else {
+      processedEdgeIds.add(edge.id);
+      processedEdges.push(edge);
+    }
+  }
+
+  for (const edge of processedEdges) {
     const sourceNode = preparedNodes.find(n => n.id === edge.source);
     const targetNode = preparedNodes.find(n => n.id === edge.target);
     

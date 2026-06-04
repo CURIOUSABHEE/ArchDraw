@@ -101,7 +101,7 @@ function Backplates({ layers, borderRadius }: { layers: { offset: number; color:
 
 // ── Individual shape renderers ────────────────────────────────────────────────
 
-function Rectangle({ id, data, selected, rounded, backplates }: { id: string; data: ShapeNodeData; selected: boolean; rounded: boolean; backplates: { offset: number; color: string }[] }) {
+function Rectangle({ id, data, selected, rounded, backplates, isDark, styles }: { id: string; data: ShapeNodeData; selected: boolean; rounded: boolean; backplates: { offset: number; color: string }[]; isDark: boolean; styles: any }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const r = rounded ? 14 : 8;
   return (
@@ -113,10 +113,10 @@ function Rectangle({ id, data, selected, rounded, backplates }: { id: string; da
           height: 72,
           borderRadius: r,
           border: 'none',
-          background: 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
+          background: isDark ? styles.background : 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
           boxShadow: selected 
-            ? `0 0 0 2px ${color}, 0 8px 32px ${color}30, 0 4px 12px hsl(var(--foreground) / 0.1)`
-            : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)',
+            ? (isDark ? `0 0 0 2px ${color}, 0 8px 32px ${color}30, 0 4px 12px rgba(0,0,0,0.3)` : `0 0 0 2px ${color}, 0 8px 32px ${color}30, 0 4px 12px hsl(var(--foreground) / 0.1)`)
+            : (isDark ? '0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px hsl(var(--foreground) / 0.08), inset 0 1px 0 hsl(var(--foreground) / 0.03)'),
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -291,8 +291,8 @@ function ShapeNodeComponent({ id, data, selected }: NodeProps<ShapeNodeData>) {
     case 'cylinder':         return <Cylinder id={id} data={data} selected={!!selected} backplates={backplates} />;
     case 'circle':           return <Circle id={id} data={data} selected={!!selected} backplates={backplates} />;
     case 'parallelogram':    return <Parallelogram id={id} data={data} selected={!!selected} backplates={backplates} />;
-    case 'rounded-rectangle': return <Rectangle id={id} data={data} selected={!!selected} rounded backplates={backplates} />;
-    default:                 return <Rectangle id={id} data={data} selected={!!selected} rounded={false} backplates={backplates} />;
+    case 'rounded-rectangle': return <Rectangle id={id} data={data} selected={!!selected} rounded backplates={backplates} isDark={isDark} styles={styles} />;
+    default:                 return <Rectangle id={id} data={data} selected={!!selected} rounded={false} backplates={backplates} isDark={isDark} styles={styles} />;
   }
 }
 

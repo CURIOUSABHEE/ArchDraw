@@ -176,15 +176,15 @@
 /* ── Dark Mode Overrides ───────────────────────────────────────── */
 
 .dark .node-wrapper {
-  --node-card-bg: #ffffff;
-  --node-title-color: #1f2937;
-  --node-subtitle-color: #6b7280;
-  --node-shadow: 5px 5px 0 #e5e7eb, 10px 10px 0 #f3f4f6, 0 1px 3px rgba(0,0,0,0.08);
-  --node-shadow-selected: 0 0 0 2px var(--node-glow-border, #34D399), 5px 5px 0 #d1d5db, 10px 10px 0 #e5e7eb, 0 2px 6px rgba(0,0,0,0.1);
-  --node-backplate-1: #fbfbfb;
-  --node-backplate-2: #f8f8fa;
-  --node-backplate-1-selected: #f7f7f7;
-  --node-backplate-2-selected: #eef0f2;
+  --node-card-bg: #1e2235;
+  --node-title-color: #ffffff;
+  --node-subtitle-color: #94a3b8;
+  --node-shadow: 5px 5px 0 #0d0f1b, 10px 10px 0 #151828, 0 1px 3px rgba(0,0,0,0.3);
+  --node-shadow-selected: 0 0 0 2px var(--node-glow-border, #34D399), 5px 5px 0 #0d0f1b, 10px 10px 0 #151828, 0 2px 6px rgba(0,0,0,0.4);
+  --node-backplate-1: #0d0f1b;
+  --node-backplate-2: #151828;
+  --node-backplate-1-selected: #0d0f1b;
+  --node-backplate-2-selected: #151828;
   --node-toolbar-bg: #1f2937;
   --node-toolbar-border: #374151;
   --node-toolbar-btn-hover: #374151;

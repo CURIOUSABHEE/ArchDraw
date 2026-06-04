@@ -5,6 +5,30 @@ import { getNodeShapeConfig } from '@/constants/nodeShapeConfig';
 import { snapNodesToColumns } from '@/lib/utils/columnAlignNodes';
 import { ELK_CONFIG, ELK_DIRECTION_OVERRIDE } from '@/lib/config';
 
+export function getNormalizedTier(layer?: string): string {
+  if (!layer) return 'compute';
+  const clean = layer.toLowerCase().trim().replace(/[\s-]/g, '');
+
+  if (clean === 'presentation' || clean === 'client' || clean === 'frontend') return 'client';
+  if (clean === 'edge' || clean === 'infrastructure' || clean === 'gateway') return 'edge';
+  if (clean === 'compute' || clean === 'application' || clean === 'compute/application') return 'compute';
+  if (clean === 'async' || clean === 'queue') return 'async';
+  if (clean === 'data' || clean === 'cache' || clean === 'storage') return 'data';
+  if (clean === 'observe' || clean === 'observability' || clean === 'monitoring') return 'observe';
+  if (clean === 'thirdparty' || clean === 'external') return 'external';
+
+  // Substring matches as fallback
+  if (clean.includes('client') || clean.includes('present') || clean.includes('frontend')) return 'client';
+  if (clean.includes('edge') || clean.includes('infra') || clean.includes('gate')) return 'edge';
+  if (clean.includes('compute') || (clean.includes('app') && !clean.includes('frontend'))) return 'compute';
+  if (clean.includes('async') || clean.includes('queue') || clean.includes('bus') || clean.includes('stream')) return 'async';
+  if (clean.includes('data') || clean.includes('db') || clean.includes('cache') || clean.includes('store') || clean.includes('sql') || clean.includes('mongo')) return 'data';
+  if (clean.includes('observe') || clean.includes('monitor') || clean.includes('log') || clean.includes('trace') || clean.includes('alert')) return 'observe';
+  if (clean.includes('third') || clean.includes('ext') || clean.includes('api') || clean.includes('vendor')) return 'external';
+
+  return 'compute';
+}
+
 let elkInstance: any = null;
 async function getELK() {
   if (!elkInstance) {
@@ -284,7 +308,7 @@ function postProcessLayout(
   const HORIZONTAL_SPACING = 160;
 
   for (const node of nodes) {
-    const tier = node.data?.layer || 'compute';
+    const tier = getNormalizedTier(node.data?.layer || 'compute');
     if (!nodesByTier[tier]) nodesByTier[tier] = [];
     nodesByTier[tier].push(node);
   }
@@ -388,7 +412,7 @@ export async function computeELKLayout(
 
   const nodeLayerMap = new Map<string, number>();
   nodesWithGroupDims.forEach((node, index) => {
-    const tier = node.tier || node.layer || 'compute';
+    const tier = getNormalizedTier(node.tier || node.layer || 'compute');
     const layerIndex = LAYER_ORDER.indexOf(tier);
     nodeLayerMap.set(node.id, layerIndex >= 0 ? layerIndex : 2);
   });
@@ -474,7 +498,7 @@ export async function computeELKLayout(
       ports.push(...createDistributedPorts(node.id, 'EAST', 1));
     }
 
-    const tier = node.tier || node.layer || 'compute';
+    const tier = getNormalizedTier(node.tier || node.layer || 'compute');
     const x = TIER_X[tier] ?? 500;
 
     return {
@@ -600,7 +624,7 @@ export async function computeELKLayout(
 
       const isGroup = originalNode.isGroup === true;
       const isChild = originalNode.parentId !== undefined;
-      const tier = originalNode.tier || originalNode.layer || 'compute';
+      const tier = getNormalizedTier(originalNode.tier || originalNode.layer || 'compute');
       
       let x: number;
       if (isChild && isGroup === false) {
@@ -673,7 +697,7 @@ function computeFallbackLayout(
 
   const nodesByLayer: Record<string, ArchitectureNode[]> = {};
   for (const node of nodes) {
-    const layer = node.tier || node.layer || 'compute';
+    const layer = getNormalizedTier(node.tier || node.layer || 'compute');
     if (!nodesByLayer[layer]) nodesByLayer[layer] = [];
     nodesByLayer[layer].push(node);
   }

@@ -54,43 +54,43 @@ export function getFlowColor(
 
 const MARKER_DEFS = (
   <defs>
-    <marker id="marker-slate" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-slate" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#94A3B8" />
     </marker>
-    <marker id="marker-teal" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-teal" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#14B8A6" />
     </marker>
-    <marker id="marker-orange" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-orange" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#F97316" />
     </marker>
-    <marker id="marker-purple" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-purple" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#A855F7" />
     </marker>
-    <marker id="marker-blue" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-blue" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#3B82F6" />
     </marker>
-    <marker id="marker-yellow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-yellow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#EAB308" />
     </marker>
-    <marker id="arrow-sync" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-sync" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#3B82F6" />
     </marker>
-    <marker id="arrow-async" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-async" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#F59E0B" />
     </marker>
-    <marker id="arrow-stream" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-stream" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#10B981" />
     </marker>
-    <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#8B5CF6" />
     </marker>
-    <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#6B7280" />
     </marker>
-    <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#6B7280" />
     </marker>
-    <marker id="arrow-error" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-error" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#EF4444" />
     </marker>
   </defs>
@@ -108,7 +108,7 @@ export function SVGEdgeMarkerDefs() {
   return (
     <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
       <defs>
-        <marker id="edge-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+        <marker id="edge-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
           <path d="M 0 0 L 0 6 L 6 3 z" fill="#94A3B8" />
         </marker>
       </defs>
@@ -121,43 +121,43 @@ export function SVGEdgeMarkerDefs() {
  */
 export const edgeMarkerDefsHTML = `
   <defs>
-    <marker id="marker-slate" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-slate" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#94A3B8" />
     </marker>
-    <marker id="marker-teal" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-teal" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#14B8A6" />
     </marker>
-    <marker id="marker-orange" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-orange" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#F97316" />
     </marker>
-    <marker id="marker-purple" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-purple" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#A855F7" />
     </marker>
-    <marker id="marker-blue" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-blue" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#3B82F6" />
     </marker>
-    <marker id="marker-yellow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="marker-yellow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#EAB308" />
     </marker>
-    <marker id="arrow-sync" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-sync" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#3B82F6" />
     </marker>
-    <marker id="arrow-async" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-async" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#F59E0B" />
     </marker>
-    <marker id="arrow-stream" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-stream" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#10B981" />
     </marker>
-    <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#8B5CF6" />
     </marker>
-    <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#6B7280" />
     </marker>
-    <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#6B7280" />
     </marker>
-    <marker id="arrow-error" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+    <marker id="arrow-error" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#EF4444" />
     </marker>
   </defs>

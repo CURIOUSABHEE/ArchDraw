@@ -38,52 +38,52 @@ export function FloatingHandles({
         type="target"
         position={Position.Left}
         id="target-left"
-        style={{ ...handleStyle, left: leftOffset, top: 'calc(50% - 6px)', transform: 'translateY(-50%)' }}
+        style={{ ...handleStyle, left: leftOffset, top: 'calc(50% - 20px)', transform: 'translateY(-50%)' }}
       />
       <Handle
         type="source"
         position={Position.Left}
         id="source-left"
-        style={{ ...handleStyle, left: leftOffset, top: 'calc(50% + 6px)', transform: 'translateY(-50%)' }}
+        style={{ ...handleStyle, left: leftOffset, top: 'calc(50% + 20px)', transform: 'translateY(-50%)' }}
       />
 
       <Handle
         type="target"
         position={Position.Right}
         id="target-right"
-        style={{ ...handleStyle, right: -rightOffset, top: 'calc(50% + 6px)', transform: 'translateY(-50%)' }}
+        style={{ ...handleStyle, right: -rightOffset, top: 'calc(50% + 20px)', transform: 'translateY(-50%)' }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="source-right"
-        style={{ ...handleStyle, right: -rightOffset, top: 'calc(50% - 6px)', transform: 'translateY(-50%)' }}
+        style={{ ...handleStyle, right: -rightOffset, top: 'calc(50% - 20px)', transform: 'translateY(-50%)' }}
       />
 
       <Handle
         type="target"
         position={Position.Top}
         id="target-top"
-        style={{ ...handleStyle, top: topOffset, left: 'calc(50% + 6px)', transform: 'translateX(-50%)' }}
+        style={{ ...handleStyle, top: topOffset, left: 'calc(50% + 20px)', transform: 'translateX(-50%)' }}
       />
       <Handle
         type="source"
         position={Position.Top}
         id="source-top"
-        style={{ ...handleStyle, top: topOffset, left: 'calc(50% - 6px)', transform: 'translateX(-50%)' }}
+        style={{ ...handleStyle, top: topOffset, left: 'calc(50% - 20px)', transform: 'translateX(-50%)' }}
       />
 
       <Handle
         type="target"
         position={Position.Bottom}
         id="target-bottom"
-        style={{ ...handleStyle, bottom: -bottomOffset, left: 'calc(50% - 6px)', transform: 'translateX(-50%)' }}
+        style={{ ...handleStyle, bottom: -bottomOffset, left: 'calc(50% - 20px)', transform: 'translateX(-50%)' }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="source-bottom"
-        style={{ ...handleStyle, bottom: -bottomOffset, left: 'calc(50% + 6px)', transform: 'translateX(-50%)' }}
+        style={{ ...handleStyle, bottom: -bottomOffset, left: 'calc(50% + 20px)', transform: 'translateX(-50%)' }}
       />
 
       {/* Dummy handles for edges that don't specify sourceHandle/targetHandle.
