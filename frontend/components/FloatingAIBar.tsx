@@ -162,26 +162,27 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="start"
-                  className="w-80 p-0 !bg-white !text-black"
-                  style={{ backgroundColor: '#ffffff', opacity: 1, backdropFilter: 'none' }}
+                  className="w-80 p-0 border border-border bg-card text-card-foreground shadow-2xl rounded-2xl overflow-hidden z-[100]"
                 >
                   <div className="flex border-b border-border">
                     <button
+                      type="button"
                       onClick={() => setActiveTab('inspiration')}
-                      className={`flex-1 px-4 py-2.5 text-xs font-medium transition-colors ${
+                      className={`flex-1 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
                         activeTab === 'inspiration' 
-                          ? 'text-primary border-b-2 border-primary' 
-                          : 'text-muted-foreground hover:text-foreground'
+                          ? 'text-primary border-b-2 border-primary bg-primary/5' 
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                       }`}
                     >
                       Templates
                     </button>
                     <button
+                      type="button"
                       onClick={() => setActiveTab('history')}
-                      className={`flex-1 px-4 py-2.5 text-xs font-medium transition-colors ${
+                      className={`flex-1 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
                         activeTab === 'history' 
-                          ? 'text-primary border-b-2 border-primary' 
-                          : 'text-muted-foreground hover:text-foreground'
+                          ? 'text-primary border-b-2 border-primary bg-primary/5' 
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                       }`}
                     >
                       History ({history.length})
@@ -193,20 +194,21 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
                       <>
                         {PROMPT_SUGGESTIONS.map((category) => (
                           <div key={category.category} className="mb-4">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 px-2 py-1">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-2 py-1">
                               {category.category}
                             </p>
                             {category.prompts.map((item, index) => (
                               <button
                                 key={index}
+                                type="button"
                                 onClick={() => {
                                   selectInspiration(item.prompt);
                                   setShowHistory(false);
                                 }}
-                                className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-accent transition-colors"
+                                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-muted/60 transition-colors"
                               >
-                                <p className="text-sm font-medium">{item.title}</p>
-                                <p className="text-xs text-muted-foreground line-clamp-2">{item.prompt}</p>
+                                <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.prompt}</p>
                               </button>
                             ))}
                           </div>
@@ -222,8 +224,9 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
                         ) : (
                           <>
                             <button
+                              type="button"
                               onClick={() => clearHistory()}
-                              className="w-full text-xs text-muted-foreground hover:text-destructive px-3 py-2 text-left flex items-center gap-2"
+                              className="w-full text-xs text-muted-foreground hover:text-destructive px-3 py-2 text-left flex items-center gap-2 hover:bg-muted/30 rounded-lg transition-colors"
                             >
                               <Trash2 className="w-3 h-3" />
                               Clear History
@@ -231,26 +234,27 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
                             {history.slice(0, 10).map((item) => (
                               <div
                                 key={item.id}
-                                className="group flex items-start gap-2 px-3 py-2.5 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                                className="group flex items-start gap-2 px-3 py-2.5 rounded-xl hover:bg-muted/60 transition-colors cursor-pointer"
                                 onClick={() => {
                                   selectHistoryItem(item);
                                   setShowHistory(false);
                                 }}
                               >
                                 <Clock className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm truncate">{item.prompt}</p>
-                                  <p className="text-xs text-muted-foreground">
+                                <div className="flex-1 min-w-0 text-left">
+                                  <p className="text-sm truncate text-foreground">{item.prompt}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
                                     {item.model ? `Size: ${item.model}` : 'Just now'}
                                   </p>
                                 </div>
                                 <button
+                                  type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     addToFavorites(item);
                                     toast.success('Added to favorites');
                                   }}
-                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded"
+                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded text-muted-foreground hover:text-foreground transition-all"
                                 >
                                   <Star className="w-3 h-3" />
                                 </button>
