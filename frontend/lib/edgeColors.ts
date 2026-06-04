@@ -6,7 +6,7 @@ import { useCanvasTheme } from '@/lib/theme';
 
 const EDGE_COLORS = {
   default: '#94a3b8',
-  defaultDark: '#cbd5e1', // Slate-300 (whiter)
+  defaultDark: '#ffffff', // Pure White
   overlap: '#1f2937',
   overlapDark: '#334155',
 };
