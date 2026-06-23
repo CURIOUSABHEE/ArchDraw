@@ -16,7 +16,19 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
     updateNodeInternals(id);
   }, [id, updateNodeInternals]);
   
-  const color = (data as { groupColor?: string })?.groupColor || '#3b82f6';
+  const getDeterministicColor = (str: string) => {
+    const colors = ['#a855f7', '#22c55e', '#ec4899', '#f97316', '#14b8a6', '#3b82f6', '#06b6d4'];
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const color =
+    (data as { accentColor?: string })?.accentColor ||
+    (data as { groupColor?: string })?.groupColor ||
+    getDeterministicColor(id);
 
   const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -93,7 +105,7 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
       onClick={handleContainerClick}
     >
       <NodeResizer 
-        color="#3b82f6" 
+        color={color} 
         isVisible={selected} 
         minWidth={100} 
         minHeight={100}

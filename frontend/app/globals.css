@@ -37,15 +37,42 @@
   --color-canvas: hsl(var(--canvas-bg));
   --color-grid: hsl(var(--grid-color));
 
+  --color-lc: #010102;
+  --color-ls1: #0f1011;
+  --color-ls2: #141516;
+  --color-ls3: #18191a;
+  --color-lp: #5e6ad2;
+  --color-lph: #828fff;
+  --color-li: #f7f8f8;
+  --color-lim: #d0d6e0;
+  --color-lis: #8a8f98;
+  --color-lit: #62666d;
+  --color-lh: #23252a;
+  --color-lhs: #34343a;
+  --color-lg: #27a644;
+  --color-lr: #eb534b;
+
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
   --animate-gradient: gradient 8s linear infinite;
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-typewriter: typewriter 8s steps(40) infinite;
 
   @keyframes gradient {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  @keyframes typewriter {
+    0%, 100% { width: 0; }
+    10%, 90% { width: 100%; }
   }
 }
 
@@ -985,6 +1012,76 @@ body {
   fill: hsl(var(--foreground)) !important;
   max-width: 14px;
   max-height: 14px;
+}
+
+/* ── Responsive: smaller minimap & controls on mobile ── */
+@media (max-width: 640px) {
+  .react-flow__minimap {
+    width: 100px !important;
+    height: 70px !important;
+  }
+
+  .react-flow__controls {
+    border-radius: 8px !important;
+  }
+
+  .react-flow__controls button {
+    width: 28px !important;
+    height: 26px !important;
+  }
+
+  .react-flow__controls button svg {
+    max-width: 11px;
+    max-height: 11px;
+  }
+
+  .react-flow__handle {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}
+
+/* ── Safe area insets for mobile devices (notch, home indicator) ── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+  .safe-area-margin-bottom {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ── Responsive: floating toolbar shrinks on mobile ── */
+@media (max-width: 640px) {
+  .floating-toolbar {
+    border-radius: 9999px !important;
+    padding: 3px 8px !important;
+    gap: 2px !important;
+  }
+
+  .floating-icon-btn {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .react-flow__controls-button {
+    width: 28px !important;
+    height: 26px !important;
+  }
+}
+
+/* ── Touch handling: prevent browser gestures on canvas ── */
+.react-flow__pane {
+  touch-action: none;
 }
 
 .dragging {

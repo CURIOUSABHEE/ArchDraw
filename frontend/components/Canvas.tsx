@@ -59,6 +59,8 @@ const NODE_TYPES = {
   shapeNode:         ShapeNode,
   groupNode:         GroupNode,
   group:             GroupNode,
+  frameNode:         GroupNode,
+  serviceNode:       SystemNode,
   textLabelNode:     TextLabelNode,
   annotationNode:    AnnotationNode,
   messageBrokerNode: SystemNode,
@@ -281,6 +283,9 @@ function CanvasInner() {
         // (to prevent 60fps infinite loops), so we do one save here instead.
         saveCanvasToDB(activeCanvasId);
       }
+
+      // Recalculate connection handles based on the new layout positions
+      useDiagramStore.getState().recalculateHandles();
     },
     [onNodeDragStopSnap, setNodes, saveCanvasToDB, activeCanvasId]
   );
@@ -331,7 +336,7 @@ function CanvasInner() {
       const edgeId = customEvent.detail;
       setPendingLabelEdgeId(edgeId);
       const edge = useDiagramStore.getState().edges.find(edge => edge.id === edgeId);
-      setLabelDraft(edge?.data?.label || '');
+      setLabelDraft(edge?.data?.label || edge?.label || '');
     };
     document.addEventListener('edit-edge-label', handleEditEvent);
     return () => {
@@ -376,7 +381,7 @@ function CanvasInner() {
           e.preventDefault();
           e.stopPropagation();
           setPendingLabelEdgeId(edge.id);
-          setLabelDraft(edge.data?.label || '');
+          setLabelDraft(edge.data?.label || edge.label || '');
         }}
         nodeTypes={useMemo(() => NODE_TYPES, [])}
         edgeTypes={useMemo(() => EDGE_TYPES, [])}
@@ -412,7 +417,7 @@ function CanvasInner() {
         
         <EdgeLabelRenderer>
           {pendingLabelEdgeId && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-auto bg-background/95 backdrop-blur-sm p-4 rounded-xl shadow-xl border border-border flex flex-col gap-3 min-w-[300px]">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-auto bg-background/95 backdrop-blur-sm p-4 rounded-xl shadow-xl border border-border flex flex-col gap-3 w-[90vw] max-w-[300px]">
               <div className="text-sm font-medium">Edit Edge Label</div>
               <input
                 ref={labelInputRef}
@@ -440,7 +445,7 @@ function CanvasInner() {
       )}
 
       {selectedNodeIds.length >= 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+        <div className="absolute bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
           <div className="px-3 py-1.5 rounded-lg border border-border/40 bg-card/90 backdrop-blur-sm text-xs text-muted-foreground shadow-sm">
             Drag to select • Cmd/Ctrl+G to group
           </div>
@@ -448,20 +453,20 @@ function CanvasInner() {
       )}
 
       {/* Floating UI Elements */}
-      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+64px)] sm:top-4 left-2 sm:left-4 z-10 flex flex-col gap-2">
         <button
           onClick={() => setShowShortcuts(true)}
-          className="p-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg shadow-sm hover:bg-white transition-colors"
+          className="p-1.5 sm:p-2 bg-white/80 dark:bg-[#1E2235]/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:bg-white dark:hover:bg-[#1E2235] transition-colors"
           title="Keyboard Shortcuts"
         >
-          <MousePointer2 className="w-4 h-4 text-gray-600" />
+          <MousePointer2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-600 dark:text-gray-400" />
         </button>
         <button
           onClick={() => setTemplatesOpen(true)}
-          className="p-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg shadow-sm hover:bg-white transition-colors"
+          className="p-1.5 sm:p-2 bg-white/80 dark:bg-[#1E2235]/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:bg-white dark:hover:bg-[#1E2235] transition-colors"
           title="Templates"
         >
-          <LayoutTemplate className="w-4 h-4 text-gray-600" />
+          <LayoutTemplate className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-600 dark:text-gray-400" />
         </button>
       </div>
 

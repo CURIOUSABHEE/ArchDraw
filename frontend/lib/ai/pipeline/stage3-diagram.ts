@@ -154,7 +154,7 @@ const DIAGRAM_RULES = `Rules:
   Edge/IoT: Device→Edge Gateway→Fog→Cloud hierarchy. MQTT/AMQP.
   Real-Time Collab: WebSocket/SSE, CRDT/OT, Pub/Sub fan-out.
 - Labels: EVERY edge must have a 2-5 word label describing what data moves. BANNED: "connects to", "calls", "uses", "requests", "integrates with".
-- Return edges: every flow starting at a client must trace the full cycle back (what does the user receive?).
+- Flows are strictly ONE-DIRECTIONAL: always left-to-right (client → gateway → service → data). NEVER emit reverse or return edges (e.g. do NOT add service → client, data → service, or any backwards path). HTTP request/response cycles are implicit — only model the request direction.
 - No orphan nodes — every node must appear in ≥1 flow. If disconnected, omit it.
 - No generic web-app template. Domain-specific nodes only.`;
 

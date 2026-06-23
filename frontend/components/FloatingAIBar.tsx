@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  Plus, Mic, Send, Loader2, ChevronDown, Lightbulb, Clock, Star, Trash2
+  Plus, Mic, Send, Loader2, ChevronDown, Lightbulb, Clock, Star, Trash2, Code
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -16,9 +16,12 @@ import { usePromptHistory, PROMPT_SUGGESTIONS } from '@/store/promptHistory';
 
 interface FloatingAIBarProps {
   onGenerate: (description: string, diagramSize: 'small' | 'medium' | 'large') => Promise<void>;
+  onToggleCode: () => void;
+  showCode: boolean;
+  hideCodeButton?: boolean;
 }
 
-export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
+export function FloatingAIBar({ onGenerate, onToggleCode, showCode, hideCodeButton }: FloatingAIBarProps) {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [, setError] = useState<string | null>(null);
@@ -112,7 +115,7 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-3xl px-4"
+      className="fixed bottom-0 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-3xl px-2 sm:px-4 safe-area-bottom"
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -120,23 +123,23 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
-          className="flex flex-col w-full rounded-[20px] overflow-hidden border border-border/40 focus-within:border-primary/50 bg-card shadow-soft-3 transition-colors duration-200"
+          className="flex flex-col w-full rounded-2xl sm:rounded-[20px] overflow-hidden border border-border/40 focus-within:border-primary/50 bg-card shadow-soft-3 transition-colors duration-200"
         >
           {/* Top Section */}
-          <div className="p-3">
+          <div className="p-2 sm:p-3">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Describe your architecture, or paste a GitHub repo link… (e.g. https://github.com/owner/repo)"
-              className="w-full bg-transparent border-0 border-transparent outline-none focus:outline-none focus:ring-0 focus:border-transparent focus:border-0 focus-visible:ring-0 resize-none text-sm text-foreground placeholder:text-muted-foreground/60 p-2 min-h-[56px] shadow-none focus:shadow-none focus-visible:!outline-none focus:!outline-none focus-visible:!ring-0"
+              placeholder="Describe your architecture, or paste a GitHub repo link…"
+              className="w-full bg-transparent border-0 border-transparent outline-none focus:outline-none focus:ring-0 focus:border-transparent focus:border-0 focus-visible:ring-0 resize-none text-sm text-foreground placeholder:text-muted-foreground/60 p-2 min-h-[44px] sm:min-h-[56px] shadow-none focus:shadow-none focus-visible:!outline-none focus:!outline-none focus-visible:!ring-0"
               disabled={isGenerating}
             />
           </div>
 
           {/* Bottom Section (Toolbar) */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-t border-border/10 bg-muted/20">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-3 px-2 sm:px-4 py-2 sm:py-2.5 border-t border-border/10 bg-muted/20">
             {/* Left items */}
             <div className="flex items-center flex-wrap gap-2.5">
               {/* Add Button */}
@@ -157,12 +160,12 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
                   <button className="solid-dropdown-trigger">
                     <Lightbulb className="w-4 h-4" />
                     <span className="hidden sm:inline text-xs">Inspiration</span>
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDown className="hidden sm:block w-3 h-3" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="start"
-                  className="w-80 p-0 border border-border bg-card text-card-foreground shadow-2xl rounded-2xl overflow-hidden z-[100]"
+                  className="w-72 sm:w-80 p-0 border border-border bg-card text-card-foreground shadow-2xl rounded-2xl overflow-hidden z-[100]"
                 >
                   <div className="flex border-b border-border">
                     <button
@@ -193,7 +196,7 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
                     {activeTab === 'inspiration' ? (
                       <>
                         {PROMPT_SUGGESTIONS.map((category) => (
-                          <div key={category.category} className="mb-4">
+                           <div key={category.category} className="mb-4">
                             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-2 py-1">
                               {category.category}
                             </p>
@@ -269,25 +272,25 @@ export function FloatingAIBar({ onGenerate }: FloatingAIBarProps) {
               </DropdownMenu>
 
               {/* Divider */}
-              <div className="w-px h-5 bg-border/20 shrink-0" />
+              {!hideCodeButton && <div className="w-px h-5 bg-border/20 shrink-0" />}
 
-              {/* Segmented Size Selector */}
-              <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/10">
-                {(['small', 'medium', 'large'] as const).map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => setDiagramSize(size)}
-                    className={`px-3 py-1 text-xs font-medium rounded-md capitalize transition-all ${
-                      diagramSize === size
-                        ? 'bg-card text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
+              {/* View Code Button */}
+              {!hideCodeButton && (
+                <button
+                  type="button"
+                  onClick={onToggleCode}
+                  className={`solid-dropdown-trigger transition-all ${
+                    showCode 
+                      ? '!bg-primary/10 !text-primary !border-primary/20' 
+                      : ''
+                  }`}
+                >
+                  <Code className="w-4 h-4" />
+                  <span className="hidden sm:inline text-xs">Code</span>
+                </button>
+              )}
+
+
             </div>
 
             {/* Right items */}

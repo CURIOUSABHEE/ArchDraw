@@ -1,5 +1,5 @@
 import type { UserIntent, GenerationResult, GenerationProgress, ReactFlowNode, ReactFlowEdge } from '../types';
-import { runArchitecturePipeline } from '../pipeline/pipelineOrchestrator';
+import { runMermaidPipeline } from '../pipeline/mermaid-pipeline';
 import logger from '@/lib/logger';
 
 export type ProgressCallback = (progress: GenerationProgress) => void;
@@ -15,7 +15,7 @@ export async function generateDiagram(
   try {
     logger.log('[Orchestrator] Starting diagram generation:', userIntent.description);
 
-    const result = await runArchitecturePipeline(userIntent, (step, progress) => {
+    const result = await runMermaidPipeline(userIntent, (step, progress) => {
       onProgress?.({
         phase: progress >= 100 ? 'complete' : phaseForStep(step),
         iteration: 0,
@@ -33,8 +33,8 @@ export async function generateDiagram(
     logger.log('[Orchestrator] Generation complete. Score:', result.score);
 
     const qualityWarnings = [
-      ...(result.diagnostics?.semanticIssues.map((i) => i.message) ?? []),
-      ...(result.diagnostics?.mechanicalRepairs.map((i) => i.message) ?? []),
+      ...(result.diagnostics?.semanticIssues.map((i: any) => i.message) ?? []),
+      ...(result.diagnostics?.mechanicalRepairs.map((i: any) => i.message) ?? []),
     ];
 
     return {

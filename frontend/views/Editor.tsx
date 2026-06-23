@@ -11,6 +11,8 @@ import { PropertiesPanel } from '@/components/PropertiesPanel';
 import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData } from '@/components/CreateComponentModal';
 import type { ComponentToEdit } from '@/components/CreateComponentModal';
 import { FloatingAIBar } from '@/components/FloatingAIBar';
+import { MermaidCodePanel } from '@/components/MermaidCodePanel';
+import { AnimatePresence } from 'framer-motion';
 import { GenerationProgressDisplay } from '@/components/GenerationProgress';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
@@ -50,6 +52,16 @@ export default function EditorPage() {
   const showExpirationNudge = !user && guestCanvas && guestCanvas.createdAt && (Date.now() - (guestCanvas.createdAt || 0) > 72 * 60 * 60 * 1000);
   const [canvasSidebarOpen, setCanvasSidebarOpen] = useState(false);
   const [showRepoIngestModal, setShowRepoIngestModal] = useState(false);
+  const [showCodePanel, setShowCodePanel] = useState(false);
+
+  const isSequenceDiagram = !!sequenceDiagrams[activeCanvasId];
+
+  // Auto-close code panel if entering sequence diagram mode
+  useEffect(() => {
+    if (isSequenceDiagram) {
+      setShowCodePanel(false);
+    }
+  }, [isSequenceDiagram]);
   
   // Refs for useEffect to avoid dependency issues
   const sidebarOpenRef = useRef(sidebarOpen);
@@ -175,7 +187,7 @@ export default function EditorPage() {
         const isGroup = node.type === 'groupNode' || (node.data as Record<string, unknown>)?.isGroup;
         return {
           ...node,
-          type: isGroup ? 'groupNode' : 'systemNode',
+          type: isGroup ? 'groupNode' : (node.type as string || 'systemNode'),
         };
       });
 
@@ -339,7 +351,7 @@ export default function EditorPage() {
 
   return (
     <ErrorBoundary>
-      <div className="fixed inset-0 overflow-hidden bg-[hsl(var(--canvas-bg))]">
+      <div className="fixed inset-0 overflow-hidden bg-[hsl(var(--canvas-bg))]" style={{ touchAction: 'manipulation' }}>
         {sequenceDiagrams[activeCanvasId] ? (
           <SequenceDiagramViewer />
         ) : (
@@ -349,12 +361,12 @@ export default function EditorPage() {
         <Toolbar />
 
         {showExpirationNudge && (
-          <div className="absolute top-[80px] left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4">
-            <div className="flex items-center justify-between gap-3 px-4 py-3 bg-[#1e293b]/95 backdrop-blur border border-amber-500/30 rounded-xl shadow-xl">
-              <div className="flex items-center gap-2">
-                <span className="text-amber-500 text-base">⚠️</span>
+          <div className="absolute top-[calc(env(safe-area-inset-top,0px)+64px)] sm:top-[80px] left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-2 sm:px-4">
+            <div className="flex items-center justify-between gap-3 px-3 sm:px-4 py-3 bg-[#1e293b]/95 backdrop-blur border border-amber-500/30 rounded-xl shadow-xl">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-amber-500 text-base shrink-0">⚠️</span>
                 <p className="text-xs text-[#f1f5f9] font-medium leading-normal">
-                  Your unsaved guest work is older than 72 hours and will expire soon. <strong>Sign in</strong> to save it permanently.
+                  Guest work expires soon. <strong>Sign in</strong> to save.
                 </p>
               </div>
               <button 
@@ -390,7 +402,17 @@ export default function EditorPage() {
         
         <CommandPalette />
         <OnboardingOverlay />
-        <FloatingAIBar onGenerate={handleGenerate} />
+        <FloatingAIBar 
+          onGenerate={handleGenerate} 
+          onToggleCode={() => setShowCodePanel(prev => !prev)}
+          showCode={showCodePanel}
+          hideCodeButton={isSequenceDiagram}
+        />
+        <AnimatePresence>
+          {showCodePanel && !isSequenceDiagram && (
+            <MermaidCodePanel onClose={() => setShowCodePanel(false)} />
+          )}
+        </AnimatePresence>
         <GenerationProgressDisplay 
           progress={progress} 
           onCancel={() => {

@@ -10,6 +10,8 @@ import {
   AlignCenterHorizontal,
   LayoutDashboard,
   Github,
+  Columns,
+  Rows,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
@@ -193,6 +195,7 @@ export function Toolbar() {
     canvases, activeCanvasId, removeCanvas,
     getVisibleCanvases,
     savingState, userProfile, setSidebarOpen, sidebarOpen,
+    activeLayoutPresetId, toggleLayoutDirection,
   } = useDiagramStore();
 
   const { user } = useAuthStore();
@@ -523,16 +526,16 @@ export function Toolbar() {
   return (
     <>
       <header
-        className="floating-toolbar flex items-center justify-between px-4 z-50"
+        className="floating-toolbar flex items-center justify-between px-2 sm:px-4 z-50 max-w-[calc(100vw-16px)] sm:max-w-none"
         style={{
           position: 'fixed',
-          top: 16,
+          top: 'calc(16px + env(safe-area-inset-top, 0px))',
           left: '50%',
           transform: 'translateX(-50%)',
         }}
       >
         {/* LEFT: Sidebar toggle + Canvas tabs */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={() => {
               const newState = !sidebarOpen;
@@ -541,42 +544,42 @@ export function Toolbar() {
                 window.dispatchEvent(new CustomEvent('close-canvas-sidebar'));
               }
             }}
-            className="floating-icon-btn !w-9 !h-9"
+            className="floating-icon-btn !w-8 sm:!w-9 !h-8 sm:!h-9"
             title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           >
-            <PanelLeftClose className="w-4 h-4" />
+            <PanelLeftClose className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </button>
 
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('toggle-canvas-sidebar'))}
-            className="floating-icon-btn !w-9 !h-9"
+            className="floating-icon-btn !w-8 sm:!w-9 !h-8 sm:!h-9"
             title="Toggle canvases"
           >
-            <FolderOpen className="w-4 h-4" />
+            <FolderOpen className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </button>
 
           <button
             onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-accent"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-accent"
             title="Go to Dashboard"
           >
             <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Dashboard</span>
+            <span className="hidden sm:inline">Dashboard</span>
           </button>
 
           <DiagramPagination />
         </div>
 
         {/* CENTER: Context info */}
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <span>{nodes.length}</span>
-            <span>nodes</span>
+            <span className="hidden sm:inline">nodes</span>
           </span>
           <span className="w-px h-3 bg-border/50" />
           <span className="flex items-center gap-1">
             <span>{edges.length}</span>
-            <span>edges</span>
+            <span className="hidden sm:inline">edges</span>
           </span>
 
 
@@ -585,9 +588,9 @@ export function Toolbar() {
               <span className="w-px h-3 bg-border/50" />
               <span className="flex items-center gap-1">
                 {savingState === 'saving' ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" /> Saving</>
+                  <><Loader2 className="w-3 h-3 animate-spin" /><span className="hidden sm:inline">&nbsp;Saving</span></>
                 ) : (
-                  <><Check className="w-3 h-3 text-emerald-500" /> Saved</>
+                  <><Check className="w-3 h-3 text-emerald-500" /><span className="hidden sm:inline">&nbsp;Saved</span></>
                 )}
               </span>
             </>
@@ -595,33 +598,45 @@ export function Toolbar() {
         </div>
 
         {/* RIGHT: Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={undo}
             disabled={!past.length}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             title="Undo (Cmd+Z)"
           >
-            <Undo2 className="w-4 h-4" />
+            <Undo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </button>
           <button
             onClick={redo}
             disabled={!future.length}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             title="Redo (Cmd+Shift+Z)"
           >
-            <Redo2 className="w-4 h-4" />
+            <Redo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </button>
 
           <button
             onClick={() => useDiagramStore.getState().alignConnectedNodes()}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
+            className="hidden sm:block p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
             title="Align connected nodes by edge direction"
           >
             <AlignCenterHorizontal className="w-4 h-4" />
           </button>
 
-          <span className="w-px h-4 bg-border/50 mx-1" />
+          <button
+            onClick={toggleLayoutDirection}
+            className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
+            title={activeLayoutPresetId === 'layered-tb' ? 'Switch to Horizontal layout' : 'Switch to Vertical layout'}
+          >
+            {activeLayoutPresetId === 'layered-tb' ? (
+              <Columns className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+            ) : (
+              <Rows className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+            )}
+          </button>
+
+          <span className="w-px h-4 bg-border/50 mx-0.5 sm:mx-1" />
 
           <ThemeToggle />
 
@@ -629,27 +644,27 @@ export function Toolbar() {
 
           <button
             onClick={handleDeleteCanvas}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+            className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
             title="Delete canvas"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
           </button>
 
           <button
             onClick={handleShare}
             disabled={isSharing || nodes.length === 0}
-            className="floating-icon-btn disabled:opacity-40"
+            className="floating-icon-btn !w-8 sm:!w-9 !h-8 sm:!h-9 disabled:opacity-40"
           >
-            {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+            {isSharing ? <Loader2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 animate-spin" /> : <Share2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
           </button>
 
           <div className="relative">
             <button
               onClick={() => setExportOpen(!exportOpen)}
               disabled={isExporting}
-              className="floating-icon-btn"
+              className="floating-icon-btn !w-8 sm:!w-9 !h-8 sm:!h-9"
             >
-              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {isExporting ? <Loader2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 animate-spin" /> : <Download className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
             </button>
 
             {exportOpen && (

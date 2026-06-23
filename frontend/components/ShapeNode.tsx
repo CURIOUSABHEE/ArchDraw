@@ -20,6 +20,8 @@ export interface ShapeNodeData {
   shape: ShapeType;
   color?: string;
   accentColor?: string;
+  nodeWidth?: number;
+  nodeHeight?: number;
 }
 
 const HANDLE_STYLE = (color: string) => ({
@@ -29,12 +31,13 @@ const HANDLE_STYLE = (color: string) => ({
   border: `2px solid ${color}60`,
   borderRadius: '50%',
   boxShadow: '0 2px 8px hsl(var(--foreground) / 0.15)',
+  opacity: 0,
+  transition: 'opacity 0.15s ease',
 });
 
 function Handles({ color, nodeId }: { color: string; nodeId: string }) {
   const updateNodeInternals = useUpdateNodeInternals();
   const s = HANDLE_STYLE(color);
-  const sLeft = { ...s, left: -15 };
   
   useEffect(() => {
     updateNodeInternals(nodeId);
@@ -43,8 +46,8 @@ function Handles({ color, nodeId }: { color: string; nodeId: string }) {
   return (
     <>
       {/* Left side */}
-      <Handle type="target" position={Position.Left} id="left" style={sLeft} />
-      <Handle type="source" position={Position.Left} id="left" style={sLeft} />
+      <Handle type="target" position={Position.Left} id="left" style={s} />
+      <Handle type="source" position={Position.Left} id="left" style={s} />
 
       {/* Right side */}
       <Handle type="target" position={Position.Right} id="right" style={s} />
@@ -104,13 +107,15 @@ function Backplates({ layers, borderRadius }: { layers: { offset: number; color:
 function Rectangle({ id, data, selected, rounded, backplates, isDark, styles }: { id: string; data: ShapeNodeData; selected: boolean; rounded: boolean; backplates: { offset: number; color: string }[]; isDark: boolean; styles: any }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
   const r = rounded ? 14 : 8;
+  const width = data.nodeWidth ?? 140;
+  const height = data.nodeHeight ?? 72;
   return (
-    <div style={{ position: 'relative', zIndex: 2 }}>
+    <div className="shape-node" style={{ width, height, position: 'relative', zIndex: 2 }}>
       <Backplates layers={backplates} borderRadius={r} />
       <div
         style={{
-          width: 140,
-          height: 72,
+          width,
+          height,
           borderRadius: r,
           border: 'none',
           background: isDark ? styles.background : 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
@@ -133,18 +138,19 @@ function Rectangle({ id, data, selected, rounded, backplates, isDark, styles }: 
           background: `linear-gradient(135deg, ${color}08 0%, transparent 60%)`,
           pointerEvents: 'none',
         }} />
-        <Handles color={color} nodeId={id} />
         <Label label={data.label} sublabel={data.sublabel} color={color} />
       </div>
+      <Handles color={color} nodeId={id} />
     </div>
   );
 }
 
 function Diamond({ id, data, selected, backplates }: { id: string; data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
-  const W = 140, H = 80;
+  const W = data.nodeWidth ?? 140;
+  const H = data.nodeHeight ?? 80;
   return (
-    <div style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
+    <div className="shape-node" style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
       {/* SVG-based backplates for diamond */}
       {backplates.map((layer, i) => (
         <svg key={i} width={W} height={H} style={{ position: 'absolute', transform: `translate(${layer.offset}px, ${layer.offset}px)`, zIndex: -1, overflow: 'visible' }}>
@@ -178,11 +184,13 @@ function Diamond({ id, data, selected, backplates }: { id: string; data: ShapeNo
 
 function Cylinder({ id, data, selected, backplates }: { id: string; data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
-  const W = 120, H = 90, RY = 14;
+  const W = data.nodeWidth ?? 120;
+  const H = data.nodeHeight ?? 90;
+  const RY = 14;
   const stroke = selected ? color : `${color}60`;
   const strokeW = selected ? 2 : 1.5;
   return (
-    <div style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
+    <div className="shape-node" style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
       {backplates.map((layer, i) => (
         <div
           key={i}
@@ -219,9 +227,10 @@ function Cylinder({ id, data, selected, backplates }: { id: string; data: ShapeN
 
 function Circle({ id, data, selected, backplates }: { id: string; data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
-  const W = 100, H = 100;
+  const W = data.nodeWidth ?? 100;
+  const H = data.nodeHeight ?? 100;
   return (
-    <div style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
+    <div className="shape-node" style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
       <Backplates layers={backplates} borderRadius="50%" />
       <svg width={W} height={H} style={{ position: 'absolute', inset: 0, filter: selected ? `drop-shadow(0 0 8px ${color}30)` : 'none' }}>
         <ellipse
@@ -246,10 +255,12 @@ function Circle({ id, data, selected, backplates }: { id: string; data: ShapeNod
 
 function Parallelogram({ id, data, selected, backplates }: { id: string; data: ShapeNodeData; selected: boolean; backplates: { offset: number; color: string }[] }) {
   const color = data.accentColor ?? data.color ?? '#6B7280';
-  const W = 150, H = 70, SKEW = 20;
+  const W = data.nodeWidth ?? 150;
+  const H = data.nodeHeight ?? 70;
+  const SKEW = 20;
   const pts = `${SKEW},2 ${W - 2},2 ${W - SKEW - 2},${H - 2} 2,${H - 2}`;
   return (
-    <div style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
+    <div className="shape-node" style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
        {backplates.map((layer, i) => (
         <svg key={i} width={W} height={H} style={{ position: 'absolute', transform: `translate(${layer.offset}px, ${layer.offset}px)`, zIndex: -1, overflow: 'visible' }}>
           <polygon

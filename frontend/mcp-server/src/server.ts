@@ -30,12 +30,18 @@ import {
 const TOOLS: Tool[] = [
   {
     name: 'generate_diagram',
-    description: `Generate React Flow nodes and edges with ELK auto-layout positions.
+    description: `Generate React Flow nodes and edges from Mermaid code or structured JSON.
+
+**RECOMMENDED**: Pass the 'mermaid' string containing valid Mermaid graph syntax. The server will use the robust Web UI pipeline to parse, style, and lay out the diagram automatically.
 
 **IMPORTANT**: When this tool returns a 'diagramUrl', you MUST tell the user to open that URL in their browser.`,
     inputSchema: {
       type: 'object',
       properties: {
+        mermaid: {
+          type: 'string',
+          description: 'Valid Mermaid graph code representing the architecture (e.g. graph LR \\n subgraph ... end)'
+        },
         nodes: {
           type: 'array',
           items: {
@@ -70,6 +76,11 @@ const TOOLS: Tool[] = [
           },
         },
         direction: { type: 'string', enum: ['RIGHT', 'DOWN', 'LEFT', 'UP'] },
+        label: { type: 'string' },
+        diagramDescription: { type: 'string' },
+        userPrompt: { type: 'string' },
+        techStack: { type: 'array', items: { type: 'string' } },
+        customFeatures: { type: 'array', items: { type: 'string' } },
       },
     },
   },

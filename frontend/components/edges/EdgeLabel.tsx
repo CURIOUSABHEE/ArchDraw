@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDiagramStore } from '@/store/diagramStore';
+import { useCanvasTheme } from '@/lib/theme';
 
 interface EdgeLabelProps {
   edgeId: string;
@@ -12,6 +13,7 @@ interface EdgeLabelProps {
 }
 
 export function EdgeLabel({ edgeId, label }: EdgeLabelProps) {
+  const { isDark } = useCanvasTheme();
   const updateEdgeLabel = useDiagramStore((s) => s.updateEdgeLabel);
 
   const [editing, setEditing] = useState(false);
@@ -68,17 +70,17 @@ export function EdgeLabel({ edgeId, label }: EdgeLabelProps) {
   const inputWidth = Math.max(80, Math.min(150, draft.length * 6 + 32));
 
   const pillStyle: React.CSSProperties = {
-    background: '#f8f7f4',
-    color: '#4B5563',
+    background: isDark ? '#1e293b' : '#f8f7f4',
+    color: isDark ? '#cbd5e1' : '#4B5563',
     borderRadius: 4,
-    border: 'none',
-    fontSize: 10,
+    border: isDark ? '1px solid rgba(203,213,225,0.12)' : 'none',
+    fontSize: 8,
     fontFamily: 'Inter, -apple-system, sans-serif',
     fontWeight: 500,
-    padding: '4px 6px',
+    padding: '2.5px 5px',
     textAlign: 'center',
     outline: 'none',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+    boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.05)',
     position: 'relative',
     zIndex: 1000,
     textTransform: 'uppercase',

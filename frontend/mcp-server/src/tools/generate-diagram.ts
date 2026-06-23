@@ -214,11 +214,83 @@ export async function generateDiagram(input: GenerateDiagramInput): Promise<{
   try {
     const { direction } = input;
 
+    // Handle Mermaid input directly
+    if (input.mermaid) {
+      const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000';
+      const label = input.label || 'AI Diagram';
+      
+      const saveResponse = await fetch(`${API_BASE}/api/diagram/load`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mermaid: input.mermaid,
+          label,
+          source: 'mcp',
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        const errText = await saveResponse.text();
+        let errData;
+        try {
+          errData = JSON.parse(errText);
+        } catch {}
+        const errorMsg = errData?.error || errText || 'Failed to save diagram to API';
+        const warnings = errData?.warnings ? ` Warnings: ${errData.warnings.join(', ')}` : '';
+        return {
+          success: false, nodes: [], edges: [], elkPositions: [],
+          metadata: { nodeCount: 0, edgeCount: 0, layoutAlgorithm: 'Mermaid Pipeline', direction: input.direction || 'RIGHT', groupCount: 0 },
+          errors: [`${errorMsg}${warnings}`],
+        };
+      }
+
+      const saveData = await saveResponse.json() as { sessionId: string; nodes: any[]; edges: any[]; warnings?: string[] };
+      const urlPath = `/editor?session=${saveData.sessionId}`;
+      const diagramUrl = `${API_BASE}${urlPath}`;
+      const sessionId = saveData.sessionId;
+      const shareUrl = `${API_BASE}/share/${sessionId}`;
+      const nodeCount = saveData.nodes.filter(n => !n.data?.isGroup).length;
+      const groupCount = saveData.nodes.filter(n => n.data?.isGroup).length;
+
+      const techStack = input.techStack || [];
+      const customFeatures = input.customFeatures || [];
+      const techLine = techStack.length > 0
+        ? `\n\n🔧 **Tech Stack Applied**: ${techStack.join(', ')}`
+        : '';
+      const featuresLine = customFeatures.length > 0
+        ? `\n⚡ **Features Included**: ${customFeatures.join(', ')}`
+        : '';
+      const promptLine = input.userPrompt
+        ? `\n\n💬 **From prompt**: "${input.userPrompt.substring(0, 100)}${input.userPrompt.length > 100 ? '...' : ''}"` : '';
+
+      const message = `✅ Diagram ready! Open this URL to view and edit:\n\n${diagramUrl}\n\n🔗 Shareable link:\n${shareUrl}\n\n📊 ${nodeCount} nodes, ${groupCount} groups, ${saveData.edges.length} edges.${techLine}${featuresLine}${promptLine}\n\n**To export**: Use session ID "${sessionId}" with the export_diagram tool.`;
+
+      return {
+        success: true,
+        nodes: saveData.nodes,
+        edges: saveData.edges,
+        elkPositions: [],
+        metadata: {
+          nodeCount: saveData.nodes.length,
+          edgeCount: saveData.edges.length,
+          layoutAlgorithm: 'Mermaid Pipeline',
+          direction: input.direction || 'RIGHT',
+          groupCount,
+        },
+        diagramUrl,
+        sessionId,
+        shareUrl,
+        embeddedDiagram: { nodes: saveData.nodes, edges: saveData.edges },
+        message,
+        errors: saveData.warnings && saveData.warnings.length > 0 ? saveData.warnings : undefined,
+      };
+    }
+
     if (!input.nodes || input.nodes.length === 0) {
       return {
         success: false, nodes: [], edges: [], elkPositions: [],
         metadata: { nodeCount: 0, edgeCount: 0, layoutAlgorithm: 'ELK layered', direction, groupCount: 0 },
-        errors: ['No nodes provided.'],
+        errors: ['No nodes or mermaid string provided.'],
       };
     }
 

@@ -118,10 +118,17 @@ export function convertToReactFlow(
       });
     });
 
-  // STEP 4: Detect bidirectional edge pairs and apply curvature offsets
+  // STEP 4: Detect TRUE bidirectional pairs (A→B AND B→A both exist) and apply curvature.
+  // Key insight: group by unordered node-pair, but only apply curvature when the two edges
+  // actually point in OPPOSITE directions. Two edges going A→B (duplicates) must NOT trigger
+  // bidirectional curvature — they'll be handled by parallel-edge offset logic instead.
   const edgePairMap = new Map<string, Edge[]>();
   for (const edge of rfEdges) {
-    const pairKey = [edge.source, edge.target].sort().join('--');
+    // Canonical key: always put the lexicographically smaller id first so A--B and B--A share a bucket
+    const [a, b] = edge.source < edge.target
+      ? [edge.source, edge.target]
+      : [edge.target, edge.source];
+    const pairKey = `${a}--${b}`;
     if (!edgePairMap.has(pairKey)) {
       edgePairMap.set(pairKey, []);
     }
@@ -129,9 +136,14 @@ export function convertToReactFlow(
   }
 
   for (const pairs of edgePairMap.values()) {
-    if (pairs.length === 2) {
-      pairs[0].data = { ...pairs[0].data, pathType: 'bezier', curvature: 0.25 };
-      pairs[1].data = { ...pairs[1].data, pathType: 'bezier', curvature: -0.25 };
+    if (pairs.length !== 2) continue;
+    const [first, second] = pairs;
+    // Only apply bidirectional curvature when the two edges genuinely go in opposite directions
+    const isTrulyBidirectional =
+      (first.source === second.target && first.target === second.source);
+    if (isTrulyBidirectional) {
+      first.data  = { ...first.data,  pathType: 'bezier', curvature:  0.25 };
+      second.data = { ...second.data, pathType: 'bezier', curvature: -0.25 };
     }
   }
 

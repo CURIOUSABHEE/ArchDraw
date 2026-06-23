@@ -5,6 +5,7 @@ import { ArchitectureGraph } from '../graph/ArchitectureGraph';
 import { validateEdges, validateConnectivity } from './edgeValidator';
 import type { EdgeValidationError } from './edgeValidator';
 import { EDGE_CONFIG } from '@/lib/config';
+import logger from '@/lib/logger';
 
 export interface RepairResult {
   edges: ArchitectureEdge[];
@@ -316,6 +317,17 @@ export function generateMissingEdges(
   }
 
   return newEdges;
+}
+
+export function sanitizeEdges(edges: ArchitectureEdge[]): ArchitectureEdge[] {
+  const selfLoops = edges.filter(e => e.source === e.target);
+  if (selfLoops.length > 0) {
+    logger.warn(
+      `[EdgeRepair] Removing ${selfLoops.length} self-loop edges: ` +
+      selfLoops.map(e => `"${e.source}" -> "${e.target}"`).join(', ')
+    );
+  }
+  return edges.filter(e => e.source !== e.target);
 }
 
 export function simplifyEdgeRedundancy(edges: ArchitectureEdge[]): ArchitectureEdge[] {

@@ -42,7 +42,9 @@ export function resolveNodeCollisions(nodes: Node[], margin: number = 50): Node[
           continue;
         }
 
-        if (A.parentId || B.parentId) {
+        const aParent = A.parentId || (A as any).parentNode;
+        const bParent = B.parentId || (B as any).parentNode;
+        if (aParent || bParent) {
           continue;
         }
 

@@ -44,6 +44,30 @@
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
+@media (max-width: 640px) {
+  .node-card {
+    width: 160px;
+    min-width: 160px;
+    min-height: 56px;
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
+  .node-title {
+    font-size: 11px;
+  }
+  .node-subtitle {
+    font-size: 10px;
+  }
+  .node-icon-box {
+    width: 22px;
+    height: 22px;
+  }
+  .node-icon {
+    width: 10px;
+    height: 10px;
+  }
+}
+
 .node-wrapper.selected .node-card,
 .node-card.selected {
   box-shadow: var(--node-shadow-selected);
@@ -197,4 +221,54 @@
 
 .dark .node-wrapper.selected .node-card {
   box-shadow: var(--node-shadow-selected), inset 0 0 12px var(--node-glow, rgba(52,211,153,0.15));
+}
+
+/* ── Database Cylinder ─────────────────────────────────────────── */
+
+.node-card-db {
+  border-radius: 12px !important;
+  border-top: 3px solid var(--node-accent);
+  overflow: hidden;
+}
+
+.node-card-db::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: var(--node-accent);
+  opacity: 0.15;
+  border-radius: 12px 12px 0 0;
+  z-index: 0;
+}
+
+.node-card-db::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--node-accent);
+  opacity: 0.12;
+  border-radius: 1px;
+  z-index: 0;
+}
+
+/* ── ShapeNode Handles ─────────────────────────────────────────── */
+/* Handles are invisible by default (opacity: 0 inline), shown on hover */
+.shape-node:hover .react-flow__handle {
+  opacity: 1 !important;
+}
+
+/* ── Queue ──────────────────────────────────────────────────────── */
+
+.node-queue .node-card {
+  border-left: 3px solid var(--node-accent);
+}
+
+.node-queue .node-icon-box {
+  border-radius: 50%;
 }

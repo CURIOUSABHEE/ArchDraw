@@ -13,6 +13,15 @@ import './nodes/nodeStyles.css';
 const NODE_WIDTH = DIAGRAM_CONSTANTS.node.width;
 const NODE_HEIGHT = DIAGRAM_CONSTANTS.node.minHeight;
 
+function calcNodeWidth(label: string, subtitle?: string): number {
+  const longest = Math.max(
+    label.length,
+    (subtitle || '').length
+  );
+  // ~8px per character for typical font sizes, min 200
+  return Math.max(200, Math.min(320, longest * 9));
+}
+
 const STATUS_COLORS = {
   healthy: '#10B981',
   warning: '#F59E0B',
@@ -87,10 +96,15 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
     subtitle?: string;
     status?: 'healthy' | 'warning' | 'error' | 'unknown';
     color?: string;
+    shape?: string;
     nodeWidth?: number;
     nodeHeight?: number;
     accentColor?: string;
+    serviceType?: string;
   };
+
+  const isDatabase = nodeData.shape === 'cylinder' || nodeData.serviceType === 'database';
+  const isQueue = nodeData.serviceType === 'queue';
 
   const tierColor = getTierColorNormalized(nodeData.layer);
   const accentColor = nodeData.accentColor || nodeData.color || tierColor || '#0D9488';
@@ -161,40 +175,40 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   }, []);
 
   return (
-    <div
-      className={`node-wrapper${selected ? ' selected' : ''}`}
-      style={{
-        ['--node-accent' as string]: accentColor,
-        ['--node-accent-soft' as string]: hexToRgba(accentColor, 0.04),
-        ['--node-accent-bg' as string]: `${accentColor}12`,
-        ['--node-glow' as string]: catStyle.glow,
-        ['--node-glow-border' as string]: catStyle.border,
-        ['--node-status-color' as string]: statusColor,
-      }}
-    >
-      {backplateLayers.map((layer, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 16,
-            transform: `translate(${layer.offset}px, ${layer.offset}px)`,
-            background: layer.color,
-            zIndex: i + 1,
-            pointerEvents: 'none',
-            transition: 'all 150ms ease',
-          }}
-        />
-      ))}
       <div
-        className="group node-card"
+        className={`node-wrapper${selected ? ' selected' : ''}${isDatabase ? ' node-cylinder' : ''}${isQueue ? ' node-queue' : ''}`}
         style={{
-          width: NODE_WIDTH,
-          minWidth: NODE_WIDTH,
-          minHeight: NODE_HEIGHT,
-          borderColor: showBorder ? 'transparent' : undefined,
+          ['--node-accent' as string]: accentColor,
+          ['--node-accent-soft' as string]: hexToRgba(accentColor, 0.04),
+          ['--node-accent-bg' as string]: `${accentColor}12`,
+          ['--node-glow' as string]: catStyle.glow,
+          ['--node-glow-border' as string]: catStyle.border,
+          ['--node-status-color' as string]: statusColor,
         }}
+      >
+        {backplateLayers.map((layer, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: isDatabase ? 12 : 16,
+              transform: `translate(${layer.offset}px, ${layer.offset}px)`,
+              background: layer.color,
+              zIndex: i + 1,
+              pointerEvents: 'none',
+              transition: 'all 150ms ease',
+            }}
+          />
+        ))}
+        <div
+          className={`group node-card${isDatabase ? ' node-card-db' : ''}`}
+          style={{
+            width: nodeData.nodeWidth || Math.max(NODE_WIDTH, calcNodeWidth(data.label, nodeData.subtitle)),
+            minWidth: nodeData.nodeWidth || NODE_WIDTH,
+            minHeight: nodeData.nodeHeight || NODE_HEIGHT,
+            borderColor: showBorder ? 'transparent' : undefined,
+          }}
         onClick={handleClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

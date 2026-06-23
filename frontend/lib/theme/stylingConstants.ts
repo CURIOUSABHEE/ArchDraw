@@ -22,20 +22,6 @@ export interface NodeStyleConfig {
   backplates: { offset: number; color: string }[];
 }
 
-export const LIGHT_NODE_STYLES: NodeStyleConfig = {
-  background: '#ffffff',
-  border: '#595959',
-  borderHover: '#595959',
-  shadow: '5px 5px 0 #e1e1da, 10px 10px 0 #efefe8, 0 1px 2px rgba(0,0,0,0.04)',
-  shadowSelected: '0 0 0 2px rgba(95,164,219,0.35), 5px 5px 0 #dfdfd8, 10px 10px 0 #ecece5, 0 2px 5px rgba(0,0,0,0.06)',
-  titleColor: '#595959',
-  subtitleColor: '#7a7a7a',
-  backplates: [
-    { offset: 10, color: '#efefe8' },
-    { offset: 5, color: '#e1e1da' },
-  ],
-};
-
 export const DARK_NODE_STYLES: NodeStyleConfig = {
   background: '#1e2235',
   border: '#334155',
@@ -47,6 +33,20 @@ export const DARK_NODE_STYLES: NodeStyleConfig = {
   backplates: [
     { offset: 10, color: '#0d0f1b' },
     { offset: 5, color: '#151828' },
+  ],
+};
+
+export const LIGHT_NODE_STYLES: NodeStyleConfig = {
+  background: '#ffffff',
+  border: '#595959',
+  borderHover: '#595959',
+  shadow: '5px 5px 0 #e1e1da, 10px 10px 0 #efefe8, 0 1px 2px rgba(0,0,0,0.04)',
+  shadowSelected: '0 0 0 2px rgba(95,164,219,0.35), 5px 5px 0 #dfdfd8, 10px 10px 0 #ecece5, 0 2px 5px rgba(0,0,0,0.06)',
+  titleColor: '#595959',
+  subtitleColor: '#7a7a7a',
+  backplates: [
+    { offset: 10, color: '#efefe8' },
+    { offset: 5, color: '#e1e1da' },
   ],
 };
 

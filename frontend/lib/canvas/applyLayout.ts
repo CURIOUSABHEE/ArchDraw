@@ -163,6 +163,19 @@ export async function applyLayoutPreset(
         };
       }
       
+      if (node.parentId) {
+        const parentPos = positionMap.get(node.parentId);
+        if (parentPos) {
+          return {
+            ...node,
+            position: {
+              x: newPos.x - parentPos.x,
+              y: newPos.y - parentPos.y,
+            },
+          };
+        }
+      }
+      
       return {
         ...node,
         position: newPos,

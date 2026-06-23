@@ -44,48 +44,28 @@ export const EdgeInputSchema = z.object({
 });
 
 export const GenerateDiagramInputSchema = z.object({
-  nodes: z.array(NodeInputSchema).min(1).describe(
-    'Array of nodes. RULES:\n' +
-    '  1. Every node MUST have: id, label, tier, subtitle\n' +
-    '  2. Use 8-20 nodes for readable diagrams\n' +
-    '  3. ALWAYS include at least one group node (isGroup:true) to cluster related services\n' +
-    '  4. Group example: { id:"backend_group", label:"Backend Services", tier:"compute", subtitle:"Core API layer", isGroup:true, width:500, height:300 }\n' +
-    '  5. Child nodes use parentId to sit inside a group: { id:"api", parentId:"backend_group", ... }\n' +
-    '  6. Assign meaningful icons — use list_node_types to find them\n' +
-    '  7. Use accentColor to differentiate nodes within the same tier\n' +
-    '  8. MANDATORY: Width must be >= 180px and auto-fit to longest text (NO TRUNCATION)\n' +
-    '  9. MANDATORY: Nodes in same tier must vertically align with no overlap (60px min separation)\n' +
-    '  10. TECH STACK FIDELITY: If the user specified any tech/service (e.g. "AWS Lambda", "Redis", "Next.js"), ' +
-    'the corresponding node label AND subtitle MUST reflect the exact tech. ' +
-    'Never use a generic label like "API Server" if the user said "Express.js on EC2".'
+  mermaid: z.string().optional().describe(
+    'Mermaid code representing the diagram. If provided, the system will use the robust Web UI parser, ' +
+    'layout engine, and style pipeline to build the diagram. This is the RECOMMENDED way to generate diagrams.'
   ),
-  edges: z.array(EdgeInputSchema).min(1).describe(
-    'Array of edges. RULES:\n' +
-    '  1. REQUIRED — you must include edges to show data flow\n' +
-    '  2. Use correct communicationType for each connection\n' +
-    '  3. Add labels to async/event/stream edges describing the message/event name\n' +
-    '  4. Do NOT connect data tier directly to client tier\n' +
-    '  5. Observability nodes should use "dep" edges FROM them, not TO them\n' +
-    '  6. Edges MUST NOT cross nodes and MUST NOT overlap (use orthogonal/bezier routing)'
+  nodes: z.array(NodeInputSchema).optional().describe(
+    'Array of nodes. Legacy parameter (not needed if mermaid code is provided).'
   ),
-  direction: z.enum(['RIGHT', 'DOWN', 'LEFT', 'UP']).default('RIGHT').describe('Layout direction. RIGHT (left-to-right) works for most architectures. DOWN for hierarchical/mobile-first views.'),
+  edges: z.array(EdgeInputSchema).optional().describe(
+    'Array of edges. Legacy parameter (not needed if mermaid code is provided).'
+  ),
+  direction: z.enum(['RIGHT', 'DOWN', 'LEFT', 'UP']).default('RIGHT').describe('Layout direction. Default RIGHT (left-to-right).'),
   label: z.string().optional().describe('Diagram title shown in the header'),
   diagramDescription: z.string().optional().describe('One-sentence description of what this architecture does. Helps with diagram metadata.'),
   userPrompt: z.string().optional().describe(
     'The original user request/prompt verbatim. CRITICAL: When provided, every node subtitle MUST reflect ' +
-    'any tech stack, services, or features the user mentioned. ' +
-    'E.g. if user said "use AWS Lambda and DynamoDB", those exact names must appear in node labels/subtitles. ' +
-    'If user said "add rate limiting", an explicit node or edge label must show rate limiting.'
+    'any tech stack, services, or features the user mentioned.'
   ),
   techStack: z.array(z.string()).optional().describe(
-    'Explicit list of technologies/services extracted from the user prompt. ' +
-    'E.g. ["AWS Lambda", "DynamoDB", "CloudFront", "Redis", "Next.js"]. ' +
-    'Every item here MUST appear verbatim in at least one node label or subtitle.'
+    'Explicit list of technologies/services extracted from the user prompt.'
   ),
   customFeatures: z.array(z.string()).optional().describe(
-    'Custom features or components the user explicitly requested. ' +
-    'E.g. ["rate limiting", "push notifications", "real-time chat", "DRM", "A/B testing"]. ' +
-    'Each feature MUST have a dedicated node or clearly labeled edge in the diagram.'
+    'Custom features or components the user explicitly requested.'
   ),
 });
 
@@ -183,7 +163,7 @@ export type SaveCheckpointInput = z.infer<typeof SaveCheckpointInputSchema>;
 export type LoadCheckpointInput = z.infer<typeof LoadCheckpointInputSchema>;
 
 export const ExportDiagramInputSchema = z.object({
-  sessionId: z.string().uuid().describe('Session ID from a previous diagram generation'),
+  sessionId: z.string().min(1).describe('Session ID from a previous diagram generation'),
   format: z.enum(['json', 'png', 'svg']).default('json').describe('Export format: json (diagram data), png/svg (export instructions)'),
 });
 

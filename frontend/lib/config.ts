@@ -6,7 +6,7 @@ export const CANVAS_CONFIG = {
   snapToGrid:        true,
   snapGrid:          [20, 20] as [number, number],
   minZoom:           0.1,
-  maxZoom:           2,
+  maxZoom:           3,
   connectionMode:    'loose' as ConnectionMode,
   background: {
     variant:         'dots' as BackgroundVariant,

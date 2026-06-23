@@ -4,6 +4,19 @@ import logger from './logger';
 import { calculateNodeDimensions } from './utils/nodeSizing';
 import { getTierForCategory } from './nodeShapes';
 
+function wouldCreateCycle(childId: string, parentId: string, parentMap: Map<string, string>): boolean {
+  if (childId === parentId) return true;
+  let current = parentId;
+  const visited = new Set<string>([childId, parentId]);
+  while (parentMap.has(current)) {
+    const next = parentMap.get(current)!;
+    if (visited.has(next)) return true;
+    visited.add(next);
+    current = next;
+  }
+  return false;
+}
+
 export function getLayoutedElements(
   nodes: Node[],
   edges: Edge[],
@@ -15,30 +28,72 @@ export function getLayoutedElements(
     return { nodes, edges };
   }
 
-  const dagreGraph = new dagre.graphlib.Graph();
+  const dagreGraph = new dagre.graphlib.Graph({ compound: true });
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  // Rule 1: Minimum rank separation: 120px between tiers
-  // Rule 1: Minimum node separation: 60px within same tier
   dagreGraph.setGraph({ 
     rankdir: direction,
     ranksep: 120,
-    nodesep: 60,
-    align: 'DL', // Alignment for nodes in same rank
+    nodesep: 80,
+    align: 'DL',
   });
 
-  nodes.forEach((node) => {
-    const { label, subtitle, category } = node.data || {};
-    const { width, height } = calculateNodeDimensions(label || '', subtitle);
-    
-    // Rule 3: Group all nodes into explicit tiers before rendering
-    const tier = getTierForCategory(category || '');
+  const groupNodeIds = new Set(
+    nodes
+      .filter((n) => n.type === 'group' || n.type === 'groupNode' || n.data?.isGroup)
+      .map((n) => n.id)
+  );
 
-    dagreGraph.setNode(node.id, { 
-      width, 
-      height,
-      rank: tier // Suggesting rank to dagre based on Tier
-    });
+  const parentMap = new Map<string, string>();
+  const childrenMap = new Map<string, string[]>();
+  nodes.forEach((node) => {
+    if (node.parentId && groupNodeIds.has(node.parentId)) {
+      if (!wouldCreateCycle(node.id, node.parentId, parentMap)) {
+        parentMap.set(node.id, node.parentId);
+        if (!childrenMap.has(node.parentId)) {
+          childrenMap.set(node.parentId, []);
+        }
+        childrenMap.get(node.parentId)!.push(node.id);
+      } else {
+        node.parentId = undefined;
+      }
+    }
+  });
+
+  const SUBGRAPH_PADDING = 40;
+
+  nodes.forEach((node) => {
+    const isGroup = groupNodeIds.has(node.id);
+    if (isGroup) {
+      const hasChildren = (childrenMap.get(node.id)?.length ?? 0) > 0;
+      if (hasChildren) {
+        dagreGraph.setNode(node.id, {
+          paddingLeft: SUBGRAPH_PADDING,
+          paddingRight: SUBGRAPH_PADDING,
+          paddingTop: 64, // Extra padding above the top bun (header)
+          paddingBottom: SUBGRAPH_PADDING,
+        });
+      } else {
+        dagreGraph.setNode(node.id, {
+          width: 200,
+          height: 150,
+        });
+      }
+    } else {
+      const { label, subtitle, category } = node.data || {};
+      const { width, height } = calculateNodeDimensions(label || '', subtitle);
+      const tier = getTierForCategory(category || '');
+
+      dagreGraph.setNode(node.id, { 
+        width, 
+        height,
+        rank: tier
+      });
+    }
+
+    if (node.parentId && groupNodeIds.has(node.parentId)) {
+      dagreGraph.setParent(node.id, node.parentId);
+    }
   });
 
   edges.forEach((edge) => {
@@ -54,24 +109,54 @@ export function getLayoutedElements(
 
   const layoutedNodes = nodes.map((node) => {
     const dagreNode = dagreGraph.node(node.id);
+    if (!dagreNode) return node;
     const { x, y, width, height } = dagreNode;
     
-    return {
+    const absoluteX = x - width / 2;
+    const absoluteY = y - height / 2;
+
+    const updatedNode = {
       ...node,
       width,
       height,
       position: {
-        x: x - width / 2,
-        y: y - height / 2,
+        x: absoluteX,
+        y: absoluteY,
       },
-      // Ensure data reflects the new dimensions for rendering
       data: {
         ...node.data,
         nodeWidth: width,
         nodeHeight: height,
       }
     };
+
+    if (groupNodeIds.has(node.id)) {
+      updatedNode.style = {
+        ...node.style,
+        width,
+        height,
+      };
+    }
+
+    return updatedNode;
   });
 
-  return { nodes: layoutedNodes, edges };
+  // Convert children to parent-relative
+  const finalNodes = layoutedNodes.map((node) => {
+    if (node.parentId) {
+      const parent = layoutedNodes.find((p) => p.id === node.parentId);
+      if (parent) {
+        return {
+          ...node,
+          position: {
+            x: node.position.x - parent.position.x,
+            y: node.position.y - parent.position.y,
+          },
+        };
+      }
+    }
+    return node;
+  });
+
+  return { nodes: finalNodes, edges };
 }

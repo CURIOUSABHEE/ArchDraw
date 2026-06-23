@@ -36,7 +36,7 @@ function loadStore(): Map<string, DiagramData> {
 const diagramStore = loadStore();
 
 const ExportSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.string().min(1),
   format: z.enum(['json', 'png', 'svg']),
 });
 

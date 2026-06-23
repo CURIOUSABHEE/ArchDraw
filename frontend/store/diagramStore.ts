@@ -124,6 +124,8 @@ import { validateAndFixNodes } from '@/lib/utils/nodeValidation';
 import logger from '@/lib/logger';
 import { EDGE_CONFIG, STORAGE_KEY, STORAGE_VERSION, NODE_CONFIG } from '@/lib/config';
 import { createNode, createEdge } from '@/lib/factory';
+import { applyLayoutPreset } from '@/lib/canvas/applyLayout';
+import { LAYOUT_PRESETS } from '@/lib/canvas/layoutPresets';
 
 const NODE_PADDING = 25;
 const MIN_NODE_SPACING = 25;
@@ -151,7 +153,9 @@ function resolveNodeCollisions(nodes: Node[]): Node[] {
         const a = result[i];
         const b = result[j];
         
-        if (a.parentId !== b.parentId) continue;
+        const aParent = a.parentId || (a as any).parentNode;
+        const bParent = b.parentId || (b as any).parentNode;
+        if (aParent !== bParent) continue;
         
         const extA = getExtent(a);
         const extB = getExtent(b);
@@ -218,13 +222,6 @@ function stripReservedLayerNodes(nodes: Node[]): Node[] {
       continue;
     }
     
-    const existing = labelMap.get(label);
-    if (existing && existing.id !== node.id) {
-      logger.log(`[Store] Duplicate label "${data?.label}" — keeping ${node.id}, removing ${existing.id}`);
-      continue;
-    }
-    
-    labelMap.set(label, node);
     result.push(node);
   }
   
@@ -362,6 +359,7 @@ interface DiagramState {
   setSidebarOpen: (open: boolean) => void;
   setCanvasMode: (mode: 'empty' | 'editing' | 'template') => void;
   setActiveLayoutPresetId: (id: string) => void;
+  toggleLayoutDirection: () => Promise<void>;
 
   // ── History ───────────────────────────────────────────────────────────────
   past: HistoryEntry[];
@@ -391,6 +389,7 @@ interface DiagramState {
   loadTemplate: (nodes: Node[], edges: Edge[]) => void;
   loadDefaultArchitecture: () => void;
   alignConnectedNodes: () => void;
+  recalculateHandles: () => void;
 
   // ── Fit view ──────────────────────────────────────────────────────────────
   fitView: (options?: FitViewOptions) => void;
@@ -415,8 +414,38 @@ interface DiagramState {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeCanvas(name: string, id?: string): CanvasTab {
+  let finalId = id;
+  if (!finalId) {
+    if (isBrowser) {
+      try {
+        const raw = localStorage.getItem('archdraw-storage');
+        let nextNum = 1;
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.state && parsed.state.canvases) {
+            const canvases = parsed.state.canvases as any[];
+            const numbers = canvases
+              .map(c => {
+                const match = c.id.match(/^canvas-(\d+)$/);
+                return match ? parseInt(match[1], 10) : 0;
+              })
+              .filter(n => n > 0);
+            if (numbers.length > 0) {
+              nextNum = Math.max(...numbers) + 1;
+            }
+          }
+        }
+        finalId = `canvas-${nextNum}`;
+      } catch (e) {
+        finalId = `canvas-${Date.now()}`;
+      }
+    } else {
+      finalId = `canvas-1`;
+    }
+  }
+
   return { 
-    id: id || `canvas-${Date.now()}-${Math.random().toString(36).slice(2)}`, 
+    id: finalId, 
     name, 
     nodes: [], 
     edges: [], 
@@ -459,6 +488,8 @@ const KNOWN_NODE_TYPES = new Set([
   'shapeNode',
   'groupNode',
   'group',
+  'frameNode',
+  'serviceNode',
   'textLabelNode',
   'annotationNode',
   'messageBrokerNode',
@@ -469,20 +500,7 @@ const KNOWN_EDGE_TYPES = new Set(['custom', 'simpleFloating', 'default']);
 
 function normalizeNodeType(type?: string): string {
   if (!type) return 'systemNode';
-  
-  // These types are all unified to systemNode to follow the global 'plate' style
-  if ([
-    'architectureNode', 
-    'baseNode', 
-    'databaseNode', 
-    'cacheNode', 
-    'customNode', 
-    'messageBrokerNode',
-    'system'
-  ].includes(type)) {
-    return 'systemNode';
-  }
-  
+  if (type === 'system') return 'systemNode';
   if (!KNOWN_NODE_TYPES.has(type)) return 'systemNode';
   return type;
 }
@@ -495,9 +513,12 @@ function normalizeNodes(nodes: Node[]): Node[] {
 }
 
 function normalizeEdge(edge: Edge): Edge {
+  const finalType = edge.type && KNOWN_EDGE_TYPES.has(edge.type) ? edge.type : 'simpleFloating';
   return {
     ...edge,
-    type: 'smoothstep',
+    type: finalType,
+    sourceHandle: edge.sourceHandle ?? undefined,
+    targetHandle: edge.targetHandle ?? undefined,
     markerEnd: edge.markerEnd ?? {
       type: EDGE_CONFIG.markerType,
       color: EDGE_CONFIG.strokeColor,
@@ -508,82 +529,30 @@ function normalizeEdge(edge: Edge): Edge {
 }
 
 function distributeTargetHandles(nodes: Node[], edges: Edge[]): Edge[] {
-  // Group edges by their target node
-  const incomingEdgesByTarget = new Map<string, Edge[]>();
-  for (const edge of edges) {
-    const target = edge.target;
-    if (!incomingEdgesByTarget.has(target)) {
-      incomingEdgesByTarget.set(target, []);
+  const getAbsolutePosition = (node: Node) => {
+    let x = node.position?.x ?? 0;
+    let y = node.position?.y ?? 0;
+    let current = node;
+    const visited = new Set<string>([node.id]);
+    while (current.parentId || (current as any).parentNode) {
+      const pId = current.parentId || (current as any).parentNode;
+      if (!pId || visited.has(pId)) break;
+      visited.add(pId);
+      const parent = nodes.find(n => n.id === pId);
+      if (!parent || !parent.position) break;
+      x += parent.position.x;
+      y += parent.position.y;
+      current = parent;
     }
-    incomingEdgesByTarget.get(target)!.push(edge);
-  }
+    return { x, y };
+  };
 
-  return edges.map(edge => {
-    const target = edge.target;
-    const incoming = incomingEdgesByTarget.get(target) || [];
-    
-    // Sort incoming edges by the source node's Y coordinate to keep routing clean and prevent crossings
-    const sortedIncoming = [...incoming].sort((a, b) => {
-      const nodeA = nodes.find(n => n.id === a.source);
-      const nodeB = nodes.find(n => n.id === b.source);
-      const yA = nodeA?.position?.y ?? 0;
-      const yB = nodeB?.position?.y ?? 0;
-      return yA - yB;
-    });
-
-    const index = sortedIncoming.findIndex(e => e.id === edge.id);
-    
-    // Determine the general direction from source to target
-    const srcNode = nodes.find(n => n.id === edge.source);
-    const tgtNode = nodes.find(n => n.id === edge.target);
-    
-    const srcX = srcNode?.position?.x ?? 0;
-    const tgtX = tgtNode?.position?.x ?? 0;
-    const srcY = srcNode?.position?.y ?? 0;
-    const tgtY = tgtNode?.position?.y ?? 0;
-
-    let targetHandle = 'left';
-    const sourceHandle = tgtX > srcX ? 'right' : 'left';
-
-    if (incoming.length < 3) {
-      if (incoming.length === 2) {
-        if (index === 0) {
-          targetHandle = tgtY > srcY ? 'top' : 'bottom';
-        } else {
-          targetHandle = 'left';
-        }
-      } else {
-        if (tgtX > srcX + 100) {
-          targetHandle = 'left';
-        } else if (srcX > tgtX + 100) {
-          targetHandle = 'right';
-        } else if (tgtY > srcY) {
-          targetHandle = 'top';
-        } else {
-          targetHandle = 'bottom';
-        }
-      }
-    } else {
-      const handles = ['top', 'left', 'bottom'];
-      targetHandle = handles[index % 3];
-    }
-
-    const usesPrefixedHandles = (nodeType?: string): boolean => {
-      if (!nodeType) return true;
-      const specialTypes = ['shapeNode', 'groupNode', 'group', 'textLabelNode', 'annotationNode'];
-      return !specialTypes.includes(nodeType);
-    };
-
-    const finalSourceHandle = usesPrefixedHandles(srcNode?.type) ? `source-${sourceHandle}` : sourceHandle;
-    const finalTargetHandle = usesPrefixedHandles(tgtNode?.type) ? `target-${targetHandle}` : targetHandle;
-
-    return {
-      ...edge,
-      sourceHandle: finalSourceHandle,
-      targetHandle: finalTargetHandle,
-      type: 'smoothstep',
-    };
-  });
+  return edges.map(edge => ({
+    ...edge,
+    sourceHandle: edge.sourceHandle ?? undefined,
+    targetHandle: edge.targetHandle ?? undefined,
+    type: edge.type && KNOWN_EDGE_TYPES.has(edge.type) ? edge.type : 'simpleFloating',
+  }));
 }
 
 function normalizeEdges(edges: Edge[]): Edge[] {
@@ -605,6 +574,25 @@ function normalizeEdges(edges: Edge[]): Edge[] {
 
 function sanitizeNodes(nodes: Node[]): Node[] {
   return nodes.map(node => {
+    const isGroup =
+      node.type === 'groupNode' ||
+      node.type === 'frameNode' ||
+      node.type === 'group' ||
+      node.data?.isGroup === true;
+
+    if (isGroup) {
+      return {
+        ...node,
+        type: node.type || 'groupNode',
+        data: {
+          label: node.data?.label || node.data?.groupLabel || 'Group',
+          groupLabel: node.data?.groupLabel || node.data?.label || 'Group',
+          ...node.data,
+          isGroup: true,
+        },
+      };
+    }
+
     const hasRequired =
       node.data?.typeId &&
       node.data?.color &&
@@ -612,12 +600,22 @@ function sanitizeNodes(nodes: Node[]): Node[] {
       node.data?.icon;
 
     if (!hasRequired) {
-      logger.warn(`[sanitize] Node ${node.id} missing fields. Rebuilding.`);
-      return createNode(
-        (node.data as any)?.typeId ?? 'default',
-        (node.data as any)?.label ?? 'Unknown',
-        node.position,
-      );
+      logger.warn(`[sanitize] Node ${node.id} missing fields. Sanitizing in-place.`);
+      const data = node.data || {};
+      const typeId = (data as any).typeId ?? 'default';
+      const def = componentRegistry.get(typeId);
+      return {
+        ...node,
+        type: node.type || 'systemNode',
+        data: {
+          typeId,
+          label: data.label ?? def?.label ?? 'Unnamed',
+          color: data.color ?? def?.color ?? '#6366f1',
+          category: data.category ?? def?.category ?? 'default',
+          icon: data.icon ?? def?.icon ?? 'Box',
+          ...data,
+        },
+      };
     }
     return node;
   });
@@ -625,15 +623,20 @@ function sanitizeNodes(nodes: Node[]): Node[] {
 
 function sanitizeEdges(edges: Edge[]): Edge[] {
   return edges.map(edge => {
-    const hasRequired =
-      edge.type === 'floating' &&
-      edge.markerEnd &&
-      edge.style?.stroke;
-
-    if (!hasRequired) {
-      return createEdge(edge.source, edge.target, String(edge.label ?? ''));
-    }
-    return edge;
+    const stroke = edge.style?.stroke || '#94a3b8';
+    return {
+      ...edge,
+      type: edge.type || 'smoothstep',
+      markerEnd: edge.markerEnd || {
+        type: 'arrowclosed' as any,
+        color: typeof stroke === 'string' ? stroke : '#94a3b8',
+      },
+      style: {
+        strokeWidth: 1.5,
+        stroke,
+        ...edge.style,
+      },
+    };
   });
 }
 
@@ -835,7 +838,14 @@ const useDiagramStoreRaw = create<DiagramState>()(
            newName = `${baseName} ${counter}`;
          }
          
-         const newId = `canvas-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+         const numbers = canvases
+            .map(c => {
+              const match = c.id.match(/^canvas-(\d+)$/);
+              return match ? parseInt(match[1], 10) : 0;
+            })
+            .filter(n => n > 0);
+          const max = numbers.length > 0 ? Math.max(...numbers) : 0;
+          const newId = `canvas-${max + 1}`;
          const duplicated: CanvasTab = {
            ...source,
            id: newId,
@@ -1166,11 +1176,12 @@ const useDiagramStoreRaw = create<DiagramState>()(
               localStorage.setItem('archdraw-guest-canvas', JSON.stringify(guestCanvas));
             }
           }
+          const targetId = guestCanvas.id || 'guest-canvas';
           set({
             userProfile: profile,
             canvases: [guestCanvas],
-            activeCanvasId: 'guest-canvas',
-            openCanvasIds: ['guest-canvas'],
+            activeCanvasId: targetId,
+            openCanvasIds: [targetId],
           });
         } else {
           set({ userProfile: profile });
@@ -1224,7 +1235,6 @@ const useDiagramStoreRaw = create<DiagramState>()(
         if (isGuest) {
           try {
             const guestCanvases = state.canvases
-              .filter((c) => c.id.startsWith('guest-canvas'))
               .slice(0, MAX_GUEST_CANVASES);
             const serializedAll = JSON.stringify(guestCanvases);
             if (serializedAll.length > 2 * 1024 * 1024) {
@@ -1257,7 +1267,7 @@ const useDiagramStoreRaw = create<DiagramState>()(
       guideLines: [],
       edgeAnimations: true,
       showGrid: true,
-      darkMode: (typeof window !== 'undefined' ? (window.localStorage.getItem('archdraw-theme') !== 'light') : true),
+      darkMode: (typeof window !== 'undefined' ? (window.localStorage.getItem('archdraw-theme') === 'dark') : false),
       sidebarOpen: true,
       canvasMode: 'empty',
       activeLayoutPresetId: 'layered-lr',
@@ -1265,6 +1275,28 @@ const useDiagramStoreRaw = create<DiagramState>()(
       setGuideLines: (lines) => set({ guideLines: lines }),
       setCanvasMode: (mode) => set({ canvasMode: mode }),
       setActiveLayoutPresetId: (id) => set({ activeLayoutPresetId: id }),
+      toggleLayoutDirection: async () => {
+        const { activeLayoutPresetId, nodes, edges, activeCanvasId, canvases } = get();
+        const nextPresetId = activeLayoutPresetId === 'layered-tb' ? 'layered-lr' : 'layered-tb';
+        const preset = LAYOUT_PRESETS.find((p) => p.id === nextPresetId);
+        if (!preset) return;
+
+        get().pushHistory();
+
+        const layoutedNodes = await applyLayoutPreset(nodes, edges, preset);
+
+        const nextCanvases = canvases.map((c) =>
+          c.id === activeCanvasId ? { ...c, nodes: layoutedNodes, updatedAt: Date.now() } : c
+        );
+
+        set({
+          activeLayoutPresetId: nextPresetId,
+          canvases: nextCanvases,
+        });
+
+        get().saveCanvasToDB(activeCanvasId);
+        setTimeout(() => get().fitView(), 100);
+      },
       toggleGrid: () => set({ showGrid: !get().showGrid }),
       toggleDarkMode: () => {
         const next = !get().darkMode;
@@ -1531,7 +1563,15 @@ const useDiagramStoreRaw = create<DiagramState>()(
       },
 
       updateEdgeData: (id, data) => {
-        const edges = get().edges.map((e) => e.id === id ? { ...e, data: { ...e.data, ...data } } : e);
+        const edges = get().edges.map((e) =>
+          e.id === id
+            ? {
+                ...e,
+                label: data.label !== undefined ? (data.label as any) : e.label,
+                data: { ...e.data, ...data },
+              }
+            : e
+        );
         const canvases = get().canvases.map((c) =>
           // Qualifies for updatedAt because edge data changed
           c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
@@ -1554,20 +1594,24 @@ const useDiagramStoreRaw = create<DiagramState>()(
       importDiagram: (nodes, edges) => {
         get().pushHistory();
         
+        console.log('[importDiagram] nodes before layout:', nodes.map(n => ({ id: n.id, x: n.position?.x, y: n.position?.y, parentId: n.parentId, type: n.type })));
+        
         const normalizedNodes = normalizeNodes(nodes);
         const cleanedNodes = stripReservedLayerNodes(normalizedNodes);
         const validatedNodes = validateAndFixNodes(cleanedNodes);
-        const resolvedNodes = resolveNodeCollisions(validatedNodes);
         const normalizedEdges = normalizeEdges(edges);
         
-        const edgesWithHandles = distributeTargetHandles(resolvedNodes, normalizedEdges);
+        console.log('[importDiagram] nodes:', validatedNodes.map(n => ({ id: n.id, x: n.position?.x, y: n.position?.y, parentId: n.parentId, type: n.type })));
+        
+        const edgesWithHandles = distributeTargetHandles(validatedNodes, normalizedEdges);
         
         const canvases = get().canvases.map((c) =>
           // Qualifies for updatedAt because diagram was imported
-          c.id === get().activeCanvasId ? { ...c, nodes: resolvedNodes, edges: edgesWithHandles, updatedAt: Date.now() } : c
+          c.id === get().activeCanvasId ? { ...c, nodes: validatedNodes, edges: edgesWithHandles, updatedAt: Date.now() } : c
         );
         set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
+        setTimeout(() => get().fitView(), 80);
       },
 
       clearDiagram: () => {
@@ -1658,13 +1702,17 @@ const useDiagramStoreRaw = create<DiagramState>()(
           }
         }
         
+        const existingGroupCount = nodes.filter((n) => n.type === 'groupNode' || n.data?.isGroup).length;
+        const colors = ['#a855f7', '#22c55e', '#ec4899', '#f97316', '#14b8a6', '#3b82f6', '#06b6d4'];
+        const groupColor = colors[existingGroupCount % colors.length];
+
         const groupId = `group-${Date.now()}`;
         const groupNode: Node = {
           id: groupId, 
           type: 'groupNode',
           position: { x: minX, y: minY },
           style: { width: maxX - minX, height: maxY - minY },
-          data: { label: 'Group', groupLabel: 'Group' }, 
+          data: { label: 'Group', groupLabel: 'Group', groupColor }, 
           zIndex: -1,
           draggable: true,
           selectable: true,
@@ -1724,19 +1772,20 @@ const useDiagramStoreRaw = create<DiagramState>()(
       },
 
       moveToGroup: (nodeId: string, groupId: string | null) => {
-        const { nodes, pushHistory, activeCanvasId, canvases, edges } = get();
+        const { nodes, pushHistory, activeCanvasId, canvases } = get();
         const node = nodes.find((n) => n.id === nodeId);
         if (!node) return;
         pushHistory();
         
+        const parentId = node.parentId || (node as any).parentNode;
         let newPosition = { ...node.position };
         if (groupId) {
           const group = nodes.find((n) => n.id === groupId);
           if (group) {
             newPosition = { x: node.position.x - group.position.x, y: node.position.y - group.position.y };
           }
-        } else if (node.parentId) {
-          const parent = nodes.find((n) => n.id === node.parentId);
+        } else if (parentId) {
+          const parent = nodes.find((n) => n.id === parentId);
           if (parent) {
             newPosition = { x: node.position.x + parent.position.x, y: node.position.y + parent.position.y };
           }
@@ -1744,7 +1793,13 @@ const useDiagramStoreRaw = create<DiagramState>()(
         
         const newNodes = nodes.map((n) =>
           n.id === nodeId
-            ? { ...n, parentId: groupId ?? undefined, extent: groupId ? 'parent' as const : undefined, position: newPosition }
+            ? {
+                ...n,
+                parentId: groupId ?? undefined,
+                parentNode: groupId ?? undefined,
+                extent: groupId ? 'parent' as const : undefined,
+                position: newPosition,
+              }
             : n
         );
         
@@ -1786,7 +1841,7 @@ const useDiagramStoreRaw = create<DiagramState>()(
       
       updateEdgeLabel: (edgeId, label) => {
         const edges = get().edges.map((e) =>
-          e.id === edgeId ? { ...e, data: { ...e.data, label: label.trim() } } : e
+          e.id === edgeId ? { ...e, label: label.trim(), data: { ...e.data, label: label.trim() } } : e
         );
         const canvases = get().canvases.map((c) =>
           // Qualifies for updatedAt because edge label changed
@@ -1949,6 +2004,16 @@ const useDiagramStoreRaw = create<DiagramState>()(
         set({ canvases });
         get().saveCanvasToDB(get().activeCanvasId);
       },
+
+      recalculateHandles: () => {
+        const { nodes, edges, activeCanvasId, canvases } = get();
+        const edgesWithHandles = distributeTargetHandles(nodes, edges);
+        const nextCanvases = canvases.map((c) =>
+          c.id === activeCanvasId ? { ...c, edges: edgesWithHandles, updatedAt: Date.now() } : c
+        );
+        set({ canvases: nextCanvases });
+        get().saveCanvasToDB(activeCanvasId);
+      },
     })),
     {
     name: 'archdraw-storage',
@@ -1958,19 +2023,22 @@ const useDiagramStoreRaw = create<DiagramState>()(
         activeCanvasId: s.activeCanvasId,
         edgeAnimations: s.edgeAnimations,
         showGrid: s.showGrid,
+        userProfile: s.userProfile,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           // Problem 2: Load guest canvas if user is guest or not logged in
+          // Only use guest storage as fallback when rehydrated canvases are empty
+          // (avoid overriding proper rehydration from archdraw-storage main persist key)
           const isGuest = !state.userProfile || state.userProfile.id === 'guest';
-          if (isGuest) {
+          if (isGuest && (!state.canvases || state.canvases.length === 0)) {
             const guestListSaved = localStorage.getItem(STORAGE_KEYS.guestCanvases);
             if (guestListSaved) {
               try {
                 const list = JSON.parse(guestListSaved);
                 if (Array.isArray(list) && list.length > 0) {
                   const guestCanvases = list
-                    .filter((c: any) => c && typeof c.id === 'string' && c.id.startsWith('guest-canvas'))
+                    .filter((c: any) => c && typeof c.id === 'string')
                     .slice(0, MAX_GUEST_CANVASES)
                     .map((c: any) => ({
                       ...c,

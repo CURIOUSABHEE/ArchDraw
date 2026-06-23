@@ -55,6 +55,15 @@ function getTierColor(layer?: string): string {
   return colorMap[tier] || colorMap.compute;
 }
 
+function getDeterministicColor(str: string): string {
+  const colors = ['#a855f7', '#22c55e', '#ec4899', '#f97316', '#14b8a6', '#3b82f6', '#06b6d4'];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
 function getEdgeType(edge: Edge): EdgeType {
   return (edge.data?.connectionType || edge.data?.edgeType || 'sync') as EdgeType;
 }
@@ -288,7 +297,7 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
           const isGroup = node.type === 'group' || node.data?.isGroup;
 
           if (isGroup) {
-            const groupColor = node.data?.groupColor || '#3b82f6';
+            const groupColor = node.data?.accentColor || node.data?.groupColor || getDeterministicColor(node.id);
             return (
               <g key={node.id}>
                 <rect

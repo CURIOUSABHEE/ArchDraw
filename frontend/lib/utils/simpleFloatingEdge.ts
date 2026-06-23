@@ -7,10 +7,10 @@ export interface EdgePositions {
 
 // Align with FloatingHandles.tsx defaults for accurate edge attachment
 const HANDLE_OFFSETS = {
-  [Position.Left]: -12,
-  [Position.Right]: 48,
-  [Position.Top]: -12,
-  [Position.Bottom]: 12,
+  [Position.Left]: 0,
+  [Position.Right]: 0,
+  [Position.Top]: 0,
+  [Position.Bottom]: 0,
 };
 
 export function getNodeCenter(node: Node) {
@@ -33,27 +33,22 @@ export function getSimpleEdgePositions(
   let sourcePos: Position;
   let targetPos: Position;
 
-  if (Math.abs(dx) > Math.abs(dy)) {
-    // horizontal dominant
+  const horizontalDist = Math.abs(dx);
+  const verticalThreshold = Math.max(horizontalDist * 0.25, 30);
+
+  if (dy > verticalThreshold) {
+    sourcePos = Position.Bottom;
+    targetPos = Position.Top;
+  } else if (dy < -verticalThreshold) {
+    sourcePos = Position.Top;
+    targetPos = Position.Bottom;
+  } else {
     if (dx > 0) {
-      // Target is to the right of source
       sourcePos = Position.Right;
       targetPos = Position.Left;
     } else {
-      // Target is to the left of source
       sourcePos = Position.Left;
       targetPos = Position.Right;
-    }
-  } else {
-    // vertical dominant
-    if (dy > 0) {
-      // Target is below source
-      sourcePos = Position.Bottom;
-      targetPos = Position.Top;
-    } else {
-      // Target is above source
-      sourcePos = Position.Top;
-      targetPos = Position.Bottom;
     }
   }
 
@@ -161,16 +156,17 @@ export function getSimpleHandlePosition(
   shiftOffset: number = 0
 ): { x: number; y: number } {
   const offset = HANDLE_OFFSETS[position] || 0;
+  const outerOffset = 12;
 
   switch (position) {
     case Position.Left:
-      return { x: nodeX + offset, y: nodeY + height / 2 + shiftOffset };
+      return { x: nodeX - outerOffset + offset, y: nodeY + height / 2 + shiftOffset };
     case Position.Right:
-      return { x: nodeX + width + offset, y: nodeY + height / 2 + shiftOffset };
+      return { x: nodeX + width + outerOffset + offset, y: nodeY + height / 2 + shiftOffset };
     case Position.Top:
-      return { x: nodeX + width / 2 + shiftOffset, y: nodeY + offset };
+      return { x: nodeX + width / 2 + shiftOffset, y: nodeY - outerOffset + offset };
     case Position.Bottom:
-      return { x: nodeX + width / 2 + shiftOffset, y: nodeY + height + offset };
+      return { x: nodeX + width / 2 + shiftOffset, y: nodeY + height + outerOffset + offset };
   }
 }
 

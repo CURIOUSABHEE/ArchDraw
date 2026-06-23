@@ -370,7 +370,7 @@ function fixArchitectureIssues(
     }
 
     if (edge.source === edge.target) {
-      logger.warn(`[EdgeAgent] Removing self-loop`);
+      logger.warn(`[EdgeAgent] Removing self-loop: "${edge.source}" -> "${edge.target}" (id: ${edge.id})`);
       shouldSkip = true;
     }
 

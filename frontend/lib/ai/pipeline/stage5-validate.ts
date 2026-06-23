@@ -90,7 +90,8 @@ export function validateAndRepair(
 
   logger.info(`[Validate] Starting with ${nodes.length} nodes and ${parsed.flows.length} flows`);
 
-  const edges = flowsToEdges(parsed.flows);
+  const rawEdges = flowsToEdges(parsed.flows);
+  const edges = pruneReverseEdges(rawEdges, nodes, mechanicalRepairs);
 
   nodes = repairNodeData(nodes, mechanicalRepairs, tiersRepaired);
   nodes = ensureNodeIdentity(nodes, mechanicalRepairs);
@@ -199,6 +200,60 @@ export function flowsToEdges(flows: RawFlow[]): DiagramEdge[] {
   }
 
   return Array.from(seen.values());
+}
+
+/**
+ * Strip reverse edges (B→A) where a forward edge (A→B) already exists between
+ * nodes in DIFFERENT tiers. Cross-tier return edges are always architectural
+ * violations — HTTP response cycles are implicit and should not be modelled.
+ * Same-tier edges (two services calling each other) are left untouched.
+ */
+function pruneReverseEdges(
+  edges: DiagramEdge[],
+  nodes: RawNode[],
+  issues: ValidationIssue[]
+): DiagramEdge[] {
+  const nodeLayerMap = new Map<string, string>();
+  for (const n of nodes) {
+    nodeLayerMap.set(n.id, normalizeLayerForPrune(n.layer));
+  }
+
+  // Build set of forward directions between different-tier pairs
+  const forwardPairs = new Set<string>();
+  for (const edge of edges) {
+    const srcLayer = nodeLayerMap.get(edge.source) ?? 'application';
+    const tgtLayer = nodeLayerMap.get(edge.target) ?? 'application';
+    if (srcLayer !== tgtLayer) {
+      forwardPairs.add(`${edge.source}->${edge.target}`);
+    }
+  }
+
+  return edges.filter(edge => {
+    const srcLayer = nodeLayerMap.get(edge.source) ?? 'application';
+    const tgtLayer = nodeLayerMap.get(edge.target) ?? 'application';
+    // Only prune cross-tier edges; same-tier edges are fine either direction
+    if (srcLayer === tgtLayer) return true;
+    // If the reverse direction already exists as a forward pair, this is a return edge — drop it
+    const reverseKey = `${edge.target}->${edge.source}`;
+    if (forwardPairs.has(reverseKey)) {
+      issues.push({
+        severity: 'warning',
+        type: 'pruned_reverse_edge' as any,
+        message: `Removed reverse edge ${edge.source}→${edge.target} (return path — implicit in HTTP cycle).`,
+      });
+      return false;
+    }
+    return true;
+  });
+}
+
+function normalizeLayerForPrune(layer?: string): string {
+  if (!layer) return 'application';
+  if (layer === 'presentation') return 'client';
+  if (layer === 'compute') return 'application';
+  if (layer === 'async') return 'queue';
+  if (layer === 'observe') return 'observability';
+  return layer;
 }
 
 function repairNodeData(
@@ -643,10 +698,12 @@ function validateClientReturnFlows(
     const incomingEdges = edges.filter((e) => e.target === client.id);
     if (incomingEdges.length === 0) {
       issues.push({
-        severity: 'warning',
+        // 'info' not 'warning' — we intentionally do NOT model HTTP return paths.
+        // Keeping this as 'warning' caused LLM retries that produced reverse edges.
+        severity: 'info' as any,
         type: 'missing_client_return',
         nodeId: client.id,
-        message: `Client '${client.label}' has no incoming return edges (diagnostic only).`,
+        message: `Client '${client.label}' has no incoming edges (expected — return paths are implicit).`,
       });
     }
   }

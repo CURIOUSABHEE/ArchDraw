@@ -272,11 +272,11 @@ function createDistributedPorts(nodeId: string, side: 'EAST' | 'WEST', count: nu
 function calculateGroupDimensions(nodes: ArchitectureNode[]): ArchitectureNode[] {
   const CHILD_WIDTH        = 200;   // actual node width
   const CHILD_HEIGHT       = 80;    // actual node height
-  const CHILD_MARGIN       = 40;    // gap between siblings
-  const GROUP_PADDING_H    = 60;    // left + right padding each
-  const GROUP_PADDING_TOP  = 72;    // clears label tag (~28px) + breathing room
-  const GROUP_PADDING_BOT  = 60;
-  const ROW_GAP            = 40;
+  const CHILD_MARGIN       = 20;    // gap between siblings (halved from 40)
+  const GROUP_PADDING_H    = 30;    // left + right padding each (halved from 60)
+  const GROUP_PADDING_TOP  = 36;    // clears label tag (~28px) + breathing room (halved from 72)
+  const GROUP_PADDING_BOT  = 30;    // (halved from 60)
+  const ROW_GAP            = 20;    // (halved from 40)
 
   return nodes.map(node => {
     if (node.isGroup !== true) return node;
@@ -291,8 +291,8 @@ function calculateGroupDimensions(nodes: ArchitectureNode[]): ArchitectureNode[]
 
     return {
       ...node,
-      width:  Math.max(groupWidth,  320),
-      height: Math.max(groupHeight, 200),
+      width:  Math.max(groupWidth,  160),
+      height: Math.max(groupHeight, 100),
     };
   });
 }

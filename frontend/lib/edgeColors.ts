@@ -36,7 +36,7 @@ function nodeRectsEqual(a: Map<string, NodeRect>, b: Map<string, NodeRect>): boo
 
 const EDGE_COLORS = {
   default: '#94a3b8',
-  defaultDark: '#ffffff', // Pure White
+  defaultDark: '#cbd5e1', // Slate-300 — softer than pure white, still readable on dark canvas
   overlap: '#1f2937',
   overlapDark: '#334155',
 };

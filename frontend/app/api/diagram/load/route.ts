@@ -3,6 +3,8 @@ import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
 import logger from '@/lib/logger';
+import { runMermaidPipeline } from '@/lib/mermaid/pipeline';
+
 
 export interface ShareUser {
   email: string;
@@ -48,11 +50,37 @@ function saveStore(store: Map<string, DiagramData>) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const sessionId = crypto.randomUUID();
+    
+    const store = loadStore();
+    const sessionNumbers = Array.from(store.keys())
+      .map(k => {
+        const match = k.match(/^session-(\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => n > 0);
+    const maxSessionNum = sessionNumbers.length > 0 ? Math.max(...sessionNumbers) : 0;
+    const sessionId = `session-${maxSessionNum + 1}`;
+    
+    let nodes = body.nodes || [];
+    let edges = body.edges || [];
+    let warnings: string[] = [];
+
+    if (body.mermaid) {
+      const pipelineResult = runMermaidPipeline(body.mermaid);
+      if (!pipelineResult.success) {
+        return NextResponse.json({
+          error: 'Failed to parse Mermaid code',
+          warnings: pipelineResult.warnings
+        }, { status: 400 });
+      }
+      nodes = pipelineResult.nodes;
+      edges = pipelineResult.edges;
+      warnings = pipelineResult.warnings;
+    }
     
     const diagramData: DiagramData = {
-      nodes: body.nodes,
-      edges: body.edges,
+      nodes,
+      edges,
       label: body.label,
       createdAt: Date.now(),
       source: body.source || 'manual',
@@ -61,11 +89,10 @@ export async function POST(req: NextRequest) {
       users: body.users || [],
     };
 
-    const store = loadStore();
     store.set(sessionId, diagramData);
     saveStore(store);
 
-    return NextResponse.json({ sessionId });
+    return NextResponse.json({ sessionId, nodes, edges, warnings });
   } catch (error) {
     logger.error('POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

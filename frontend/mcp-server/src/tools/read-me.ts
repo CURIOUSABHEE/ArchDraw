@@ -249,5 +249,77 @@ A well-structured 12-node diagram with groups:
   ]
 }
 \`\`\`
+
+---
+
+## 💡 MERMAID CODE GENERATION FEW-SHOT EXAMPLES
+
+### Example 1: 3-Tier Web App
+* **User Prompt**: "Create a 3-tier Web App with a React client, Express API, and PostgreSQL database."
+* **Mermaid Output**:
+\`\`\`mermaid
+graph LR
+  subgraph Client["Client Tier"]
+    ReactClient["React Client App<br>[React]"]
+  end
+  subgraph Compute["Compute Tier"]
+    ExpressAPI["Express API<br>[Express.js]"]
+  end
+  subgraph Data["Data Tier"]
+    PostgreSQLDB[("PostgreSQL DB<br>[PostgreSQL]")]
+  end
+  ReactClient -->|"HTTPS REST"| ExpressAPI
+  ExpressAPI -->|"SQL query"| PostgreSQLDB
+\`\`\`
+
+### Example 2: E-Commerce Queue
+* **User Prompt**: "Draw an e-commerce backend with an Order Service publishing order events to Kafka and a Payment Service consuming them."
+* **Mermaid Output**:
+\`\`\`mermaid
+graph LR
+  subgraph Compute["Compute Tier"]
+    OrderService["Order Service<br>[Go]"]
+    PaymentService["Payment Service<br>[Node.js]"]
+  end
+  subgraph Async["Async Tier"]
+    KafkaBroker["Kafka Message Bus<br>[Kafka]"]
+  end
+  OrderService -.->|"publish order.created"| KafkaBroker
+  KafkaBroker -.->|"consume event"| PaymentService
+\`\`\`
+
+### Example 3: VOD Video Streaming
+* **User Prompt**: "Create a video transcoder where raw uploads to S3 trigger an FFmpeg worker which writes HLS output to an output S3 bucket."
+* **Mermaid Output**:
+\`\`\`mermaid
+graph LR
+  subgraph Compute["Compute Tier"]
+    Transcoder["Transcoder Worker<br>[FFmpeg]"]
+  end
+  subgraph Data["Data Tier"]
+    RawBucket[("S3 Upload Bucket<br>[S3]")]
+    OutputBucket[("S3 Output Bucket<br>[S3]")]
+  end
+  RawBucket -.->|"S3 event notification"| Transcoder
+  Transcoder -->|"write HLS streams"| OutputBucket
+\`\`\`
+
+### Example 4: Real-time Live Chat
+* **User Prompt**: "Design a live chat where client connects to WebSocket gateway which forwards chat messages to a Chat Service to store in MongoDB."
+* **Mermaid Output**:
+\`\`\`mermaid
+graph LR
+  subgraph Edge["Edge Tier"]
+    WSGateway["WebSocket Gateway<br>[Node.js]"]
+  end
+  subgraph Compute["Compute Tier"]
+    ChatService["Chat Service<br>[Go]"]
+  end
+  subgraph Data["Data Tier"]
+    MongoDB[("MongoDB Chat Store<br>[MongoDB]")]
+  end
+  WSGateway -.->|"WebSocket forward"| ChatService
+  ChatService -->|"NoSQL write"| MongoDB
+\`\`\`
 `;
 }

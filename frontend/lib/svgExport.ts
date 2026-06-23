@@ -232,21 +232,21 @@ function renderSystemNode(node: SystemNodeRenderData, isDark: boolean): string {
   const backplateLayers = isDark
     ? (selected
         ? [
-            { offset: 10, color: '#0d0f1b' },
-            { offset: 5, color: '#151828' },
+            { offset: 10, color: '#787c97' },
+            { offset: 5, color: '#646882' },
           ]
         : [
-            { offset: 10, color: '#0d0f1b' },
-            { offset: 5, color: '#151828' },
+            { offset: 10, color: '#787c97' },
+            { offset: 5, color: '#646882' },
           ])
     : (selected
         ? [
-            { offset: 10, color: '#ecece5' },
-            { offset: 5, color: '#dfdfd8' },
+            { offset: 10, color: '#fafafc' },
+            { offset: 5, color: '#f0f0f3' },
           ]
         : [
-            { offset: 10, color: '#efefe8' },
-            { offset: 5, color: '#e1e1da' },
+            { offset: 10, color: '#fafafc' },
+            { offset: 5, color: '#f0f0f3' },
           ]);
       
   const backplateElements = backplateLayers.map((bp) => `

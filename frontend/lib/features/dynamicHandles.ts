@@ -32,8 +32,10 @@ export interface DynamicHandleResult {
 
 /**
  * Given two node rects, returns which handle sides to use for source and target.
- * Decision is based on the center-to-center vector between the two nodes.
- * The dominant axis (horizontal vs vertical) determines the handle side.
+ * The handle position matches the direction of the connection:
+ * - bottom handle for downward connections (target below source)
+ * - top handle for upward connections (target above source)
+ * Falls back to horizontal handles when nodes are on the same level.
  */
 export function getDynamicHandles(
   sourceRect: NodeRect,
@@ -62,9 +64,9 @@ export function getDynamicHandles(
       throw new Error('Invalid rect');
     }
 
-    dx = targetCX - sourceCX;
-    dy = targetCY - sourceCY;
-  } catch (e) {
+    dx = Math.round((targetCX - sourceCX) * 1e6) / 1e6;
+    dy = Math.round((targetCY - sourceCY) * 1e6) / 1e6;
+  } catch {
     return { sourcePosition: Position.Right, targetPosition: Position.Left };
   }
 
@@ -72,8 +74,18 @@ export function getDynamicHandles(
   let targetPosition = Position.Left;
   let dominantAxis = 'horizontal';
 
-  // Determine dominant axis
-  if (Math.abs(dx) >= Math.abs(dy)) {
+  const horizontalDist = Math.abs(dx);
+  const verticalThreshold = Math.max(horizontalDist * 0.25, 30);
+
+  if (dy > verticalThreshold) {
+    dominantAxis = 'vertical';
+    sourcePosition = Position.Bottom;
+    targetPosition = Position.Top;
+  } else if (dy < -verticalThreshold) {
+    dominantAxis = 'vertical';
+    sourcePosition = Position.Top;
+    targetPosition = Position.Bottom;
+  } else {
     dominantAxis = 'horizontal';
     if (dx >= 0) {
       sourcePosition = Position.Right;
@@ -81,15 +93,6 @@ export function getDynamicHandles(
     } else {
       sourcePosition = Position.Left;
       targetPosition = Position.Right;
-    }
-  } else {
-    dominantAxis = 'vertical';
-    if (dy >= 0) {
-      sourcePosition = Position.Bottom;
-      targetPosition = Position.Top;
-    } else {
-      sourcePosition = Position.Top;
-      targetPosition = Position.Bottom;
     }
   }
 
@@ -126,8 +129,11 @@ export function getDynamicHandles(
 
 /**
  * Gets the XY coordinate of a handle on a node rect for a given Position side.
+ * Right and Bottom handles are shifted outward (12px) for cleaner edge routing.
  * Used by SimpleFloatingEdge to compute exact edge start/end points.
  */
+const OUTER_OFFSET = 12;
+
 export function getHandleCoordinate(
   rect: NodeRect,
   position: Position,
@@ -140,27 +146,17 @@ export function getHandleCoordinate(
   let offset = 0;
   if (isBidirectional && type) {
     if (type === 'source') {
-      switch (position) {
-        case Position.Right:  offset = -20; break;
-        case Position.Left:   offset = 20; break;
-        case Position.Top:    offset = -20; break;
-        case Position.Bottom: offset = 20; break;
-      }
+      offset = 12;
     } else if (type === 'target') {
-      switch (position) {
-        case Position.Right:  offset = 20; break;
-        case Position.Left:   offset = -20; break;
-        case Position.Top:    offset = 20; break;
-        case Position.Bottom: offset = -20; break;
-      }
+      offset = -12;
     }
   }
 
   switch (position) {
-    case Position.Top:    return { x: cx + offset, y: rect.y - 14 };
-    case Position.Bottom: return { x: cx + offset, y: rect.y + rect.height + 24 };
-    case Position.Left:   return { x: rect.x - 14, y: cy + offset };
-    case Position.Right:  return { x: rect.x + rect.width + 24, y: cy + offset };
+    case Position.Top:    return { x: cx + offset, y: rect.y - OUTER_OFFSET };
+    case Position.Bottom: return { x: cx + offset, y: rect.y + rect.height + OUTER_OFFSET };
+    case Position.Left:   return { x: rect.x - OUTER_OFFSET, y: cy + offset };
+    case Position.Right:  return { x: rect.x + rect.width + OUTER_OFFSET, y: cy + offset };
     default:              return { x: cx, y: cy };
   }
 }

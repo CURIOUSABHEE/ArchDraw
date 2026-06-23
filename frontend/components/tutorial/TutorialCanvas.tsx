@@ -123,6 +123,8 @@ const NODE_TYPES = {
   cacheNode:         TutorialSystemNodeWrapper,
   shapeNode:         ShapeNode,
   groupNode:         GroupNode,
+  frameNode:         GroupNode,
+  serviceNode:       TutorialSystemNodeWrapper,
   textLabelNode:     TextLabelNode,
   annotationNode:    AnnotationNode,
   messageBrokerNode: TutorialSystemNodeWrapper,

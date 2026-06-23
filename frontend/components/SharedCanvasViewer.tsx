@@ -29,6 +29,8 @@ const NODE_TYPES = {
   shapeNode:         ShapeNode,
   groupNode:         GroupNode,
   group:             GroupNode,
+  frameNode:         GroupNode,
+  serviceNode:       SystemNode,
   textLabelNode:     TextLabelNode,
   annotationNode:    AnnotationNode,
   messageBrokerNode: SystemNode,

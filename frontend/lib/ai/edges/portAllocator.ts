@@ -168,21 +168,19 @@ export function assignHandlesToEdges(
       const dx = tcx - scx;
       const dy = tcy - scy;
 
-      if (Math.abs(dx) >= Math.abs(dy)) {
+      if (dy > 0) {
+        desiredSource = 'bottom';
+        desiredTarget = 'top';
+      } else if (dy < 0) {
+        desiredSource = 'top';
+        desiredTarget = 'bottom';
+      } else {
         if (dx >= 0) {
           desiredSource = 'right';
           desiredTarget = 'left';
         } else {
           desiredSource = 'left';
           desiredTarget = 'right';
-        }
-      } else {
-        if (dy >= 0) {
-          desiredSource = 'bottom';
-          desiredTarget = 'top';
-        } else {
-          desiredSource = 'top';
-          desiredTarget = 'bottom';
         }
       }
     }

@@ -270,7 +270,10 @@ function push(
   async: boolean
 ) {
   if (!source || !target || source.id === target.id) return;
+  // Block if this exact direction already exists
   if (edges.some(edge => edge.source === source.id && edge.target === target.id)) return;
+  // Block if the REVERSE direction already exists — injecting would create a bidirectional pair
+  if (edges.some(edge => edge.source === target.id && edge.target === source.id)) return;
 
   edges.push({
     id: `story-${source.id}-${target.id}`,

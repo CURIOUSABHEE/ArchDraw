@@ -51,6 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [initialize]);
 
   useEffect(() => {
+    if (!initialized) return;
+
     if (!user) { 
       prevUserIdRef.current = null;
       useDiagramStore.getState().setUserProfile(null);
@@ -79,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: 'Guest User',
       });
     }
-  }, [user]);
+  }, [user, initialized]);
 
   useEffect(() => {
     if (!initialized || !isSupabaseConfigured) return;
