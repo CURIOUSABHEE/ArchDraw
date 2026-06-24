@@ -24,8 +24,8 @@ export interface NodeStyleConfig {
 
 export const DARK_NODE_STYLES: NodeStyleConfig = {
   background: '#1e2235',
-  border: '#334155',
-  borderHover: '#475569',
+  border: 'rgba(255, 255, 255, 0.12)',
+  borderHover: 'rgba(255, 255, 255, 0.2)',
   shadow: '5px 5px 0 #0d0f1b, 10px 10px 0 #151828, 0 1px 3px rgba(0,0,0,0.3)',
   shadowSelected: '0 0 0 2px var(--node-glow-border, #34D399), 5px 5px 0 #0d0f1b, 10px 10px 0 #151828, 0 2px 6px rgba(0,0,0,0.4)',
   titleColor: '#ffffff',
@@ -38,11 +38,11 @@ export const DARK_NODE_STYLES: NodeStyleConfig = {
 
 export const LIGHT_NODE_STYLES: NodeStyleConfig = {
   background: '#ffffff',
-  border: '#595959',
-  borderHover: '#595959',
+  border: 'rgba(0, 0, 0, 0.08)',
+  borderHover: 'rgba(0, 0, 0, 0.12)',
   shadow: '5px 5px 0 #e1e1da, 10px 10px 0 #efefe8, 0 1px 2px rgba(0,0,0,0.04)',
   shadowSelected: '0 0 0 2px rgba(95,164,219,0.35), 5px 5px 0 #dfdfd8, 10px 10px 0 #ecece5, 0 2px 5px rgba(0,0,0,0.06)',
-  titleColor: '#595959',
+  titleColor: '#1e293b',
   subtitleColor: '#7a7a7a',
   backplates: [
     { offset: 10, color: '#efefe8' },

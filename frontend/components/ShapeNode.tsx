@@ -162,7 +162,7 @@ function Rectangle({ id, data, selected, rounded, backplates, isDark, styles }: 
           width,
           height,
           borderRadius: r,
-          border: 'none',
+          border: isDark ? '0.5px solid rgba(255, 255, 255, 0.12)' : '0.5px solid rgba(0, 0, 0, 0.08)',
           background: isDark ? styles.background : 'linear-gradient(145deg, #ffffff 0%, hsl(0 0% 98%) 100%)',
           boxShadow: selected 
             ? (isDark ? `0 0 0 2px ${color}, 0 8px 32px ${color}30, 0 4px 12px rgba(0,0,0,0.3)` : `0 0 0 2px ${color}, 0 8px 32px ${color}30, 0 4px 12px hsl(var(--foreground) / 0.1)`)
@@ -210,7 +210,7 @@ function Diamond({ id, data, selected, backplates }: { id: string; data: ShapeNo
           points={`${W / 2},4 ${W - 4},${H / 2} ${W / 2},${H - 4} 4,${H / 2}`}
           fill={`${color}10`}
           stroke={selected ? color : `${color}50`}
-          strokeWidth={selected ? 2 : 1.5}
+          strokeWidth={selected ? 2 : 0.5}
           filter={selected ? `drop-shadow(0 0 8px ${color}40)` : 'none'}
         />
       </svg>
@@ -233,7 +233,7 @@ function Cylinder({ id, data, selected, backplates }: { id: string; data: ShapeN
   const H = data.nodeHeight ?? 90;
   const RY = 14;
   const stroke = selected ? color : `${color}60`;
-  const strokeW = selected ? 2 : 1.5;
+  const strokeW = selected ? 2 : 0.5;
   return (
     <div className="shape-node" style={{ width: W, height: H, position: 'relative', zIndex: 2 }}>
       {backplates.map((layer, i) => (
@@ -282,7 +282,7 @@ function Circle({ id, data, selected, backplates }: { id: string; data: ShapeNod
           cx={W / 2} cy={H / 2} rx={W / 2 - 2} ry={H / 2 - 2}
           fill={`${color}10`}
           stroke={selected ? color : `${color}50`}
-          strokeWidth={selected ? 2 : 1.5}
+          strokeWidth={selected ? 2 : 0.5}
         />
       </svg>
       <Handles color={color} nodeId={id} />
@@ -319,7 +319,7 @@ function Parallelogram({ id, data, selected, backplates }: { id: string; data: S
           points={pts}
           fill={`${color}10`}
           stroke={selected ? color : `${color}50`}
-          strokeWidth={selected ? 2 : 1.5}
+          strokeWidth={selected ? 2 : 0.5}
         />
       </svg>
       <Handles color={color} nodeId={id} />

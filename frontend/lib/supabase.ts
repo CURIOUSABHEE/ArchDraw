@@ -2,6 +2,46 @@ import { createClient as _createClient, type SupabaseClient } from '@supabase/su
 import { type Database } from '../types/supabase';
 import logger from '@/lib/logger';
 
+// ── Console error suppression ────────────────────────────────────
+// GoTrue-js (@supabase/auth-js) internally calls console.error with
+// AuthRetryableFetchError when token refresh or session fetch fails
+// due to network issues (lines 1811, 2092, 2398 in GoTrueClient.js).
+// These are expected in offline/guest mode and must not pollute the
+// Next.js dev overlay.  We patch console.error at module load time
+// (before any Supabase client is created) to suppress them.
+if (typeof window !== 'undefined') {
+  const _consoleError = console.error;
+  console.error = function (...args: unknown[]) {
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      if (
+        arg !== null &&
+        typeof arg === 'object' &&
+        'name' in (arg as object) &&
+        (arg as { name: unknown }).name === 'AuthRetryableFetchError'
+      ) {
+        return;
+      }
+    }
+    _consoleError.apply(console, args);
+  };
+
+  // Also catch any unhandled rejections that slip past GoTrue-js's
+  // internal error handling (belt-and-suspenders).
+  const _onunhandledrejection = (event: PromiseRejectionEvent) => {
+    const err = event.reason;
+    if (
+      err &&
+      typeof err === 'object' &&
+      'name' in err &&
+      (err as { name: string }).name === 'AuthRetryableFetchError'
+    ) {
+      event.preventDefault();
+    }
+  };
+  window.addEventListener('unhandledrejection', _onunhandledrejection);
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 

@@ -53,7 +53,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const supabase = getSupabaseInstance();
       
       // Wrap getSession in a timeout to prevent indefinite hangs (e.g. from Web Locks API issues)
-      const sessionPromise = supabase.auth.getSession();
+      // Attach .catch() before the race to prevent unhandled rejection if timeout wins first
+      const sessionPromise = supabase.auth.getSession().catch(() => ({ data: { session: null }, error: null }));
       const timeoutPromise = new Promise<{ data: { session: Session | null }, error: unknown }>((_, reject) => {
         setTimeout(() => reject(new Error('Supabase getSession timed out - operating in offline mode')), 3000);
       });

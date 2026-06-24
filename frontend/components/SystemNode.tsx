@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback } from 'react';
 import { NodeProps } from 'reactflow';
 import { useDiagramStore, NodeData } from '@/store/diagramStore';
 import { useCanvasTheme } from '@/lib/theme';
@@ -89,7 +89,6 @@ function ToolbarButton({
 function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
   const setSelectedNodeId = useDiagramStore((s) => s.setSelectedNodeId);
   const { isDark } = useCanvasTheme();
-  const [isHovered, setIsHovered] = useState(false);
 
   const nodeData = data as NodeData & {
     layer?: string;
@@ -123,7 +122,6 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
       ];
 
   const catStyle = getDarkCategoryStyle(nodeData.layer);
-  const showBorder = selected || isHovered;
 
   const handleClick = useCallback(() => {
     setSelectedNodeId(id);
@@ -207,11 +205,8 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
             width: nodeData.nodeWidth || Math.max(NODE_WIDTH, calcNodeWidth(data.label, nodeData.subtitle)),
             minWidth: nodeData.nodeWidth || NODE_WIDTH,
             minHeight: nodeData.nodeHeight || NODE_HEIGHT,
-            borderColor: showBorder ? 'transparent' : undefined,
           }}
         onClick={handleClick}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
         {selected && (
           <div className="node-toolbar" onClick={(e) => e.stopPropagation()}>
