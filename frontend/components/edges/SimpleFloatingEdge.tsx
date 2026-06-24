@@ -12,7 +12,8 @@ import {
   Edge,
   Node,
 } from 'reactflow';
-import { getDynamicHandles, getHandleCoordinate } from '@/lib/features/dynamicHandles';
+import { getDynamicHandles } from '@/lib/features/dynamicHandles';
+import { getEdgeShiftOffset, getSimpleHandlePosition } from '@/lib/utils/simpleFloatingEdge';
 import { getPointOnPath, findClosestT } from '@/lib/utils/edgeLabelDrag';
 import { useDiagramStore } from '@/store/diagramStore';
 import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
@@ -170,9 +171,11 @@ export default function SimpleFloatingEdge({
   sourcePosition = Position.Right,
   targetPosition = Position.Left,
   markerEnd,
+  markerStart,
 }: EdgeProps<EdgeData>) {
   const sourceNode = useStore((s: ReactFlowState) => s.nodeInternals.get(source));
   const targetNode = useStore((s: ReactFlowState) => s.nodeInternals.get(target));
+  const nodeInternals = useStore((s: ReactFlowState) => s.nodeInternals);
   const edges = useStore((s: ReactFlowState) => s.edges);
   const { getViewport } = useReactFlow();
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData);
@@ -205,8 +208,8 @@ export default function SimpleFloatingEdge({
         sourcePos = Position.Top;
         targetPos = Position.Right;
 
-        const sourceXY = getHandleCoordinate(sourceRect, sourcePos, 'source', false);
-        const targetXY = getHandleCoordinate(targetRect, targetPos, 'target', false);
+        const sourceXY = getSimpleHandlePosition(sourceRect.x, sourceRect.y, sourceRect.width, sourceRect.height, sourcePos, 12);
+        const targetXY = getSimpleHandlePosition(targetRect.x, targetRect.y, targetRect.width, targetRect.height, targetPos, -12);
 
         sx = sourceXY.x;
         sy = sourceXY.y;
@@ -217,18 +220,36 @@ export default function SimpleFloatingEdge({
         sourcePos = handles.sourcePosition;
         targetPos = handles.targetPosition;
 
-        const sourceXY = getHandleCoordinate(sourceRect, sourcePos, 'source', false);
-        const targetXY = getHandleCoordinate(targetRect, targetPos, 'target', false);
+        const sourceShift = getEdgeShiftOffset(source, id, sourcePos, edges, nodeInternals, 12);
+        const targetShift = getEdgeShiftOffset(target, id, targetPos, edges, nodeInternals, 12);
+
+        const sourceXY = getSimpleHandlePosition(sourceRect.x, sourceRect.y, sourceRect.width, sourceRect.height, sourcePos, sourceShift);
+        const targetXY = getSimpleHandlePosition(targetRect.x, targetRect.y, targetRect.width, targetRect.height, targetPos, targetShift);
 
         sx = sourceXY.x;
         sy = sourceXY.y;
         tx = targetXY.x;
         ty = targetXY.y;
       }
+      
+      console.log(`[SimpleFloatingEdge] ${id}: (${source} -> ${target})`, {
+        sourceX: sourceX,
+        sourceY: sourceY,
+        targetX: targetX,
+        targetY: targetY,
+        computedSx: sx,
+        computedSy: sy,
+        computedTx: tx,
+        computedTy: ty,
+        sourcePos,
+        targetPos
+      });
+    } else {
+      console.warn(`[SimpleFloatingEdge] Missing nodes for edge ${id}:`, { sourceNode: !!sourceNode, targetNode: !!targetNode });
     }
 
     return { sx, sy, tx, ty, sourcePos, targetPos };
-  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, source, target]);
+  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, source, target, edges, nodeInternals]);
 
   const { sx, sy, tx, ty, sourcePos, targetPos } = edgeParams;
   const [isHovered, setIsHovered] = useState(false);
@@ -375,7 +396,7 @@ export default function SimpleFloatingEdge({
         id={id}
         d={edgePath}
         fill="none"
-        markerStart={undefined}
+        markerStart={markerStart}
         markerEnd={markerEnd}
         className="react-flow__edge-path"
         style={strokeStyle}

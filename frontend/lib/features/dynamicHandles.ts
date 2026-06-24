@@ -64,8 +64,8 @@ export function getDynamicHandles(
       throw new Error('Invalid rect');
     }
 
-    dx = Math.round((targetCX - sourceCX) * 1e6) / 1e6;
-    dy = Math.round((targetCY - sourceCY) * 1e6) / 1e6;
+    dx = targetCX - sourceCX;
+    dy = targetCY - sourceCY;
   } catch {
     return { sourcePosition: Position.Right, targetPosition: Position.Left };
   }

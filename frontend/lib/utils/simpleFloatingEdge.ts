@@ -67,7 +67,7 @@ export function getEdgeShiftOffset(
   if (!node) return 0;
   
   // Find all edges that connect to this node on the given side
-  const connectedEdges = edges.map(e => {
+  const connectedEdges = (edges || []).map(e => {
     if (e.source !== nodeId && e.target !== nodeId) return null;
     
     const sNode = nodeInternals.get(e.source);
@@ -80,71 +80,37 @@ export function getEdgeShiftOffset(
     const positions = getSimpleEdgePositions(sCenter.cx, sCenter.cy, tCenter.cx, tCenter.cy);
     
     if (e.source === nodeId && positions.sourcePos === side) {
-      return { edge: e, otherNodeCenter: tCenter, flow: 'out' };
+      return { edge: e, otherNodeCenter: tCenter };
     }
     if (e.target === nodeId && positions.targetPos === side) {
-      return { edge: e, otherNodeCenter: sCenter, flow: 'in' };
+      return { edge: e, otherNodeCenter: sCenter };
     }
     
     return null;
-  }).filter(Boolean) as { edge: Edge; otherNodeCenter: ReturnType<typeof getNodeCenter>; flow: 'in' | 'out' }[];
+  }).filter(Boolean) as { edge: Edge; otherNodeCenter: ReturnType<typeof getNodeCenter> }[];
   
   if (connectedEdges.length <= 1) return 0;
 
-  const inwardEdges = connectedEdges.filter(e => e.flow === 'in');
-  const outwardEdges = connectedEdges.filter(e => e.flow === 'out');
-
-  // If this side only has one type of flow, merge them all at the center
-  if (inwardEdges.length === 0 || outwardEdges.length === 0) {
-    return 0;
-  }
-
-  const edge = edges.find(e => e.id === edgeId);
-  if (!edge) return 0;
-
-  // Check for parallel edges between the exact same two nodes (regardless of direction)
-  const parallelEdges = edges.filter(
-    e => (e.source === edge.source && e.target === edge.target) || 
-         (e.source === edge.target && e.target === edge.source)
-  ).sort((a, b) => a.id.localeCompare(b.id));
-
-  // Determine if there are bidirectional connections between source and target nodes, in which case we center the handles
-  const forward = edges.filter(e => e.source === edge.source && e.target === edge.target);
-  const reverse = edges.filter(e => e.source === edge.target && e.target === edge.source);
-  const isBidirectionalConnection = forward.length > 0 && reverse.length > 0;
-
-  if (isBidirectionalConnection) {
-    return 0;
-  }
-
-  // If this specific edge is part of a parallel/bidirectional group, spread them evenly
-  if (parallelEdges.length > 1) {
-    const index = parallelEdges.findIndex(e => e.id === edgeId);
-    // Spread them by spacing * 1.5 around the center
-    return (index - (parallelEdges.length - 1) / 2) * spacing * 1.5;
-  }
-
-  // Otherwise, use the geometric calculation to untangle bundles of different nodes
-  const getAvgCoord = (items: typeof inwardEdges) => {
-    let sum = 0;
-    for (const item of items) {
-      sum += (side === Position.Left || side === Position.Right) 
-          ? item.otherNodeCenter.cy 
-          : item.otherNodeCenter.cx;
-    }
-    return sum / items.length;
-  };
-
-  const avgIn = getAvgCoord(inwardEdges);
-  const avgOut = getAvgCoord(outwardEdges);
-
-  const isCurrentInward = inwardEdges.some(e => e.edge.id === edgeId);
+  // Sort connected edges by other node's coordinate along the axis of the side:
+  // - For Left/Right: perpendicular axis is Y, so sort by cy
+  // - For Top/Bottom: perpendicular axis is X, so sort by cx
+  const isHorizontalSide = side === Position.Left || side === Position.Right;
   
-  if (avgIn <= avgOut) {
-    return isCurrentInward ? -spacing : spacing;
-  } else {
-    return isCurrentInward ? spacing : -spacing;
-  }
+  connectedEdges.sort((a, b) => {
+    const valA = isHorizontalSide ? a.otherNodeCenter.cy : a.otherNodeCenter.cx;
+    const valB = isHorizontalSide ? b.otherNodeCenter.cy : b.otherNodeCenter.cx;
+    
+    if (Math.abs(valA - valB) < 0.01) {
+      // Stable tie-break by edge ID
+      return a.edge.id.localeCompare(b.edge.id);
+    }
+    return valA - valB;
+  });
+
+  const index = connectedEdges.findIndex(e => e.edge.id === edgeId);
+  if (index === -1) return 0;
+
+  return (index - (connectedEdges.length - 1) / 2) * spacing;
 }
 
 export function getSimpleHandlePosition(

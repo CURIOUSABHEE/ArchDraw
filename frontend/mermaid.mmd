@@ -1,0 +1,57 @@
+graph LR
+  subgraph CLIENTS["Client Devices"]
+    web_app["Desktop React SPA"]
+    mobile_app["React Native iOS/Android"]
+  end
+
+  subgraph ROUTING["Edge Routing"]
+    cdn["Cloudflare CDN"]
+    api_gateway["Kong API Gateway"]
+  end
+
+  subgraph SERVICES["Business Logic Tier"]
+    auth_service["Auth Service"]
+    cart_service["Cart Service"]
+    order_service["Order Service"]
+    inventory_service["Inventory Service"]
+  end
+
+  subgraph BUS["Async Event Broker"]
+    kafka["Kafka Event Broker"]
+    order_processor["Order Processing Worker"]
+  end
+
+  subgraph DATA["Storage Tier"]
+    postgres_db[("PostgreSQL User DB")]
+    redis_cache[("Redis Session Cache")]
+    mongo_db[("MongoDB Catalog DB")]
+  end
+
+  subgraph THIRD_PARTY["External Gateways"]
+    stripe["Stripe Payment Gateway"]
+    sendgrid["SendGrid Notification API"]
+  end
+
+  %% Client requests flow left-to-right through routing
+  web_app -->|"HTTPS"| cdn
+  mobile_app -->|"HTTPS"| cdn
+  cdn -->|"Forward"| api_gateway
+
+  %% API Gateway routes to compute tier
+  api_gateway -->|"Verify Token"| auth_service
+  api_gateway -->|"Manage Items"| cart_service
+  api_gateway -->|"Create Order"| order_service
+  api_gateway -->|"Check Stock"| inventory_service
+
+  %% Databases and Caches connections
+  auth_service -->|"Read Credentials"| postgres_db
+  cart_service -->|"Cache Sessions"| redis_cache
+  inventory_service -->|"Query Products"| mongo_db
+
+  %% Event stream flow
+  order_service -->|"Publish Order Event"| kafka
+  kafka -.->|"Subscribe & Consume"| order_processor
+
+  %% Business workers and third-party APIs
+  order_processor -->|"Charge Cards"| stripe
+  order_processor -->|"Send Invoices"| sendgrid

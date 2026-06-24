@@ -409,6 +409,14 @@ interface DiagramState {
   setEdges: (edges: Edge[]) => void;
   appendNode: (node: Node) => void;
   appendEdge: (edge: Edge) => void;
+
+  // ── AI Pipeline Generation Status ──────────────────────────────────────────
+  pipelineStatus: 'idle' | 'generating' | 'done' | 'error';
+  pipelineError: string | null;
+  startGeneration: () => void;
+  markPipelineDone: () => void;
+  markPipelineError: (message: string) => void;
+  clearPipelineStatus: () => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -547,7 +555,9 @@ function distributeTargetHandles(nodes: Node[], edges: Edge[]): Edge[] {
     return { x, y };
   };
 
-  return edges.map(edge => ({
+  const normalized = normalizeEdges(edges);
+
+  return normalized.map(edge => ({
     ...edge,
     sourceHandle: edge.sourceHandle ?? undefined,
     targetHandle: edge.targetHandle ?? undefined,
@@ -569,7 +579,92 @@ function normalizeEdges(edges: Edge[]): Edge[] {
     return { ...edge, id };
   });
 
-  return deduplicated.map(normalizeEdge);
+  // Merge bidirectional edges
+  const merged: Edge[] = [];
+  const processedIndices = new Set<number>();
+
+  for (let i = 0; i < deduplicated.length; i++) {
+    if (processedIndices.has(i)) continue;
+    const edgeA = deduplicated[i];
+    
+    let foundReverseIndex = -1;
+    for (let j = i + 1; j < deduplicated.length; j++) {
+      if (processedIndices.has(j)) continue;
+      const edgeB = deduplicated[j];
+      
+      // Match bidirectional connection: source A is target B, and target A is source B
+      if (edgeA.source === edgeB.target && edgeA.target === edgeB.source) {
+        foundReverseIndex = j;
+        break;
+      }
+    }
+
+    if (foundReverseIndex !== -1) {
+      processedIndices.add(foundReverseIndex);
+      const edgeB = deduplicated[foundReverseIndex];
+
+      // Merge labelA and labelB
+      const labelA = (typeof edgeA.data?.label === 'string' 
+        ? edgeA.data.label.trim() 
+        : (typeof edgeA.label === 'string' ? edgeA.label.trim() : '')) || '';
+      const labelB = (typeof edgeB.data?.label === 'string' 
+        ? edgeB.data.label.trim() 
+        : (typeof edgeB.label === 'string' ? edgeB.label.trim() : '')) || '';
+      
+      let combinedLabel = '';
+      if (labelA && labelB) {
+        if (labelA === labelB) {
+          combinedLabel = labelA;
+        } else {
+          combinedLabel = `${labelA} / ${labelB}`;
+        }
+      } else {
+        combinedLabel = labelA || labelB;
+      }
+
+      // Determine stroke color for markers
+      const stroke = edgeA.style?.stroke || edgeB.style?.stroke || '#94a3b8';
+      const markerColor = typeof stroke === 'string' ? stroke : '#94a3b8';
+
+      // Set bidirectional markers
+      const markerStart = {
+        type: MarkerType.ArrowClosed,
+        color: markerColor,
+        width: 20,
+        height: 20,
+      };
+      
+      const markerEnd = {
+        type: MarkerType.ArrowClosed,
+        color: markerColor,
+        width: 20,
+        height: 20,
+      };
+
+      const dataA = edgeA.data || {};
+      const dataB = edgeB.data || {};
+      const mergedData = {
+        ...dataB,
+        ...dataA,
+        label: combinedLabel,
+        edgeVariant: dataA.edgeVariant === 'dashed' || dataB.edgeVariant === 'dashed' ? 'dashed' : dataA.edgeVariant,
+      };
+
+      const mergedEdge: Edge = {
+        ...edgeA,
+        label: combinedLabel,
+        data: mergedData,
+        markerStart,
+        markerEnd,
+      };
+
+      merged.push(mergedEdge);
+    } else {
+      merged.push(edgeA);
+    }
+  }
+
+  return merged.map(normalizeEdge);
 }
 
 function sanitizeNodes(nodes: Node[]): Node[] {
@@ -732,6 +827,8 @@ const useDiagramStoreRaw = create<DiagramState>()(
       nodes: [],
       edges: [],
       sequenceDiagrams: {},
+      pipelineStatus: 'idle',
+      pipelineError: null,
 
       getRandomAnimalName: () => {
         const animals = ['Elephant', 'Lion', 'Panda', 'Tiger', 'Falcon', 'Shark', 'Wolf', 'Fox', 'Bear', 'Eagle', 'Owl', 'Hawk', 'Dolphin', 'Penguin', 'Zebra', 'Giraffe', 'Leopard', 'Jaguar', 'Panther', 'Cheetah'];
@@ -1422,7 +1519,14 @@ const useDiagramStoreRaw = create<DiagramState>()(
           // Qualifies for updatedAt because edge was added/connected
           c.id === get().activeCanvasId ? { ...c, edges, updatedAt: Date.now() } : c
         );
-        set({ canvases, pendingLabelEdgeId: newEdge.id });
+
+        const connectedEdge = edges.find(e => 
+          (e.source === source && e.target === target) || 
+          (e.source === target && e.target === source)
+        );
+        const finalPendingId = connectedEdge ? connectedEdge.id : newEdge.id;
+
+        set({ canvases, pendingLabelEdgeId: finalPendingId });
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
@@ -1889,6 +1993,21 @@ const useDiagramStoreRaw = create<DiagramState>()(
         get().saveCanvasToDB(get().activeCanvasId);
       },
 
+      startGeneration: () => {
+        const activeId = get().activeCanvasId;
+        set((state) => ({
+          pipelineStatus: 'generating',
+          pipelineError: null,
+          canvases: state.canvases.map((c) =>
+            c.id === activeId ? { ...c, nodes: [], edges: [], updatedAt: Date.now() } : c
+          ),
+        }));
+      },
+      markPipelineDone: () => set({ pipelineStatus: 'done' }),
+      markPipelineError: (message: string) =>
+        set({ pipelineStatus: 'error', pipelineError: message }),
+      clearPipelineStatus: () => set({ pipelineStatus: 'idle', pipelineError: null }),
+
       setSequenceDiagram: (canvasId: string, mermaidSyntax: string, title: string) => {
         set((state) => ({
           sequenceDiagrams: {
@@ -2031,72 +2150,115 @@ const useDiagramStoreRaw = create<DiagramState>()(
           // Only use guest storage as fallback when rehydrated canvases are empty
           // (avoid overriding proper rehydration from archdraw-storage main persist key)
           const isGuest = !state.userProfile || state.userProfile.id === 'guest';
-          if (isGuest && (!state.canvases || state.canvases.length === 0)) {
-            const guestListSaved = localStorage.getItem(STORAGE_KEYS.guestCanvases);
-            if (guestListSaved) {
-              try {
-                const list = JSON.parse(guestListSaved);
-                if (Array.isArray(list) && list.length > 0) {
-                  const guestCanvases = list
-                    .filter((c: any) => c && typeof c.id === 'string')
-                    .slice(0, MAX_GUEST_CANVASES)
-                    .map((c: any) => ({
-                      ...c,
-                      isOpen: true,
-                      lastAccessedAt: c.lastAccessedAt || c.updatedAt || Date.now(),
-                      createdAt: c.createdAt || Date.now(),
-                      updatedAt: c.updatedAt || Date.now(),
-                      nodes: c.nodes || [],
-                      edges: c.edges || [],
-                    }));
+          const isNewSession = typeof window !== 'undefined' && !sessionStorage.getItem('archdraw-session-active');
 
-                  state.canvases = guestCanvases;
-                  state.openCanvasIds = guestCanvases.map((c: any) => c.id);
-                  state.activeCanvasId =
-                    state.activeCanvasId && guestCanvases.some((c: any) => c.id === state.activeCanvasId)
-                      ? state.activeCanvasId
-                      : guestCanvases[0].id;
-
-                  // keep legacy key pointing at active
-                  const active = guestCanvases.find((c: any) => c.id === state.activeCanvasId) || guestCanvases[0];
-                  localStorage.setItem('archdraw-guest-canvas', JSON.stringify(active));
-                }
-              } catch {
-                // ignore
-              }
+          if (isGuest && isNewSession) {
+            // New browser session for guest user -> clear all guest progress and start fresh!
+            try {
+              localStorage.removeItem(STORAGE_KEYS.guestCanvases);
+              localStorage.removeItem('archdraw-guest-canvas');
+            } catch {
+              // ignore
             }
 
-            // Backwards compat fallback: single guest canvas
+            const defaultGuest: CanvasTab = {
+              id: 'guest-canvas',
+              name: 'Elephant',
+              nodes: [],
+              edges: [],
+              updatedAt: Date.now(),
+              createdAt: Date.now(),
+              isOpen: true,
+              lastAccessedAt: Date.now(),
+            };
+
+            state.canvases = [defaultGuest];
+            state.activeCanvasId = 'guest-canvas';
+            state.openCanvasIds = ['guest-canvas'];
+
+            try {
+              sessionStorage.setItem('archdraw-session-active', 'true');
+            } catch {
+              // ignore
+            }
+          } else if (isGuest) {
+            // Existing session refresh / reload -> load normally from localStorage or fallback
             if (!state.canvases || state.canvases.length === 0) {
-              const guestSaved = localStorage.getItem('archdraw-guest-canvas');
-              if (guestSaved) {
+              const guestListSaved = localStorage.getItem(STORAGE_KEYS.guestCanvases);
+              if (guestListSaved) {
                 try {
-                  const canvas = JSON.parse(guestSaved);
-                  state.canvases = [{ ...canvas, isOpen: true, lastAccessedAt: Date.now() }];
-                  state.activeCanvasId = canvas.id || 'guest-canvas';
-                  state.openCanvasIds = [state.activeCanvasId];
+                  const list = JSON.parse(guestListSaved);
+                  if (Array.isArray(list) && list.length > 0) {
+                    const guestCanvases = list
+                      .filter((c: any) => c && typeof c.id === 'string')
+                      .slice(0, MAX_GUEST_CANVASES)
+                      .map((c: any) => ({
+                        ...c,
+                        isOpen: true,
+                        lastAccessedAt: c.lastAccessedAt || c.updatedAt || Date.now(),
+                        createdAt: c.createdAt || Date.now(),
+                        updatedAt: c.updatedAt || Date.now(),
+                        nodes: c.nodes || [],
+                        edges: c.edges || [],
+                      }));
+
+                    state.canvases = guestCanvases;
+                    state.openCanvasIds = guestCanvases.map((c: any) => c.id);
+                    state.activeCanvasId =
+                      state.activeCanvasId && guestCanvases.some((c: any) => c.id === state.activeCanvasId)
+                        ? state.activeCanvasId
+                        : guestCanvases[0].id;
+
+                    // keep legacy key pointing at active
+                    const active = guestCanvases.find((c: any) => c.id === state.activeCanvasId) || guestCanvases[0];
+                    localStorage.setItem('archdraw-guest-canvas', JSON.stringify(active));
+                  }
                 } catch {
                   // ignore
                 }
               }
+
+              // Backwards compat fallback: single guest canvas
+              if (!state.canvases || state.canvases.length === 0) {
+                const guestSaved = localStorage.getItem('archdraw-guest-canvas');
+                if (guestSaved) {
+                  try {
+                    const canvas = JSON.parse(guestSaved);
+                    state.canvases = [{ ...canvas, isOpen: true, lastAccessedAt: Date.now() }];
+                    state.activeCanvasId = canvas.id || 'guest-canvas';
+                    state.openCanvasIds = [state.activeCanvasId];
+                  } catch {
+                    // ignore
+                  }
+                }
+              }
+
+              if (!state.canvases || state.canvases.length === 0) {
+                const defaultGuest: CanvasTab = {
+                  id: 'guest-canvas',
+                  name: 'Elephant',
+                  nodes: [],
+                  edges: [],
+                  updatedAt: Date.now(),
+                  createdAt: Date.now(),
+                  isOpen: true,
+                  lastAccessedAt: Date.now(),
+                };
+                state.canvases = [defaultGuest];
+                state.activeCanvasId = 'guest-canvas';
+                state.openCanvasIds = ['guest-canvas'];
+                localStorage.setItem(STORAGE_KEYS.guestCanvases, JSON.stringify([defaultGuest]));
+                localStorage.setItem('archdraw-guest-canvas', JSON.stringify(defaultGuest));
+              }
             }
 
-            if (!state.canvases || state.canvases.length === 0) {
-              const defaultGuest: CanvasTab = {
-                id: 'guest-canvas',
-                name: 'Elephant',
-                nodes: [],
-                edges: [],
-                updatedAt: Date.now(),
-                createdAt: Date.now(),
-                isOpen: true,
-                lastAccessedAt: Date.now(),
-              };
-              state.canvases = [defaultGuest];
-              state.activeCanvasId = 'guest-canvas';
-              state.openCanvasIds = ['guest-canvas'];
-              localStorage.setItem(STORAGE_KEYS.guestCanvases, JSON.stringify([defaultGuest]));
-              localStorage.setItem('archdraw-guest-canvas', JSON.stringify(defaultGuest));
+            // Always set session active flag on reload so next reload knows it is in the same session
+            if (typeof window !== 'undefined') {
+              try {
+                sessionStorage.setItem('archdraw-session-active', 'true');
+              } catch {
+                // ignore
+              }
             }
           }
 

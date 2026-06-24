@@ -42,7 +42,8 @@ export default function EditorPage() {
   const { 
     selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, 
     importDiagram, importSequenceDiagram, fitView, renameCanvas, 
-    activeCanvasId, sequenceDiagrams, canvases 
+    activeCanvasId, sequenceDiagrams, canvases,
+    startGeneration, markPipelineDone, markPipelineError
   } = useDiagramStore();
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -302,6 +303,8 @@ export default function EditorPage() {
         return;
       }
 
+      startGeneration();
+
       const payload: {
         description: string;
         diagramSize?: 'small' | 'medium' | 'large';
@@ -330,9 +333,11 @@ export default function EditorPage() {
       }
       
       handleGenerationComplete(responseData.data, canvasName);
+      markPipelineDone();
 
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Generation failed';
+      markPipelineError(message);
       setProgress({
         phase: 'error',
         iteration: 0,

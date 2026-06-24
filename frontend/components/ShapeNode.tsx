@@ -2,6 +2,7 @@
 
 import { memo, useEffect } from 'react';
 import { Handle, Position, NodeProps, useUpdateNodeInternals } from 'reactflow';
+import { useNodeHandles } from '@/hooks/useNodeHandles';
 import { useCanvasTheme } from '@/lib/theme';
 import { LIGHT_NODE_STYLES, DARK_NODE_STYLES } from '@/lib/theme/stylingConstants';
 import './nodes/nodeStyles.css';
@@ -35,35 +36,79 @@ const HANDLE_STYLE = (color: string) => ({
   transition: 'opacity 0.15s ease',
 });
 
+const CENTER_HANDLE: React.CSSProperties = {
+  opacity: 0,
+  pointerEvents: 'none',
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: 1,
+  height: 1,
+  border: 'none',
+  background: 'transparent',
+  minWidth: 0,
+  minHeight: 0,
+};
+
+/**
+ * Smart Handles — only renders handles for edge directions that are
+ * actually in use on this node. Falls back to a single centered pair
+ * when no edges are connected, keeping the DOM minimal.
+ */
 function Handles({ color, nodeId }: { color: string; nodeId: string }) {
   const updateNodeInternals = useUpdateNodeInternals();
+  const needed = useNodeHandles(nodeId);
   const s = HANDLE_STYLE(color);
-  
+
   useEffect(() => {
     updateNodeInternals(nodeId);
-  }, [nodeId, updateNodeInternals]);
-  
+  }, [nodeId, needed, updateNodeInternals]);
+
+  // Only offset ±12px when BOTH source and target are used on the same side.
+  // If only one is used, place it at exactly 50% so it's visually centered.
+  const bothLeft   = needed.has('target-left')   && needed.has('source-left');
+  const bothRight  = needed.has('target-right')  && needed.has('source-right');
+  const bothTop    = needed.has('target-top')    && needed.has('source-top');
+  const bothBottom = needed.has('target-bottom') && needed.has('source-bottom');
+
   return (
     <>
-      {/* Left side */}
-      <Handle type="target" position={Position.Left} id="left" style={s} />
-      <Handle type="source" position={Position.Left} id="left" style={s} />
+      {/* Always-present centered fallback for new connections */}
+      <Handle type="source" position={Position.Top} style={CENTER_HANDLE} />
+      <Handle type="target" position={Position.Top} style={CENTER_HANDLE} />
 
-      {/* Right side */}
-      <Handle type="target" position={Position.Right} id="right" style={s} />
-      <Handle type="source" position={Position.Right} id="right" style={s} />
+      {/* Left */}
+      {needed.has('target-left') && (
+        <Handle type="target" position={Position.Left} id="target-left" style={{ ...s, top: bothLeft ? 'calc(50% - 12px)' : '50%' }} />
+      )}
+      {needed.has('source-left') && (
+        <Handle type="source" position={Position.Left} id="source-left" style={{ ...s, top: bothLeft ? 'calc(50% + 12px)' : '50%' }} />
+      )}
 
-      {/* Top side */}
-      <Handle type="target" position={Position.Top} id="top" style={s} />
-      <Handle type="source" position={Position.Top} id="top" style={s} />
+      {/* Right */}
+      {needed.has('target-right') && (
+        <Handle type="target" position={Position.Right} id="target-right" style={{ ...s, top: bothRight ? 'calc(50% - 12px)' : '50%' }} />
+      )}
+      {needed.has('source-right') && (
+        <Handle type="source" position={Position.Right} id="source-right" style={{ ...s, top: bothRight ? 'calc(50% + 12px)' : '50%' }} />
+      )}
 
-      {/* Bottom side */}
-      <Handle type="target" position={Position.Bottom} id="bottom" style={s} />
-      <Handle type="source" position={Position.Bottom} id="bottom" style={s} />
-      
-      {/* Dummy handles for edges that don't specify sourceHandle/targetHandle */}
-      <Handle type="source" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
-      <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
+      {/* Top */}
+      {needed.has('target-top') && (
+        <Handle type="target" position={Position.Top} id="target-top" style={{ ...s, left: bothTop ? 'calc(50% - 12px)' : '50%' }} />
+      )}
+      {needed.has('source-top') && (
+        <Handle type="source" position={Position.Top} id="source-top" style={{ ...s, left: bothTop ? 'calc(50% + 12px)' : '50%' }} />
+      )}
+
+      {/* Bottom */}
+      {needed.has('target-bottom') && (
+        <Handle type="target" position={Position.Bottom} id="target-bottom" style={{ ...s, left: bothBottom ? 'calc(50% - 12px)' : '50%' }} />
+      )}
+      {needed.has('source-bottom') && (
+        <Handle type="source" position={Position.Bottom} id="source-bottom" style={{ ...s, left: bothBottom ? 'calc(50% + 12px)' : '50%' }} />
+      )}
     </>
   );
 }

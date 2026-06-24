@@ -176,20 +176,20 @@ function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
       className="text-label-node"
     >
       {/* Left side */}
-      <Handle type="target" position={Position.Left} id="left" style={{ ...handleStyle, left: -15 }} />
-      <Handle type="source" position={Position.Left} id="left" style={{ ...handleStyle, left: -15 }} />
+      <Handle type="target" position={Position.Left} id="target-left" style={{ ...handleStyle, left: -15, top: 'calc(50% - 12px)' }} />
+      <Handle type="source" position={Position.Left} id="source-left" style={{ ...handleStyle, left: -15, top: 'calc(50% + 12px)' }} />
 
       {/* Right side */}
-      <Handle type="target" position={Position.Right} id="right" style={handleStyle} />
-      <Handle type="source" position={Position.Right} id="right" style={handleStyle} />
+      <Handle type="target" position={Position.Right} id="target-right" style={{ ...handleStyle, top: 'calc(50% - 12px)' }} />
+      <Handle type="source" position={Position.Right} id="source-right" style={{ ...handleStyle, top: 'calc(50% + 12px)' }} />
 
       {/* Top side */}
-      <Handle type="target" position={Position.Top} id="top" style={handleStyle} />
-      <Handle type="source" position={Position.Top} id="top" style={handleStyle} />
+      <Handle type="target" position={Position.Top} id="target-top" style={{ ...handleStyle, left: 'calc(50% - 12px)' }} />
+      <Handle type="source" position={Position.Top} id="source-top" style={{ ...handleStyle, left: 'calc(50% + 12px)' }} />
 
       {/* Bottom side */}
-      <Handle type="target" position={Position.Bottom} id="bottom" style={handleStyle} />
-      <Handle type="source" position={Position.Bottom} id="bottom" style={handleStyle} />
+      <Handle type="target" position={Position.Bottom} id="target-bottom" style={{ ...handleStyle, left: 'calc(50% - 12px)' }} />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" style={{ ...handleStyle, left: 'calc(50% + 12px)' }} />
 
       {/* Dummy handles for edges that don't specify sourceHandle/targetHandle */}
       <Handle type="source" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />

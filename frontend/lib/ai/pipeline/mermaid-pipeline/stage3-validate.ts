@@ -302,12 +302,18 @@ export function validateMermaid(
   // Deleted (bidirectional edge count mismatch check is no longer active)
 
   // --- CHECK C8, C9, C10, C11: ARCHITECTURAL ACCURACY ---
-  const gatewayNodeIds = new Set<string>();
+  const gatewayNodeIds = new Set<string>();   // true routing gateways: API gateway, load balancer
+  const edgeLayerNodeIds = new Set<string>(); // edge/cache tier: CDN, WAF, proxy — valid intermediaries
   const clientNodeIds = new Set<string>();
   const internalNodeIds = new Set<string>();
 
   const isClientName = (name: string) => /client|mobile|web.?app|browser|ios|android/i.test(name);
-  const isGatewayName = (name: string) => /gateway|load.?balancer|cdn|proxy|ingress|nginx|kong/i.test(name);
+  // CDN and WAF are edge-layer nodes, NOT routing gateways. They do not need to forward to backends.
+  const isEdgeLayerName = (name: string) => /\bcdn\b|\bwaf\b|\bcloudfront\b|\bcloudflare\b|\bfastly\b|\bakamai\b/i.test(name);
+  // True routing gateways that MUST forward requests to backend services
+  const isRoutingGatewayName = (name: string) => /api.?gateway|load.?balancer|\bingress\b|\bnginx\b|\bkong\b|\btraefik\b|\benvoy\b/i.test(name);
+  // proxy/plain "gateway" keyword nodes go into gatewayNodeIds if not edge-layer
+  const isPlainGatewayName = (name: string) => /\bproxy\b|\bgateway\b/i.test(name) && !isEdgeLayerName(name) && !isRoutingGatewayName(name);
   const isServerReplica = (name: string) => /server\s*[a-z0-9]|replica\s*[a-z0-9]|instance\s*[a-z0-9]/i.test(name);
 
   for (const node of parsed.nodes) {
@@ -316,25 +322,49 @@ export function validateMermaid(
     const parentId = parentGroup ? parentGroup.id : '';
 
     const isClient = isClientName(node.id) || isClientName(node.label) || isClientName(parentLabel) || isClientName(parentId);
-    const isGateway = isGatewayName(node.id) || isGatewayName(node.label);
+    const isEdge = isEdgeLayerName(node.id) || isEdgeLayerName(node.label);
+    const isRoutingGw = !isEdge && (
+      isRoutingGatewayName(node.id) || isRoutingGatewayName(node.label) ||
+      isPlainGatewayName(node.id) || isPlainGatewayName(node.label)
+    );
 
     if (isClient) {
       clientNodeIds.add(node.id);
-    } else if (isGateway) {
+    } else if (isEdge) {
+      edgeLayerNodeIds.add(node.id); // CDN/WAF go here — not checked by C10
+    } else if (isRoutingGw) {
       gatewayNodeIds.add(node.id);
     } else {
       internalNodeIds.add(node.id);
     }
   }
 
+  // All non-client intermediary node IDs (for bypass detection)
+  const allGatewayAndEdgeIds = new Set([...gatewayNodeIds, ...edgeLayerNodeIds]);
+
   for (const edge of parsed.edges) {
-    // Check C8: Gateway Bypass
-    if (gatewayNodeIds.size > 0 && clientNodeIds.has(edge.source) && internalNodeIds.has(edge.target)) {
+    // Check C8: Gateway Bypass — only fire when a routing gateway EXISTS and client talks
+    // directly to a pure internal service (not an edge/gateway node).
+    // We do NOT fire if the diagram has only edge-layer nodes (CDN/WAF) without a routing gateway.
+    if (
+      gatewayNodeIds.size > 0 &&
+      clientNodeIds.has(edge.source) &&
+      internalNodeIds.has(edge.target) &&
+      // Ensure the client doesn't already have a path through any gateway/edge node
+      !parsed.edges.some(
+        e2 => clientNodeIds.has(e2.source) && allGatewayAndEdgeIds.has(e2.target)
+      )
+    ) {
       edgeIssues.push(`GATEWAY BYPASS: Client node "${edge.source}" connects directly to internal node "${edge.target}" bypassing the gateway/load balancer. Re-route this request from "${edge.source}" to the gateway/load balancer first, then to the target service.`);
     }
 
-    // Check C9: Reverse Client Flow
-    if (clientNodeIds.has(edge.target) && !clientNodeIds.has(edge.source)) {
+    // Check C9: Reverse Client Flow — skip if the source is a gateway/edge node
+    // (e.g. API Gateway returning auth token to client is a valid diagram pattern)
+    if (
+      clientNodeIds.has(edge.target) &&
+      !clientNodeIds.has(edge.source) &&
+      !allGatewayAndEdgeIds.has(edge.source)
+    ) {
       edgeIssues.push(`REVERSE FLOW: Internal node "${edge.source}" has an arrow pointing back to client node "${edge.target}". Clients are sources, never sinks, and cannot receive direct incoming connections. Push notification / WebSocket updates must route through a gateway or Push/WebSocket server. Delete this reverse edge.`);
     }
 
@@ -344,10 +374,19 @@ export function validateMermaid(
     }
   }
 
-  // Check C10: Disconnected Gateway
+  // Check C10: Disconnected Gateway — only applies to TRUE routing gateways (API gateway, LB).
+  // CDN, WAF, and other edge-layer nodes are excluded because they may terminate requests
+  // (serve cached content) without forwarding every request to a backend service.
   for (const gwId of gatewayNodeIds) {
-    const hasOutgoing = parsed.edges.some(e => e.source === gwId && (internalNodeIds.has(e.target) || gatewayNodeIds.has(e.target)));
-    if (!hasOutgoing && parsed.edges.some(e => e.target === gwId)) {
+    const hasOutgoing = parsed.edges.some(
+      e => e.source === gwId && (
+        internalNodeIds.has(e.target) ||
+        gatewayNodeIds.has(e.target) ||
+        edgeLayerNodeIds.has(e.target)
+      )
+    );
+    const hasIncoming = parsed.edges.some(e => e.target === gwId);
+    if (!hasOutgoing && hasIncoming) {
       const gwNode = parsed.nodes.find(n => n.id === gwId);
       edgeIssues.push(`DISCONNECTED GATEWAY: Gateway/Load Balancer node "${gwNode?.label || gwId}" receives requests but does not route them to any backend services/servers. Add edges from "${gwId}" to the appropriate internal services.`);
     }

@@ -34,6 +34,8 @@ import { cn } from '@/lib/utils';
 import { SVGEdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
 
 import { TemplateModal } from '@/components/TemplateModal';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CanvasSkeleton } from '@/components/CanvasSkeleton';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { isValidConnection, wouldCreateCycle } from '@/lib/config/edgeConfig';
 import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
@@ -92,6 +94,7 @@ function CanvasInner() {
     showGrid,
     pendingLabelEdgeId, setPendingLabelEdgeId, updateEdgeData, setCanvasMode,
     setNodes,
+    pipelineStatus,
   } = useDiagramStore();
   const { isDark } = useCanvasTheme();
 
@@ -436,6 +439,20 @@ function CanvasInner() {
           )}
         </EdgeLabelRenderer>
       </ReactFlow>
+
+      <AnimatePresence>
+        {pipelineStatus === 'generating' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 pointer-events-none z-10"
+          >
+            <CanvasSkeleton />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {contextMenu && (
         <ContextMenu

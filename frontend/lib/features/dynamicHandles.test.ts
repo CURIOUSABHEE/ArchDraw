@@ -170,14 +170,11 @@ describe('getHandleCoordinate', () => {
 
 describe('backward compatibility and error handling', () => {
   it('should ignore legacy sourceHandle/targetHandle and use dynamic positions', () => {
-    // The function is pure and doesn't accept legacy handle props
-    // It computes positions purely from rect geometry
     const sourceRect: NodeRect = { x: 0, y: 0, width: 100, height: 80 };
     const targetRect: NodeRect = { x: 200, y: 0, width: 100, height: 80 };
 
     const result = getDynamicHandles(sourceRect, targetRect);
 
-    // Dynamic calculation always wins regardless of any legacy props
     expect(result.sourcePosition).toBe(Position.Right);
     expect(result.targetPosition).toBe(Position.Left);
   });
@@ -188,9 +185,111 @@ describe('backward compatibility and error handling', () => {
 
     const result = getDynamicHandles(sourceRect, targetRect);
 
-    // Should still produce valid positions
     const validPositions = [Position.Top, Position.Right, Position.Bottom, Position.Left];
     expect(validPositions).toContain(result.sourcePosition);
     expect(validPositions).toContain(result.targetPosition);
+  });
+});
+
+import { getEdgeShiftOffset } from '../utils/simpleFloatingEdge';
+import { Node, Edge } from 'reactflow';
+
+describe('getEdgeShiftOffset', () => {
+  const nodeInternals = new Map<string, Node>();
+  
+  // Set up nodes
+  // Center Node: Observe at (200, 200)
+  nodeInternals.set('Observe', {
+    id: 'Observe',
+    position: { x: 200, y: 200 },
+    positionAbsolute: { x: 200, y: 200 },
+    width: 160,
+    height: 80
+  } as Node);
+
+  // Left Node: Task Done? at (50, 50)
+  nodeInternals.set('TaskDone', {
+    id: 'TaskDone',
+    position: { x: 50, y: 50 },
+    positionAbsolute: { x: 50, y: 50 },
+    width: 160,
+    height: 80
+  } as Node);
+
+  // Right Node: Act at (350, 50)
+  nodeInternals.set('Act', {
+    id: 'Act',
+    position: { x: 350, y: 50 },
+    positionAbsolute: { x: 350, y: 50 },
+    width: 160,
+    height: 80
+  } as Node);
+
+  it('should return 0 offset for a single edge on a side', () => {
+    const edges: Edge[] = [
+      { id: 'edge1', source: 'Observe', target: 'TaskDone' }
+    ];
+    
+    const offset = getEdgeShiftOffset('Observe', 'edge1', Position.Top, edges, nodeInternals, 12);
+    expect(offset).toBe(0);
+  });
+
+  it('should assign correct offsets to prevent crossing for multi-edge same-side scenario', () => {
+    const edges: Edge[] = [
+      { id: 'edge-act', source: 'Act', target: 'Observe' }, // Act (right) -> Observe
+      { id: 'edge-taskdone', source: 'Observe', target: 'TaskDone' } // Observe -> TaskDone (left)
+    ];
+
+    // Both edges connect to Observe's Top side:
+    // - Act center is (430, 90). Observe center is (280, 240).
+    //   dy = 150 > threshold -> targetPos = Top, sourcePos = Bottom
+    // - TaskDone center is (130, 90). Observe center is (280, 240).
+    //   dy = -150 < -threshold -> sourcePos = Top, targetPos = Bottom
+
+    const offsetAct = getEdgeShiftOffset('Observe', 'edge-act', Position.Top, edges, nodeInternals, 12);
+    const offsetTaskDone = getEdgeShiftOffset('Observe', 'edge-taskdone', Position.Top, edges, nodeInternals, 12);
+
+    // Observe -> TaskDone (left) has other node TaskDone with smaller X (130) than Act (430).
+    // So edge-taskdone is sorted first (offset = -6), edge-act is sorted second (offset = 6).
+    expect(offsetTaskDone).toBe(-6);
+    expect(offsetAct).toBe(6);
+  });
+
+  it('should assign stable offsets to bidirectional edges to prevent crossing', () => {
+    // Bidirectional edges between Observe and Act:
+    // 1. Observe -> Act
+    // 2. Act -> Observe
+    // Both connect to Observe on Position.Top / Act on Position.Bottom (or horizontal if same level)
+    // Let's force horizontal by putting them on same Y
+    nodeInternals.set('NodeA', { id: 'NodeA', position: { x: 100, y: 100 }, positionAbsolute: { x: 100, y: 100 }, width: 100, height: 80 } as Node);
+    nodeInternals.set('NodeB', { id: 'NodeB', position: { x: 300, y: 100 }, positionAbsolute: { x: 300, y: 100 }, width: 100, height: 80 } as Node);
+
+    const edges: Edge[] = [
+      { id: 'e-ab', source: 'NodeA', target: 'NodeB' },
+      { id: 'e-ba', source: 'NodeB', target: 'NodeA' }
+    ];
+
+    // NodeA is at X=100 (left), NodeB is at X=300 (right).
+    // Edges will connect via NodeA's Position.Right and NodeB's Position.Left.
+    const offsetA_ab = getEdgeShiftOffset('NodeA', 'e-ab', Position.Right, edges, nodeInternals, 12);
+    const offsetA_ba = getEdgeShiftOffset('NodeA', 'e-ba', Position.Right, edges, nodeInternals, 12);
+
+    const offsetB_ab = getEdgeShiftOffset('NodeB', 'e-ab', Position.Left, edges, nodeInternals, 12);
+    const offsetB_ba = getEdgeShiftOffset('NodeB', 'e-ba', Position.Left, edges, nodeInternals, 12);
+
+    // They should be offset deterministically by edge ID comparison (e-ab < e-ba).
+    // For NodeA, both have NodeB as other node (cy = 140).
+    // So 'e-ab' index 0 -> offset = -6. 'e-ba' index 1 -> offset = 6.
+    expect(offsetA_ab).toBe(-6);
+    expect(offsetA_ba).toBe(6);
+
+    // For NodeB, both have NodeA as other node (cy = 140).
+    // 'e-ab' index 0 -> offset = -6. 'e-ba' index 1 -> offset = 6.
+    expect(offsetB_ab).toBe(-6);
+    expect(offsetB_ba).toBe(6);
+
+    // Note that because both connect at NodeA.Right (y: cy - 6 / cy + 6) and NodeB.Left (y: cy - 6 / cy + 6),
+    // they run parallel (A.Right_top connects to B.Left_top, A.Right_bottom connects to B.Left_bottom).
+    // No crossing occurs!
   });
 });
