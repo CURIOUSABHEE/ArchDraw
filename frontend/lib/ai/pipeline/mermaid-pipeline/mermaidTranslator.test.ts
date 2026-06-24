@@ -44,7 +44,7 @@ describe('Mermaid AST to React Flow Translator', () => {
     // Verify CV node properties
     const cvNode = nodes.find(n => n.id === 'CV');
     expect(cvNode).toBeDefined();
-    expect(cvNode.type).toBe('architectureNode');
+    expect(cvNode.type).toBe('shapeNode');
     expect(cvNode.position.x).toBeGreaterThanOrEqual(0);
     expect(cvNode.position.y).toBeGreaterThanOrEqual(0);
     expect(cvNode.parentNode).toBe('CLIENT');
@@ -94,7 +94,7 @@ describe('Mermaid AST to React Flow Translator', () => {
     const { nodes } = await translateMermaidToReactFlowJSON(mermaidCode, styleConfig, nodeTypeMap);
     const pgNode = nodes.find(n => n.id === 'PG');
     expect(pgNode).toBeDefined();
-    expect(pgNode.type).toBe('architectureNode');
+    expect(pgNode.type).toBe('shapeNode');
   });
 
   it('correctly maps and positions nodes that are not inside any subgraph/group', async () => {

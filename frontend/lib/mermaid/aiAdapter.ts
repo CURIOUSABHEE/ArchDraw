@@ -31,7 +31,7 @@ function applyStyle(node: RFNode, styleConfig: StyleConfig, isSubgraph: boolean)
 
   return {
     ...node,
-    type: 'architectureNode',
+    type: node.type || 'shapeNode',
     data: {
       ...node.data,
       style: {
