@@ -44,7 +44,7 @@ export async function applyLayoutPreset(
     
     const children = isGroup
       ? leafNodes
-          .filter(n => n.parentId === node.id)
+          .filter(n => (n.parentId || (n as any).parentNode) === node.id)
           .map(child => {
             const childServiceType = (child.data as { serviceType?: string })?.serviceType;
             const childConfig = getNodeShapeConfig(childServiceType);
@@ -86,7 +86,8 @@ export async function applyLayoutPreset(
 
   const rootElkNodes = elkNodes.filter(n => {
     const rfNode = nodes.find(r => r.id === n.id);
-    return !rfNode?.parentId;
+    const pId = rfNode?.parentId || (rfNode as any)?.parentNode;
+    return !pId;
   });
 
   const elkEdges = edges
@@ -175,8 +176,9 @@ export async function applyLayoutPreset(
         };
       }
       
-      if (node.parentId) {
-        const parentPos = positionMap.get(node.parentId);
+      const pId = node.parentId || (node as any).parentNode;
+      if (pId) {
+        const parentPos = positionMap.get(pId);
         if (parentPos) {
           return {
             ...node,

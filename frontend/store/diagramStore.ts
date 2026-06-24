@@ -514,10 +514,14 @@ function normalizeNodeType(type?: string): string {
 }
 
 function normalizeNodes(nodes: Node[]): Node[] {
-  return nodes.map((node) => ({
-    ...node,
-    type: normalizeNodeType(node.type as string | undefined),
-  }));
+  return nodes.map((node) => {
+    const parentId = node.parentId || (node as any).parentNode;
+    return {
+      ...node,
+      type: normalizeNodeType(node.type as string | undefined),
+      ...(parentId ? { parentId, parentNode: parentId, extent: node.extent || 'parent' as const } : {}),
+    };
+  });
 }
 
 function normalizeEdge(edge: Edge): Edge {
@@ -1390,7 +1394,7 @@ const useDiagramStoreRaw = create<DiagramState>()(
           // Temporarily set extent to undefined for child nodes so React Flow
           // does not clamp their layout positions to the old parent dimensions.
           const nodesWithoutExtent = layoutedNodes.map(n => 
-            n.parentId ? { ...n, extent: undefined } : n
+            (n.parentId || (n as any).parentNode) ? { ...n, extent: undefined } : n
           );
 
           const nextCanvases = canvases.map((c) =>
@@ -1411,9 +1415,10 @@ const useDiagramStoreRaw = create<DiagramState>()(
             const canvas = currentCanvases.find(c => c.id === currentActiveId);
             if (!canvas) return;
 
-            const restoredNodes = canvas.nodes.map(n => 
-              n.parentId ? { ...n, extent: 'parent' as const } : n
-            );
+            const restoredNodes = canvas.nodes.map(n => {
+              const pId = n.parentId || (n as any).parentNode;
+              return pId ? { ...n, parentId: pId, parentNode: pId, extent: 'parent' as const } : n;
+            });
 
             const nextCanvasesRestored = currentCanvases.map((c) =>
               c.id === currentActiveId ? { ...c, nodes: restoredNodes } : c

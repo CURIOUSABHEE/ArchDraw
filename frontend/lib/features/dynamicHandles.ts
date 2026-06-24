@@ -66,16 +66,26 @@ export function getDynamicHandles(
 
     dx = targetCX - sourceCX;
     dy = targetCY - sourceCY;
+    
+    // Normalize values extremely close to 0 to prevent floating-point rounding
+    // differences from flipping signs during axis-aligned coordinate movements.
+    if (Math.abs(dx) < 1e-9) dx = 0;
+    if (Math.abs(dy) < 1e-9) dy = 0;
   } catch {
     return { sourcePosition: Position.Right, targetPosition: Position.Left };
   }
 
+  const overlapsHorizontally = (sourceRect.x < targetRect.x + targetRect.width) &&
+                                (targetRect.x < sourceRect.x + sourceRect.width);
+
+  const horizontalDist = Math.abs(dx);
+  const verticalThreshold = overlapsHorizontally
+    ? Math.max(horizontalDist * 0.25, 30)
+    : Math.max(horizontalDist * 0.75, 80);
+
   let sourcePosition = Position.Right;
   let targetPosition = Position.Left;
   let dominantAxis = 'horizontal';
-
-  const horizontalDist = Math.abs(dx);
-  const verticalThreshold = Math.max(horizontalDist * 0.25, 30);
 
   if (dy > verticalThreshold) {
     dominantAxis = 'vertical';
@@ -87,7 +97,8 @@ export function getDynamicHandles(
     targetPosition = Position.Bottom;
   } else {
     dominantAxis = 'horizontal';
-    if (dx >= 0) {
+    // Use symmetric tie-breaker based on dy when dx is exactly 0
+    if (dx > 0 || (dx === 0 && dy >= 0)) {
       sourcePosition = Position.Right;
       targetPosition = Position.Left;
     } else {

@@ -55,11 +55,20 @@ describe('Property-Based Tests: Dynamic Handle Positioning', () => {
           const targetCX = targetRect.x + targetRect.width / 2;
           const targetCY = targetRect.y + targetRect.height / 2;
 
-          const dx = targetCX - sourceCX;
-          const dy = targetCY - sourceCY;
+          let dx = targetCX - sourceCX;
+          let dy = targetCY - sourceCY;
+
+          // Normalize values extremely close to 0 to match implementation tolerance
+          if (Math.abs(dx) < 1e-9) dx = 0;
+          if (Math.abs(dy) < 1e-9) dy = 0;
+
+          const overlapsHorizontally = (sourceRect.x < targetRect.x + targetRect.width) &&
+                                        (targetRect.x < sourceRect.x + sourceRect.width);
 
           const horizontalDist = Math.abs(dx);
-          const verticalThreshold = Math.max(horizontalDist * 0.25, 30);
+          const verticalThreshold = overlapsHorizontally
+            ? Math.max(horizontalDist * 0.25, 30)
+            : Math.max(horizontalDist * 0.75, 80);
 
           // Verify handle selection matches implementation: vertical only if dy exceeds threshold
           if (dy > verticalThreshold) {
@@ -69,7 +78,7 @@ describe('Property-Based Tests: Dynamic Handle Positioning', () => {
             expect(result.sourcePosition).toBe(Position.Top);
             expect(result.targetPosition).toBe(Position.Bottom);
           } else {
-            if (dx >= 0) {
+            if (dx > 0 || (dx === 0 && dy >= 0)) {
               expect(result.sourcePosition).toBe(Position.Right);
               expect(result.targetPosition).toBe(Position.Left);
             } else {
