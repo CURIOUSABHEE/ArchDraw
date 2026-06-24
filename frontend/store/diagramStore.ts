@@ -1387,8 +1387,14 @@ const useDiagramStoreRaw = create<DiagramState>()(
 
           const layoutedNodes = await applyLayoutPreset(nodes, edges, preset);
 
+          // Temporarily set extent to undefined for child nodes so React Flow
+          // does not clamp their layout positions to the old parent dimensions.
+          const nodesWithoutExtent = layoutedNodes.map(n => 
+            n.parentId ? { ...n, extent: undefined } : n
+          );
+
           const nextCanvases = canvases.map((c) =>
-            c.id === activeCanvasId ? { ...c, nodes: layoutedNodes, updatedAt: Date.now() } : c
+            c.id === activeCanvasId ? { ...c, nodes: nodesWithoutExtent, updatedAt: Date.now() } : c
           );
 
           set({
@@ -1398,6 +1404,23 @@ const useDiagramStoreRaw = create<DiagramState>()(
 
           get().saveCanvasToDB(activeCanvasId);
           setTimeout(() => get().fitView(), 100);
+
+          // Re-apply extent constraint after React Flow has finished rendering and measuring the new parent size
+          setTimeout(() => {
+            const { activeCanvasId: currentActiveId, canvases: currentCanvases } = get();
+            const canvas = currentCanvases.find(c => c.id === currentActiveId);
+            if (!canvas) return;
+
+            const restoredNodes = canvas.nodes.map(n => 
+              n.parentId ? { ...n, extent: 'parent' as const } : n
+            );
+
+            const nextCanvasesRestored = currentCanvases.map((c) =>
+              c.id === currentActiveId ? { ...c, nodes: restoredNodes } : c
+            );
+
+            set({ canvases: nextCanvasesRestored });
+          }, 250);
         } finally {
           isLayouting = false;
         }

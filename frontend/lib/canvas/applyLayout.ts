@@ -160,13 +160,17 @@ export async function applyLayoutPreset(
       const isGroup = node.type === 'group' || node.type === 'groupNode';
       
       if (isGroup) {
+        const w = size?.width ?? node.width ?? DEFAULT_GROUP_WIDTH;
+        const h = size?.height ?? node.height ?? DEFAULT_GROUP_HEIGHT;
         return {
           ...node,
           position: newPos,
+          width: w,
+          height: h,
           style: {
             ...node.style,
-            width: size?.width ?? node.width ?? DEFAULT_GROUP_WIDTH,
-            height: size?.height ?? node.height ?? DEFAULT_GROUP_HEIGHT,
+            width: w,
+            height: h,
           },
         };
       }
