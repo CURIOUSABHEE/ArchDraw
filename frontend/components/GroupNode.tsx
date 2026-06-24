@@ -116,8 +116,8 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
       <div
         style={{
           position: 'absolute',
-          top: -14,
-          left: 20,
+          bottom: -14,
+          right: 20,
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
