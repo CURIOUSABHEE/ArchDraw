@@ -76,7 +76,7 @@ export const ELK_CONFIG = {
   'elk.layered.nodePlacement.strategy':               'BRANDES_KOEPF',
   'elk.layered.crossingMinimization.strategy':        'LAYER_SWEEP',
   'elk.layered.compaction.postCompaction.strategy':   'EDGE_LENGTH',
-  'elk.portConstraints':                              'FIXED_SIDE',
+  'elk.portConstraints':                              'FREE',
   'elk.layered.mergeEdges':                           'true',
 } as const;
 

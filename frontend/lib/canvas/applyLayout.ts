@@ -57,20 +57,28 @@ export async function applyLayoutPreset(
               layoutOptions: {
                 'elk.nodeSize.constraints': 'MINIMUM_SIZE',
                 'elk.nodeSize.minimum': `${childWidth}, ${childHeight}`,
-                'elk.portConstraints': 'FIXED_SIDE',
+                'elk.portConstraints': 'FREE',
               },
             };
           })
       : [];
     
+    const isGroupWithChildren = isGroup && children.length > 0;
+    
     return {
       id: node.id,
-      width: nodeWidth,
-      height: nodeHeight,
+      ...(isGroupWithChildren ? {} : { width: nodeWidth, height: nodeHeight }),
       layoutOptions: {
-        'elk.nodeSize.constraints': 'MINIMUM_SIZE',
-        'elk.nodeSize.minimum': `${nodeWidth}, ${nodeHeight}`,
-        'elk.portConstraints': 'FIXED_SIDE',
+        ...(isGroupWithChildren
+          ? {
+              'elk.nodeSize.constraints': 'NODE_LABELS',
+              'elk.padding': '[top=60, left=40, bottom=40, right=40]',
+            }
+          : {
+              'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+              'elk.nodeSize.minimum': `${nodeWidth}, ${nodeHeight}`,
+            }),
+        'elk.portConstraints': 'FREE',
       },
       ...(children.length > 0 ? { children } : {}),
     };

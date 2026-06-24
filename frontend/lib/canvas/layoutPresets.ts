@@ -14,21 +14,38 @@ export const LAYOUT_PRESETS = [
     label: 'Left → Right',
     description: 'Classic architecture flow',
     icon: '→',
-    elkOptions: { ...ELK_CONFIG }
+    elkOptions: { 
+      ...ELK_CONFIG,
+      'elk.direction': 'RIGHT',
+      'elk.spacing.nodeNode': '80', // vertical gap between parallel nodes
+      'elk.layered.spacing.nodeNodeBetweenLayers': '240', // horizontal gap between layers
+      'elk.portConstraints': 'FREE',
+    }
   },
   {
     id: 'layered-tb',
     label: 'Top → Bottom',
     description: 'Vertical flow, good for pipelines',
     icon: '↓',
-    elkOptions: { ...ELK_CONFIG, 'elk.direction': 'DOWN' }
+    elkOptions: { 
+      ...ELK_CONFIG, 
+      'elk.direction': 'DOWN',
+      'elk.spacing.nodeNode': '180', // horizontal gap between parallel nodes
+      'elk.layered.spacing.nodeNodeBetweenLayers': '120', // vertical gap between layers
+      'elk.portConstraints': 'FREE',
+    }
   },
   {
     id: 'force',
     label: 'Force Directed',
     description: 'Organic clustering by relationships',
     icon: '✦',
-    elkOptions: { ...ELK_CONFIG, 'elk.algorithm': 'force', 'elk.force.iterations': '300' }
+    elkOptions: { 
+      ...ELK_CONFIG, 
+      'elk.algorithm': 'force', 
+      'elk.force.iterations': '300',
+      'elk.portConstraints': 'FREE',
+    }
   },
 ] as const;
 

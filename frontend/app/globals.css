@@ -282,6 +282,10 @@ body {
   overflow: visible !important;
 }
 
+.react-flow__node.dragging {
+  transition: none !important;
+}
+
 .react-flow__edge-path {
   stroke-linecap: round;
   stroke-linejoin: round;

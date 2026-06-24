@@ -817,6 +817,8 @@ function wrapCreator(
   };
 }
 
+let isLayouting = false;
+
 const useDiagramStoreRaw = create<DiagramState>()(
   persist(
     wrapCreator((set, get) => ({
@@ -1373,26 +1375,32 @@ const useDiagramStoreRaw = create<DiagramState>()(
       setCanvasMode: (mode) => set({ canvasMode: mode }),
       setActiveLayoutPresetId: (id) => set({ activeLayoutPresetId: id }),
       toggleLayoutDirection: async () => {
-        const { activeLayoutPresetId, nodes, edges, activeCanvasId, canvases } = get();
-        const nextPresetId = activeLayoutPresetId === 'layered-tb' ? 'layered-lr' : 'layered-tb';
-        const preset = LAYOUT_PRESETS.find((p) => p.id === nextPresetId);
-        if (!preset) return;
+        if (isLayouting) return;
+        isLayouting = true;
+        try {
+          const { activeLayoutPresetId, nodes, edges, activeCanvasId, canvases } = get();
+          const nextPresetId = activeLayoutPresetId === 'layered-tb' ? 'layered-lr' : 'layered-tb';
+          const preset = LAYOUT_PRESETS.find((p) => p.id === nextPresetId);
+          if (!preset) return;
 
-        get().pushHistory();
+          get().pushHistory();
 
-        const layoutedNodes = await applyLayoutPreset(nodes, edges, preset);
+          const layoutedNodes = await applyLayoutPreset(nodes, edges, preset);
 
-        const nextCanvases = canvases.map((c) =>
-          c.id === activeCanvasId ? { ...c, nodes: layoutedNodes, updatedAt: Date.now() } : c
-        );
+          const nextCanvases = canvases.map((c) =>
+            c.id === activeCanvasId ? { ...c, nodes: layoutedNodes, updatedAt: Date.now() } : c
+          );
 
-        set({
-          activeLayoutPresetId: nextPresetId,
-          canvases: nextCanvases,
-        });
+          set({
+            activeLayoutPresetId: nextPresetId,
+            canvases: nextCanvases,
+          });
 
-        get().saveCanvasToDB(activeCanvasId);
-        setTimeout(() => get().fitView(), 100);
+          get().saveCanvasToDB(activeCanvasId);
+          setTimeout(() => get().fitView(), 100);
+        } finally {
+          isLayouting = false;
+        }
       },
       toggleGrid: () => set({ showGrid: !get().showGrid }),
       toggleDarkMode: () => {
