@@ -172,7 +172,7 @@ export function validateMermaid(
     nodeIssues.push(`MISSING NODES: The following nodes from the inventory are missing in the diagram: ${details}. Please declare them inside their respective subgraphs.`);
   }
 
-  if (parsed.nodes.length !== inventoryConfig.nodeCount) {
+  if (parsed.nodes.length !== inventoryConfig.nodeCount && inventoryConfig.nodeCount > 0) {
     nodeIssues.push(`NODE COUNT MISMATCH: Expected exactly ${inventoryConfig.nodeCount} nodes, but found ${parsed.nodes.length} nodes.`);
   }
 
@@ -182,7 +182,7 @@ export function validateMermaid(
   }
 
   // Check edge count matches expected edgeCount exactly (H7, A2.4)
-  if (parsed.edges.length !== edgeConfig.edgeCount) {
+  if (parsed.edges.length !== edgeConfig.edgeCount && edgeConfig.edgeCount > 0) {
     edgeIssues.push(`EDGE COUNT MISMATCH: Expected exactly ${edgeConfig.edgeCount} edges, but found ${parsed.edges.length} edges.`);
   }
 
@@ -210,7 +210,7 @@ export function validateMermaid(
     groupIssues.push(`MISSING GROUPS: The following groups/subgraphs are missing: ${missingGroups.map(g => `"${g}"`).join(', ')}. Declare these subgraphs and nest the appropriate nodes within them.`);
   }
 
-  if (parsed.subgraphs.length !== inventoryConfig.groups.length) {
+  if (parsed.subgraphs.length !== inventoryConfig.groups.length && inventoryConfig.groups.length > 0) {
     groupIssues.push(`SUBGRAPH COUNT MISMATCH: Expected ${inventoryConfig.groups.length} subgraphs/groups, but found ${parsed.subgraphs.length}.`);
   }
 

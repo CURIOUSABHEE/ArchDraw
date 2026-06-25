@@ -225,7 +225,8 @@ export async function runMermaidNodeGenerator(
   inventoryConfig: InventoryConfig,
   groupAssignments: Record<string, string>,
   diagramSize: 'small' | 'medium' | 'large' = 'medium',
-  repairInstructions?: string
+  repairInstructions?: string,
+  model?: string
 ): Promise<string> {
   const prompt = buildNodeGenerationPrompt(
     formatConfig,
@@ -239,15 +240,16 @@ export async function runMermaidNodeGenerator(
 
   const result = await apiKeyManager.executeWithRetry(async (groq) => {
     const res = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: model || 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: `You are a professional software architect specializing in generating highly accurate systems architecture diagrams using Mermaid.
-Your output must be 100% syntactically correct and follow these strict guidelines:
-- Every node MUST reside in a subgraph/group container.
-- Node ID naming: Use PascalCase of the FULL label (e.g. UserProfileService, not UPS). NEVER use short abbreviations.
-- Node labels MUST NOT include any programming language or technology stack subtitle in brackets (e.g. do NOT append '<br>[React]', '<br>[Go]', etc. to node labels). Keep node labels clean, containing only the name of the component itself (e.g. WebApp["Spotify Web App"]).
-- Database/Cache/Storage nodes (any representing PostgreSQL, MySQL, Redis, MongoDB, DynamoDB, S3, GCS, database, cache, storage, queue, bucket, or store) MUST use cylinder shape syntax: NodeId[("Label")]. Do NOT include any technology/programming language subtitles inside the cylinder shape label.
-- Do NOT generate or output any edge connections (no '-->' or '-.->'). Only output subgraphs and node declarations.` },
+        { role: 'system', content: `You generate Mermaid architecture diagrams. Keep it simple and correct.
+
+Rules:
+- Every node in a subgraph
+- PascalCase IDs (e.g. UserService)
+- No tech stack in labels (no "[React]")
+- DB/cache nodes use cylinder: NodeId[("Label")]
+- No edges yet` },
         { role: 'user', content: prompt }
       ],
       temperature: 0.2,
@@ -270,7 +272,8 @@ export async function runMermaidEdgeGenerator(
   edgeConfig: EdgeConfig,
   nodesMermaid: string,
   diagramSize: 'small' | 'medium' | 'large' = 'medium',
-  repairInstructions?: string
+  repairInstructions?: string,
+  model?: string
 ): Promise<string> {
   const validatedNodeIds = parseNodeIdsFromMermaid(nodesMermaid);
   const lockedNodeIdMap = parseLockedNodeIdMap(nodesMermaid);
@@ -288,20 +291,17 @@ export async function runMermaidEdgeGenerator(
 
   const result = await apiKeyManager.executeWithRetry(async (groq) => {
     const res = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: model || 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: `You are a professional software architect specializing in generating highly accurate systems architecture diagrams using Mermaid.
-Your output must be 100% syntactically correct and follow these strict edge routing rules:
-- Edge Connection Types:
-  - Solid arrows (-->) MUST be used for synchronous requests (HTTP, REST, gRPC, direct SQL queries).
-  - Dashed arrows (-.->) MUST be used for asynchronous, decoupled, or event-driven communication (message queue publishing/consuming, WebSockets, push notifications).
-- Every single edge connection MUST be labeled with a short, clear protocol or action enclosed in quotes (e.g. sourceId -->|"HTTPS REST"| targetId or sourceId -.->|"Kafka event"| targetId). NEVER output unlabeled edges.
-- Flow Direction (Left to Right / Forward Only): Edges must strictly flow forward through tiers: Client -> API Gateway/Load Balancer -> Business Microservices -> Database/Cache/Queue.
-- Client is a Source, not a Sink: Client nodes must NEVER receive incoming connections from backend business services.
-- No Gateway Bypass: Clients must never bypass the API Gateway or Load Balancer. All client requests must route through the gateway first.
-- Auth Routing: The API Gateway routes auth requests (login, register, token refresh) directly to the Auth Service. For all other business operations, the Gateway validates tokens internally and routes directly to the destination microservices. Do NOT route general API queries through the Auth Service.
-- CDN Origins: A CDN node must pull data from an Object Storage origin (e.g., ObjectStorage -->|"Origin Pull"| CDN).
-- Generate ONLY the edge connections specified. Do NOT add any extra connections.` },
+        { role: 'system', content: `You generate edges for Mermaid diagrams. Keep it simple and correct.
+
+Rules:
+- Solid arrows (-->) for sync (HTTP, REST, gRPC)
+- Dashed arrows (-.->) for async (queues, events)
+- Every edge MUST be labeled: src -->|"HTTPS"| tgt
+- Flow forward: Client -> Gateway -> Services -> DB/Cache
+- Client never receives incoming connections
+- Only use specified node IDs exactly` },
         { role: 'user', content: prompt }
       ],
       temperature: 0.2,
@@ -325,7 +325,8 @@ export async function runMermaidGenerator(
   edgeConfig: EdgeConfig,
   groupAssignments: Record<string, string>,
   diagramSize: 'small' | 'medium' | 'large' = 'medium',
-  repairInstructions?: string
+  repairInstructions?: string,
+  model?: string
 ): Promise<string> {
   // PHASE 1: Generate nodes and subgraphs only
   let nodesMermaid = await runMermaidNodeGenerator(
@@ -333,7 +334,8 @@ export async function runMermaidGenerator(
     inventoryConfig,
     groupAssignments,
     diagramSize,
-    repairInstructions
+    repairInstructions,
+    model
   );
 
   // Validate that subgraphs were generated — retry once if missing
@@ -361,13 +363,16 @@ FAILURE TO INCLUDE SUBGRAPHS WILL CAUSE THE ENTIRE GENERATION TO FAIL.`;
       inventoryConfig,
       groupAssignments,
       diagramSize,
-      retryPrompt
+      retryPrompt,
+      model
     );
   }
 
   // B13: Node count check & inner repair loop BEFORE edge generation
   let nodeRepairIteration = 0;
   while (nodeRepairIteration < 4) {
+    // If inventory returned 0 nodes, trust the generator — skip repair
+    if (inventoryConfig.nodeCount === 0) break;
     const reParsed = parseMermaid(nodesMermaid);
     const missingNodes: string[] = [];
     for (const invNode of inventoryConfig.nodes) {
@@ -397,7 +402,8 @@ FAILURE TO INCLUDE SUBGRAPHS WILL CAUSE THE ENTIRE GENERATION TO FAIL.`;
       inventoryConfig,
       groupAssignments,
       diagramSize,
-      nodeRepairPrompt
+      nodeRepairPrompt,
+      model
     );
     nodeRepairIteration++;
   }
@@ -408,7 +414,8 @@ FAILURE TO INCLUDE SUBGRAPHS WILL CAUSE THE ENTIRE GENERATION TO FAIL.`;
     edgeConfig,
     nodesMermaid,
     diagramSize,
-    repairInstructions
+    repairInstructions,
+    model
   );
 
   // C10: ID normalization pass before validation/merge

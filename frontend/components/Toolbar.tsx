@@ -10,14 +10,15 @@ import {
   AlignCenterHorizontal,
   LayoutDashboard,
   Github,
-  Columns,
-  Rows,
+  CornerDownRight,
+  MoveRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { ShareModal } from '@/components/ShareModal';
+import { useModelStore, AVAILABLE_MODELS } from '@/lib/ai/utils/modelStore';
 import { TemplateModal } from '@/components/TemplateModal';
 import { EmailCaptureModal, type EmailCaptureReason } from '@/components/EmailCaptureModal';
 import logger from '@/lib/logger';
@@ -195,7 +196,6 @@ export function Toolbar() {
     canvases, activeCanvasId, removeCanvas,
     getVisibleCanvases,
     savingState, userProfile, setSidebarOpen, sidebarOpen,
-    activeLayoutPresetId, toggleLayoutDirection,
   } = useDiagramStore();
 
   const { user } = useAuthStore();
@@ -625,16 +625,36 @@ export function Toolbar() {
           </button>
 
           <button
-            onClick={toggleLayoutDirection}
+            onClick={() => {
+              const store = useDiagramStore.getState();
+              const isStep = store.edges.some(e => e.data?.pathType === 'step');
+              const newType = isStep ? undefined : 'step';
+              const updatedEdges = store.edges.map(e => ({
+                ...e,
+                data: { ...e.data, pathType: newType },
+              }));
+              store.setEdges(updatedEdges);
+            }}
             className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
-            title={activeLayoutPresetId === 'layered-tb' ? 'Switch to Horizontal layout' : 'Switch to Vertical layout'}
+            title={edges.some(e => e.data?.pathType === 'step') ? 'Switch to Smoothstep edges' : 'Switch to Step edges'}
           >
-            {activeLayoutPresetId === 'layered-tb' ? (
-              <Columns className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+            {edges.some(e => e.data?.pathType === 'step') ? (
+              <MoveRight className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
             ) : (
-              <Rows className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+              <CornerDownRight className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
             )}
           </button>
+
+          <select
+            value={useModelStore((s) => s.selectedModel)}
+            onChange={(e) => useModelStore.getState().setSelectedModel(e.target.value)}
+            className="hidden sm:block max-w-[130px] truncate px-1.5 py-1 text-[11px] rounded-md bg-transparent text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all border-0 cursor-pointer focus:outline-none"
+            title="Select AI model"
+          >
+            {AVAILABLE_MODELS.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
 
           <span className="w-px h-4 bg-border/50 mx-0.5 sm:mx-1" />
 

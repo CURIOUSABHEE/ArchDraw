@@ -299,6 +299,8 @@ export default function SimpleFloatingEdge({
   }, [parallelEdges, id, source, target]);
 
   // Enforce custom smoothstep path to avoid overlapping middle segments and preserve arrow directions
+  const isStep = data?.pathType === 'step';
+  const borderRadius = isStep ? 0 : 40;
   const edgePath = useMemo(() => {
     try {
       if (source === target) {
@@ -316,13 +318,13 @@ export default function SimpleFloatingEdge({
         targetY: ty,
         sourcePosition: sourcePos,
         targetPosition: targetPos,
-        borderRadius: 40,
+        borderRadius,
         edgeOffset: edgeOffset,
       });
     } catch {
       return `M${isNaN(sx) ? 0 : sx},${isNaN(sy) ? 0 : sy} L${isNaN(tx) ? 0 : tx},${isNaN(ty) ? 0 : ty}`;
     }
-  }, [source, target, sx, sy, tx, ty, sourcePos, targetPos, edgeOffset]);
+  }, [source, target, sx, sy, tx, ty, sourcePos, targetPos, edgeOffset, borderRadius]);
 
   // Compute label position from labelT along the SVG path
   const labelPos = useMemo(() => {

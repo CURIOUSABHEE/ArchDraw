@@ -13,11 +13,10 @@ import './nodes/nodeStyles.css';
 const NODE_WIDTH = DIAGRAM_CONSTANTS.node.width;
 const NODE_HEIGHT = DIAGRAM_CONSTANTS.node.minHeight;
 
-function calcNodeWidth(label: string, subtitle?: string): number {
-  const longest = Math.max(
-    label.length,
-    (subtitle || '').length
-  );
+function calcNodeWidth(label?: string, subtitle?: string): number {
+  const labelLength = typeof label === 'string' ? label.length : 0;
+  const subtitleLength = typeof subtitle === 'string' ? subtitle.length : 0;
+  const longest = Math.max(labelLength, subtitleLength);
   // ~8px per character for typical font sizes, min 200
   return Math.max(200, Math.min(320, longest * 9));
 }
@@ -231,12 +230,12 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         <div className="node-shine" />
         <div className="node-header">
           <div className="node-icon-box">
-            {data.icon && Array.from(data.icon as string).length <= 2 ? (
-              <span style={{ fontSize: '16px', lineHeight: 1 }}>{data.icon as string}</span>
+            {typeof data.icon === 'string' && Array.from(data.icon).length <= 2 ? (
+              <span style={{ fontSize: '16px', lineHeight: 1 }}>{data.icon}</span>
             ) : (
               <NodeIcon 
                 technology={nodeData.technology} 
-                fallbackIcon={data.icon as string} 
+                fallbackIcon={typeof data.icon === 'string' ? data.icon : undefined} 
                 fallbackColor={accentColor} 
                 size={16} 
               />

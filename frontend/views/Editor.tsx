@@ -16,6 +16,7 @@ import { AnimatePresence } from 'framer-motion';
 import { GenerationProgressDisplay } from '@/components/GenerationProgress';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
+import { useModelStore } from '@/lib/ai/utils/modelStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 import { OnboardingOverlay } from '@/components/onboarding/OnboardingOverlay';
@@ -43,7 +44,7 @@ export default function EditorPage() {
     selectedNodeId, selectedEdgeId, nodes, sidebarOpen, setSidebarOpen, 
     importDiagram, importSequenceDiagram, fitView, renameCanvas, 
     activeCanvasId, sequenceDiagrams, canvases,
-    startGeneration, markPipelineDone, markPipelineError
+    markPipelineDone, markPipelineError
   } = useDiagramStore();
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -197,10 +198,29 @@ export default function EditorPage() {
         type: 'simpleFloating',
       }));
 
-      importDiagram(processedNodes as unknown as Node[], processedEdges as unknown as Edge[]);
-      
-      const { activeCanvasId } = useDiagramStore.getState();
-      renameCanvas(activeCanvasId, canvasName);
+      const store = useDiagramStore.getState();
+      const existingNodes = store.nodes;
+      const existingEdges = store.edges;
+
+      if (existingNodes.length > 0) {
+        const maxX = Math.max(...existingNodes.map(
+          n => n.position.x + (n.width ?? 200)
+        ), 0);
+        const offsetX = maxX + 250;
+
+        const offsetNodes = (processedNodes as Node[]).map(n => ({
+          ...n,
+          position: { x: n.position.x + offsetX, y: n.position.y },
+        }));
+
+        store.pushHistory();
+        store.setNodes([...existingNodes, ...offsetNodes]);
+        store.setEdges([...existingEdges, ...processedEdges as Edge[]]);
+      } else {
+        importDiagram(processedNodes as unknown as Node[], processedEdges as unknown as Edge[]);
+      }
+
+      renameCanvas(store.activeCanvasId, canvasName);
       
       setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 50);
       
@@ -238,25 +258,14 @@ export default function EditorPage() {
 
 
   const handleGenerate = async (description: string, diagramSize?: 'small' | 'medium' | 'large') => {
+    const selectedModel = useModelStore.getState().selectedModel;
     setProgress(null);
 
-    const isCurrentCanvasEmpty = nodes.length === 0;
     const canvasName = isGitHubRepoUrl(description)
       ? `${extractRepoName(description)} Architecture`
       : generateCanvasName(description);
 
-    let targetCanvasId = activeCanvasId;
-
-    if (isCurrentCanvasEmpty) {
-      renameCanvas(activeCanvasId, canvasName);
-    } else {
-      const { addCanvas } = useDiagramStore.getState();
-      targetCanvasId = addCanvas(canvasName);
-      
-      const url = new URL(window.location.href);
-      url.searchParams.set('canvas', targetCanvasId);
-      window.history.pushState({}, '', url);
-    }
+    renameCanvas(activeCanvasId, canvasName);
 
     try {
       // GitHub repo ingest path — same input box, different pipeline
@@ -287,7 +296,7 @@ export default function EditorPage() {
         }
 
         importDiagram(rfNodes, rfEdges);
-        renameCanvas(targetCanvasId, canvasName);
+        renameCanvas(activeCanvasId, canvasName);
         setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 100);
 
         setProgress({
@@ -303,13 +312,12 @@ export default function EditorPage() {
         return;
       }
 
-      startGeneration();
-
       const payload: {
         description: string;
         diagramSize?: 'small' | 'medium' | 'large';
+        model?: string;
         stream: boolean;
-      } = { description, diagramSize, stream: true };
+      } = { description, diagramSize, model: selectedModel, stream: true };
 
       // Use standard JSON endpoint
       const response = await fetch('/api/generate-diagram', {

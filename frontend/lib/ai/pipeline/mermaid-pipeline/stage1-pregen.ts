@@ -75,10 +75,10 @@ function isValidHexColor(color: string): boolean {
   return /^#[0-9A-Fa-f]{6}$/.test(color) || /^#[0-9A-Fa-f]{3}$/.test(color);
 }
 
-async function callAgent<T>(systemPrompt: string, userPrompt: string): Promise<T> {
+async function callAgent<T>(systemPrompt: string, userPrompt: string, model?: string): Promise<T> {
   const resultStr = await apiKeyManager.executeWithRetry(async (groq) => {
     return await groqJsonCompletion(groq, {
-      model: 'llama-3.3-70b-versatile',
+      model: model || 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -97,7 +97,7 @@ async function callAgent<T>(systemPrompt: string, userPrompt: string): Promise<T
 }
 
 // Agent 1A — FORMAT AGENT
-export async function runFormatAgent(prompt: string): Promise<FormatConfig> {
+export async function runFormatAgent(prompt: string, model?: string): Promise<FormatConfig> {
   const systemPrompt = `You are the Format Agent in a diagram pipeline.
 Identify the requested output format and diagram type from the user's natural language prompt.
 Default format is "mermaid".
@@ -112,7 +112,7 @@ You MUST output a valid JSON object matching this schema:
 Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
 
   try {
-    const res = await callAgent<FormatConfig>(systemPrompt, prompt);
+    const res = await callAgent<FormatConfig>(systemPrompt, prompt, model);
     let diagramType = res.diagramType || 'graph TD';
     
     // SMART CLASSIFICATION OVERRIDES (A1.3, A1.4)
@@ -153,7 +153,7 @@ Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
 }
 
 // Agent 1B — STYLE AGENT
-export async function runStyleAgent(prompt: string): Promise<StyleConfig> {
+export async function runStyleAgent(prompt: string, model?: string): Promise<StyleConfig> {
   const systemPrompt = `You are the Style Agent in a diagram pipeline.
 Analyze the user prompt to extract visual styling instructions, color palettes, fonts, or themes.
 We support named themes: "forest-green", "slate", "dark-minimal", "luxury", or "default".
@@ -169,7 +169,7 @@ You MUST output a valid JSON object matching this schema:
 Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
 
   try {
-    const res = await callAgent<StyleConfig>(systemPrompt, prompt);
+    const res = await callAgent<StyleConfig>(systemPrompt, prompt, model);
     const themeName = res.theme || 'default';
     const palette = THEME_PALETTES[themeName] || THEME_PALETTES.default;
     
@@ -226,7 +226,8 @@ Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
 // Agent 1C — INVENTORY AGENT
 export async function runInventoryAgent(
   prompt: string,
-  diagramSize: 'small' | 'medium' | 'large' = 'medium'
+  diagramSize: 'small' | 'medium' | 'large' = 'medium',
+  model?: string
 ): Promise<InventoryConfig> {
   const sizeInstructions = `TARGET SIZE: Focus strictly on the components explicitly requested or directly necessary to describe the system/component in the prompt. Do NOT add unnecessary external components (e.g., do NOT add databases, caches, API gateways, CDNs, or authentication services unless they are explicitly mentioned or directly required for the core function of the requested component/system).
 - If the user has given a simple prompt or is describing/asking about a specific component (e.g. "Load Balancer", "Database"), focus ONLY on describing the core idea of that component (e.g. for a Load Balancer, show a request coming in from the client and distributing to multiple servers — do not add databases, caches, or API gateways).
@@ -253,7 +254,7 @@ You MUST output a valid JSON object matching this schema:
 }
 Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
 
-  const res = await callAgent<InventoryConfig>(systemPrompt, prompt);
+  const res = await callAgent<InventoryConfig>(systemPrompt, prompt, model);
   
   // Clean nodes and groups: remove duplicates and empty values, handling objects/other types gracefully
   const uniqueNodes = Array.from(
@@ -295,7 +296,8 @@ Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
 // Agent 1D — EDGE AGENT
 export async function runEdgeAgent(
   prompt: string,
-  diagramSize: 'small' | 'medium' | 'large' = 'medium'
+  diagramSize: 'small' | 'medium' | 'large' = 'medium',
+  model?: string
 ): Promise<EdgeConfig> {
   const sizeInstructions = {
     small: 'TARGET SIZE: Connect only the 5-7 core nodes. Keep flow lines clean and consolidated.',
@@ -328,7 +330,7 @@ You MUST output a valid JSON object matching this schema:
 }
 Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
 
-  const res = await callAgent<EdgeConfig>(systemPrompt, prompt);
+  const res = await callAgent<EdgeConfig>(systemPrompt, prompt, model);
   const cleanedEdges = (res.edges || [])
     .filter(e => e.from && e.to)
     .map(e => ({
@@ -347,7 +349,8 @@ Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
 export async function runGroupAgent(
   nodes: string[],
   groups: string[],
-  prompt: string
+  prompt: string,
+  model?: string
 ): Promise<Record<string, string>> {
   const systemPrompt = `You are the Group Agent in a diagram pipeline.
 Your job is to assign EVERY node in the inventory to exactly one of the groups.
@@ -362,7 +365,7 @@ Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
   const userPrompt = `Nodes:\n${nodes.map(n => `- "${n}"`).join('\n')}\n\nGroups:\n${groups.map(g => `- "${g}"`).join('\n')}\n\nUser Prompt: ${prompt}`;
 
   try {
-    const res = await callAgent<Record<string, string>>(systemPrompt, userPrompt);
+    const res = await callAgent<Record<string, string>>(systemPrompt, userPrompt, model);
     const assignments: Record<string, string> = {};
     for (const node of nodes) {
       const assignedGroup = res[node];
@@ -648,7 +651,8 @@ function getMaxGroupsForNodeCount(count: number): number {
 // Parallel runner with strict alignment & self-correcting checks
 export async function runStage1PreGeneration(
   prompt: string,
-  diagramSize: 'small' | 'medium' | 'large' = 'medium'
+  diagramSize: 'small' | 'medium' | 'large' = 'medium',
+  model?: string
 ): Promise<{
   formatConfig: FormatConfig;
   styleConfig: StyleConfig;
@@ -659,10 +663,10 @@ export async function runStage1PreGeneration(
   logger.log('[Stage 1] Running Pre-Generation Agents in parallel...');
   
   const [formatConfig, styleConfig, inventoryConfig, edgeConfigResult] = await Promise.all([
-    runFormatAgent(prompt),
-    runStyleAgent(prompt),
-    runInventoryAgent(prompt, diagramSize),
-    runEdgeAgent(prompt, diagramSize),
+    runFormatAgent(prompt, model),
+    runStyleAgent(prompt, model),
+    runInventoryAgent(prompt, diagramSize, model),
+    runEdgeAgent(prompt, diagramSize, model),
   ]);
   const edgeConfig = edgeConfigResult;
 
@@ -837,7 +841,21 @@ export async function runStage1PreGeneration(
   }
 
   // Run the Group Agent (A5)
-  const groupAssignments = await runGroupAgent(inventoryConfig.nodes, inventoryConfig.groups, prompt);
+  const groupAssignments = await runGroupAgent(inventoryConfig.nodes, inventoryConfig.groups, prompt, model);
+
+  // Fix data nodes wrongly placed in client groups (e.g. "Database" in "Client Container")
+  const isDataNode = (name: string) => /db|database|sql|mongo|redis|cache|s3|bucket|storage|queue|kafka|rabbit/i.test(name);
+  const isClientGroup = (name: string) => /client|mobile|web.?app|browser|ios|android/i.test(name);
+  const isDataGroup = (name: string) => /data|db|storage|persistence|database|cluster|pool/i.test(name);
+  for (const [node, group] of Object.entries(groupAssignments)) {
+    if (isDataNode(node) && isClientGroup(group)) {
+      const dataGroup = inventoryConfig.groups.find(g => isDataGroup(g)) || inventoryConfig.groups.at(-1);
+      if (dataGroup && dataGroup !== group) {
+        groupAssignments[node] = dataGroup;
+        logger.log(`[Stage 1] Reassigned "${node}" from "${group}" to "${dataGroup}" (data node in client group)`);
+      }
+    }
+  }
 
   logger.log('[Stage 1] Pre-Generation Agents complete & aligned:', {
     diagramType: formatConfig.diagramType,

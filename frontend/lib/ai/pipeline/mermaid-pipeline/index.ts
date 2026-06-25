@@ -56,7 +56,7 @@ export async function runMermaidPipeline(
   const hasExplicitEr = erKeywords.some(k => promptLower.includes(k));
 
   // STAGE 1: Parallel pre-generation agents
-  const stage1Result = await runStage1PreGeneration(userIntent.description, diagramSize);
+  const stage1Result = await runStage1PreGeneration(userIntent.description, diagramSize, userIntent.model);
   const { formatConfig, styleConfig, inventoryConfig, edgeConfig, groupAssignments } = stage1Result;
 
   if (hasArch) {
@@ -91,7 +91,8 @@ export async function runMermaidPipeline(
       edgeConfig,
       groupAssignments,
       diagramSize,
-      repairInstructions
+      repairInstructions,
+      userIntent.model
     );
 
     // Stage 3: Programmatic Validation

@@ -23,7 +23,7 @@ interface ComponentEntry {
 
 function makeDragGhost(label: string) {
   const ghost = document.createElement('div');
-  ghost.style.cssText = `position:fixed;top:-100px;left:-100px;background:white;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:500;color:#374151;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.12);pointer-events:none;`;
+  ghost.style.cssText = `position:fixed;top:-100px;left:-100px;background:hsl(var(--card));border-radius:10px;padding:8px 14px;font-size:12px;font-weight:500;color:hsl(var(--foreground));white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,0.12);pointer-events:none;`;
   ghost.textContent = label;
   return ghost;
 }
@@ -55,16 +55,13 @@ function SidebarButton({ icon, label, active, onClick }: SidebarButtonProps) {
         onMouseLeave={() => setIsHovered(false)}
         className="w-11 h-11 rounded-[12px] flex items-center justify-center transition-all duration-200"
         style={{
-          background: active ? '#EDEDED' : 'transparent',
+          background: active ? 'hsl(var(--accent))' : 'transparent',
         }}
       >
         {icon}
       </button>
       {isHovered && (
-        <div
-          className="absolute left-full ml-2 px-3 py-1.5 rounded-[8px] text-xs font-medium whitespace-nowrap pointer-events-none"
-          style={{ background: '#1A1A1A', color: 'white' }}
-        >
+        <div className="absolute left-full ml-2 px-3 py-1.5 rounded-[8px] text-xs font-medium whitespace-nowrap pointer-events-none bg-popover text-popover-foreground">
           {label}
         </div>
       )}
@@ -132,40 +129,39 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
       {/* Collapsed - Floating Tool Panel */}
       {!isExpanded && (
         <div
-          className="fixed z-40 flex flex-col items-center py-3 px-2"
+          className="fixed z-40 flex flex-col items-center py-3 px-2 bg-card"
           style={{
             left: 16,
             top: '45%',
             transform: 'translateY(-50%)',
             width: 64,
-            background: '#FAFAFA',
             borderRadius: 20,
-            boxShadow: '0 10px 40px rgba(0,0,0,0.06)',
+            boxShadow: '0 10px 40px hsl(var(--foreground) / 0.06)',
             gap: 3,
           }}
         >
           <SidebarButton
-            icon={<Blocks className="w-5 h-5" style={{ color: '#1A1A1A' }} />}
+            icon={<Blocks className="w-5 h-5 text-foreground" />}
             label="Components"
             onClick={() => { setIsExpanded(true); }}
           />
           
           <SidebarButton
-            icon={<Layers className="w-5 h-5" style={{ color: '#6B6B6B' }} />}
+            icon={<Layers className="w-5 h-5 text-muted-foreground" />}
             label="Layers"
             onClick={() => {}}
           />
           
           <SidebarButton
-            icon={<Square className="w-5 h-5" style={{ color: '#6B6B6B' }} />}
+            icon={<Square className="w-5 h-5 text-muted-foreground" />}
             label="Shapes"
             onClick={() => {}}
           />
 
-          <div className="w-8 h-px my-2" style={{ background: '#EAEAEA' }} />
+          <div className="w-8 h-px my-2 bg-border" />
 
           <SidebarButton
-            icon={<Plus className="w-5 h-5" style={{ color: '#6B7280' }} />}
+            icon={<Plus className="w-5 h-5 text-muted-foreground" />}
             label="Add"
             onClick={() => onOpenCreateModal?.()}
           />
@@ -175,40 +171,39 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
       {/* Expanded Panel */}
       {isExpanded && (
         <div
-          className="fixed z-40 flex flex-col overflow-hidden"
+          className="fixed z-40 flex flex-col overflow-hidden bg-card"
           style={{
             left: 16,
             top: '50%',
             transform: 'translateY(-50%)',
             width: 280,
             maxHeight: 'calc(100vh - 180px)',
-            background: '#FAFAFA',
             borderRadius: 20,
-            boxShadow: '0 10px 40px rgba(0,0,0,0.06)',
+            boxShadow: '0 10px 40px hsl(var(--foreground) / 0.06)',
           }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#EAEAEA' }}>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
-              <Blocks className="w-4 h-4" style={{ color: '#595959' }} />
-              <span className="text-sm font-semibold text-[#1A1A1A]">Components</span>
+              <Blocks className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">Components</span>
             </div>
             <button
               onClick={() => setIsExpanded(false)}
-              className="p-1.5 rounded-[10px] transition-colors hover:bg-[#F2F2F2]"
+              className="p-1.5 rounded-[10px] transition-colors hover:bg-accent text-muted-foreground"
             >
-              <PanelLeft className="w-4 h-4" style={{ color: '#6B6B6B' }} />
+              <PanelLeft className="w-4 h-4" />
             </button>
           </div>
 
           {/* Search */}
           <div className="relative px-4 py-3">
-            <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#6B6B6B' }} />
+            <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search..."
-              className="pl-9 h-9 rounded-xl text-sm w-full"
-              style={{ background: '#FFFFFF', border: 'none' }}
+              className="pl-9 h-9 rounded-xl text-sm w-full bg-background"
+              style={{ border: 'none' }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -221,11 +216,9 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
                 <button
                   key={section.key}
                   onClick={() => setActiveSection(section.key)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-[10px] text-xs font-medium whitespace-nowrap transition-all"
-                  style={{
-                    background: activeSection === section.key ? '#EDEDED' : 'transparent',
-                    color: activeSection === section.key ? '#1A1A1A' : '#6B6B6B',
-                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[10px] text-xs font-medium whitespace-nowrap transition-all ${
+                    activeSection === section.key ? 'bg-accent text-foreground' : 'text-muted-foreground'
+                  }`}
                 >
                   {section.title}
                 </button>
@@ -238,13 +231,12 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
             {customComponents.length > 0 && !q && activeSection !== 'general' && (
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2 px-1">
-                  <span className="text-[10px] font-semibold text-[#1A1A1A] uppercase tracking-wider">Custom</span>
+                  <span className="text-[10px] font-semibold text-foreground uppercase tracking-wider">Custom</span>
                 </div>
                 {customComponents.map((comp) => (
                   <div
                     key={comp.id}
-                    className="group flex items-center gap-2 px-2 py-2 rounded-[10px] text-sm transition-all cursor-grab hover:bg-[#F2F2F2]"
-                    style={{ color: '#1A1A1A' }}
+                    className="group flex items-center gap-2 px-2 py-2 rounded-[10px] text-sm transition-all cursor-grab hover:bg-accent text-foreground"
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
@@ -271,8 +263,7 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
             {filteredComponents.map((comp) => (
               <div
                 key={comp.id}
-                className="group flex items-center gap-2 px-2 py-2 rounded-[10px] text-sm transition-all cursor-grab hover:bg-[#F2F2F2]"
-                style={{ color: '#1A1A1A' }}
+                className="group flex items-center gap-2 px-2 py-2 rounded-[10px] text-sm transition-all cursor-grab hover:bg-accent text-foreground"
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData('application/archdraw', JSON.stringify(comp));
@@ -292,17 +283,17 @@ export function ComponentSidebar({ onOpenCreateModal }: ComponentSidebarProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="truncate">{comp.label}</div>
-                  <div className="text-[10px]" style={{ color: '#6B6B6B' }}>{comp.category}</div>
+                  <div className="text-[10px] text-muted-foreground">{comp.category}</div>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Footer */}
-          <div className="p-3 border-t" style={{ borderColor: '#EAEAEA' }}>
+          <div className="p-3 border-t border-border">
             <Button
-              className="w-full justify-center gap-2 h-10 rounded-[12px] text-sm font-medium"
-              style={{ background: '#F2F2F2', color: '#1A1A1A' }}
+              className="w-full justify-center gap-2 h-10 rounded-[12px] text-sm font-medium bg-accent text-foreground"
+              style={{ border: 'none' }}
               onClick={() => { setShowCreateModal(true); }}
             >
               <Plus className="w-4 h-4" />
