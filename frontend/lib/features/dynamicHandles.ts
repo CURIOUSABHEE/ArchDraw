@@ -79,9 +79,11 @@ export function getDynamicHandles(
                                 (targetRect.x < sourceRect.x + sourceRect.width);
 
   const horizontalDist = Math.abs(dx);
+  // Stricter rules for changing direction: strongly prefer horizontal (left/right) 
+  // handles by requiring a much larger vertical distance to switch.
   const verticalThreshold = overlapsHorizontally
-    ? Math.max(horizontalDist * 0.25, 30)
-    : Math.max(horizontalDist * 0.75, 80);
+    ? Math.max(horizontalDist * 0.5, 30) // Was 0.25
+    : Math.max(horizontalDist * 1.5, 80); // Was 0.75
 
   let sourcePosition = Position.Right;
   let targetPosition = Position.Left;
