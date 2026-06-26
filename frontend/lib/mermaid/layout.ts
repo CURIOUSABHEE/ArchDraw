@@ -1,6 +1,7 @@
 import dagre from 'dagre'
 import type { RFObjects, RFNode, Direction } from './types'
 import { NODE_WIDTH, NODE_HEIGHT, SUBGRAPH_PADDING } from './types'
+import { MIN_HORIZONTAL_SPACING, MIN_VERTICAL_SPACING } from '@/lib/config'
 
 function mapDirection(d: Direction): string {
   const map: Record<string, string> = { TD: 'TB', LR: 'LR', BT: 'BT', RL: 'RL' }
@@ -25,8 +26,8 @@ export function applyLayout(objects: RFObjects, direction: Direction): RFObjects
   g.setDefaultEdgeLabel(() => ({}))
   g.setGraph({
     rankdir: mapDirection(direction),
-    nodesep: 80,
-    ranksep: 120,
+    nodesep: MIN_HORIZONTAL_SPACING,
+    ranksep: MIN_VERTICAL_SPACING,
     marginx: 40,
     marginy: 40,
   })

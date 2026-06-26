@@ -85,6 +85,11 @@ export const ELK_DIRECTION_OVERRIDE: Record<string, string> = {
   flow_diagram:  'DOWN',
 };
 
+// ─── NODE SPACING (global minimums) ───────────────────────────
+
+export const MIN_HORIZONTAL_SPACING = 100;
+export const MIN_VERTICAL_SPACING   = 200;
+
 // ─── STORAGE ─────────────────────────────────────────────────
 
 export const STORAGE_VERSION = 2;
