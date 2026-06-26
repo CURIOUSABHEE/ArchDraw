@@ -65,6 +65,9 @@ export function getEdgeShiftOffset(
 ): number {
   const node = nodeInternals.get(nodeId);
   if (!node) return 0;
+
+  const currentEdge = (edges || []).find(e => e.id === edgeId);
+  const isSource = currentEdge?.source === nodeId;
   
   // Find all edges that connect to this node on the given side
   const connectedEdges = (edges || []).map(e => {
@@ -89,7 +92,12 @@ export function getEdgeShiftOffset(
     return null;
   }).filter(Boolean) as { edge: Edge; otherNodeCenter: ReturnType<typeof getNodeCenter> }[];
   
-  if (connectedEdges.length <= 1) return 0;
+  // Always apply a baseline offset to separate outgoing (source) from incoming (target)
+  // connections on the same node, even when there's only one edge per side — this
+  // prevents the visual "merged line" effect when edges enter and exit at the same
+  // centerpoint on opposite sides.
+  const baseOffset = isSource ? spacing * 0.5 : -spacing * 0.5;
+  if (connectedEdges.length <= 1) return baseOffset;
 
   // Sort connected edges by other node's coordinate along the axis of the side:
   // - For Left/Right: perpendicular axis is Y, so sort by cy

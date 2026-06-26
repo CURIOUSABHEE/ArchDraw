@@ -857,6 +857,18 @@ export async function runStage1PreGeneration(
     }
   }
 
+  // Fix non-client nodes wrongly placed in client groups (e.g. "Docker Container" in "Client Container")
+  const isClientNode = (name: string) => /client|mobile|web.?app|browser|ios|android/i.test(name);
+  for (const [node, group] of Object.entries(groupAssignments)) {
+    if (!isClientNode(node) && isClientGroup(group)) {
+      const targetGroup = inventoryConfig.groups.find(g => !isClientGroup(g)) || inventoryConfig.groups[0];
+      if (targetGroup && targetGroup !== group) {
+        groupAssignments[node] = targetGroup;
+        logger.log(`[Stage 1] Reassigned "${node}" from "${group}" to "${targetGroup}" (non-client node in client group)`);
+      }
+    }
+  }
+
   logger.log('[Stage 1] Pre-Generation Agents complete & aligned:', {
     diagramType: formatConfig.diagramType,
     theme: styleConfig.theme,
