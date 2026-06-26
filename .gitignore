@@ -1,0 +1,29 @@
+# Vercel
+.vercel
+
+# macOS
+.DS_Store
+
+# Dependencies
+frontend/node_modules
+frontend/mcp-server/node_modules
+
+# Build output
+frontend/mcp-server/dist
+frontend/.next
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
