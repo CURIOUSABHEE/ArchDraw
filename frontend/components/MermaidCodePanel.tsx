@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { X, Check, AlertCircle, Copy, Play } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { X, Check, AlertCircle, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDiagramStore } from '@/store/diagramStore';
 import { reactFlowToMermaid } from '@/lib/ai/pipeline/mermaid-pipeline/mermaidTranslator';
@@ -10,6 +10,13 @@ import { toast } from 'sonner';
 
 interface MermaidCodePanelProps {
   onClose: () => void;
+}
+
+function hashNodesEdges(nodes: any[], edges: any[]): string {
+  let h = `${nodes.length}:${edges.length}`;
+  for (const n of nodes) h += `|${n.id}:${n.type}:${(n as any).parentNode || ''}`;
+  for (const e of edges) h += `|${e.id}:${e.source}-${e.target}`;
+  return h;
 }
 
 export function MermaidCodePanel({ onClose }: MermaidCodePanelProps) {
@@ -21,13 +28,15 @@ export function MermaidCodePanel({ onClose }: MermaidCodePanelProps) {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastProcessedRef = useRef<string>('');
 
-  // Sync canvas changes to code panel if the user is not actively editing
+
+  // Sync canvas changes to code panel only when structure actually changes
+  const structureHash = useMemo(() => hashNodesEdges(nodes, edges), [nodes, edges]);
   useEffect(() => {
-    if (!isFocusedRef.current) {
-      const currentMermaid = reactFlowToMermaid(nodes, edges);
-      setCode(currentMermaid);
-    }
-  }, [nodes, edges]);
+    if (isFocusedRef.current) return;
+    const currentMermaid = reactFlowToMermaid(nodes, edges);
+    setCode(currentMermaid);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [structureHash]);
 
   // Copy code handler
   const handleCopy = async () => {
@@ -39,23 +48,6 @@ export function MermaidCodePanel({ onClose }: MermaidCodePanelProps) {
     } catch (err) {
       toast.error('Failed to copy code');
     }
-  };
-
-  // Extract style config from existing nodes on the canvas
-  const getExistingStyleConfig = () => {
-    const styledNode = nodes.find(n => n.style?.backgroundColor);
-    const primaryColor = styledNode?.style?.backgroundColor || '#334155';
-    
-    const groupNode = nodes.find(n => n.type === 'frameNode' || n.data?.isGroup);
-    const secondaryColor = groupNode?.data?.groupColor || '#475569';
-
-    return {
-      primaryColor,
-      secondaryColor,
-      background: '#F8FAFC',
-      fontFamily: 'Inter',
-      theme: 'slate',
-    };
   };
 
   // Real-time parsed update function
@@ -99,24 +91,6 @@ export function MermaidCodePanel({ onClose }: MermaidCodePanelProps) {
             mappedNode.parentNode = node.parentNode;
             mappedNode.extent = 'parent';
           }
-
-          // Preserve manually positioned / sized nodes
-          const existing = nodes.find(n => n.id === node.id);
-          if (existing) {
-            mappedNode.position = { ...existing.position };
-            if (isGroup) {
-              const newWidth = Math.max(existing.width ?? 0, node.width ?? 0);
-              const newHeight = Math.max(existing.height ?? 0, node.height ?? 0);
-              if (newWidth > 0) {
-                mappedNode.width = newWidth;
-                mappedNode.style = { ...mappedNode.style, width: newWidth };
-              }
-              if (newHeight > 0) {
-                mappedNode.height = newHeight;
-                mappedNode.style = { ...mappedNode.style, height: newHeight };
-              }
-            }
-          }
           return mappedNode;
         });
 
@@ -139,7 +113,7 @@ export function MermaidCodePanel({ onClose }: MermaidCodePanelProps) {
         const msg = err instanceof Error ? err.message : String(err);
         setError(`Pipeline error: ${msg}`);
       }
-    }, 400); // Debounce of 400ms for responsiveness without stuttering
+    }, 400);
   };
 
   // Cleanup debounce timer

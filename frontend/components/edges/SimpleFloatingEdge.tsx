@@ -9,11 +9,12 @@ import {
   useStore,
   ReactFlowState,
   Position,
-  Edge,
   Node,
 } from 'reactflow';
-import { getDynamicHandles } from '@/lib/features/dynamicHandles';
+import { getObstacleAwareHandles } from '@/lib/features/dynamicHandles';
 import { getEdgeShiftOffset, getSimpleHandlePosition } from '@/lib/utils/simpleFloatingEdge';
+import { getCollisionFreeSmoothStepPath, getCollisionFreeWaypoints, buildSmoothStepSvg, segmentIntersectsRect } from '@/lib/utils/collisionFreeEdgePath';
+import type { NodeRect } from '@/lib/utils/collisionFreeEdgePath';
 import { getPointOnPath, findClosestT } from '@/lib/utils/edgeLabelDrag';
 import { useDiagramStore } from '@/store/diagramStore';
 import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
@@ -22,117 +23,6 @@ import { EdgeLabel } from './EdgeLabel';
 import { EdgeToolbar } from './EdgeToolbar';
 import { EdgeContextMenu } from './EdgeContextMenu';
 import type { EdgeData } from '@/data/edgeTypes';
-
-function getCustomSmoothStepPath({
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
-  borderRadius = 40,
-  edgeOffset = 0,
-}: {
-  sourceX: number;
-  sourceY: number;
-  targetX: number;
-  targetY: number;
-  sourcePosition: Position;
-  targetPosition: Position;
-  borderRadius?: number;
-  edgeOffset?: number;
-}): string {
-  const sourceIsHorizontal = sourcePosition === Position.Left || sourcePosition === Position.Right;
-  const targetIsHorizontal = targetPosition === Position.Left || targetPosition === Position.Right;
-
-  const maxR = Math.max(0, Math.abs(targetX - sourceX) / 2, Math.abs(targetY - sourceY) / 2);
-
-  if (sourceIsHorizontal && targetIsHorizontal) {
-    // H → V → H: both sides horizontal, mid segment vertical
-    const mx = (sourceX + targetX) / 2 + edgeOffset;
-    const r = Math.max(0, Math.min(
-      borderRadius,
-      Math.abs(mx - sourceX),
-      Math.abs(targetX - mx),
-      maxR > 0 ? Math.abs(targetY - sourceY) / 2 : borderRadius
-    ));
-
-    const dx_sign = Math.sign(mx - sourceX) || 1;
-    const dy_sign = Math.sign(targetY - sourceY) || 1;
-    const dx_sign_target = Math.sign(targetX - mx) || 1;
-
-    if (r === 0) {
-      return `M ${sourceX},${sourceY} L ${mx},${sourceY} L ${mx},${targetY} L ${targetX},${targetY}`;
-    }
-
-    return `M ${sourceX},${sourceY} ` +
-      `L ${mx - dx_sign * r},${sourceY} ` +
-      `Q ${mx},${sourceY} ${mx},${sourceY + dy_sign * r} ` +
-      `L ${mx},${targetY - dy_sign * r} ` +
-      `Q ${mx},${targetY} ${mx + dx_sign_target * r},${targetY} ` +
-      `L ${targetX},${targetY}`;
-  }
-
-  if (!sourceIsHorizontal && !targetIsHorizontal) {
-    // V → H → V: both sides vertical, mid segment horizontal
-    const my = (sourceY + targetY) / 2 + edgeOffset;
-    const r = Math.max(0, Math.min(
-      borderRadius,
-      Math.abs(my - sourceY),
-      Math.abs(targetY - my),
-      maxR > 0 ? Math.abs(targetX - sourceX) / 2 : borderRadius
-    ));
-
-    const dy_sign = Math.sign(my - sourceY) || 1;
-    const dx_sign = Math.sign(targetX - sourceX) || 1;
-    const dy_sign_target = Math.sign(targetY - my) || 1;
-
-    if (r === 0) {
-      return `M ${sourceX},${sourceY} L ${sourceX},${my} L ${targetX},${my} L ${targetX},${targetY}`;
-    }
-
-    return `M ${sourceX},${sourceY} ` +
-      `L ${sourceX},${my - dy_sign * r} ` +
-      `Q ${sourceX},${my} ${sourceX + dx_sign * r},${my} ` +
-      `L ${targetX - dx_sign * r},${my} ` +
-      `Q ${targetX},${my} ${targetX},${my + dy_sign_target * r} ` +
-      `L ${targetX},${targetY}`;
-  }
-
-  if (sourceIsHorizontal) {
-    // source H (Left/Right), target V (Top/Bottom)
-    // Path: go H directly to targetX, then V to targetY
-    // Last segment is VERTICAL → marker points up/down → matches vertical target handle
-    const dx_sign = Math.sign(targetX - sourceX) || 1;
-    const dy_sign = Math.sign(targetY - sourceY) || 1;
-    const r = Math.max(0, Math.min(borderRadius, Math.abs(targetX - sourceX), Math.abs(targetY - sourceY)));
-
-    if (r === 0) {
-      return `M ${sourceX},${sourceY} L ${targetX},${sourceY} L ${targetX},${targetY}`;
-    }
-
-    return `M ${sourceX},${sourceY} ` +
-      `L ${targetX - dx_sign * r},${sourceY} ` +
-      `Q ${targetX},${sourceY} ${targetX},${sourceY + dy_sign * r} ` +
-      `L ${targetX},${targetY}`;
-  }
-
-  // source V (Top/Bottom), target H (Left/Right)
-  // Path: go V directly to targetY, then H to targetX
-  // Last segment is HORIZONTAL → marker points left/right → matches horizontal target handle
-  const dx_sign = Math.sign(targetX - sourceX) || 1;
-  const dy_sign = Math.sign(targetY - sourceY) || 1;
-  const r = Math.max(0, Math.min(borderRadius, Math.abs(targetX - sourceX), Math.abs(targetY - sourceY)));
-
-  if (r === 0) {
-    return `M ${sourceX},${sourceY} L ${sourceX},${targetY} L ${targetX},${targetY}`;
-  }
-
-  return `M ${sourceX},${sourceY} ` +
-    `L ${sourceX},${targetY - dy_sign * r} ` +
-    `Q ${sourceX},${targetY} ${sourceX + dx_sign * r},${targetY} ` +
-    `L ${targetX},${targetY}`;
-}
 
 function getSelfLoopPath({
   sourceX,
@@ -187,6 +77,8 @@ export default function SimpleFloatingEdge({
     let ty = targetY;
     let sourcePos = sourcePosition;
     let targetPos = targetPosition;
+    let sourceRect: { x: number; y: number; width: number; height: number } | null = null;
+    let targetRect: { x: number; y: number; width: number; height: number } | null = null;
 
     if (sourceNode && targetNode) {
       // In reactflow v11/v12, positionAbsolute is preferred, but fallback to position.
@@ -201,8 +93,8 @@ export default function SimpleFloatingEdge({
       const tWidth = (targetNode as ReactFlow12Node).measured?.width ?? targetNode.width ?? (targetNode.data as { nodeWidth?: number } | undefined)?.nodeWidth ?? 200;
       const tHeight = (targetNode as ReactFlow12Node).measured?.height ?? targetNode.height ?? (targetNode.data as { nodeHeight?: number } | undefined)?.nodeHeight ?? 80;
 
-      const sourceRect = { x: sX, y: sY, width: sWidth, height: sHeight };
-      const targetRect = { x: tX, y: tY, width: tWidth, height: tHeight };
+      sourceRect = { x: sX, y: sY, width: sWidth, height: sHeight };
+      targetRect = { x: tX, y: tY, width: tWidth, height: tHeight };
 
       if (source === target) {
         sourcePos = Position.Top;
@@ -216,7 +108,22 @@ export default function SimpleFloatingEdge({
         tx = targetXY.x;
         ty = targetXY.y;
       } else {
-        const handles = getDynamicHandles(sourceRect, targetRect);
+        // Build intermediate node rects for obstacle-aware handle selection
+        const intermediateNodeRects = new Map<string, { id: string; x: number; y: number; w: number; h: number }>();
+        const excludedIds = new Set([source, target]);
+        for (const [nid, node] of nodeInternals) {
+          if (excludedIds.has(nid)) continue;
+          const pos = node.positionAbsolute ?? node.position;
+          const w = node.width ?? 200;
+          const h = node.height ?? 80;
+          intermediateNodeRects.set(nid, { id: nid, x: pos.x, y: pos.y, w, h });
+        }
+
+        const handles = getObstacleAwareHandles(
+          sourceRect, targetRect,
+          intermediateNodeRects.size > 0 ? intermediateNodeRects : undefined,
+          excludedIds,
+        );
         sourcePos = handles.sourcePosition;
         targetPos = handles.targetPosition;
 
@@ -232,26 +139,14 @@ export default function SimpleFloatingEdge({
         ty = targetXY.y;
       }
       
-      console.log(`[SimpleFloatingEdge] ${id}: (${source} -> ${target})`, {
-        sourceX: sourceX,
-        sourceY: sourceY,
-        targetX: targetX,
-        targetY: targetY,
-        computedSx: sx,
-        computedSy: sy,
-        computedTx: tx,
-        computedTy: ty,
-        sourcePos,
-        targetPos
-      });
     } else {
       console.warn(`[SimpleFloatingEdge] Missing nodes for edge ${id}:`, { sourceNode: !!sourceNode, targetNode: !!targetNode });
     }
 
-    return { sx, sy, tx, ty, sourcePos, targetPos };
-  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, source, target, edges, nodeInternals]);
+    return { sx, sy, tx, ty, sourcePos, targetPos, sourceRect, targetRect };
+  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, source, target, edges, nodeInternals, id]);
 
-  const { sx, sy, tx, ty, sourcePos, targetPos } = edgeParams;
+  const { sx, sy, tx, ty, sourcePos, targetPos, sourceRect, targetRect } = edgeParams;
   const [isHovered, setIsHovered] = useState(false);
   
   const isAsync = data?.edgeVariant === 'dashed' || data?.async || data?.connectionType === 'async';
@@ -311,20 +206,88 @@ export default function SimpleFloatingEdge({
           targetY: ty,
         });
       }
-      return getCustomSmoothStepPath({
-        sourceX: sx,
-        sourceY: sy,
-        targetX: tx,
-        targetY: ty,
+
+      if (!sourceRect || !targetRect) {
+        return `M${sx},${sy} L${tx},${ty}`;
+      }
+
+      // Build intermediate node rects for collision avoidance
+      const excludedIds = new Set([source, target]);
+      const nodeRects = new Map<string, NodeRect>();
+      for (const [nid, node] of nodeInternals) {
+        if (excludedIds.has(nid)) continue;
+        const pos = node.positionAbsolute ?? node.position;
+        const w = node.width ?? 200;
+        const h = node.height ?? 80;
+        nodeRects.set(nid, { id: nid, x: pos.x, y: pos.y, w, h });
+      }
+
+      const nodeRectParam = nodeRects.size > 0 ? nodeRects : undefined;
+
+      // Try handle pairs: the obstacle-aware selection first, then the 4 explicit orientations.
+      // For each pair, run the full collision avoidance pipeline and verify the result
+      // actually avoids all intermediate nodes before accepting it.
+      const pairsToTry: Array<{ sourcePosition: Position; targetPosition: Position }> = [
+        { sourcePosition: sourcePos, targetPosition: targetPos },
+        { sourcePosition: Position.Right, targetPosition: Position.Left },
+        { sourcePosition: Position.Left, targetPosition: Position.Right },
+        { sourcePosition: Position.Top, targetPosition: Position.Bottom },
+        { sourcePosition: Position.Bottom, targetPosition: Position.Top },
+      ];
+
+      const seen = new Set<string>();
+      for (const pair of pairsToTry) {
+        const key = `${pair.sourcePosition}-${pair.targetPosition}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const sourceShift = getEdgeShiftOffset(source, id, pair.sourcePosition, edges, nodeInternals, 12);
+        const targetShift = getEdgeShiftOffset(target, id, pair.targetPosition, edges, nodeInternals, 12);
+
+        const sh = getSimpleHandlePosition(sourceRect.x, sourceRect.y, sourceRect.width, sourceRect.height, pair.sourcePosition, sourceShift);
+        const th = getSimpleHandlePosition(targetRect.x, targetRect.y, targetRect.width, targetRect.height, pair.targetPosition, targetShift);
+
+        const waypoints = getCollisionFreeWaypoints({
+          sourceX: sh.x, sourceY: sh.y,
+          targetX: th.x, targetY: th.y,
+          sourcePosition: pair.sourcePosition,
+          targetPosition: pair.targetPosition,
+          borderRadius, edgeOffset,
+          nodeRects: nodeRectParam,
+          excludedNodeIds: excludedIds,
+        });
+
+        // Verify waypoints actually avoid all intermediate nodes
+        let collides = false;
+        for (let i = 0; i < waypoints.length - 1; i++) {
+          for (const [, nr] of nodeRects) {
+            if (segmentIntersectsRect(waypoints[i].x, waypoints[i].y, waypoints[i + 1].x, waypoints[i + 1].y, nr.x, nr.y, nr.w, nr.h)) {
+              collides = true;
+              break;
+            }
+          }
+          if (collides) break;
+        }
+
+        if (!collides) {
+          return buildSmoothStepSvg(waypoints, borderRadius);
+        }
+      }
+
+      // All pairs collided. Fall back to default pair path (will be dimmed via useEdgeColors)
+      return getCollisionFreeSmoothStepPath({
+        sourceX: sx, sourceY: sy,
+        targetX: tx, targetY: ty,
         sourcePosition: sourcePos,
         targetPosition: targetPos,
-        borderRadius,
-        edgeOffset: edgeOffset,
+        borderRadius, edgeOffset,
+        nodeRects: nodeRectParam,
+        excludedNodeIds: excludedIds,
       });
     } catch {
       return `M${isNaN(sx) ? 0 : sx},${isNaN(sy) ? 0 : sy} L${isNaN(tx) ? 0 : tx},${isNaN(ty) ? 0 : ty}`;
     }
-  }, [source, target, sx, sy, tx, ty, sourcePos, targetPos, edgeOffset, borderRadius]);
+  }, [source, target, sourceRect, targetRect, edgeOffset, borderRadius, nodeInternals, edges, id, sx, sy, tx, ty, sourcePos, targetPos]);
 
   // Compute label position from labelT along the SVG path
   const labelPos = useMemo(() => {
@@ -335,6 +298,9 @@ export default function SimpleFloatingEdge({
       return { x: (sx + tx) / 2 || 0, y: (sy + ty) / 2 || 0, angle: 0 };
     }
   }, [edgePath, labelT, edgeLabel, sx, sy, tx, ty]);
+
+  // Labels always stay on the edge path — never jump to node edges
+  const safeLabelPos = labelPos;
 
   // Drag state
   const isDragging = useRef(false);
@@ -415,7 +381,7 @@ export default function SimpleFloatingEdge({
             }}
             style={{
               position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelPos.x}px, ${labelPos.y}px)`,
+              transform: `translate(-50%, -50%) translate(${safeLabelPos.x}px, ${safeLabelPos.y}px)`,
               pointerEvents: 'all',
               cursor: dragging ? 'grabbing' : 'grab',
               zIndex: 1000,
@@ -426,8 +392,8 @@ export default function SimpleFloatingEdge({
             <EdgeLabel
               edgeId={id}
               label={edgeLabel}
-              labelX={labelPos.x}
-              labelY={labelPos.y}
+              labelX={safeLabelPos.x}
+              labelY={safeLabelPos.y}
             />
           </div>
         </EdgeLabelRenderer>
@@ -439,8 +405,8 @@ export default function SimpleFloatingEdge({
           currentLabel={data?.label}
           currentEdgeType={data?.edgeType}
           currentPathType={data?.pathType}
-          labelX={labelPos.x}
-          labelY={labelPos.y}
+          labelX={safeLabelPos.x}
+          labelY={safeLabelPos.y}
         />
       )}
 

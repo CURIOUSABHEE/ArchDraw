@@ -2,7 +2,7 @@ import logger from '@/lib/logger';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type { LayoutedNode, ValidatedDiagram, RawNode } from './types';
 import { calculateNodeDimensions } from '@/lib/utils/nodeSizing';
-import { ELK_CONFIG, ELK_DIRECTION_OVERRIDE } from '@/lib/config';
+import { ELK_CONFIG, ELK_DIRECTION_OVERRIDE, MIN_HORIZONTAL_SPACING, MIN_VERTICAL_SPACING } from '@/lib/config';
 
 export interface LayoutDiagnostics {
   elkFailed: boolean;
@@ -402,10 +402,10 @@ export async function applyLayout(
   const sameLayerSpacingExtra = sameLayerEdges * 15;
 
   // Combine them with bounds/clamping
-  const finalNodeNode = Math.min(Math.max(sizeNodeSpacing + extraNodeSpacing + sameLayerSpacingExtra, 120), 400);
-  const finalNodeLayer = Math.min(Math.max(sizeLayerSpacing + extraLayerSpacing + sameLayerSpacingExtra, 180), 500);
-  const finalEdgeNode = Math.min(Math.max(100 + edgePressure * 5, 80), 200);
-  const finalEdgeEdge = Math.min(Math.max(60 + edgePressure * 5, 50), 150);
+  const finalNodeNode = Math.min(Math.max(sizeNodeSpacing + extraNodeSpacing + sameLayerSpacingExtra, MIN_HORIZONTAL_SPACING), 400);
+  const finalNodeLayer = Math.min(Math.max(sizeLayerSpacing + extraLayerSpacing + sameLayerSpacingExtra, MIN_VERTICAL_SPACING), 500);
+  const finalEdgeNode = Math.min(Math.max(160 + edgePressure * 5, 120), 300);
+  const finalEdgeEdge = Math.min(Math.max(80 + edgePressure * 5, 60), 200);
 
   const elk = new ELK();
   const cleanEdges = edges.filter(e => e.source !== e.target);
@@ -518,6 +518,19 @@ export async function applyLayout(
 
     // Convert children to parent-relative coordinates
     const finalNodes = convertChildrenToParentRelative(reboundedNodes);
+
+    // Verify group bounds enclose their children; log any violations
+    for (const group of finalNodes) {
+      if (!group.isGroup) continue;
+      for (const child of finalNodes) {
+        if (child.parentId !== group.id) continue;
+        if (child.x < 0 || child.y < 0 ||
+            child.x + child.width > group.width ||
+            child.y + child.height > group.height) {
+          logger.warn(`[GroupBounds] Child ${child.id} outside parent ${group.id}: child rel (${child.x},${child.y} ${child.width}x${child.height}) vs group (${group.width}x${group.height})`);
+        }
+      }
+    }
 
     return {
       nodes: finalNodes,
