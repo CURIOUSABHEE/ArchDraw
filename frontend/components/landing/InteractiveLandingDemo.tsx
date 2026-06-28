@@ -401,6 +401,21 @@ const PRESETS: Record<'loadBalancer', PresetData> = {
   },
 };
 
+// Custom NodeTypes registration
+const DEMO_NODE_TYPES = {
+  demoNode: DemoNode,
+  demoGroup: DemoGroup,
+};
+
+// Custom EdgeTypes registration
+const DEMO_EDGE_TYPES = {
+  custom: SimpleFloatingEdge,
+  simpleFloating: SimpleFloatingEdge,
+  floating: SimpleFloatingEdge,
+  default: SimpleFloatingEdge,
+  straight: SimpleFloatingEdge,
+};
+
 export default function InteractiveLandingDemo() {
   return (
     <ReactFlowProvider>
@@ -422,21 +437,6 @@ function InteractiveLandingDemoContent() {
     { nodes: PRESETS.loadBalancer.nodes, edges: PRESETS.loadBalancer.edges }
   ]);
   const [historyIndex, setHistoryIndex] = useState(0);
-
-  // Custom NodeTypes registration
-  const nodeTypes = useMemo(() => ({
-    demoNode: DemoNode,
-    demoGroup: DemoGroup,
-  }), []);
-
-  // Custom EdgeTypes registration
-  const edgeTypes = useMemo(() => ({
-    custom: SimpleFloatingEdge,
-    simpleFloating: SimpleFloatingEdge,
-    floating: SimpleFloatingEdge,
-    default: SimpleFloatingEdge,
-    straight: SimpleFloatingEdge,
-  }), []);
 
   const updateNodeLabel = useCallback((nodeId: string, newLabel: string) => {
     setNodes((nds) =>
@@ -986,8 +986,8 @@ function InteractiveLandingDemoContent() {
           }}
           onNodeDragStop={onNodeDragStop}
           onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
+          nodeTypes={DEMO_NODE_TYPES}
+          edgeTypes={DEMO_EDGE_TYPES}
           fitView
           fitViewOptions={{ padding: 0.3 }}
           preventScrolling={false}
