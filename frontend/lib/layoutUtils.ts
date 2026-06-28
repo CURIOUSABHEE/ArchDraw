@@ -112,8 +112,8 @@ export function getLayoutedElements(
     if (!dagreNode) return node;
     const { x, y, width, height } = dagreNode;
     
-    const absoluteX = x - width / 2;
-    const absoluteY = y - height / 2;
+    const absoluteX = Math.round((x - width / 2) / 20) * 20;
+    const absoluteY = Math.round((y - height / 2) / 20) * 20;
 
     const updatedNode = {
       ...node,
@@ -141,7 +141,7 @@ export function getLayoutedElements(
     return updatedNode;
   });
 
-  // Convert children to parent-relative
+  // Convert children to parent-relative and snap them to grid
   const finalNodes = layoutedNodes.map((node) => {
     if (node.parentId) {
       const parent = layoutedNodes.find((p) => p.id === node.parentId);
@@ -149,8 +149,8 @@ export function getLayoutedElements(
         return {
           ...node,
           position: {
-            x: node.position.x - parent.position.x,
-            y: node.position.y - parent.position.y,
+            x: Math.round((node.position.x - parent.position.x) / 20) * 20,
+            y: Math.round((node.position.y - parent.position.y) / 20) * 20,
           },
         };
       }

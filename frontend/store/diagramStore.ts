@@ -125,7 +125,7 @@ import logger from '@/lib/logger';
 import { EDGE_CONFIG, STORAGE_KEY, STORAGE_VERSION, NODE_CONFIG } from '@/lib/config';
 import { createNode, createEdge } from '@/lib/factory';
 import { applyLayoutPreset } from '@/lib/canvas/applyLayout';
-import { LAYOUT_PRESETS } from '@/lib/canvas/layoutPresets';
+import { LAYOUT_PRESETS, type LayoutPreset } from '@/lib/canvas/layoutPresets';
 
 const NODE_PADDING = 25;
 const MIN_NODE_SPACING = 25;
@@ -360,6 +360,7 @@ interface DiagramState {
   setCanvasMode: (mode: 'empty' | 'editing' | 'template') => void;
   setActiveLayoutPresetId: (id: string) => void;
   toggleLayoutDirection: () => Promise<void>;
+  applyLayoutPresetById: (presetId: string) => Promise<void>;
 
   // ── History ───────────────────────────────────────────────────────────────
   past: HistoryEntry[];
@@ -1378,13 +1379,72 @@ const useDiagramStoreRaw = create<DiagramState>()(
       setGuideLines: (lines) => set({ guideLines: lines }),
       setCanvasMode: (mode) => set({ canvasMode: mode }),
       setActiveLayoutPresetId: (id) => set({ activeLayoutPresetId: id }),
+      applyLayoutPresetById: async (presetId) => {
+        if (isLayouting) return;
+        isLayouting = true;
+        try {
+          const preset = LAYOUT_PRESETS.find((p) => p.id === presetId) as LayoutPreset | undefined;
+          if (!preset) return;
+
+          get().pushHistory();
+
+          if (preset.isFreeform) {
+            set({ activeLayoutPresetId: presetId });
+            isLayouting = false;
+            return;
+          }
+
+          const { nodes, edges, activeCanvasId, canvases } = get();
+          const layoutedNodes = await applyLayoutPreset(nodes, edges, preset);
+
+          // Temporarily set extent to undefined for child nodes so React Flow
+          // does not clamp their layout positions to the old parent dimensions.
+          const nodesWithoutExtent = layoutedNodes.map(n => 
+            (n.parentId || (n as any).parentNode) ? { ...n, extent: undefined } : n
+          );
+
+          const nextCanvases = canvases.map((c) =>
+            c.id === activeCanvasId ? { ...c, nodes: nodesWithoutExtent, updatedAt: Date.now() } : c
+          );
+
+          set({
+            activeLayoutPresetId: presetId,
+            canvases: nextCanvases,
+          });
+
+          get().saveCanvasToDB(activeCanvasId);
+          setTimeout(() => get().fitView(), 100);
+
+          // Re-apply extent constraint after React Flow has finished rendering and measuring the new parent size
+          setTimeout(() => {
+            const { activeCanvasId: currentActiveId, canvases: currentCanvases } = get();
+            const canvas = currentCanvases.find(c => c.id === currentActiveId);
+            if (!canvas) return;
+
+            const restoredNodes = canvas.nodes.map(n => {
+              const pId = n.parentId || (n as any).parentNode;
+              return pId ? { ...n, parentId: pId, parentNode: pId, extent: 'parent' as const } : n;
+            });
+
+            const nextCanvasesRestored = currentCanvases.map((c) =>
+              c.id === currentActiveId ? { ...c, nodes: restoredNodes } : c
+            );
+
+            set({ canvases: nextCanvasesRestored });
+          }, 250);
+        } catch (e) {
+          console.error('[Layout] Failed to apply layout preset:', e);
+        } finally {
+          isLayouting = false;
+        }
+      },
       toggleLayoutDirection: async () => {
         if (isLayouting) return;
         isLayouting = true;
         try {
           const { activeLayoutPresetId, nodes, edges, activeCanvasId, canvases } = get();
           const nextPresetId = activeLayoutPresetId === 'layered-tb' ? 'layered-lr' : 'layered-tb';
-          const preset = LAYOUT_PRESETS.find((p) => p.id === nextPresetId);
+          const preset = LAYOUT_PRESETS.find((p) => p.id === nextPresetId) as LayoutPreset | undefined;
           if (!preset) return;
 
           get().pushHistory();

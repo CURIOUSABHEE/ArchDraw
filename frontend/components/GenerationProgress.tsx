@@ -42,7 +42,7 @@ export function GenerationProgressDisplay({ progress, onCancel }: GenerationProg
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-      <div className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-card border border-border pointer-events-auto animate-in slide-in-from-bottom-4 fade-in duration-300"
+      <div className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-card border border-border pointer-events-auto animate-in slide-in-from-bottom-4 fade-in duration-300 max-w-[calc(100vw-32px)]"
         style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
         {getIcon()}
         

@@ -1,7 +1,8 @@
 'use client';
 
 import { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { Handle, Position, NodeProps, useReactFlow, useUpdateNodeInternals } from 'reactflow';
+import { NodeProps, useReactFlow, useUpdateNodeInternals } from 'reactflow';
+import { NodeHandles } from '@/components/nodes/NodeHandles';
 
 export interface TextLabelNodeData {
   text: string;
@@ -175,25 +176,7 @@ function TextLabelNodeComponent({ id, data }: NodeProps<TextLabelNodeData>) {
       onDoubleClick={startEdit}
       className="text-label-node"
     >
-      {/* Left side */}
-      <Handle type="target" position={Position.Left} id="target-left" style={{ ...handleStyle, left: -15, top: 'calc(50% - 12px)' }} />
-      <Handle type="source" position={Position.Left} id="source-left" style={{ ...handleStyle, left: -15, top: 'calc(50% + 12px)' }} />
-
-      {/* Right side */}
-      <Handle type="target" position={Position.Right} id="target-right" style={{ ...handleStyle, top: 'calc(50% - 12px)' }} />
-      <Handle type="source" position={Position.Right} id="source-right" style={{ ...handleStyle, top: 'calc(50% + 12px)' }} />
-
-      {/* Top side */}
-      <Handle type="target" position={Position.Top} id="target-top" style={{ ...handleStyle, left: 'calc(50% - 12px)' }} />
-      <Handle type="source" position={Position.Top} id="source-top" style={{ ...handleStyle, left: 'calc(50% + 12px)' }} />
-
-      {/* Bottom side */}
-      <Handle type="target" position={Position.Bottom} id="target-bottom" style={{ ...handleStyle, left: 'calc(50% - 12px)' }} />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" style={{ ...handleStyle, left: 'calc(50% + 12px)' }} />
-
-      {/* Dummy handles for edges that don't specify sourceHandle/targetHandle */}
-      <Handle type="source" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
-      <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%' }} />
+      <NodeHandles alwaysRender handleStyle={{ ...handleStyle, left: -15 }} />
 
       {editing && (
         <div

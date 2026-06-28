@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import * as pregen from './stage1-pregen';
+import { toNodeId } from './stage2-mermaid';
 import { parseMermaid } from './mermaidParser';
 import { validateMermaid } from './stage3-validate';
 import { translateMermaidToReactFlowJSON } from '@/lib/mermaid/aiAdapter';
@@ -34,7 +35,7 @@ describe('Tier 1 Unit & Regression Tests', () => {
   // TEST 1.1 — EDGE AGENT NULL OUTPUT TEST
   it('TEST 1.1: edge agent generates connections for multi-node prompts', async () => {
     const prompt = 'Show a system with a React Frontend, a Node Backend, and a MongoDB Database.';
-    const edgeConfig = await pregen.runEdgeAgent(prompt);
+    const edgeConfig = await pregen.runEdgeAgent(prompt, ['React Frontend', 'Node Backend', 'MongoDB Database']);
     
     expect(edgeConfig.edges).toBeDefined();
     expect(edgeConfig.edges.length).toBeGreaterThanOrEqual(2);
@@ -196,11 +197,16 @@ describe('Pipeline Diagnostic Fixes', () => {
         format: 'mermaid',
         diagramType: 'erDiagram',
         optionalVariants: [],
+        primaryColor: '#2563EB',
+        secondaryColor: '#4F46E5',
+        background: '#F9FAFB',
+        fontFamily: 'Inter',
+        theme: 'default'
       })
     );
 
-    const result = await pregen.runFormatAgent('Show a microservices-based e-commerce platform');
-    expect(result.diagramType).toBe('graph TD');
+    const result = await pregen.runFormatAndStyleAgent('Show a microservices-based e-commerce platform');
+    expect(result.formatConfig.diagramType).toBe('graph TD');
 
     spy.mockRestore();
   });
@@ -211,11 +217,16 @@ describe('Pipeline Diagnostic Fixes', () => {
         format: 'mermaid',
         diagramType: 'erDiagram',
         optionalVariants: [],
+        primaryColor: '#2563EB',
+        secondaryColor: '#4F46E5',
+        background: '#F9FAFB',
+        fontFamily: 'Inter',
+        theme: 'default'
       })
     );
 
-    const result = await pregen.runFormatAgent('Show a database schema for user profiles');
-    expect(result.diagramType).toBe('erDiagram');
+    const result = await pregen.runFormatAndStyleAgent('Show a database schema for user profiles');
+    expect(result.formatConfig.diagramType).toBe('erDiagram');
 
     spy.mockRestore();
   });
@@ -226,10 +237,7 @@ describe('Pipeline Diagnostic Fixes', () => {
     spy.mockResolvedValueOnce(JSON.stringify({
       format: 'mermaid',
       diagramType: 'graph TD',
-      optionalVariants: []
-    }));
-    
-    spy.mockResolvedValueOnce(JSON.stringify({
+      optionalVariants: [],
       primaryColor: '#2563EB',
       secondaryColor: '#4F46E5',
       background: '#F9FAFB',
@@ -247,6 +255,11 @@ describe('Pipeline Diagnostic Fixes', () => {
       edges: [
         { from: 'N1', to: 'N2', label: 'connect', bidirectional: false }
       ]
+    }));
+
+    spy.mockResolvedValueOnce(JSON.stringify({
+      N1: 'Group 1',
+      N2: 'Group 1'
     }));
 
     const result = await pregen.runStage1PreGeneration('test prompt');
@@ -299,9 +312,7 @@ describe('Pipeline Diagnostic Fixes', () => {
     spy.mockResolvedValueOnce(JSON.stringify({
       format: 'mermaid',
       diagramType: 'graph TD',
-      optionalVariants: []
-    }));
-    spy.mockResolvedValueOnce(JSON.stringify({
+      optionalVariants: [],
       primaryColor: '#2563EB',
       secondaryColor: '#4F46E5',
       background: '#F9FAFB',
@@ -321,6 +332,9 @@ describe('Pipeline Diagnostic Fixes', () => {
         { from: 'Node2', to: 'Node3', label: 'calls', bidirectional: false }
       ]
     }));
+    spy.mockResolvedValueOnce(JSON.stringify(
+      Object.fromEntries(largeNodesList.map((n, i) => [n, `Group ${(i % 2) + 1}`]))
+    ));
 
     const result = await pregen.runStage1PreGeneration('large system design', 'large');
     expect(result.inventoryConfig.nodes.length).toBe(20); // capped to 20
@@ -366,9 +380,7 @@ describe('Pipeline Diagnostic Fixes', () => {
     spy.mockResolvedValueOnce(JSON.stringify({
       format: 'mermaid',
       diagramType: 'graph TD',
-      optionalVariants: []
-    }));
-    spy.mockResolvedValueOnce(JSON.stringify({
+      optionalVariants: [],
       primaryColor: '#2563EB',
       secondaryColor: '#4F46E5',
       background: '#F9FAFB',
@@ -386,6 +398,10 @@ describe('Pipeline Diagnostic Fixes', () => {
         { from: 'Service A', to: 'Service B', label: 'calls', bidirectional: false },
         { from: 'Service A', to: 'Service A', label: 'self calls', bidirectional: false }
       ]
+    }));
+    spy.mockResolvedValueOnce(JSON.stringify({
+      'Service A': 'Group 1',
+      'Service B': 'Group 1'
     }));
 
     const result = await pregen.runStage1PreGeneration('prompt with self loop');
@@ -431,9 +447,7 @@ describe('Pipeline Diagnostic Fixes', () => {
     spy.mockResolvedValueOnce(JSON.stringify({
       format: 'mermaid',
       diagramType: 'graph TD',
-      optionalVariants: []
-    }));
-    spy.mockResolvedValueOnce(JSON.stringify({
+      optionalVariants: [],
       primaryColor: '#2563EB',
       secondaryColor: '#4F46E5',
       background: '#F9FAFB',
@@ -451,6 +465,12 @@ describe('Pipeline Diagnostic Fixes', () => {
       edges: [
         { from: 'Gateway Node', to: 'Connected Node', label: 'calls', bidirectional: false }
       ]
+    }));
+    spy.mockResolvedValueOnce(JSON.stringify({
+      'Gateway Node': 'Group 1',
+      'Connected Node': 'Group 1',
+      'Orphan Service': 'Group 1',
+      'Database Node': 'Group 1'
     }));
 
     const result = await pregen.runStage1PreGeneration('prompt with orphans');
@@ -637,6 +657,32 @@ describe('sanitizeAndAlignEdges & ensureNoOrphanEdges Unit Tests', () => {
     // API Gateway should route request to Payment Service (compute service)
     const apiToPayment = sanitized.find(e => e.from === 'API Gateway' && e.to === 'Payment Service');
     expect(apiToPayment).toBeDefined();
+  });
+
+  describe('ID Determinism Tests', () => {
+    it('toNodeId clean formatting rules', () => {
+      const used = new Set<string>();
+      expect(toNodeId('API Gateway', used)).toBe('ApiGateway');
+      expect(toNodeId('Message Queue', used)).toBe('MessageQueue');
+      expect(toNodeId('auth-service', used)).toBe('AuthService');
+      expect(toNodeId('Spotify Mobile App', used)).toBe('SpotifyMobileApp');
+      expect(toNodeId('Payment Processing!', used)).toBe('PaymentProcessing');
+    });
+
+    it('guarantees identical node IDs are mapped deterministically across runs', () => {
+      const nodes = ['React Frontend', 'Node Backend', 'MongoDB Database'];
+      const firstRunIds = nodes.map(n => {
+        const used = new Set<string>();
+        return toNodeId(n, used);
+      });
+      const secondRunIds = nodes.map(n => {
+        const used = new Set<string>();
+        return toNodeId(n, used);
+      });
+
+      expect(firstRunIds).toEqual(secondRunIds);
+      expect(firstRunIds).toEqual(['ReactFrontend', 'NodeBackend', 'MongodbDatabase']);
+    });
   });
 });
 

@@ -207,20 +207,20 @@ describe('getEdgeShiftOffset', () => {
     height: 80
   } as Node);
 
-  // Left Node: Task Done? at (50, 50)
+  // Left Node: Task Done? at (90, 50)
   nodeInternals.set('TaskDone', {
     id: 'TaskDone',
-    position: { x: 50, y: 50 },
-    positionAbsolute: { x: 50, y: 50 },
+    position: { x: 90, y: 50 },
+    positionAbsolute: { x: 90, y: 50 },
     width: 160,
     height: 80
   } as Node);
 
-  // Right Node: Act at (350, 50)
+  // Right Node: Act at (230, 50)
   nodeInternals.set('Act', {
     id: 'Act',
-    position: { x: 350, y: 50 },
-    positionAbsolute: { x: 350, y: 50 },
+    position: { x: 230, y: 50 },
+    positionAbsolute: { x: 230, y: 50 },
     width: 160,
     height: 80
   } as Node);
@@ -241,15 +241,15 @@ describe('getEdgeShiftOffset', () => {
     ];
 
     // Both edges connect to Observe's Top side:
-    // - Act center is (430, 90). Observe center is (280, 240).
-    //   dy = 150 > threshold -> targetPos = Top, sourcePos = Bottom
-    // - TaskDone center is (130, 90). Observe center is (280, 240).
-    //   dy = -150 < -threshold -> sourcePos = Top, targetPos = Bottom
+    // - Act center is (310, 90). Observe center is (280, 240).
+    //   dy = 150 > dx = 30 -> targetPos = Top, sourcePos = Bottom
+    // - TaskDone center is (170, 90). Observe center is (280, 240).
+    //   dy = -150, dx = -110 -> |dy| > |dx| -> sourcePos = Top, targetPos = Bottom
 
     const offsetAct = getEdgeShiftOffset('Observe', 'edge-act', Position.Top, edges, nodeInternals, 12);
     const offsetTaskDone = getEdgeShiftOffset('Observe', 'edge-taskdone', Position.Top, edges, nodeInternals, 12);
 
-    // Observe -> TaskDone (left) has other node TaskDone with smaller X (130) than Act (430).
+    // Observe -> TaskDone (left) has other node TaskDone with smaller X (170) than Act (310).
     // So edge-taskdone is sorted first (offset = -6), edge-act is sorted second (offset = 6).
     expect(offsetTaskDone).toBe(-6);
     expect(offsetAct).toBe(6);

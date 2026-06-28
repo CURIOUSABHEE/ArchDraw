@@ -59,7 +59,16 @@ export async function runMermaidPipeline(
   const stage1Result = await runStage1PreGeneration(userIntent.description, diagramSize, userIntent.model);
   const { formatConfig, styleConfig, inventoryConfig, edgeConfig, groupAssignments } = stage1Result;
 
-  if (hasArch) {
+  const isHorizontalRequested = promptLower.includes('horizontal') || promptLower.includes('horizontally') || promptLower.includes('left-to-right') || promptLower.includes('left to right') || promptLower.includes('graph lr') || promptLower.includes('horizontal layout');
+  const isVerticalRequested = promptLower.includes('vertical') || promptLower.includes('vertically') || promptLower.includes('top-to-bottom') || promptLower.includes('top to bottom') || promptLower.includes('graph td') || promptLower.includes('graph tb') || promptLower.includes('vertical layout');
+
+  if (isHorizontalRequested) {
+    logger.info('[DownstreamGuard] Override: horizontal layout requested in prompt. Forcing diagramType -> graph LR.');
+    formatConfig.diagramType = 'graph LR';
+  } else if (isVerticalRequested) {
+    logger.info('[DownstreamGuard] Override: vertical layout requested in prompt. Forcing diagramType -> graph TD.');
+    formatConfig.diagramType = 'graph TD';
+  } else if (hasArch) {
     logger.warn('[DownstreamGuard] Override: prompt contains architecture keywords. Forcing diagramType -> graph TD.');
     formatConfig.diagramType = 'graph TD';
   } else if (formatConfig.diagramType === 'erDiagram' && !hasExplicitEr) {

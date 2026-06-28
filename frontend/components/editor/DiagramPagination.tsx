@@ -110,7 +110,7 @@ export function DiagramPagination() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted text-sm font-medium transition-colors focus:outline-none flex items-center gap-1">
-            <span className="text-xs font-medium truncate max-w-[150px] block">
+            <span className="text-xs font-medium truncate max-w-[100px] sm:max-w-[150px] block">
               {currentName}
             </span>
             <ChevronDown className="w-3 h-3 text-muted-foreground" />

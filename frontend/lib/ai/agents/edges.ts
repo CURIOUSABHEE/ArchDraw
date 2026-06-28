@@ -1,3 +1,4 @@
+import { getProviderForModel } from '../utils/modelStore';
 import { apiKeyManager } from '../utils/apiKeyManager';
 import type { SharedState, ArchitectureEdge, ArchitectureNode, CommunicationType, PathType, HandlePosition, MarkerType } from '../types';
 import { EDGE_AGENT_PROMPT, COMMUNICATION_STYLES } from '../constants';
@@ -385,7 +386,7 @@ function fixArchitectureIssues(
 export async function runEdgeAgent(state: SharedState, model?: string): Promise<ArchitectureEdge[]> {
   const nodesToUse = state.components.length > 0 ? state.components : state.nodes;
   const selectedModel = model || 'llama-3.3-70b-versatile';
-  const provider = selectedModel.includes('/') ? 'openrouter' : 'groq';
+  const provider = getProviderForModel(selectedModel);
   
   if (nodesToUse.length === 0) {
     logger.warn('[EdgeAgent] No nodes available, returning empty edges');

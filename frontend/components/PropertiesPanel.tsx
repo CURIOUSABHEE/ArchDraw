@@ -177,6 +177,7 @@ export function PropertiesPanel() {
         right: 20,
         bottom: 110,
         maxHeight: 'calc(100vh - 206px)',
+        maxWidth: 'calc(100vw - 32px)',
       }}
     >
       {/* Header */}

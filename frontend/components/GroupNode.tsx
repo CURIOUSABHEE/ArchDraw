@@ -1,9 +1,12 @@
+'use client';
 import { useState, useRef, useEffect } from 'react';
-import { NodeProps, Handle, Position, useUpdateNodeInternals } from 'reactflow';
+import { NodeProps, useUpdateNodeInternals } from 'reactflow';
 import { useDiagramStore } from '@/store/diagramStore';
 import { NodeResizer } from '@reactflow/node-resizer';
 import { useCanvasTheme } from '@/lib/theme';
 import { useNodeHandles } from '@/hooks/useNodeHandles';
+import { hexToRgba } from '@/lib/utils';
+import { NodeHandles } from '@/components/nodes/NodeHandles';
 import '@reactflow/node-resizer/dist/style.css';
 
 export default function GroupNode({ id, data, selected }: NodeProps) {
@@ -31,13 +34,6 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
     (data as { accentColor?: string })?.accentColor ||
     (data as { groupColor?: string })?.groupColor ||
     getDeterministicColor(id);
-
-  const hexToRgba = (hex: string, alpha: number) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
-  };
 
   const bg = isDark ? hexToRgba(color, 0.05) : hexToRgba(color, 0.08);
   const borderColor = isDark 
@@ -168,26 +164,7 @@ export default function GroupNode({ id, data, selected }: NodeProps) {
         )}
       </div>
 
-      {/* ── Ghost handles — only render what's actually in use ───────────────── */}
-      {/* Centered fallback pair for new edge connections */}
-      <Handle type="source" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 1, height: 1, border: 'none', background: 'transparent', minWidth: 0, minHeight: 0 }} />
-      <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 1, height: 1, border: 'none', background: 'transparent', minWidth: 0, minHeight: 0 }} />
-
-      {/* Left — center if only one; offset if both source+target */}
-      {needed.has('target-left') && <Handle type="target" position={Position.Left} id="target-left" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', left: -4, top: (needed.has('target-left') && needed.has('source-left')) ? 'calc(50% - 12px)' : '50%', transform: 'translateY(-50%)' }} />}
-      {needed.has('source-left') && <Handle type="source" position={Position.Left} id="source-left" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', left: -4, top: (needed.has('target-left') && needed.has('source-left')) ? 'calc(50% + 12px)' : '50%', transform: 'translateY(-50%)' }} />}
-
-      {/* Right */}
-      {needed.has('target-right') && <Handle type="target" position={Position.Right} id="target-right" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', right: -4, top: (needed.has('target-right') && needed.has('source-right')) ? 'calc(50% - 12px)' : '50%', transform: 'translateY(-50%)' }} />}
-      {needed.has('source-right') && <Handle type="source" position={Position.Right} id="source-right" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', right: -4, top: (needed.has('target-right') && needed.has('source-right')) ? 'calc(50% + 12px)' : '50%', transform: 'translateY(-50%)' }} />}
-
-      {/* Top */}
-      {needed.has('target-top') && <Handle type="target" position={Position.Top} id="target-top" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', top: -4, left: (needed.has('target-top') && needed.has('source-top')) ? 'calc(50% - 12px)' : '50%', transform: 'translateX(-50%)' }} />}
-      {needed.has('source-top') && <Handle type="source" position={Position.Top} id="source-top" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', top: -4, left: (needed.has('target-top') && needed.has('source-top')) ? 'calc(50% + 12px)' : '50%', transform: 'translateX(-50%)' }} />}
-
-      {/* Bottom */}
-      {needed.has('target-bottom') && <Handle type="target" position={Position.Bottom} id="target-bottom" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', bottom: -4, left: (needed.has('target-bottom') && needed.has('source-bottom')) ? 'calc(50% - 12px)' : '50%', transform: 'translateX(-50%)' }} />}
-      {needed.has('source-bottom') && <Handle type="source" position={Position.Bottom} id="source-bottom" style={{ position: 'absolute', width: 8, height: 8, background: 'transparent', border: 'none', opacity: 0, pointerEvents: 'none', bottom: -4, left: (needed.has('target-bottom') && needed.has('source-bottom')) ? 'calc(50% + 12px)' : '50%', transform: 'translateX(-50%)' }} />}
+      <NodeHandles needed={needed} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseMermaid, normalizeEdgeReferences } from './mermaidParser';
 import { validateMermaid } from './stage3-validate';
+import { toNodeId } from './stage2-mermaid';
 import type { Node, Edge } from 'reactflow';
 
 describe('Node Label Extraction (Bug 1 Fix)', () => {
@@ -364,6 +365,57 @@ describe('Programmatic Validation Agent', () => {
     expect(result.isValid).toBe(false);
     expect(result.repairInstructions).toBeDefined();
     expect(result.repairInstructions).toContain('ORPHAN NODES DETECTED');
+  });
+});
+
+describe('toNodeId (deterministic ID generation)', () => {
+  it('produces PascalCase from simple label', () => {
+    const used = new Set<string>();
+    expect(toNodeId('Message Queue', used)).toBe('MessageQueue');
+  });
+
+  it('treats & / - _ as word boundaries', () => {
+    const used = new Set<string>();
+    expect(toNodeId('Auth & Session Service', used)).toBe('AuthSessionService');
+    expect(toNodeId('Web/API Gateway', used)).toBe('WebApiGateway');
+    expect(toNodeId('Object-Storage Bucket', used)).toBe('ObjectStorageBucket');
+    expect(toNodeId('user_profile_db', used)).toBe('UserProfileDb');
+  });
+
+  it('keeps digits within words (only strips non-alpha-non-digit)', () => {
+    const used = new Set<string>();
+    expect(toNodeId('Payment (Service)', used)).toBe('PaymentService');
+    expect(toNodeId('Order#123 Backend', used)).toBe('Order123Backend');
+  });
+
+  it('prefixes Node- for IDs starting with digit', () => {
+    const used = new Set<string>();
+    expect(toNodeId('3rd Party API', used)).toBe('Node3rdPartyApi');
+  });
+
+  it('appends Node suffix for reserved Mermaid keywords', () => {
+    const used = new Set<string>();
+    expect(toNodeId('End', used)).toBe('EndNode');
+    expect(toNodeId('Graph', used)).toBe('GraphNode');
+    expect(toNodeId('subgraph', used)).toBe('SubgraphNode');
+  });
+
+  it('two calls with same label to same used set get suffixed (collision guard)', () => {
+    const used = new Set<string>();
+    expect(toNodeId('Auth Service', used)).toBe('AuthService');
+    expect(toNodeId('Auth Service', used)).toBe('AuthService2');
+  });
+
+  it('handles collision guard with numeric suffix from pre-seeded set', () => {
+    const used = new Set<string>(['Cache']);
+    expect(toNodeId('Cache', used)).toBe('Cache2');
+    expect(toNodeId('Cache', used)).toBe('Cache3');
+  });
+
+  it('handles empty label by defaulting to Node prefix with collision guard', () => {
+    const used = new Set<string>();
+    expect(toNodeId('', used)).toBe('Node');
+    expect(toNodeId('   ', used)).toBe('Node2');
   });
 });
 

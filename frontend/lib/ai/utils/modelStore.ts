@@ -1,5 +1,3 @@
-'use client';
-
 import { create } from 'zustand';
 
 export const AVAILABLE_MODELS = [
@@ -9,12 +7,16 @@ export const AVAILABLE_MODELS = [
   { id: 'openai/gpt-oss-120b', name: 'OpenAI GPT OSS (120B)', provider: 'openrouter' as const },
 ] as const;
 
+export function getProviderForModel(modelId: string): 'groq' | 'openrouter' {
+  return modelId.includes('/') ? 'openrouter' : 'groq';
+}
+
 type ModelStore = {
   selectedModel: string;
   setSelectedModel: (model: string) => void;
 };
 
 export const useModelStore = create<ModelStore>((set) => ({
-  selectedModel: 'llama-3.3-70b-versatile',
+  selectedModel: 'openai/gpt-oss-120b',
   setSelectedModel: (model) => set({ selectedModel: model }),
 }));

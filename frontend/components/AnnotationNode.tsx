@@ -3,6 +3,8 @@
 import { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Handle, Position, NodeProps, NodeResizer, useReactFlow, useUpdateNodeInternals } from 'reactflow';
 import { useNodeHandles } from '@/hooks/useNodeHandles';
+import { hexToRgba } from '@/lib/utils';
+import { NodeHandles } from '@/components/nodes/NodeHandles';
 import type { TextSize } from './TextLabelNode';
 
 export interface AnnotationNodeData {
@@ -263,25 +265,7 @@ function AnnotationNodeComponent({ id, data, selected }: NodeProps<AnnotationNod
         }}
       >
         {/* ── Handles — only render directions actually referenced by edges ── */}
-        {/* Centered fallback for new connections */}
-        <Handle type="source" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 1, height: 1, border: 'none', background: 'transparent', minWidth: 0, minHeight: 0 }} />
-        <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 1, height: 1, border: 'none', background: 'transparent', minWidth: 0, minHeight: 0 }} />
-
-        {/* Left — center if only one; offset if both source+target on same side */}
-        {needed.has('target-left') && <Handle type="target" position={Position.Left} id="target-left" style={{ ...handleStyle, left: -15, top: (needed.has('target-left') && needed.has('source-left')) ? 'calc(50% - 12px)' : '50%' }} />}
-        {needed.has('source-left') && <Handle type="source" position={Position.Left} id="source-left" style={{ ...handleStyle, left: -15, top: (needed.has('target-left') && needed.has('source-left')) ? 'calc(50% + 12px)' : '50%' }} />}
-
-        {/* Right */}
-        {needed.has('target-right') && <Handle type="target" position={Position.Right} id="target-right" style={{ ...handleStyle, top: (needed.has('target-right') && needed.has('source-right')) ? 'calc(50% - 12px)' : '50%' }} />}
-        {needed.has('source-right') && <Handle type="source" position={Position.Right} id="source-right" style={{ ...handleStyle, top: (needed.has('target-right') && needed.has('source-right')) ? 'calc(50% + 12px)' : '50%' }} />}
-
-        {/* Top */}
-        {needed.has('target-top') && <Handle type="target" position={Position.Top} id="target-top" style={{ ...handleStyle, left: (needed.has('target-top') && needed.has('source-top')) ? 'calc(50% - 12px)' : '50%' }} />}
-        {needed.has('source-top') && <Handle type="source" position={Position.Top} id="source-top" style={{ ...handleStyle, left: (needed.has('target-top') && needed.has('source-top')) ? 'calc(50% + 12px)' : '50%' }} />}
-
-        {/* Bottom */}
-        {needed.has('target-bottom') && <Handle type="target" position={Position.Bottom} id="target-bottom" style={{ ...handleStyle, left: (needed.has('target-bottom') && needed.has('source-bottom')) ? 'calc(50% - 12px)' : '50%' }} />}
-        {needed.has('source-bottom') && <Handle type="source" position={Position.Bottom} id="source-bottom" style={{ ...handleStyle, left: (needed.has('target-bottom') && needed.has('source-bottom')) ? 'calc(50% + 12px)' : '50%' }} />}
+        <NodeHandles needed={needed} handleStyle={{ ...handleStyle, left: -15 }} />
 
         {editingTitle && (
           <div 

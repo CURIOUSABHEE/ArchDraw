@@ -353,6 +353,11 @@ describe('Performance Tests: Dynamic Handle Positioning', () => {
     it('should provide consistent measurements', () => {
       const pairs = PerformanceTestHarness.generateNodePairs(20);
 
+      // Warm up to compile and stabilize JIT execution
+      for (let i = 0; i < 10; i++) {
+        PerformanceTestHarness.measureBatchCalculation(pairs);
+      }
+
       // Run the same calculation multiple times
       const times: number[] = [];
       for (let i = 0; i < 5; i++) {

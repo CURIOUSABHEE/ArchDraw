@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateDiagram } from '@/lib/ai/services/orchestrator';
+import { AVAILABLE_MODELS } from '@/lib/ai/utils/apiKeyManager';
 import type { UserIntent, GenerationProgress } from '@/lib/ai/types';
 import logger from '@/lib/logger';
 import { z } from 'zod';
@@ -7,12 +8,23 @@ import { z } from 'zod';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
+// Known model IDs the pipeline can route — serves as a clear rejection for
+// obviously invalid model strings while remaining extensible.
+const SUPPORTED_MODEL_IDS = new Set([
+  ...AVAILABLE_MODELS.map(m => m.name),
+  'llama-4-scout-17b-16e-instruct',
+  'openai/gpt-oss-120b',
+]);
+
 // Zod validation schema
 const generateDiagramSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   systemType: z.string().optional(),
   complexity: z.enum(['low', 'medium', 'high']).optional(),
-  model: z.string().optional(),
+  model: z.string().refine(
+    val => !val || SUPPORTED_MODEL_IDS.has(val),
+    { message: `Unsupported model. Supported: ${Array.from(SUPPORTED_MODEL_IDS).join(', ')}` }
+  ).optional(),
   diagramSize: z.enum(['small', 'medium', 'large']).optional(),
 });
 

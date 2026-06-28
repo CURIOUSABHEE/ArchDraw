@@ -1,4 +1,6 @@
 import { Edge, Node, Position } from 'reactflow';
+import { getDynamicHandles } from '@/lib/features/dynamicHandles';
+import type { NodeRect } from '@/lib/features/dynamicHandles';
 
 export interface EdgePositions {
   sourcePos: Position;
@@ -33,15 +35,16 @@ export function getSimpleEdgePositions(
   let sourcePos: Position;
   let targetPos: Position;
 
-  const horizontalDist = Math.abs(dx);
-  const verticalThreshold = Math.max(horizontalDist * 0.25, 30);
-
-  if (dy > verticalThreshold) {
-    sourcePos = Position.Bottom;
-    targetPos = Position.Top;
-  } else if (dy < -verticalThreshold) {
-    sourcePos = Position.Top;
-    targetPos = Position.Bottom;
+  // Direct axis comparison: whichever axis has the greater distance between centers
+  // determines the handle direction (standard React Flow floating edge pattern).
+  if (Math.abs(dy) > Math.abs(dx)) {
+    if (dy > 0) {
+      sourcePos = Position.Bottom;
+      targetPos = Position.Top;
+    } else {
+      sourcePos = Position.Top;
+      targetPos = Position.Bottom;
+    }
   } else {
     if (dx > 0) {
       sourcePos = Position.Right;
@@ -77,21 +80,39 @@ export function getEdgeShiftOffset(
     const tNode = nodeInternals.get(e.target);
     if (!sNode || !tNode) return null;
     
+    const sRect: NodeRect = {
+      x: sNode.positionAbsolute?.x ?? sNode.position.x,
+      y: sNode.positionAbsolute?.y ?? sNode.position.y,
+      width: sNode.width ?? 160,
+      height: sNode.height ?? 80,
+    };
+    const tRect: NodeRect = {
+      x: tNode.positionAbsolute?.x ?? tNode.position.x,
+      y: tNode.positionAbsolute?.y ?? tNode.position.y,
+      width: tNode.width ?? 160,
+      height: tNode.height ?? 80,
+    };
     const sCenter = getNodeCenter(sNode);
     const tCenter = getNodeCenter(tNode);
     
-    const positions = getSimpleEdgePositions(sCenter.cx, sCenter.cy, tCenter.cx, tCenter.cy);
+    // Use the same handle-selection logic as SimpleFloatingEdge (getObstacleAwareHandles
+    // wraps getDynamicHandles) to ensure offset calculations stay in sync with
+    // the actual handle positions rendered on the canvas.
+    const { sourcePosition, targetPosition } = getDynamicHandles(sRect, tRect);
     
-    if (e.source === nodeId && positions.sourcePos === side) {
+    if (e.source === nodeId && sourcePosition === side) {
       return { edge: e, otherNodeCenter: tCenter };
     }
-    if (e.target === nodeId && positions.targetPos === side) {
+    if (e.target === nodeId && targetPosition === side) {
       return { edge: e, otherNodeCenter: sCenter };
     }
     
     return null;
   }).filter(Boolean) as { edge: Edge; otherNodeCenter: ReturnType<typeof getNodeCenter> }[];
   
+  const totalNodeEdges = (edges || []).filter(e => e.source === nodeId || e.target === nodeId).length;
+  if (totalNodeEdges <= 1) return 0;
+
   // Always apply a baseline offset to separate outgoing (source) from incoming (target)
   // connections on the same node, even when there's only one edge per side — this
   // prevents the visual "merged line" effect when edges enter and exit at the same

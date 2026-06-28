@@ -229,18 +229,6 @@ function SystemNodeComponent({ id, data, selected }: NodeProps<NodeData>) {
         )}
         <div className="node-shine" />
         <div className="node-header">
-          <div className="node-icon-box">
-            {typeof data.icon === 'string' && Array.from(data.icon).length <= 2 ? (
-              <span style={{ fontSize: '16px', lineHeight: 1 }}>{data.icon}</span>
-            ) : (
-              <NodeIcon 
-                technology={nodeData.technology} 
-                fallbackIcon={typeof data.icon === 'string' ? data.icon : undefined} 
-                fallbackColor={accentColor} 
-                size={16} 
-              />
-            )}
-          </div>
           <p className="node-title" title={data.label}>
             {data.label}
           </p>

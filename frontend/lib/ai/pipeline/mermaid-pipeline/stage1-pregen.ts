@@ -1,4 +1,4 @@
-import { apiKeyManager } from '../../utils/apiKeyManager';
+import { apiKeyManager, requestContext } from '../../utils/apiKeyManager';
 import { groqJsonCompletion } from '../../utils/groqJsonCompletion';
 import logger from '@/lib/logger';
 
@@ -87,32 +87,80 @@ async function callAgent<T>(systemPrompt: string, userPrompt: string, model?: st
     });
   });
 
-  const cleaned = resultStr.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+  let outcome: 'raw' | 'recovered' | 'failed' = 'failed';
   try {
-    return JSON.parse(cleaned) as T;
-  } catch (err) {
-    logger.error('[Stage 1 Agent] Failed to parse agent JSON response:', cleaned, err);
-    throw new Error(`Agent response parsing failed: ${err instanceof Error ? err.message : String(err)}`);
+    const parsed = JSON.parse(resultStr.trim()) as T;
+    outcome = 'raw';
+    return parsed;
+  } catch {
+    // Recovery: strip markdown code fences and retry
+    const stripped = resultStr
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*/gi, '')
+      .trim();
+    try {
+      const parsed = JSON.parse(stripped) as T;
+      outcome = 'recovered';
+      return parsed;
+    } catch (recoveryError) {
+      outcome = 'failed';
+      logger.error('[Stage 1 Agent] Failed to parse agent JSON response:', stripped, recoveryError);
+      throw new Error(
+        `Agent response parsing failed after fence-strip recovery: ${recoveryError instanceof Error ? recoveryError.message : String(recoveryError)}`
+      );
+    }
+  } finally {
+    const store = requestContext.getStore();
+    if (store) {
+      logger.log(`[Stage 1 Agent] Parse outcome: ${outcome} (request ${store.requestId})`);
+    }
   }
 }
 
 // Agent 1A — FORMAT AGENT
-export async function runFormatAgent(prompt: string, model?: string): Promise<FormatConfig> {
-  const systemPrompt = `You are the Format Agent in a diagram pipeline.
-Identify the requested output format and diagram type from the user's natural language prompt.
-Default format is "mermaid".
-diagramType MUST be exactly one of: "graph TD", "graph LR", "erDiagram", "sequenceDiagram", "C4Context", "C4Container".
-If the user mentions C4, C4 Container, C4 Context, or similar visual frameworks, set diagramType to "C4Context" or "C4Container".
+// Agent 1A & 1B — FORMAT & STYLE AGENT (Merged)
+export async function runFormatAndStyleAgent(
+  prompt: string,
+  model?: string
+): Promise<{ formatConfig: FormatConfig; styleConfig: StyleConfig }> {
+  const systemPrompt = `You are the Format and Style Agent in a diagram pipeline.
+Identify the requested output format, diagram type, and visual styling instructions from the user's natural language prompt.
+
+DIAGRAM TYPE RULES:
+- Default format is "mermaid".
+- diagramType MUST be exactly one of: "graph TD", "graph LR", "erDiagram", "sequenceDiagram", "C4Context", "C4Container".
+- If the user mentions C4, C4 Container, C4 Context, or similar visual frameworks, set diagramType to "C4Context" or "C4Container".
+
+VISUAL STYLE RULES:
+- We support named themes: "forest-green", "slate", "dark-minimal", "luxury", or "default".
+- If the prompt specifies colors directly, capture them. Otherwise, map the requested visual identity to one of the named themes.
+
 You MUST output a valid JSON object matching this schema:
 {
   "format": "mermaid",
   "diagramType": "graph TD" | "graph LR" | "erDiagram" | "sequenceDiagram" | "C4Context" | "C4Container",
-  "optionalVariants": ["C4"]
+  "optionalVariants": ["C4"],
+  "primaryColor": "hex code",
+  "secondaryColor": "hex code",
+  "background": "hex code",
+  "fontFamily": "font name string",
+  "theme": "forest-green" | "slate" | "dark-minimal" | "luxury" | "default"
 }
 Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
 
   try {
-    const res = await callAgent<FormatConfig>(systemPrompt, prompt, model);
+    interface MergedResponse {
+      format: 'mermaid';
+      diagramType: FormatConfig['diagramType'];
+      optionalVariants?: string[];
+      primaryColor?: string;
+      secondaryColor?: string;
+      background?: string;
+      fontFamily?: string;
+      theme?: string;
+    }
+
+    const res = await callAgent<MergedResponse>(systemPrompt, prompt, model);
     let diagramType = res.diagramType || 'graph TD';
     
     // SMART CLASSIFICATION OVERRIDES (A1.3, A1.4)
@@ -128,55 +176,39 @@ Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
     const hasArch = archKeywords.some(k => promptLower.includes(k));
     const hasExplicitEr = erKeywords.some(k => promptLower.includes(k));
 
-    if (hasArch) {
-      logger.warn('[FormatAgent] Forced graph TD: prompt contains architecture keywords.');
+    const isHorizontalRequested = promptLower.includes('horizontal') || promptLower.includes('horizontally') || promptLower.includes('left-to-right') || promptLower.includes('left to right') || promptLower.includes('graph lr') || promptLower.includes('horizontal layout');
+    const isVerticalRequested = promptLower.includes('vertical') || promptLower.includes('vertically') || promptLower.includes('top-to-bottom') || promptLower.includes('top to bottom') || promptLower.includes('graph td') || promptLower.includes('graph tb') || promptLower.includes('vertical layout');
+
+    if (isHorizontalRequested) {
+      logger.info('[FormatAndStyleAgent] Override: horizontal layout requested. Forcing graph LR.');
+      diagramType = 'graph LR';
+    } else if (isVerticalRequested) {
+      logger.info('[FormatAndStyleAgent] Override: vertical layout requested. Forcing graph TD.');
+      diagramType = 'graph TD';
+    } else if (hasArch) {
+      logger.warn('[FormatAndStyleAgent] Forced graph TD: prompt contains architecture keywords.');
       diagramType = 'graph TD';
     } else if (diagramType === 'erDiagram' && !hasExplicitEr) {
-      logger.warn('[FormatAgent] Override: erDiagram forbidden without explicit database/ER trigger words. Forcing graph TD.');
+      logger.warn('[FormatAndStyleAgent] Override: erDiagram forbidden without database keywords. Forcing graph TD.');
       diagramType = 'graph TD';
     }
 
-    // Normalize format
     const validTypes = ['graph TD', 'graph LR', 'erDiagram', 'sequenceDiagram', 'C4Context', 'C4Container'];
     const finalType = validTypes.includes(diagramType) ? diagramType : 'graph TD';
 
-    logger.log(`[FormatAgent] Parsed diagramType: ${finalType}`);
-    return {
+    const themeName = res.theme || 'default';
+    const palette = THEME_PALETTES[themeName] || THEME_PALETTES.default;
+    
+    const primaryColor = isValidHexColor(res.primaryColor || '') ? res.primaryColor! : palette.primaryColor;
+    const secondaryColor = isValidHexColor(res.secondaryColor || '') ? res.secondaryColor! : palette.secondaryColor;
+    const background = isValidHexColor(res.background || '') ? res.background! : palette.background;
+    const fontFamily = res.fontFamily || palette.fontFamily;
+
+    const formatConfig: FormatConfig = {
       format: 'mermaid',
       diagramType: finalType as any,
       optionalVariants: res.optionalVariants || [],
     };
-  } catch (err) {
-    logger.error('[FormatAgent] Failed, using defaults:', err);
-    return { format: 'mermaid', diagramType: 'graph TD', optionalVariants: [] };
-  }
-}
-
-// Agent 1B — STYLE AGENT
-export async function runStyleAgent(prompt: string, model?: string): Promise<StyleConfig> {
-  const systemPrompt = `You are the Style Agent in a diagram pipeline.
-Analyze the user prompt to extract visual styling instructions, color palettes, fonts, or themes.
-We support named themes: "forest-green", "slate", "dark-minimal", "luxury", or "default".
-If the prompt specifies colors directly, capture them. Otherwise, map the requested visual identity to one of the named themes.
-You MUST output a valid JSON object matching this schema:
-{
-  "primaryColor": "hex code",
-  "secondaryColor": "hex code",
-  "background": "hex code",
-  "fontFamily": "font name string",
-  "theme": "forest-green" | "slate" | "dark-minimal" | "luxury" | "default"
-}
-Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
-
-  try {
-    const res = await callAgent<StyleConfig>(systemPrompt, prompt, model);
-    const themeName = res.theme || 'default';
-    const palette = THEME_PALETTES[themeName] || THEME_PALETTES.default;
-    
-    const primaryColor = isValidHexColor(res.primaryColor) ? res.primaryColor : palette.primaryColor;
-    const secondaryColor = isValidHexColor(res.secondaryColor) ? res.secondaryColor : palette.secondaryColor;
-    const background = isValidHexColor(res.background) ? res.background : palette.background;
-    const fontFamily = res.fontFamily || palette.fontFamily;
 
     const styleConfig: StyleConfig = {
       primaryColor,
@@ -197,27 +229,30 @@ Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
       },
     };
 
-    logger.log(`[StyleAgent] StyleConfig resolved successfully. Theme: ${themeName}`);
-    return styleConfig;
+    logger.log(`[FormatAndStyleAgent] Resolved layout: ${finalType}, Theme: ${themeName}`);
+    return { formatConfig, styleConfig };
   } catch (err) {
-    logger.error('[StyleAgent] Failed, using defaults:', err);
+    logger.error('[FormatAndStyleAgent] Failed, using defaults:', err);
     const palette = THEME_PALETTES.default;
     return {
-      primaryColor: palette.primaryColor,
-      secondaryColor: palette.secondaryColor,
-      background: palette.background,
-      backgroundColor: palette.background,
-      fontFamily: palette.fontFamily,
-      theme: 'default',
-      nodeTypeStyles: {
-        client: palette.primaryColor,
-        edge: palette.secondaryColor,
-        gateway: palette.secondaryColor,
-        application: palette.secondaryColor,
-        data: '#1e293b',
-        queue: '#1e293b',
-        observability: '#475569',
-        external: '#64748b',
+      formatConfig: { format: 'mermaid', diagramType: 'graph TD', optionalVariants: [] },
+      styleConfig: {
+        primaryColor: palette.primaryColor,
+        secondaryColor: palette.secondaryColor,
+        background: palette.background,
+        backgroundColor: palette.background,
+        fontFamily: palette.fontFamily,
+        theme: 'default',
+        nodeTypeStyles: {
+          client: palette.primaryColor,
+          edge: palette.secondaryColor,
+          gateway: palette.secondaryColor,
+          application: palette.secondaryColor,
+          data: '#1e293b',
+          queue: '#1e293b',
+          observability: '#475569',
+          external: '#64748b',
+        },
       },
     };
   }
@@ -244,6 +279,19 @@ CRITICAL INSTRUCTIONS:
 - Deliver EXACTLY what the user requested. If the prompt is simple, the diagram must be simple.
 - Do NOT automatically add databases, caches, CDNs, API gateways, queues, or other systems unless they are explicitly asked for.
 - Do NOT apply any automatic domain completion rules (e.g. do not add recommendation engines, search indexes, transcoding pipelines, etc. unless explicitly asked).
+
+WRONG / CORRECT EXAMPLES FOR COMPONENT IDENTIFICATION (Rules 3 & 4):
+- Input Prompt: "Build an API Gateway routing requests to our user and product services"
+  WRONG: "nodes": ["APIGateway [Express]", "UserService [NestJS]", "ProductService [Go]"] (Includes tech stack or bracket subtitles in node labels)
+  CORRECT: "nodes": ["API Gateway", "User Service", "Product Service"] (Clean node labels only)
+
+- Input Prompt: "Build a Message Queue for our Payment Processing and Order Database"
+  WRONG: "nodes": ["MQ", "PP", "ODB"] (Uses short, obscure abbreviations instead of descriptive names)
+  CORRECT: "nodes": ["Message Queue", "Payment Processing", "Order Database"] (Uses full, recognizable descriptive names)
+
+- Input Prompt: "A user accesses the website which connects to the database"
+  WRONG: "nodes": ["User", "Website", "Database", "Redis Cache", "Auth Service"] (Implicitly added unrequested cache and auth components)
+  CORRECT: "nodes": ["User", "Website", "Database"] (Exactly matches prompt requirements)
 
 Also, identify the subgraphs/logical group containers (e.g. "Client Container", "Application Server", "Database Cluster") that these components belong in.
 You MUST output a valid JSON object matching this schema:
@@ -296,6 +344,7 @@ Output JSON ONLY. No markdown, no wrapping in code blocks, no prose.`;
 // Agent 1D — EDGE AGENT
 export async function runEdgeAgent(
   prompt: string,
+  nodes: string[],
   diagramSize: 'small' | 'medium' | 'large' = 'medium',
   model?: string
 ): Promise<EdgeConfig> {
@@ -310,6 +359,9 @@ Identify every explicit and implied relationship, request flow, or connection in
 For each edge, determine a short, action-oriented label (e.g., "submit ticket", "reads user profile").
 Avoid generic labels like "connects", "calls", "sends".
 
+AVAILABLE NODES — You MUST only connect nodes that are present in this list:
+${nodes.map(n => `  - "${n}"`).join('\n')}
+
 ${sizeInstructions}
 
 CRITICAL ROUTING & TOPOLOGY RULES:
@@ -321,6 +373,15 @@ CRITICAL ROUTING & TOPOLOGY RULES:
 6. **No client bypass for security**: Security/DRM/License services must never connect directly to client-tier nodes. All such requests must route through the API Gateway first.
 7. **Replica Load Balancing**: If there are replica servers (e.g. Server 1, Server 2, Server 3), the Load Balancer/Gateway MUST have independent outgoing edges to EACH replica server. Do NOT connect only to one server.
 8. **No Horizontal Replica Chaining**: Do NOT create horizontal connections between replica servers in a pool (e.g., "Server 1 -> Server 2" is incorrect). Replica servers must be independent and connect to the database/caves/queues individually.
+
+WRONG / CORRECT EXAMPLES FOR CONNECTION ROUTING (Rule 3):
+- Available Nodes: ["User", "API Gateway", "Order Service", "Order DB"]
+  WRONG: "edges": [{ "from": "User", "to": "Order Service", "label": "bypass gateway" }] (Bypasses the API Gateway)
+  CORRECT: "edges": [
+    { "from": "User", "to": "API Gateway", "label": "submits order" },
+    { "from": "API Gateway", "to": "Order Service", "label": "routes request" },
+    { "from": "Order Service", "to": "Order DB", "label": "writes record" }
+  ]
 
 You MUST output a valid JSON object matching this schema:
 {
@@ -660,15 +721,13 @@ export async function runStage1PreGeneration(
   edgeConfig: EdgeConfig;
   groupAssignments: Record<string, string>;
 }> {
-  logger.log('[Stage 1] Running Pre-Generation Agents in parallel...');
+  logger.log('[Stage 1] Running Phase 1 Pre-Generation Agents (Format/Style + Inventory) in parallel...');
   
-  const [formatConfig, styleConfig, inventoryConfig, edgeConfigResult] = await Promise.all([
-    runFormatAgent(prompt, model),
-    runStyleAgent(prompt, model),
+  const [formatStyleResult, inventoryConfig] = await Promise.all([
+    runFormatAndStyleAgent(prompt, model),
     runInventoryAgent(prompt, diagramSize, model),
-    runEdgeAgent(prompt, diagramSize, model),
   ]);
-  const edgeConfig = edgeConfigResult;
+  const { formatConfig, styleConfig } = formatStyleResult;
 
   // Sanitize group names (A5.4)
   inventoryConfig.groups = inventoryConfig.groups.map(sanitizeGroupName).filter(Boolean);
@@ -706,6 +765,12 @@ export async function runStage1PreGeneration(
     inventoryConfig.groups = inventoryConfig.groups.slice(0, groupCap);
     logger.warn(`[Stage 1] Group count capped. Original: ${origCount}, Capped: ${groupCap} for nodeCount ${inventoryConfig.nodeCount}`);
   }
+
+  logger.log('[Stage 1] Running Phase 2 Pre-Generation Agents (Edge + Group) in parallel...');
+  const [edgeConfig, groupAssignments] = await Promise.all([
+    runEdgeAgent(prompt, inventoryConfig.nodes, diagramSize, model),
+    runGroupAgent(inventoryConfig.nodes, inventoryConfig.groups, prompt, model),
+  ]);
 
   // Fix 3: Sanitize edges — block self-loops with explicit logging (normalized comparison) (A3.7)
   function sanitizeEdges(edges: Array<{ from: string; to: string; label: string; bidirectional: boolean }>) {
@@ -814,7 +879,7 @@ export async function runStage1PreGeneration(
   // Checklist A3: CRITICAL — if edges is empty and diagram has more than 1 node, retry edge agent once
   if (edgeConfig.edges.length === 0 && inventoryConfig.nodeCount > 1) {
     logger.warn('[Stage 1] CRITICAL: Edges array is empty for multi-node diagram. Retrying edge agent...');
-    const retryConfig = await runEdgeAgent(prompt);
+    const retryConfig = await runEdgeAgent(prompt, inventoryConfig.nodes, diagramSize, model);
     if (retryConfig.edges && retryConfig.edges.length > 0) {
       const retryFiltered = sanitizeEdges(
         retryConfig.edges
@@ -834,14 +899,17 @@ export async function runStage1PreGeneration(
     }
   }
 
-
   // If still empty and nodeCount > 1, throw error (A3.2 failure gate)
   if (edgeConfig.edges.length === 0 && inventoryConfig.nodeCount > 1) {
     throw new Error('Stage 1 failed: Edges array is empty for multi-node diagram after retry');
   }
 
-  // Run the Group Agent (A5)
-  const groupAssignments = await runGroupAgent(inventoryConfig.nodes, inventoryConfig.groups, prompt, model);
+  // Fill in any groupAssignments fallbacks for newly aligned nodes
+  for (const node of inventoryConfig.nodes) {
+    if (!groupAssignments[node]) {
+      groupAssignments[node] = inventoryConfig.groups[0];
+    }
+  }
 
   // Fix data nodes wrongly placed in client groups (e.g. "Database" in "Client Container")
   const isDataNode = (name: string) => /db|database|sql|mongo|redis|cache|s3|bucket|storage|queue|kafka|rabbit/i.test(name);

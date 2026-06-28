@@ -1,13 +1,7 @@
 import type { StyleConfig } from '@/lib/ai/pipeline/mermaid-pipeline/stage1-pregen'
 import { runMermaidPipeline } from './pipeline'
+import { hexToRgba } from '@/lib/utils'
 import type { RFNode, RFEdge } from './types'
-
-function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r},${g},${b},${alpha})`
-}
 
 function applyStyle(node: RFNode, styleConfig: StyleConfig, isSubgraph: boolean): Record<string, unknown> {
   if (isSubgraph) {

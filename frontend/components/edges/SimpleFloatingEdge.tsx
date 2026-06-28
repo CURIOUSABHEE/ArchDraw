@@ -247,9 +247,25 @@ export default function SimpleFloatingEdge({
         const sh = getSimpleHandlePosition(sourceRect.x, sourceRect.y, sourceRect.width, sourceRect.height, pair.sourcePosition, sourceShift);
         const th = getSimpleHandlePosition(targetRect.x, targetRect.y, targetRect.width, targetRect.height, pair.targetPosition, targetShift);
 
+        const pairIsVertical = (pair.sourcePosition === Position.Top || pair.sourcePosition === Position.Bottom) &&
+                               (pair.targetPosition === Position.Top || pair.targetPosition === Position.Bottom);
+        const pairIsHorizontal = (pair.sourcePosition === Position.Left || pair.sourcePosition === Position.Right) &&
+                                 (pair.targetPosition === Position.Left || pair.targetPosition === Position.Right);
+
+        let startX = sh.x;
+        let startY = sh.y;
+        let endX = th.x;
+        let endY = th.y;
+
+        if (pairIsVertical && Math.abs(startX - endX) < 16) {
+          endX = startX;
+        } else if (pairIsHorizontal && Math.abs(startY - endY) < 16) {
+          endY = startY;
+        }
+
         const waypoints = getCollisionFreeWaypoints({
-          sourceX: sh.x, sourceY: sh.y,
-          targetX: th.x, targetY: th.y,
+          sourceX: startX, sourceY: startY,
+          targetX: endX, targetY: endY,
           sourcePosition: pair.sourcePosition,
           targetPosition: pair.targetPosition,
           borderRadius, edgeOffset,
@@ -275,9 +291,25 @@ export default function SimpleFloatingEdge({
       }
 
       // All pairs collided. Fall back to default pair path (will be dimmed via useEdgeColors)
+      let fallbackStartX = sx;
+      let fallbackStartY = sy;
+      let fallbackEndX = tx;
+      let fallbackEndY = ty;
+
+      const fallbackIsVertical = (sourcePos === Position.Top || sourcePos === Position.Bottom) &&
+                                 (targetPos === Position.Top || targetPos === Position.Bottom);
+      const fallbackIsHorizontal = (sourcePos === Position.Left || sourcePos === Position.Right) &&
+                                   (targetPos === Position.Left || targetPos === Position.Right);
+
+      if (fallbackIsVertical && Math.abs(fallbackStartX - fallbackEndX) < 16) {
+        fallbackEndX = fallbackStartX;
+      } else if (fallbackIsHorizontal && Math.abs(fallbackStartY - fallbackEndY) < 16) {
+        fallbackEndY = fallbackStartY;
+      }
+
       return getCollisionFreeSmoothStepPath({
-        sourceX: sx, sourceY: sy,
-        targetX: tx, targetY: ty,
+        sourceX: fallbackStartX, sourceY: fallbackStartY,
+        targetX: fallbackEndX, targetY: fallbackEndY,
         sourcePosition: sourcePos,
         targetPosition: targetPos,
         borderRadius, edgeOffset,
@@ -319,7 +351,9 @@ export default function SimpleFloatingEdge({
         const flowX = (ev.clientX - vpX) / zoom;
         const flowY = (ev.clientY - vpY) / zoom;
         const newT = findClosestT(edgePath, flowX, flowY);
-        updateEdgeData(id, { labelT: newT });
+        if (useDiagramStore.getState().activeCanvasId) {
+          updateEdgeData(id, { labelT: newT });
+        }
       };
 
       const onMouseUp = () => {

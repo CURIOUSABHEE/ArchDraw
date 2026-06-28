@@ -9,49 +9,12 @@ import 'reactflow/dist/style.css';
 import { Download } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
-import { SystemNode } from '@/components/SystemNode';
-import { ShapeNode } from '@/components/ShapeNode';
-import { GroupNode } from '@/components/GroupNode';
-import { TextLabelNode } from '@/components/TextLabelNode';
-import { AnnotationNode } from '@/components/AnnotationNode';
-import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { EmailCaptureModal } from '@/components/EmailCaptureModal';
 import { SVGEdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
 import { useDiagramStore } from '@/store/diagramStore';
 import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
 import { assignEdgeColors } from '@/lib/edgeColors';
-const NODE_TYPES = {
-  systemNode:        SystemNode,
-  architectureNode:  SystemNode,
-  baseNode:          SystemNode,
-  databaseNode:      SystemNode,
-  cacheNode:         SystemNode,
-  shapeNode:         ShapeNode,
-  groupNode:         GroupNode,
-  group:             GroupNode,
-  frameNode:         GroupNode,
-  serviceNode:       SystemNode,
-  textLabelNode:     TextLabelNode,
-  annotationNode:    AnnotationNode,
-  messageBrokerNode: SystemNode,
-  customNode:        SystemNode,
-  custom:            SystemNode,
-};
-
-const EDGE_TYPES = {
-  custom: SimpleFloatingEdge,
-  simpleFloating: SimpleFloatingEdge,
-  floating: SimpleFloatingEdge,
-  default: SimpleFloatingEdge,
-  smoothstep: SimpleFloatingEdge,
-  flow: SimpleFloatingEdge,
-  async: SimpleFloatingEdge,
-  sync: SimpleFloatingEdge,
-  stream: SimpleFloatingEdge,
-  event: SimpleFloatingEdge,
-  dep: SimpleFloatingEdge,
-  dotted: SimpleFloatingEdge,
-};
+import { NODE_TYPES, EDGE_TYPES } from '@/lib/constants/canvasTypes';
 
 interface SharedCanvas {
   id: string;

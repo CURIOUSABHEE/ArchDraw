@@ -1,13 +1,10 @@
 import { apiKeyManager } from '../utils/apiKeyManager';
+import { getProviderForModel } from '../utils/modelStore';
 import type { SharedState, ScoreResult } from '../types';
 import { SCORER_PROMPT } from '../constants';
 import logger from '@/lib/logger';
 
 const SCORING_GENERIC_LABELS = ['GROUP', 'CONTAINER', 'BOX', 'SECTION', 'AREA'];
-
-function getProviderForModel(modelId: string): 'groq' | 'openrouter' {
-  return modelId.includes('/') ? 'openrouter' : 'groq';
-}
 
 export async function runScorerAgent(state: SharedState, model?: string): Promise<ScoreResult> {
   const selectedModel = model || 'llama-3.3-70b-versatile';

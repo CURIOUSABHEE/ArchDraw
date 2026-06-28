@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import path from 'path';
 
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
@@ -18,11 +19,15 @@ const embedHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['reactflow', '@reactflow/core', '@reactflow/background', '@reactflow/controls', '@reactflow/minimap'],
+  transpilePackages: [],
+  turbopack: {
+    root: '/Users/abhisheksureshjamdade/Desktop/ArchDraw/frontend',
+  },
   experimental: {
+    turbopackFileSystemCacheForDev: true,
     optimizePackageImports: [
       'lucide-react',
-      'gsap',
+      'zustand',
       '@radix-ui/react-accordion',
       '@radix-ui/react-alert-dialog',
       '@radix-ui/react-avatar',
@@ -51,7 +56,7 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-tooltip',
     ],
   },
-  turbopack: { root: __dirname },
+
   async headers() {
     return [
       {
@@ -73,6 +78,16 @@ const nextConfig: NextConfig = {
         source: '/blog',
         destination: '/blogs',
         permanent: true,
+      },
+      {
+        source: '/login',
+        destination: '/dashboard',
+        permanent: false,
+      },
+      {
+        source: '/examples',
+        destination: '/dashboard/templates',
+        permanent: false,
       },
     ];
   },

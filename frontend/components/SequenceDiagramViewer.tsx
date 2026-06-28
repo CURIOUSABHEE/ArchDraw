@@ -1,28 +1,34 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
-import mermaid from 'mermaid';
 import { useDiagramStore } from '@/store/diagramStore';
 import logger from '@/lib/logger';
 
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'neutral',
-  securityLevel: 'loose',
-  sequence: {
-    actorMargin: 50,
-    boxMargin: 10,
-    boxTextMargin: 5,
-    noteMargin: 10,
-    messageMargin: 35,
-  },
-});
+let mermaidInitialized = false;
+
+async function initMermaid() {
+  if (mermaidInitialized) return;
+  const mermaid = await import('mermaid');
+  mermaid.default.initialize({
+    startOnLoad: false,
+    theme: 'neutral',
+    securityLevel: 'loose',
+    sequence: {
+      actorMargin: 50,
+      boxMargin: 10,
+      boxTextMargin: 5,
+      noteMargin: 10,
+      messageMargin: 35,
+    },
+  });
+  mermaidInitialized = true;
+}
 
 export function SequenceDiagramViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [prevSyntax, setPrevSyntax] = useState<string | undefined>();
+  const prevSyntaxRef = useRef<string | undefined>(undefined);
   const activeCanvasId = useDiagramStore((s) => s.activeCanvasId);
   const sequenceDiagrams = useDiagramStore((s) => s.sequenceDiagrams);
 
@@ -31,25 +37,27 @@ export function SequenceDiagramViewer() {
     [sequenceDiagrams, activeCanvasId]
   );
 
-  if (diagram?.mermaidSyntax !== prevSyntax) {
-    setPrevSyntax(diagram?.mermaidSyntax);
+  useEffect(() => {
+    initMermaid();
+  }, []);
+
+  useEffect(() => {
     if (!diagram?.mermaidSyntax) {
       setSvg('');
       setError('');
-    }
-  }
-
-  useEffect(() => {
-    if (!diagram?.mermaidSyntax || !containerRef.current) {
       return;
     }
+
+    if (diagram.mermaidSyntax === prevSyntaxRef.current) return;
+    prevSyntaxRef.current = diagram.mermaidSyntax;
 
     let cancelled = false;
 
     const renderDiagram = async () => {
       try {
+        const mermaid = await import('mermaid');
         const id = `mermaid-${Date.now().toString(36)}`;
-        const { svg: rendered } = await mermaid.render(id, diagram.mermaidSyntax);
+        const { svg: rendered } = await mermaid.default.render(id, diagram.mermaidSyntax);
         if (!cancelled) {
           setSvg(rendered);
           setError('');
@@ -92,7 +100,7 @@ export function SequenceDiagramViewer() {
     <div className="flex-1 flex items-center justify-center bg-canvas-bg overflow-auto p-8">
       <div 
         ref={containerRef}
-        className="max-w-full bg-white p-10 rounded-2xl shadow-xl border border-gray-100"
+        className="max-w-full bg-white p-4 sm:p-6 md:p-10 rounded-2xl shadow-xl border border-gray-100"
         dangerouslySetInnerHTML={{ __html: svg }}
       />
     </div>

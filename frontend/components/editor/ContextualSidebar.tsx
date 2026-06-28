@@ -32,7 +32,7 @@ export function ContextualSidebar({ nodeId, onClose }: ContextualSidebarProps) {
 
   return (
     <aside 
-      className="fixed top-20 right-4 w-80 max-h-[calc(100vh-100px)] overflow-y-auto z-40 bg-card rounded-2xl shadow-2xl border border-border animate-in slide-in-from-right-4 duration-300"
+      className="fixed top-20 right-4 w-80 max-h-[calc(100vh-100px)] overflow-y-auto z-40 bg-card rounded-2xl shadow-2xl border border-border animate-in slide-in-from-right-4 duration-300 sm:max-w-xs max-w-[calc(100vw-32px)]"
     >
       <div className="flex items-center justify-between p-4 border-b border-border/50">
         <div className="flex items-center gap-2">

@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { GenerationProgress } from '@/lib/ai/types';
 import { toast } from 'sonner';
 import { usePromptHistory, PROMPT_SUGGESTIONS } from '@/store/promptHistory';
 
@@ -19,29 +18,41 @@ interface FloatingAIBarProps {
   onToggleCode: () => void;
   showCode: boolean;
   hideCodeButton?: boolean;
+  isCanvasEmpty?: boolean;
 }
 
-export function FloatingAIBar({ onGenerate, onToggleCode, showCode, hideCodeButton }: FloatingAIBarProps) {
+export function FloatingAIBar({ onGenerate, onToggleCode, showCode, hideCodeButton, isCanvasEmpty = false }: FloatingAIBarProps) {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [diagramSize, setDiagramSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [activeTab, setActiveTab] = useState<'inspiration' | 'history'>('inspiration');
+  const [isFirstTime, setIsFirstTime] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { history, addToHistory, getSuggestions, clearHistory, addToFavorites } = usePromptHistory();
+  const { history, addToHistory, clearHistory, addToFavorites } = usePromptHistory();
   
-  // Auto-grow textarea height calculation
+  // Auto-grow textarea height calculation for thin input (minimum 21px)
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, 56), 200)}px`;
+      textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, 21), 120)}px`;
     }
   }, [input]);
 
-  // Global keyboard shortcut: Shift+? (e.key === '?') to focus prompt input
+  // Check if it is the first time using the canvas
+  useEffect(() => {
+    try {
+      const hasUsed = localStorage.getItem('archdraw-has-used-canvas') === 'true';
+      if (!hasUsed) {
+        setIsFirstTime(true);
+      }
+    } catch {}
+  }, []);
+
+  // Global keyboard shortcut: Shift+? to focus prompt input
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.key === '?') {
@@ -77,6 +88,8 @@ export function FloatingAIBar({ onGenerate, onToggleCode, showCode, hideCodeButt
       await onGenerate(input, diagramSize);
       addToHistory(input, diagramSize);
       setInput('');
+      localStorage.setItem('archdraw-has-used-canvas', 'true');
+      setIsFirstTime(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Generation failed';
       setError(message);
@@ -115,7 +128,7 @@ export function FloatingAIBar({ onGenerate, onToggleCode, showCode, hideCodeButt
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="fixed bottom-0 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-3xl px-2 sm:px-4 safe-area-bottom"
+      className="fixed bottom-0 sm:bottom-3 left-1/2 -translate-x-1/2 z-40 w-full max-w-3xl px-2 sm:px-4 safe-area-bottom"
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -123,200 +136,198 @@ export function FloatingAIBar({ onGenerate, onToggleCode, showCode, hideCodeButt
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
-          className="flex flex-col w-full rounded-2xl sm:rounded-[20px] overflow-hidden border border-border/40 focus-within:border-primary/50 bg-card shadow-soft-3 transition-colors duration-200"
+          className={`flex items-center gap-1.5 w-full rounded-[20px] border bg-card shadow-soft-3 p-1 pr-1.5 transition-all duration-200 ${
+            isFirstTime && isCanvasEmpty 
+              ? 'shiny-input-glow border-[#5e6ad2]/70 focus-within:border-primary/50' 
+              : 'border-border/40 focus-within:border-primary/50'
+          }`}
         >
-          {/* Top Section */}
-          <div className="p-2 sm:p-3">
+          {/* Left Actions */}
+          <div className="flex items-center gap-1 shrink-0 pl-0.5">
+            {/* Add Button */}
+            <button
+              className="solid-icon-btn shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-150"
+              title="Add component"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-create-component'))}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Inspiration Dropdown */}
+            <DropdownMenu open={showHistory} onOpenChange={setShowHistory}>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted/30 hover:bg-[#1c1e22] dark:hover:bg-[#141516] text-muted-foreground hover:text-foreground transition-all duration-150 cursor-pointer select-none border border-transparent active:scale-95">
+                  <Lightbulb className="w-3 h-3" />
+                  <span className="hidden sm:inline text-[10px] font-semibold">Inspiration</span>
+                  <ChevronDown className="hidden sm:block w-2 h-2 opacity-60" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-72 sm:w-80 p-0 border border-border bg-card text-card-foreground shadow-2xl rounded-2xl overflow-hidden z-[100]"
+              >
+                <div className="flex border-b border-border">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('inspiration')}
+                    className={`flex-1 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                      activeTab === 'inspiration' 
+                        ? 'text-primary border-b-2 border-primary bg-primary/5' 
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    }`}
+                  >
+                    Templates
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('history')}
+                    className={`flex-1 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                      activeTab === 'history' 
+                        ? 'text-primary border-b-2 border-primary bg-primary/5' 
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    }`}
+                  >
+                    History ({history.length})
+                  </button>
+                </div>
+                
+                <div className="max-h-96 overflow-y-auto p-2">
+                  {activeTab === 'inspiration' ? (
+                    <>
+                      {PROMPT_SUGGESTIONS.map((category) => (
+                        <div key={category.category} className="mb-4">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-2 py-1">
+                            {category.category}
+                          </p>
+                          {category.prompts.map((item, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => {
+                                selectInspiration(item.prompt);
+                                setShowHistory(false);
+                              }}
+                              className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-muted/60 transition-colors"
+                            >
+                              <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.prompt}</p>
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {history.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No history yet</p>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => clearHistory()}
+                            className="w-full text-xs text-muted-foreground hover:text-destructive px-3 py-2 text-left flex items-center gap-2 hover:bg-muted/30 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Clear History
+                          </button>
+                          {history.slice(0, 10).map((item) => (
+                            <div
+                              key={item.id}
+                              className="group flex items-start gap-2 px-3 py-2.5 rounded-xl hover:bg-muted/60 transition-colors cursor-pointer"
+                              onClick={() => {
+                                selectHistoryItem(item);
+                                setShowHistory(false);
+                              }}
+                            >
+                              <Clock className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                              <div className="flex-1 min-w-0 text-left">
+                                <p className="text-sm truncate text-foreground">{item.prompt}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {item.model ? `Size: ${item.model}` : 'Just now'}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addToFavorites(item);
+                                  toast.success('Added to favorites');
+                                }}
+                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded text-muted-foreground hover:text-foreground transition-all"
+                              >
+                                <Star className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Vertical Divider */}
+          <div className="w-px h-4 bg-border/20 shrink-0" />
+
+          {/* Input Text Area */}
+          <div className="flex-1 min-w-0 flex items-center">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
+              rows={1}
               placeholder="Describe your architecture, or paste a GitHub repo link…"
-              className="w-full bg-transparent border-0 border-transparent outline-none focus:outline-none focus:ring-0 focus:border-transparent focus:border-0 focus-visible:ring-0 resize-none text-sm text-foreground placeholder:text-muted-foreground/60 p-2 min-h-[44px] sm:min-h-[56px] shadow-none focus:shadow-none focus-visible:!outline-none focus:!outline-none focus-visible:!ring-0"
+              className="w-full bg-transparent border-0 outline-none focus:outline-none focus:ring-0 focus:border-transparent resize-none text-xs text-foreground placeholder:text-muted-foreground/60 py-0.5 px-1.5 max-h-32 shadow-none focus:shadow-none focus-visible:!outline-none focus:!outline-none"
               disabled={isGenerating}
+              style={{ height: 'auto', minHeight: '21px' }}
             />
           </div>
 
-          {/* Bottom Section (Toolbar) */}
-          <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-3 px-2 sm:px-4 py-2 sm:py-2.5 border-t border-border/10 bg-muted/20">
-            {/* Left items */}
-            <div className="flex items-center flex-wrap gap-2.5">
-              {/* Add Button */}
+          {/* Right Actions */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* View Code Button */}
+            {!hideCodeButton && (
               <button
-                className="solid-icon-btn shrink-0"
-                title="Add component"
-                onClick={() => window.dispatchEvent(new CustomEvent('open-create-component'))}
+                type="button"
+                onClick={onToggleCode}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full border border-transparent transition-all text-[10px] font-semibold cursor-pointer active:scale-95 ${
+                  showCode 
+                    ? 'bg-primary/10 text-primary border-primary/20' 
+                    : 'bg-muted/30 hover:bg-[#1c1e22] dark:hover:bg-[#141516] text-muted-foreground hover:text-foreground'
+                }`}
               >
-                <Plus className="w-5 h-5" />
+                <Code className="w-3 h-3" />
+                <span className="hidden sm:inline">Code</span>
               </button>
+            )}
 
-              {/* Divider */}
-              <div className="w-px h-5 bg-border/20 shrink-0" />
+            {/* Mic Button */}
+            <button 
+              className="w-6 h-6 rounded-full flex items-center justify-center bg-transparent text-muted-foreground/35 cursor-not-allowed" 
+              disabled 
+              title="Voice coming soon"
+            >
+              <Mic className="w-3.5 h-3.5" />
+            </button>
 
-              {/* Inspiration Dropdown */}
-              <DropdownMenu open={showHistory} onOpenChange={setShowHistory}>
-                <DropdownMenuTrigger asChild>
-                  <button className="solid-dropdown-trigger">
-                    <Lightbulb className="w-4 h-4" />
-                    <span className="hidden sm:inline text-xs">Inspiration</span>
-                    <ChevronDown className="hidden sm:block w-3 h-3" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="w-72 sm:w-80 p-0 border border-border bg-card text-card-foreground shadow-2xl rounded-2xl overflow-hidden z-[100]"
-                >
-                  <div className="flex border-b border-border">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('inspiration')}
-                      className={`flex-1 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
-                        activeTab === 'inspiration' 
-                          ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                      }`}
-                    >
-                      Templates
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('history')}
-                      className={`flex-1 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
-                        activeTab === 'history' 
-                          ? 'text-primary border-b-2 border-primary bg-primary/5' 
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                      }`}
-                    >
-                      History ({history.length})
-                    </button>
-                  </div>
-                  
-                  <div className="max-h-96 overflow-y-auto p-2">
-                    {activeTab === 'inspiration' ? (
-                      <>
-                        {PROMPT_SUGGESTIONS.map((category) => (
-                           <div key={category.category} className="mb-4">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 px-2 py-1">
-                              {category.category}
-                            </p>
-                            {category.prompts.map((item, index) => (
-                              <button
-                                key={index}
-                                type="button"
-                                onClick={() => {
-                                  selectInspiration(item.prompt);
-                                  setShowHistory(false);
-                                }}
-                                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-muted/60 transition-colors"
-                              >
-                                <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.prompt}</p>
-                              </button>
-                            ))}
-                          </div>
-                        ))}
-                      </>
-                    ) : (
-                      <>
-                        {history.length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No history yet</p>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => clearHistory()}
-                              className="w-full text-xs text-muted-foreground hover:text-destructive px-3 py-2 text-left flex items-center gap-2 hover:bg-muted/30 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              Clear History
-                            </button>
-                            {history.slice(0, 10).map((item) => (
-                              <div
-                                key={item.id}
-                                className="group flex items-start gap-2 px-3 py-2.5 rounded-xl hover:bg-muted/60 transition-colors cursor-pointer"
-                                onClick={() => {
-                                  selectHistoryItem(item);
-                                  setShowHistory(false);
-                                }}
-                              >
-                                <Clock className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
-                                <div className="flex-1 min-w-0 text-left">
-                                  <p className="text-sm truncate text-foreground">{item.prompt}</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                    {item.model ? `Size: ${item.model}` : 'Just now'}
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    addToFavorites(item);
-                                    toast.success('Added to favorites');
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded text-muted-foreground hover:text-foreground transition-all"
-                                >
-                                  <Star className="w-3 h-3" />
-                                </button>
-                              </div>
-                            ))}
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Divider */}
-              {!hideCodeButton && <div className="w-px h-5 bg-border/20 shrink-0" />}
-
-              {/* View Code Button */}
-              {!hideCodeButton && (
-                <button
-                  type="button"
-                  onClick={onToggleCode}
-                  className={`solid-dropdown-trigger transition-all ${
-                    showCode 
-                      ? '!bg-primary/10 !text-primary !border-primary/20' 
-                      : ''
-                  }`}
-                >
-                  <Code className="w-4 h-4" />
-                  <span className="hidden sm:inline text-xs">Code</span>
-                </button>
+            {/* Submit Button */}
+            <button
+              onClick={handleGenerate}
+              disabled={!input.trim() || isGenerating}
+              className="w-6 h-6 rounded-full flex items-center justify-center bg-[#5e6ad2] text-white hover:bg-[#828fff] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shrink-0 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+            >
+              {isGenerating ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Send className="w-3 h-3" />
               )}
-
-
-            </div>
-
-            {/* Right items */}
-            <div className="flex items-center gap-2">
-              {/* Mic Button (disabled) */}
-              <button 
-                className="solid-icon-btn opacity-30 cursor-not-allowed" 
-                disabled 
-                title="Voice input coming soon"
-              >
-                <Mic className="w-5 h-5" />
-              </button>
-
-              {/* Submit Button */}
-              <button
-                onClick={handleGenerate}
-                disabled={!input.trim() || isGenerating}
-                className="solid-submit-btn"
-              >
-                {isGenerating ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </button>
-            </div>
+            </button>
           </div>
         </motion.div>
       </AnimatePresence>

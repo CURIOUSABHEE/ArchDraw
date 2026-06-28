@@ -49,9 +49,9 @@ export function ComponentsShowcase() {
             {categories.map((cat, i) => (
               <div
                 key={cat.label}
-                className={`reveal reveal-delay-${Math.min(i + 1, 5)} flex items-start gap-6`}
+                className={`reveal reveal-delay-${Math.min(i + 1, 5)} flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-6`}
               >
-                <span className="text-xs font-medium uppercase tracking-wider w-28 shrink-0 pt-2 text-muted-foreground">{cat.label}</span>
+                <span className="text-xs font-medium uppercase tracking-wider sm:w-28 shrink-0 pt-2 text-muted-foreground">{cat.label}</span>
                 <div className="flex flex-wrap gap-2">
                   {cat.chips.map((chip) => (
                     <span

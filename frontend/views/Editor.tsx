@@ -2,32 +2,39 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Node, Edge } from 'reactflow';
+import dynamic from 'next/dynamic';
 import { Toolbar } from '@/components/Toolbar';
 import { ComponentSidebar } from '@/components/ComponentSidebar';
 import { CanvasSidebar } from '@/components/CanvasSidebar';
-import { Canvas, reactFlowRef } from '@/components/Canvas';
-import { CommandPalette } from '@/components/CommandPalette';
+import { reactFlowRef } from '@/lib/reactFlowRef';
 import { PropertiesPanel } from '@/components/PropertiesPanel';
-import { CreateComponentModal, COMPONENT_TYPES, type CreateComponentData } from '@/components/CreateComponentModal';
-import type { ComponentToEdit } from '@/components/CreateComponentModal';
 import { FloatingAIBar } from '@/components/FloatingAIBar';
-import { MermaidCodePanel } from '@/components/MermaidCodePanel';
 import { AnimatePresence } from 'framer-motion';
 import { GenerationProgressDisplay } from '@/components/GenerationProgress';
 import { useDiagramStore } from '@/store/diagramStore';
 import { useAuthStore } from '@/store/authStore';
 import { useModelStore } from '@/lib/ai/utils/modelStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-import { OnboardingOverlay } from '@/components/onboarding/OnboardingOverlay';
 import { useOnboarding } from '@/components/onboarding/useOnboarding';
 import { componentRegistry } from '@/lib/componentRegistry';
 import { toast } from 'sonner';
 import type { GenerationProgress } from '@/lib/ai/types';
-import { SequenceDiagramViewer } from '@/components/SequenceDiagramViewer';
 import { ContextualSidebar } from '@/components/editor/ContextualSidebar';
-import { RepoDiagramGenerator } from '@/components/RepoDiagramGenerator';
 import { parseRepoNdjsonToReactFlow } from '@/lib/utils/parseRepoNdjson';
+import { COMPONENT_TYPES } from '@/components/CreateComponentModal';
+import type { CreateComponentData, ComponentToEdit } from '@/components/CreateComponentModal';
+import { CanvasSkeleton } from '@/components/CanvasSkeleton';
+
+const CommandPalette = dynamic(() => import('@/components/CommandPalette').then(m => ({ default: m.CommandPalette })), { ssr: false });
+const MermaidCodePanel = dynamic(() => import('@/components/MermaidCodePanel').then(m => ({ default: m.MermaidCodePanel })), { ssr: false });
+const SequenceDiagramViewer = dynamic(() => import('@/components/SequenceDiagramViewer').then(m => ({ default: m.SequenceDiagramViewer })), { ssr: false });
+const CreateComponentModal = dynamic(() => import('@/components/CreateComponentModal').then(m => ({ default: m.CreateComponentModal })), { ssr: false });
+const RepoDiagramGenerator = dynamic(() => import('@/components/RepoDiagramGenerator').then(m => ({ default: m.RepoDiagramGenerator })), { ssr: false });
+const OnboardingOverlay = dynamic(() => import('@/components/onboarding/OnboardingOverlay').then(m => ({ default: m.OnboardingOverlay })), { ssr: false });
+const Canvas = dynamic(() => import('@/components/Canvas').then(m => ({ default: m.Canvas })), {
+  ssr: false,
+  loading: () => <CanvasSkeleton />,
+});
 
 function generateCanvasName(prompt: string): string {
   const words = prompt.trim().split(/\s+/);
@@ -267,6 +274,17 @@ export default function EditorPage() {
 
     renameCanvas(activeCanvasId, canvasName);
 
+    // Sync layout preset dropdown with prompt layout direction
+    if (!isGitHubRepoUrl(description)) {
+      const promptLower = description.toLowerCase();
+      const isHorizontalRequested = promptLower.includes('horizontal') || promptLower.includes('horizontally') || promptLower.includes('left-to-right') || promptLower.includes('left to right') || promptLower.includes('graph lr') || promptLower.includes('horizontal layout');
+      if (isHorizontalRequested) {
+        useDiagramStore.getState().setActiveLayoutPresetId('layered-lr');
+      } else {
+        useDiagramStore.getState().setActiveLayoutPresetId('layered-tb');
+      }
+    }
+
     try {
       // GitHub repo ingest path — same input box, different pipeline
       if (isGitHubRepoUrl(description)) {
@@ -420,6 +438,7 @@ export default function EditorPage() {
           onToggleCode={() => setShowCodePanel(prev => !prev)}
           showCode={showCodePanel}
           hideCodeButton={isSequenceDiagram}
+          isCanvasEmpty={nodes.length === 0}
         />
         <AnimatePresence>
           {showCodePanel && !isSequenceDiagram && (

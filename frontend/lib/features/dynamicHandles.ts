@@ -75,31 +75,24 @@ export function getDynamicHandles(
     return { sourcePosition: Position.Right, targetPosition: Position.Left };
   }
 
-  const overlapsHorizontally = (sourceRect.x < targetRect.x + targetRect.width) &&
-                                (targetRect.x < sourceRect.x + sourceRect.width);
-
-  const horizontalDist = Math.abs(dx);
-  // Stricter rules for changing direction: strongly prefer horizontal (left/right) 
-  // handles by requiring a much larger vertical distance to switch.
-  const verticalThreshold = overlapsHorizontally
-    ? Math.max(horizontalDist * 0.2, 20)
-    : Math.max(horizontalDist * 0.5, 40);
-
   let sourcePosition = Position.Right;
   let targetPosition = Position.Left;
   let dominantAxis = 'horizontal';
 
-  if (dy > verticalThreshold) {
+  // Direct axis comparison: whichever axis has the greater distance between node
+  // centers determines the handle direction. This matches the standard React Flow
+  // floating edge pattern used with smoothstep paths.
+  if (Math.abs(dy) > Math.abs(dx)) {
     dominantAxis = 'vertical';
-    sourcePosition = Position.Bottom;
-    targetPosition = Position.Top;
-  } else if (dy < -verticalThreshold) {
-    dominantAxis = 'vertical';
-    sourcePosition = Position.Top;
-    targetPosition = Position.Bottom;
+    if (dy > 0) {
+      sourcePosition = Position.Bottom;
+      targetPosition = Position.Top;
+    } else {
+      sourcePosition = Position.Top;
+      targetPosition = Position.Bottom;
+    }
   } else {
     dominantAxis = 'horizontal';
-    // Use symmetric tie-breaker based on dy when dx is exactly 0
     if (dx > 0 || (dx === 0 && dy >= 0)) {
       sourcePosition = Position.Right;
       targetPosition = Position.Left;

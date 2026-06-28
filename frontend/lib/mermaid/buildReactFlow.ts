@@ -53,7 +53,7 @@ export function buildReactFlowObjects(ast: MermaidAST): RFObjects {
         label,
         subtitle,
         sublabel: subtitle,
-        shape: pNode.shape,
+        shape: pNode.shape === 'rounded' ? 'rounded-rectangle' : pNode.shape,
         nodeWidth: width,
         nodeHeight: height,
       },

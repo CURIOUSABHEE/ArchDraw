@@ -6,34 +6,28 @@ import ReactFlow, {
   NodeMouseHandler, EdgeMouseHandler, NodeDragHandler,
   SelectionMode, ConnectionLineType,
   ConnectionMode, MarkerType,
+  EdgeLabelRenderer,
   type OnSelectionChangeParams,
   type Connection,
   type Edge,
   type NodeChange,
+  type ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useDiagramStore, registerFitViewCallback } from '@/store/diagramStore';
-import { SystemNode } from '@/components/SystemNode';
-import { ShapeNode } from '@/components/ShapeNode';
-import { GroupNode } from '@/components/GroupNode';
-import { TextLabelNode } from '@/components/TextLabelNode';
-import { AnnotationNode } from '@/components/AnnotationNode';
 import { getLayoutedElements } from '@/lib/layoutUtils';
 import { TEMPLATES } from '@/data/templates/index';
 import { GuideLines } from '@/components/GuideLines';
 import { ContextMenu, type ContextMenuState } from '@/components/ContextMenu';
 import { useSnapping } from '@/hooks/useSnapping';
 import { useMiddleMousePan } from '@/hooks/useCanvasInteractions';
-import { useCallback, useEffect, useRef, DragEvent, useState, useMemo } from 'react';
-import { EdgeLabelRenderer, type ReactFlowInstance } from 'reactflow';
-import { LayoutGrid, LayoutTemplate, MousePointer2 } from 'lucide-react';
-import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
-import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
+import { useCallback, useEffect, useRef, DragEvent, useState } from 'react';
 import { useCanvasTheme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { SVGEdgeMarkerDefs } from '@/lib/utils/edgeColorUtils';
 
 import { TemplateModal } from '@/components/TemplateModal';
+import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CanvasSkeleton } from '@/components/CanvasSkeleton';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -48,41 +42,8 @@ import { resolveNodeCollisions } from '@/src/utils/resolveNodeCollisions';
 import { useEdgeColors } from '@/lib/edgeColors';
 import { calculateNodeDimensions } from '@/lib/utils/nodeSizing';
 import { createNode, createEdge } from '@/lib/factory';
-
-// Module-level ref so the store can call fitView without hooks
-export const reactFlowRef: { instance: ReactFlowInstance | null } = { instance: null };
-
-const NODE_TYPES = {
-  systemNode:        SystemNode,
-  architectureNode:  SystemNode,
-  baseNode:          SystemNode,
-  databaseNode:      SystemNode,
-  cacheNode:         SystemNode,
-  shapeNode:         ShapeNode,
-  groupNode:         GroupNode,
-  group:             GroupNode,
-  frameNode:         GroupNode,
-  serviceNode:       SystemNode,
-  textLabelNode:     TextLabelNode,
-  annotationNode:    AnnotationNode,
-  messageBrokerNode: SystemNode,
-  customNode:        SystemNode,
-};
-
-const EDGE_TYPES = {
-  custom: SimpleFloatingEdge,
-  simpleFloating: SimpleFloatingEdge,
-  floating: SimpleFloatingEdge,
-  default: SimpleFloatingEdge,
-  smoothstep: SimpleFloatingEdge,
-  flow: SimpleFloatingEdge,
-  async: SimpleFloatingEdge,
-  sync: SimpleFloatingEdge,
-  stream: SimpleFloatingEdge,
-  event: SimpleFloatingEdge,
-  dep: SimpleFloatingEdge,
-  dotted: SimpleFloatingEdge,
-};
+import { reactFlowRef } from '@/lib/reactFlowRef';
+import { NODE_TYPES, EDGE_TYPES } from '@/lib/constants/canvasTypes';
 
 function CanvasInner() {
 
@@ -386,8 +347,8 @@ function CanvasInner() {
           setPendingLabelEdgeId(edge.id);
           setLabelDraft(edge.data?.label || edge.label || '');
         }}
-        nodeTypes={useMemo(() => NODE_TYPES, [])}
-        edgeTypes={useMemo(() => EDGE_TYPES, [])}
+        nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
         fitView
         selectionMode={SelectionMode.Full}
         // Keep canvas panning on middle/right mouse so left-drag can draw selection box.
@@ -469,23 +430,7 @@ function CanvasInner() {
         </div>
       )}
 
-      {/* Floating UI Elements */}
-      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+64px)] sm:top-4 left-2 sm:left-4 z-10 flex flex-col gap-2">
-        <button
-          onClick={() => setShowShortcuts(true)}
-          className="p-1.5 sm:p-2 bg-white/80 dark:bg-[#1E2235]/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:bg-white dark:hover:bg-[#1E2235] transition-colors"
-          title="Keyboard Shortcuts"
-        >
-          <MousePointer2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-600 dark:text-gray-400" />
-        </button>
-        <button
-          onClick={() => setTemplatesOpen(true)}
-          className="p-1.5 sm:p-2 bg-white/80 dark:bg-[#1E2235]/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:bg-white dark:hover:bg-[#1E2235] transition-colors"
-          title="Templates"
-        >
-          <LayoutTemplate className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-gray-600 dark:text-gray-400" />
-        </button>
-      </div>
+
 
       <KeyboardShortcutsModal open={showShortcuts} onOpenChange={(open) => setShowShortcuts(open)} />
       {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}

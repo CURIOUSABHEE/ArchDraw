@@ -1,7 +1,26 @@
+import { AsyncLocalStorage } from 'async_hooks';
+import { randomUUID } from 'crypto';
 import Groq from 'groq-sdk';
 import logger from '@/lib/logger';
 
 export type AIProvider = 'groq' | 'openrouter';
+
+// Ambient request ID for LLM call counting — no signature changes needed downstream
+// Two counters:
+//   networkAttempts — every operation() invocation (cost / quota)
+//   logicalCalls    — every executeWithRetry entry (pipeline depth / repair loops)
+export const requestContext = new AsyncLocalStorage<{
+  requestId: string;
+  networkAttempts: number;
+  logicalCalls: number;
+}>();
+
+export function getRequestCounts(): { networkAttempts: number; logicalCalls: number } {
+  const store = requestContext.getStore();
+  return store
+    ? { networkAttempts: store.networkAttempts, logicalCalls: store.logicalCalls }
+    : { networkAttempts: -1, logicalCalls: -1 };
+}
 
 interface ApiKeyState {
   key: string;
@@ -221,6 +240,9 @@ class ApiKeyManager {
       }
 
       try {
+        const store = requestContext.getStore();
+        if (store) store.networkAttempts++;
+
         const client = new OpenRouterClient(keyInfo.key, options?.model);
         const result = await operation(client);
         this.releaseKey('openrouter', keyInfo.index);
@@ -328,6 +350,10 @@ class ApiKeyManager {
   ): Promise<T> {
     const maxRetries = options?.maxRetries ?? 2;
     
+    // Count one logical call per executeWithRetry entry (pipeline depth)
+    const store = requestContext.getStore();
+    if (store) store.logicalCalls++;
+    
     // Strategy: 1. Try Groq keys (9→1) first, 2. Fallback to OpenRouter
     
     // Step 1: Try Groq keys in reverse order (9, 8, 7, ..., 1)
@@ -352,6 +378,8 @@ class ApiKeyManager {
           keyState.inUse++;
           keyState.lastUsed = Date.now();
           
+          if (store) store.networkAttempts++;
+
           const groq = new Groq({ apiKey: keyState.key });
           const result = await operation(groq);
           

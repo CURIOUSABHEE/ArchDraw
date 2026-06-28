@@ -7,11 +7,8 @@ import {
   Undo2, Redo2, Share2, Loader2, Check,
   GraduationCap, MoreHorizontal, HelpCircle,
   PanelLeftClose, LayoutTemplate, FolderOpen,
-  AlignCenterHorizontal,
   LayoutDashboard,
   Github,
-  CornerDownRight,
-  MoveRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
@@ -24,7 +21,6 @@ import { EmailCaptureModal, type EmailCaptureReason } from '@/components/EmailCa
 import logger from '@/lib/logger';
 
 import { useOnboardingStore } from '@/store/onboardingStore';
-import { AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { DiagramPagination } from '@/components/editor/DiagramPagination';
 
@@ -196,10 +192,12 @@ export function Toolbar() {
     canvases, activeCanvasId, removeCanvas,
     getVisibleCanvases,
     savingState, userProfile, setSidebarOpen, sidebarOpen,
+    activeLayoutPresetId, sequenceDiagrams,
   } = useDiagramStore();
 
   const { user } = useAuthStore();
   const isGuest = !user;
+  const isSequenceDiagram = activeCanvasId ? !!sequenceDiagrams[activeCanvasId] : false;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exportOpen, setExportOpen] = useState(false);
@@ -526,12 +524,13 @@ export function Toolbar() {
   return (
     <>
       <header
-        className="floating-toolbar flex items-center justify-between px-2 sm:px-4 z-50 max-w-[calc(100vw-16px)] sm:max-w-none"
+        className="floating-toolbar flex items-center justify-between px-2 sm:px-4 z-50 max-w-[calc(100vw-16px)] sm:max-w-none overflow-x-auto"
         style={{
           position: 'fixed',
           top: 'calc(16px + env(safe-area-inset-top, 0px))',
           left: '50%',
           transform: 'translateX(-50%)',
+          scrollbarWidth: 'none',
         }}
       >
         {/* LEFT: Sidebar toggle + Canvas tabs */}
@@ -614,35 +613,6 @@ export function Toolbar() {
             title="Redo (Cmd+Shift+Z)"
           >
             <Redo2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-          </button>
-
-          <button
-            onClick={() => useDiagramStore.getState().alignConnectedNodes()}
-            className="hidden sm:block p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
-            title="Align connected nodes by edge direction"
-          >
-            <AlignCenterHorizontal className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => {
-              const store = useDiagramStore.getState();
-              const isStep = store.edges.some(e => e.data?.pathType === 'step');
-              const newType = isStep ? undefined : 'step';
-              const updatedEdges = store.edges.map(e => ({
-                ...e,
-                data: { ...e.data, pathType: newType },
-              }));
-              store.setEdges(updatedEdges);
-            }}
-            className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
-            title={edges.some(e => e.data?.pathType === 'step') ? 'Switch to Smoothstep edges' : 'Switch to Step edges'}
-          >
-            {edges.some(e => e.data?.pathType === 'step') ? (
-              <MoveRight className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-            ) : (
-              <CornerDownRight className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-            )}
           </button>
 
           <select
@@ -933,8 +903,6 @@ export function Toolbar() {
           onClose={() => setEmailCapture(null)}
         />
       )}
-      <AnimatePresence>
-      </AnimatePresence>
       {templatesOpen && <TemplateModal onClose={() => setTemplatesOpen(false)} />}
 
       {/* Delete confirmation modal */}

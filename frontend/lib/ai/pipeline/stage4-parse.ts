@@ -1,5 +1,6 @@
 import logger from '@/lib/logger';
-import type { ParsedDiagram, RawFlow, RawNode, PipelineLayer as LayerType } from './types';
+import type { LayerType } from '../types';
+import type { ParsedDiagram, RawFlow, RawNode } from './types';
 
 function parseNode(obj: Record<string, unknown>): RawNode | null {
   if (!obj.id || !obj.label) return null;

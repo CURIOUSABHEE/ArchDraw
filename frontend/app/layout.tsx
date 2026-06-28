@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
 import './globals.css';
-import 'reactflow/dist/style.css';
 import { AuthProvider } from '@/components/AuthProvider';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/ThemeProvider';

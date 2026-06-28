@@ -1,21 +1,8 @@
-import type { ServiceType } from '../types';
+import type { ServiceType, LayerType } from '../types';
 
 // Pipeline internal types
 
-export type PipelineLayer = 
-  | 'client'
-  | 'presentation'
-  | 'edge'
-  | 'gateway'
-  | 'compute'
-  | 'application' 
-  | 'async'
-  | 'queue'
-  | 'data'
-  | 'observe'
-  | 'observability'
-  | 'infrastructure'
-  | 'external';
+export type PipelineLayer = LayerType;
 
 export interface RawNode {
   id: string;

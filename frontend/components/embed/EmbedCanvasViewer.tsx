@@ -12,48 +12,10 @@ import ReactFlow, {
   type Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { SystemNode } from '@/components/SystemNode';
-import { ShapeNode } from '@/components/ShapeNode';
-import { GroupNode } from '@/components/GroupNode';
-import { TextLabelNode } from '@/components/TextLabelNode';
-import { AnnotationNode } from '@/components/AnnotationNode';
-import SimpleFloatingEdge from '@/components/edges/SimpleFloatingEdge';
 import { EDGE_TYPE_CONFIGS } from '@/data/edgeTypes';
 import { DIAGRAM_CONSTANTS } from '@/constants/diagram';
 import { assignEdgeColors } from '@/lib/edgeColors';
-
-const NODE_TYPES = {
-  systemNode:        SystemNode,
-  architectureNode:  SystemNode,
-  baseNode:          SystemNode,
-  databaseNode:      SystemNode,
-  cacheNode:         SystemNode,
-  shapeNode:         ShapeNode,
-  groupNode:         GroupNode,
-  group:             GroupNode,
-  frameNode:         GroupNode,
-  serviceNode:       SystemNode,
-  textLabelNode:     TextLabelNode,
-  annotationNode:    AnnotationNode,
-  messageBrokerNode: SystemNode,
-  customNode:        SystemNode,
-  custom:            SystemNode,
-};
-
-const EDGE_TYPES = {
-  custom: SimpleFloatingEdge,
-  simpleFloating: SimpleFloatingEdge,
-  floating: SimpleFloatingEdge,
-  default: SimpleFloatingEdge,
-  smoothstep: SimpleFloatingEdge,
-  flow: SimpleFloatingEdge,
-  async: SimpleFloatingEdge,
-  sync: SimpleFloatingEdge,
-  stream: SimpleFloatingEdge,
-  event: SimpleFloatingEdge,
-  dep: SimpleFloatingEdge,
-  dotted: SimpleFloatingEdge,
-};
+import { NODE_TYPES, EDGE_TYPES } from '@/lib/constants/canvasTypes';
 
 interface EmbedCanvasProps {
   nodes: Node[];

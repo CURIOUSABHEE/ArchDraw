@@ -1279,3 +1279,18 @@ body {
   }
 }
 
+/* Shiny input glow animation for first-time empty canvas prompt box */
+.shiny-input-glow {
+  animation: shimerGlow 2.5s infinite ease-in-out;
+}
+@keyframes shimerGlow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(94, 106, 210, 0.25), 0 0 2px rgba(94, 106, 210, 0.1);
+    border-color: rgba(94, 106, 210, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(94, 106, 210, 0.7), 0 0 6px rgba(130, 143, 255, 0.45);
+    border-color: rgba(130, 143, 255, 0.85);
+  }
+}
+

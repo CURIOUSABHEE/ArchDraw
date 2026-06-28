@@ -1,4 +1,5 @@
 import { apiKeyManager } from '../utils/apiKeyManager';
+import { getProviderForModel } from '../utils/modelStore';
 import type { SharedState, ArchitectureNode } from '../types';
 import { COMPONENT_AGENT_PROMPT } from '../constants';
 import { validateComponentOutput } from '../utils/outputValidator';
@@ -6,10 +7,6 @@ import { extractUserPreferences, formatUserPreferencesForPrompt } from '../utils
 import logger from '@/lib/logger';
 
 const MAX_COMPONENT_RETRIES = 3;
-
-function getProviderForModel(modelId: string): 'groq' | 'openrouter' {
-  return modelId.includes('/') ? 'openrouter' : 'groq';
-}
 
 const AWS_KEYWORDS = [
   'aws', 'amazon', 'lambda', 'ec2', 's3', 'rds', 'dynamodb', 'aurora',

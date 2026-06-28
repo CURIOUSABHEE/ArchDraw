@@ -1,3 +1,4 @@
+'use client';
 import { useMemo } from 'react';
 import { MarkerType } from 'reactflow';
 import type { Edge } from 'reactflow';
