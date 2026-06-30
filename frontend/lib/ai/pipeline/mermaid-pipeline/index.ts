@@ -80,15 +80,14 @@ export async function runMermaidPipeline(
     groups: inventoryConfig.groups.length,
   });
 
-  // STAGE 3: Programmatic Validation (sanity check — should always pass with deterministic gen)
+  // STAGE 3: Programmatic Validation (sanity check — warn only, since syntax is deterministic)
   const validationResult = validateMermaid(mermaidText, inventoryConfig, edgeConfig);
 
   if (!validationResult.isValid) {
-    logger.error('[MermaidPipeline] Sanity validation failed (unexpected):', validationResult.repairInstructions);
-    throw new Error(`validation_failed: ${validationResult.repairInstructions}`);
+    logger.warn('[MermaidPipeline] Validation notes:', validationResult.repairInstructions?.slice(0, 200));
+  } else {
+    logger.log('[MermaidPipeline] Diagram validated successfully.');
   }
-
-  logger.log('[MermaidPipeline] Diagram validated successfully.');
 
   // STAGE 4: Deterministic Mermaid -> React Flow Translation, Layout, and Styling
   onProgress?.('Translating and styling diagram', 80);

@@ -9,6 +9,7 @@ import {
   PanelLeftClose, LayoutTemplate, FolderOpen,
   LayoutDashboard,
   Github,
+  ArrowDownToLine, ArrowRightToLine,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDiagramStore } from '@/store/diagramStore';
@@ -630,7 +631,9 @@ export function Toolbar() {
 
           <ThemeToggle />
 
+          <LayoutToggleButton />
 
+          <span className="w-px h-4 bg-border/50 mx-0.5 sm:mx-1" />
 
           <button
             onClick={handleDeleteCanvas}
@@ -954,5 +957,30 @@ export function Toolbar() {
         </div>
       )}
     </>
+  );
+}
+
+function LayoutToggleButton() {
+  const activeLayoutPresetId = useDiagramStore((s) => s.activeLayoutPresetId);
+  const toggleLayoutDirection = useDiagramStore((s) => s.toggleLayoutDirection);
+
+  const isVertical = activeLayoutPresetId === 'layered-tb';
+
+  return (
+    <button
+      onClick={toggleLayoutDirection}
+      className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
+      title={
+        isVertical
+          ? 'Layout: Top → Bottom (click for Left → Right)'
+          : 'Layout: Left → Right (click for Top → Bottom)'
+      }
+    >
+      {isVertical ? (
+        <ArrowDownToLine className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+      ) : (
+        <ArrowRightToLine className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+      )}
+    </button>
   );
 }

@@ -303,7 +303,7 @@ class ApiKeyManager {
       }
 
       try {
-        const groq = new Groq({ apiKey: keyInfo.key });
+        const groq = new Groq({ apiKey: keyInfo.key, dangerouslyAllowBrowser: true });
         const result = await operation(groq);
         this.releaseKey(provider, keyInfo.index);
         this.clearKeyError(provider, keyInfo.index);
@@ -380,7 +380,7 @@ class ApiKeyManager {
           
           if (store) store.networkAttempts++;
 
-          const groq = new Groq({ apiKey: keyState.key });
+          const groq = new Groq({ apiKey: keyState.key, dangerouslyAllowBrowser: true });
           const result = await operation(groq);
           
           keyState.inUse = Math.max(0, keyState.inUse - 1);
