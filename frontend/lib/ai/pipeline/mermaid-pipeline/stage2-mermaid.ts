@@ -99,20 +99,21 @@ ${referenceExample}
 
 CRITICAL RULES:
 1. YOU MUST DECLARE EVERY GROUP AS A SUBGRAPH. Every node MUST live inside a subgraph.
-2. Subgraph syntax: subgraph ID["Group Name"] ... end.
+2. Use ONLY the groups listed in the GROUPS section above. Do NOT create any other subgraphs.
+4. Subgraph syntax: subgraph ID["Group Name"] ... end.
    - Use PascalCase of the full group label with no spaces for the subgraph ID: e.g. ClientTier for "Client Tier", APIWebServers for "API Web Servers".
    - NEVER use short abbreviations like CLIENT, LB, DB, API. Make sure the ID is descriptive.
-3. Node ID mapping — you MUST use the pre-defined ID for each node name as specified in the "REQUIRED NODE ID MAPPING" section above. Do NOT invent your own IDs, do NOT change the casing, and do NOT use short abbreviations. This guarantees mathematically deterministic IDs across generation and repair attempts.
-4. Node labels MUST NOT include any programming language or technology stack subtitle in brackets (e.g. do NOT append '<br>[React]', '<br>[Go]', etc. to node labels). Keep node labels clean, containing only the name of the component itself (e.g. WebApp["Spotify Web App"]).
-5. Node Shape Styles: You MUST assign the correct shape to each node based on its type:
+5. Node ID mapping — you MUST use the pre-defined ID for each node name as specified in the "REQUIRED NODE ID MAPPING" section above. Do NOT invent your own IDs, do NOT change the casing, and do NOT use short abbreviations. This guarantees mathematically deterministic IDs across generation and repair attempts.
+6. Node labels MUST NOT include any programming language or technology stack subtitle in brackets (e.g. do NOT append '<br>[React]', '<br>[Go]', etc. to node labels). Keep node labels clean, containing only the name of the component itself (e.g. WebApp["Spotify Web App"]).
+7. Node Shape Styles: You MUST assign the correct shape to each node based on its type:
    - Cylinder Shapes: Every database, cache, or object storage node (e.g., any node representing PostgreSQL, MySQL, Redis, MongoDB, S3, GCS, database, cache, storage, bucket, or store) MUST use cylinder syntax: e.g., NodeId[("Label")].
    - Diamond Shapes: Every load balancer, DNS, API gateway, traffic router, or reverse proxy node (e.g., NGINX, Cloudflare, Route 53, Gateway) MUST use diamond syntax: e.g., NodeId{Label}.
    - Circle Shapes: Every message queue, message broker, event broker, or pub/sub stream node (e.g., Kafka, RabbitMQ, SQS, PubSub, Kinesis, Queue) MUST use circle syntax: e.g., NodeId((Label)).
    - Parallelogram Shapes: Every third-party external service, integration API, or external payment processor node (e.g., Stripe API, Twilio, SendGrid, Auth0) MUST use parallelogram syntax: e.g., NodeId[/Label/].
    - Rounded Rectangles: Every compute, service, backend microservice, server, API endpoint, or client-facing application node (e.g., UserService, WebApp, MobileApp) MUST use rounded rectangle syntax: e.g., NodeId(["Label"]).
    - Do NOT include any technology/programming language subtitles inside the shape labels.
-6. Do NOT output any edge declarations. ONLY output node declarations and subgraph blocks.
-7. Output RAW Mermaid code ONLY. No markdown code blocks, no introductory text, no JSON.
+8. Do NOT output any edge declarations. ONLY output node declarations and subgraph blocks.
+9. Output RAW Mermaid code ONLY. No markdown code blocks, no introductory text, no JSON.
    Start output with "${formatConfig.diagramType}" on the first line.
 
 ═══ EXAMPLE OF REPAIR MODE (CORRECTING VALIDATION ERRORS) ═══
@@ -165,6 +166,8 @@ function buildEdgeGenerationPrompt(
     return `  ${fromId} --> ${toId} (${e.label || 'no label'})`;
   }).join('\n');
 
+  const hasRequiredConnections = edgeConfig.edges.length > 0;
+
   let prompt = `You are a Mermaid Edge Generator.
 Your job is to generate ONLY the edge connections between already-declared nodes in a Mermaid diagram.
 Do NOT write any node declarations or subgraph blocks. Output only edge lines.
@@ -178,19 +181,46 @@ ${nameToIdLines}
 ═══ AVAILABLE NODE IDs (use these as source/target) ═══
 ${validatedNodeIds.map(id => `  ${id}`).join('\n')}
 
+${hasRequiredConnections ? `
 ═══ REQUIRED CONNECTIONS (resolved to actual node IDs) ═══
 ${resolvedEdges}
 
-═══ EXAMPLE OF MATCHING REQUIRED CONNECTIONS TO OUTPUT EDGES (Rule 15) ═══
-Input 'REQUIRED CONNECTIONS':
-  MobileApp --> APIGateway (HTTPS POST /login)
-  APIGateway --> AuthService (gRPC auth)
-  AuthService --> UserDatabase (SQL query)
+CRITICAL RULE — Generate ONLY these connections. Do NOT invent any others.
+` : `
+═══ NO PREDEFINED CONNECTIONS — Infer from topology ═══
+Infer the logical connections between the available nodes using these architecture templates:
 
-Output Mermaid Edges (PascalCase IDs matched exactly):
-  MobileApp -->|"HTTPS POST /login"| APIGateway
-  APIGateway -->|"gRPC auth"| AuthService
-  AuthService -->|"SQL query"| UserDatabase
+LOAD BALANCER TOPOLOGY (if Load Balancer or LB in nodes):
+  Client --> LoadBalancer
+  LoadBalancer --> Server1
+  LoadBalancer --> Server2
+  (Servers may connect to Database or Cache if present)
+
+API GATEWAY TOPOLOGY (if API Gateway or Gateway in nodes):
+  Client --> ApiGateway
+  ApiGateway --> Service1
+  ApiGateway --> Service2
+  Service1 --> Database
+
+THREE-TIER TOPOLOGY (general web app):
+  Client --> WebServer
+  WebServer --> AppServer
+  AppServer --> Database
+
+MICROSERVICES TOPOLOGY (multiple services, queue, DB):
+  Client --> ApiGateway
+  ApiGateway --> ServiceA
+  ApiGateway --> ServiceB
+  ServiceB --> MessageQueue
+  ServiceA --> Database
+
+DATABASE-FIRST TOPOLOGY (DB, cache, app server):
+  AppServer --> Cache
+  AppServer --> Database
+  Client --> AppServer
+
+Choose the template that best matches the available nodes. Connect ALL nodes — no node should be orphaned.
+`}
 
 ═══ HIGH-FIDELITY REFERENCE EXAMPLE (EDGE ROUTING) ═══
 Use this example to understand the flow directions, arrow styles, and labeling expected of you:
@@ -228,8 +258,7 @@ CRITICAL RULES:
 14. Each line MUST follow the exact syntax:
     - Solid edge: sourceId -->|"Protocol Label"| targetId
     - Dashed edge: sourceId -.->|"Protocol Label"| targetId
-15. Generate ONLY the connections specified in the 'REQUIRED CONNECTIONS' list. Do NOT invent, add, or generate any other edge connections. The final generated edge count must exactly match the number of required connections.
-16. Output RAW Mermaid edge lines ONLY. No markdown code blocks.
+15. Output RAW Mermaid edge lines ONLY. No markdown code blocks.
 
 ═══ EXAMPLE OF REPLICA FAN-OUT (Rules 12 & 13) ═══
 Correct replica connection (independent outgoing edges, no horizontal chaining):
@@ -270,6 +299,92 @@ Please correct the edges so they satisfy all rules!
   }
 
   return prompt;
+}
+
+/**
+ * Post-processing cleanup: remove empty subgraphs, duplicate edges, and edge references to nonexistent nodes.
+ */
+function cleanupMermaid(mermaidText: string): string {
+  const lines = mermaidText.split('\n');
+  const result: string[] = [];
+  const seenEdges = new Set<string>();
+  const declaredNodeIds = new Set<string>();
+  const edgeLines: string[] = [];
+  let insideSubgraph = false;
+  let subgraphLines: string[] = [];
+  let subgraphHasNode = false;
+  let insideEmptySubgraph = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('%')) continue;
+
+    // Collect declared node IDs
+    const nodeDecl = line.match(/^([a-zA-Z0-9_][a-zA-Z0-9_\-]*)\s*\[/);
+    if (nodeDecl && !insideSubgraph) {
+      declaredNodeIds.add(nodeDecl[1]);
+    }
+
+    // Track subgraph nesting
+    if (line.toLowerCase().startsWith('subgraph ')) {
+      insideSubgraph = true;
+      subgraphLines = [rawLine];
+      subgraphHasNode = false;
+      insideEmptySubgraph = false;
+      continue;
+    }
+
+    if (insideSubgraph) {
+      if (line.toLowerCase() === 'end') {
+        if (!subgraphHasNode) {
+          insideEmptySubgraph = true;
+          subgraphLines = [];
+        } else {
+          subgraphLines.push(rawLine);
+          result.push(...subgraphLines);
+        }
+        insideSubgraph = false;
+        subgraphLines = [];
+        continue;
+      }
+      const hasNode = /\[/.test(line) && /^[a-zA-Z0-9_]/.test(line);
+      if (hasNode) {
+        subgraphHasNode = true;
+        const idMatch = line.match(/^([a-zA-Z0-9_][a-zA-Z0-9_\-]*)\s*\[/);
+        if (idMatch) declaredNodeIds.add(idMatch[1]);
+      }
+      subgraphLines.push(rawLine);
+      continue;
+    }
+
+    // Edge lines: deduplicate
+    if (/-->|<-->|-\.-\>/.test(line)) {
+      const edgeId = line.replace(/\|"[^"]*"\||"[^"]*"/g, '').replace(/\s+/g, '');
+      if (!seenEdges.has(edgeId)) {
+        seenEdges.add(edgeId);
+        edgeLines.push(rawLine);
+      }
+      continue;
+    }
+
+    // Skip lines that were inside an empty subgraph
+    if (!insideEmptySubgraph) {
+      result.push(rawLine);
+    }
+  }
+
+  // Filter edge lines: drop references to undeclared nodes
+  const validEdgeLines = edgeLines.filter(rawLine => {
+    const line = rawLine.trim();
+    const match = line.match(/^([a-zA-Z0-9_\-]+)\s*(<-->|-->|-\.-\>)\s*(?:\|"[^"]*"\||"[^"]*")?\s*([a-zA-Z0-9_\-]+)/);
+    if (!match) return true;
+    const source = match[1];
+    const target = match[3];
+    return declaredNodeIds.has(source) && declaredNodeIds.has(target);
+  });
+
+  result.push(...validEdgeLines);
+  return result.join('\n');
 }
 
 export function extractMermaidCode(text: string): string {
@@ -492,15 +607,19 @@ FAILURE TO INCLUDE SUBGRAPHS WILL CAUSE THE ENTIRE GENERATION TO FAIL.`;
       }
     }
 
-    if (reParsed.nodes.length === inventoryConfig.nodeCount && missingNodes.length === 0) {
+    if (missingNodes.length === 0) {
+      // All inventory nodes present — accept the diagram even if LLM added extra nodes
+      // Update inventory to reflect the actual generated node count
+      const generatedLabels = reParsed.nodes.map(n => n.label);
+      inventoryConfig.nodes = generatedLabels;
+      inventoryConfig.nodeCount = generatedLabels.length;
       break;
     }
 
-    logger.warn(`[Stage 2 Node Repair] Node count mismatch or missing nodes. Expected: ${inventoryConfig.nodeCount}, Found: ${reParsed.nodes.length}. Missing: ${missingNodes.join(', ')}. Repairing...`);
-    
-    const nodeRepairPrompt = `NODE_COUNT_MISMATCH: Expected ${inventoryConfig.nodeCount} nodes, found ${reParsed.nodes.length}.\n` +
-      (missingNodes.length > 0 ? `MISSING NODES: The following nodes are missing: ${missingNodes.map(n => `"${n}"`).join(', ')}. Please declare them inside their respective subgraphs.` : '') +
-      `\n\nEnsure all nodes in groupAssignments are declared. DO NOT output any edges.`;
+    logger.warn(`[Stage 2 Node Repair] Missing ${missingNodes.length} inventory nodes. Found: ${reParsed.nodes.length}. Missing: ${missingNodes.join(', ')}. Repairing...`);
+
+    const nodeRepairPrompt = `MISSING NODES: The following nodes are missing from the diagram: ${missingNodes.map(n => `"${n}"`).join(', ')}. Please declare them inside their respective subgraphs, KEEPING all existing nodes.` +
+      `\n\nDO NOT output any edges. Include ALL nodes already in the diagram plus the missing ones.`;
 
     nodesMermaid = await runMermaidNodeGenerator(
       formatConfig,
@@ -534,11 +653,14 @@ FAILURE TO INCLUDE SUBGRAPHS WILL CAUSE THE ENTIRE GENERATION TO FAIL.`;
   edgesMermaid = normalizedEdges;
 
   // MERGE: Combine nodes + edges into final Mermaid string
-  const finalMermaid = mergeNodesAndEdges(
+  let finalMermaid = mergeNodesAndEdges(
     nodesMermaid,
     edgesMermaid,
     formatConfig.diagramType
   );
+
+  // POST-PROCESSING: Clean up common LLM artifacts
+  finalMermaid = cleanupMermaid(finalMermaid);
 
   logger.log('[Stage 2] Final merged Mermaid length:', finalMermaid.length);
   return finalMermaid;

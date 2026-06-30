@@ -64,7 +64,7 @@ export async function translateMermaidToReactFlowJSON(
   const result = runMermaidPipeline(mermaidText)
 
   if (!result.success) {
-    return { nodes: [], edges: [] }
+    throw new Error(`translate_failed: Mermaid parsing/validation failed:\n${result.warnings.join('\n')}`);
   }
 
   const subgraphIds = new Set(

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Plus,
   Search,
@@ -31,16 +31,18 @@ function SidebarItem({ icon: Icon, label, active, onClick, badge }: SidebarItemP
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] transition-all duration-200"
-      style={{
-        background: active ? 'var(--surface-page)' : 'transparent',
-        color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-      }}
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] transition-all duration-200 cursor-pointer ${
+        active 
+          ? 'bg-accent text-white shadow-sm' 
+          : 'text-text-secondary hover:bg-accent hover:text-white'
+      }`}
     >
       <Icon className="w-5 h-5" />
       <span className="text-sm font-medium flex-1 text-left">{label}</span>
       {badge && (
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent text-white">
+        <span className={`text-[10px] px-1.5 py-0.5 rounded-full transition-colors ${
+          active ? 'bg-white/20 text-white' : 'bg-accent text-white'
+        }`}>
           {badge}
         </span>
       )}
@@ -65,17 +67,16 @@ function CollapsibleGroup({
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] transition-all duration-200 hover:bg-surface-page"
-        style={{ color: 'var(--text-primary)' }}
+        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-[14px] transition-all duration-200 text-text-primary hover:bg-accent hover:text-white group cursor-pointer"
       >
         <Icon className="w-5 h-5" />
         <span className="text-xs font-semibold flex-1 text-left tracking-wider uppercase opacity-60">
           {label}
         </span>
         {isOpen ? (
-          <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+          <ChevronDown className="w-4 h-4 text-text-muted group-hover:text-white transition-colors" />
         ) : (
-          <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+          <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-white transition-colors" />
         )}
       </button>
       {isOpen && <div className="mt-1 pl-7 space-y-1">{children}</div>}
@@ -87,12 +88,11 @@ function SubmenuItem({ label, active, onClick }: { label: string; active?: boole
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-2 rounded-[12px] transition-all duration-200"
-      style={{
-        background: active ? 'var(--surface-card)' : 'transparent',
-        boxShadow: active ? '0 2px 8px rgba(0, 0, 0, 0.04)' : 'none',
-        color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-      }}
+      className={`w-full flex items-center gap-3 px-4 py-2 rounded-[12px] transition-all duration-200 cursor-pointer ${
+        active 
+          ? 'bg-accent text-white shadow-sm' 
+          : 'text-text-muted hover:bg-accent hover:text-white'
+      }`}
     >
       <span className="text-sm font-medium">{label}</span>
     </button>
@@ -102,6 +102,43 @@ function SubmenuItem({ label, active, onClick }: { label: string; active?: boole
 interface DashboardShellProps {
   children: React.ReactNode;
   activePage: string;
+}
+
+function DashboardSearch() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  const queryParam = searchParams.get('q') || '';
+  const [searchVal, setSearchVal] = useState(queryParam);
+
+  useEffect(() => {
+    setSearchVal(queryParam);
+  }, [queryParam]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchVal(val);
+    const params = new URLSearchParams(searchParams.toString());
+    if (val) {
+      params.set('q', val);
+    } else {
+      params.delete('q');
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border flex-1 min-w-0 bg-surface-page">
+      <Search className="w-4 h-4 shrink-0 text-text-muted" />
+      <input
+        type="text"
+        placeholder="Search..."
+        value={searchVal}
+        onChange={(e) => handleSearchChange(e.target.value)}
+        className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-sm w-full text-text-primary p-0"
+      />
+    </div>
+  );
 }
 
 export function DashboardShell({ children, activePage }: DashboardShellProps) {
@@ -397,23 +434,14 @@ export function DashboardShell({ children, activePage }: DashboardShellProps) {
 
             {/* Actions / Inputs row */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full border-t border-border/40 pt-3 sm:pt-0 sm:border-t-0">
-              <div
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border flex-1 min-w-0 bg-surface-page"
-              >
-                <Search className="w-4 h-4 shrink-0 text-text-muted" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="bg-transparent outline-none text-sm w-full text-text-primary"
-                />
-              </div>
-              <button
-                onClick={handleNewCanvas}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all bg-accent hover:bg-accent-hover active:scale-[0.98] cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>New Canvas</span>
-              </button>
+              <Suspense fallback={
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border flex-1 min-w-0 bg-surface-page animate-pulse">
+                  <Search className="w-4 h-4 shrink-0 text-text-muted" />
+                  <div className="h-4 bg-border-default/50 rounded-sm w-20" />
+                </div>
+              }>
+                <DashboardSearch />
+              </Suspense>
             </div>
           </header>
 

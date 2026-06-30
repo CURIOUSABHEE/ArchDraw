@@ -264,9 +264,17 @@ export async function runInventoryAgent(
   diagramSize: 'small' | 'medium' | 'large' = 'medium',
   model?: string
 ): Promise<InventoryConfig> {
-  const sizeInstructions = `TARGET SIZE: Focus strictly on the components explicitly requested or directly necessary to describe the system/component in the prompt. Do NOT add unnecessary external components (e.g., do NOT add databases, caches, API gateways, CDNs, or authentication services unless they are explicitly mentioned or directly required for the core function of the requested component/system).
-- If the user has given a simple prompt or is describing/asking about a specific component (e.g. "Load Balancer", "Database"), focus ONLY on describing the core idea of that component (e.g. for a Load Balancer, show a request coming in from the client and distributing to multiple servers — do not add databases, caches, or API gateways).
-- Do NOT enhance the user's prompt. Keep things very simple. Only if the user is asking for a complex system and has explicitly shared/mentioned a lot of components, then only include them. Otherwise, deliver exactly what the user requested.`;
+  const sizeInstructions = `TARGET SIZE: Identify ALL nodes that are explicitly requested OR directly implied by the system the user describes.
+
+RULES FOR SPECIFIC COMPONENT PROMPTS:
+- If the user describes a single component like "Load Balancer", "API Gateway", "Database", "Web Server", you MUST still include the essential interacting components to make a meaningful diagram. For example:
+  - "Load Balancer" → include ["Client", "Load Balancer", "Server 1", "Server 2"]
+  - "Database" → include ["Application Server", "Database", "Cache"]
+  - "API Gateway" → include ["Client", "API Gateway", "Service 1", "Service 2"]
+- Minimum 4 nodes for any architecture diagram, even for simple component prompts.
+- You MAY add infrastructure components that are DIRECTLY necessary for the described system to function (e.g. servers behind a load balancer, a database for a web service). These are not "enhancements" — they are essential context.
+- Do NOT add monitoring, observability, CI/CD, authentication services, or external integrations unless explicitly mentioned.
+- Do NOT add technology stack brackets (e.g. "[React]", "[Node.js]") to node labels. Use clean names only.`;
 
   const systemPrompt = `You are the Inventory Agent in a diagram pipeline.
 Your job is to identify and enumerate EVERY named component, service, user/actor, database, cache, queue, microservice, or logical layer described or implied in the prompt.
@@ -276,22 +284,9 @@ ${sizeInstructions}
 If the prompt describes or implies a load balancing pool or multiple servers, you MUST explicitly output individual server nodes (e.g., "Server 1", "Server 2", "Server 3" or similar replica names) so the load balancer can route to them.
 
 CRITICAL INSTRUCTIONS:
-- Deliver EXACTLY what the user requested. If the prompt is simple, the diagram must be simple.
-- Do NOT automatically add databases, caches, CDNs, API gateways, queues, or other systems unless they are explicitly asked for.
-- Do NOT apply any automatic domain completion rules (e.g. do not add recommendation engines, search indexes, transcoding pipelines, etc. unless explicitly asked).
-
-WRONG / CORRECT EXAMPLES FOR COMPONENT IDENTIFICATION (Rules 3 & 4):
-- Input Prompt: "Build an API Gateway routing requests to our user and product services"
-  WRONG: "nodes": ["APIGateway [Express]", "UserService [NestJS]", "ProductService [Go]"] (Includes tech stack or bracket subtitles in node labels)
-  CORRECT: "nodes": ["API Gateway", "User Service", "Product Service"] (Clean node labels only)
-
-- Input Prompt: "Build a Message Queue for our Payment Processing and Order Database"
-  WRONG: "nodes": ["MQ", "PP", "ODB"] (Uses short, obscure abbreviations instead of descriptive names)
-  CORRECT: "nodes": ["Message Queue", "Payment Processing", "Order Database"] (Uses full, recognizable descriptive names)
-
-- Input Prompt: "A user accesses the website which connects to the database"
-  WRONG: "nodes": ["User", "Website", "Database", "Redis Cache", "Auth Service"] (Implicitly added unrequested cache and auth components)
-  CORRECT: "nodes": ["User", "Website", "Database"] (Exactly matches prompt requirements)
+- Always use clean, descriptive node names — NO technology stack brackets (e.g. write "Auth Service" not "AuthService [Express]").
+- Use full descriptive names, NOT abbreviations (e.g. "Message Queue" not "MQ", "Order Database" not "ODB").
+- Do NOT add monitoring, observability, CI/CD, authentication services, recommendation engines, or external integrations unless explicitly mentioned.
 
 Also, identify the subgraphs/logical group containers (e.g. "Client Container", "Application Server", "Database Cluster") that these components belong in.
 You MUST output a valid JSON object matching this schema:
@@ -348,11 +343,12 @@ export async function runEdgeAgent(
   diagramSize: 'small' | 'medium' | 'large' = 'medium',
   model?: string
 ): Promise<EdgeConfig> {
-  const sizeInstructions = {
-    small: 'TARGET SIZE: Connect only the 5-7 core nodes. Keep flow lines clean and consolidated.',
-    medium: 'TARGET SIZE: Connect the 8-12 nodes. Focus on main request/response flows.',
-    large: 'TARGET SIZE: Connect the 13-20 nodes. Include detailed internal flows, background jobs, and secondary paths.'
-  }[diagramSize];
+  if (nodes.length <= 1) {
+    return { edges: [], edgeCount: 0 };
+  }
+
+  const nodeCount = nodes.length;
+  const sizeInstructions = `TARGET SIZE: Connect all ${nodeCount} available nodes. Create ${nodeCount - 1} to ${Math.min(nodeCount + 4, nodeCount * 2)} directed edges covering the main request/response flows.`;
 
   const systemPrompt = `You are the Edge Agent in a diagram pipeline.
 Identify every explicit and implied relationship, request flow, or connection in the prompt.

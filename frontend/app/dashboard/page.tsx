@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { DashboardClient } from '@/components/dashboard/DashboardClient';
 import { getLayoutedElements } from '@/lib/layoutUtils';
 import { TEMPLATES } from '@/data/templates/index';
@@ -17,9 +18,15 @@ export default async function DashboardPage() {
   const layoutedTemplates = TEMPLATES.slice(0, 5);
 
   return (
-    <DashboardClient 
-      templates={layoutedTemplates} 
-      aiPrompts={aiPrompts} 
-    />
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <DashboardClient 
+        templates={layoutedTemplates} 
+        aiPrompts={aiPrompts} 
+      />
+    </Suspense>
   );
 }

@@ -95,7 +95,7 @@ export default function EditorPage() {
       if (e.key === 'f') {
         e.preventDefault();
         if (reactFlowRef.instance?.fitView) {
-          reactFlowRef.instance.fitView({ padding: 0.1, duration: 200 });
+          reactFlowRef.instance.fitView({ padding: 0.0, duration: 200 });
         }
         return;
       }

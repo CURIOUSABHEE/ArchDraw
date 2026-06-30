@@ -1810,6 +1810,8 @@ const useDiagramStoreRaw = create<DiagramState>()(
           c.id === get().activeCanvasId ? { ...c, nodes: validatedNodes, edges: edgesWithHandles, updatedAt: Date.now() } : c
         );
         set({ canvases });
+        const canvasAfter = get().canvases.find(c => c.id === get().activeCanvasId);
+        console.log('[importDiagram] canvas after set:', canvasAfter?.nodes?.length ?? 0, 'nodes,', canvasAfter?.edges?.length ?? 0, 'edges');
         get().saveCanvasToDB(get().activeCanvasId);
         setTimeout(() => get().fitView(), 80);
       },
@@ -2028,7 +2030,7 @@ const useDiagramStoreRaw = create<DiagramState>()(
 
       // ── Fit view ───────────────────────────────────────────────────────────
       fitView: (opts) => {
-        fitViewCallback?.(opts ?? { padding: 0.1, duration: 400 });
+        fitViewCallback?.(opts ?? { padding: 0.0, duration: 400 });
       },
 
       // ── Edge editing ───────────────────────────────────────────────────────

@@ -155,10 +155,19 @@ export async function runMermaidPipeline(
 
   // Deterministic Mermaid -> React Flow Translation, Layout, and Styling
   onProgress?.('Translating and styling diagram', 80);
-  const { nodes: rfNodes, edges: rfEdges } = await translateMermaidToReactFlowJSON(
-    mermaidText,
-    styleConfig
-  );
+  let rfNodes: any[], rfEdges: any[];
+  try {
+    const translated = await translateMermaidToReactFlowJSON(
+      mermaidText,
+      styleConfig
+    );
+    rfNodes = translated.nodes;
+    rfEdges = translated.edges;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`[MermaidPipeline] Translation failed: ${msg}`);
+    throw new Error(`translation_failed: ${msg}`);
+  }
 
   const styledNodes = rfNodes;
   const styledEdges = rfEdges;

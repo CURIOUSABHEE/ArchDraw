@@ -524,7 +524,7 @@ export function Toolbar() {
   return (
     <>
       <header
-        className="floating-toolbar flex items-center justify-between px-2 sm:px-4 z-50 max-w-[calc(100vw-16px)] sm:max-w-none overflow-x-auto"
+        className="floating-toolbar flex items-center justify-between px-2 sm:px-4 z-50 max-w-[calc(100vw-16px)] sm:max-w-none overflow-visible"
         style={{
           position: 'fixed',
           top: 'calc(16px + env(safe-area-inset-top, 0px))',
@@ -559,7 +559,7 @@ export function Toolbar() {
 
           <button
             onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-accent"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-accent hover:text-white"
             title="Go to Dashboard"
           >
             <LayoutDashboard className="w-3.5 h-3.5" />
@@ -673,7 +673,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-white hover:bg-accent transition-colors"
                     >
                       {label}
                     </button>
@@ -687,7 +687,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-white hover:bg-accent transition-colors"
                     >
                       {label}
                     </button>
@@ -701,7 +701,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-white hover:bg-accent transition-colors"
                     >
                       {label}
                     </button>
@@ -717,7 +717,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-white hover:bg-accent transition-colors"
                     >
                       {label}
                     </button>
@@ -733,7 +733,7 @@ export function Toolbar() {
                     <button
                       key={format}
                       onClick={() => handleExport(format)}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-white hover:bg-accent transition-colors"
                     >
                       {label}
                     </button>
@@ -746,7 +746,7 @@ export function Toolbar() {
           <div className="relative">
             <button
               onClick={() => setMoreOpen(!moreOpen)}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-white hover:bg-accent transition-colors"
             >
               <MoreHorizontal className="w-4 h-4" />
             </button>
@@ -764,14 +764,14 @@ export function Toolbar() {
                   </div>
                   <button
                     onClick={() => { router.push('/tutorials'); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-white hover:bg-accent transition-colors"
                   >
                     <GraduationCap className="w-3.5 h-3.5" />
                     Learn
                   </button>
                   <button
                     onClick={() => { openGuide(); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-white hover:bg-accent transition-colors"
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
                     Guide
@@ -783,7 +783,7 @@ export function Toolbar() {
                   </div>
                   <button
                     onClick={() => { setTemplatesOpen(true); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-white hover:bg-accent transition-colors"
                   >
                     <LayoutTemplate className="w-3.5 h-3.5" />
                     Templates
@@ -791,14 +791,14 @@ export function Toolbar() {
                   <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
                   <button
                     onClick={() => { fileInputRef.current?.click(); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-white hover:bg-accent transition-colors"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     Import JSON
                   </button>
                   <button
                     onClick={() => { window.dispatchEvent(new CustomEvent('open-repo-ingest')); setMoreOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-muted-foreground hover:text-white hover:bg-accent transition-colors"
                   >
                     <Github className="w-3.5 h-3.5" />
                     Ingest GitHub Repo

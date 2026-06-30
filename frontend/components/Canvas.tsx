@@ -77,7 +77,7 @@ function CanvasInner() {
   // Keep module ref in sync so store.fitView() can call it directly
   useEffect(() => {
     reactFlowRef.instance = reactFlowInstance;
-    registerFitViewCallback((opts) => reactFlowInstance.fitView(opts));
+    registerFitViewCallback((opts) => reactFlowInstance.fitView(opts ?? { padding: 0.0, duration: 400 }));
     return () => {
       reactFlowRef.instance = null;
     };
@@ -350,6 +350,7 @@ function CanvasInner() {
         nodeTypes={NODE_TYPES}
         edgeTypes={EDGE_TYPES}
         fitView
+        fitViewOptions={{ padding: 0.0 }}
         selectionMode={SelectionMode.Full}
         // Keep canvas panning on middle/right mouse so left-drag can draw selection box.
         panOnDrag={[1, 2]}
