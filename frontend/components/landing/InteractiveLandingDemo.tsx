@@ -365,6 +365,16 @@ const PRESETS: Record<'loadBalancer', PresetData> = {
         selectable: false,
         deletable: false,
       },
+      // Invisible spacer node to push content down so the top bar has background
+      { 
+        id: 'dummy-spacer-top', 
+        type: 'spacerNode', 
+        position: { x: 500, y: -80 }, 
+        data: {}, 
+        draggable: false, 
+        selectable: false,
+        deletable: false,
+      },
     ],
     edges: [
       { 
@@ -672,7 +682,7 @@ function InteractiveLandingDemoContent() {
   }, [nodes, edges, setNodes, setEdges, pushState]);
 
   return (
-    <div className={`w-full h-[620px] rounded-2xl overflow-hidden shadow-2xl relative border flex flex-col transition-colors duration-300 demo-theme-container ${
+    <div className={`w-full h-[620px] rounded-2xl overflow-hidden shadow-2xl relative border transition-colors duration-300 demo-theme-container ${
       isDemoDark 
         ? 'dark dark-theme-forced bg-[#090b0d] text-[#f7f8f8] border-[#202327]' 
         : 'light-theme-forced bg-white text-[#0f172a] border-[#cbd5e1]'
@@ -784,7 +794,7 @@ function InteractiveLandingDemoContent() {
       `}</style>
 
       {/* Top Navigation Control Bar */}
-      <div className="px-4 pt-3 pb-0 z-10">
+      <div className="absolute top-3 left-0 right-0 px-4 z-10">
         <div className={`w-full rounded-2xl border px-4 py-2.5 flex items-center justify-between shadow-2xl transition-all duration-300 ${
           isDemoDark ? 'bg-[#0c0d10] border-[#202327]' : 'bg-white border-[#cbd5e1]'
         }`}>
@@ -946,7 +956,7 @@ function InteractiveLandingDemoContent() {
       </div>
 
       {/* Main viewport canvas */}
-      <div className="flex-1 min-h-0 relative">
+      <div className="absolute inset-0 z-0">
         {/* Left Floating Tool Palette */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-3 items-center">
           {/* Main vertical drawer card */}
