@@ -102,6 +102,25 @@ export async function applyLayoutPreset(
       targets: [e.target],
     }));
 
+  // Determine inner direction for group children (opposite of outer layout direction)
+  const outerDirection = preset.elkOptions['elk.direction'] ?? 'DOWN';
+  const DIRECTION_OPPOSITE: Record<string, string> = {
+    'RIGHT': 'DOWN',
+    'DOWN': 'RIGHT',
+    'LEFT': 'UP',
+    'UP': 'LEFT',
+  };
+  const innerDirection = DIRECTION_OPPOSITE[outerDirection] ?? 'RIGHT';
+
+  // Inject inner direction on all group nodes so children layout opposite to outer flow
+  for (const elkN of elkNodes) {
+    const rfNode = nodes.find(n => n.id === elkN.id);
+    const isGroup = rfNode && (rfNode.type === 'group' || rfNode.type === 'groupNode');
+    if (isGroup && elkN.children && elkN.children.length > 0) {
+      (elkN.layoutOptions as Record<string, string>)['elk.direction'] = innerDirection;
+    }
+  }
+
   const mergedOptions: Record<string, string> = {
     ...ELK_CONFIG,
     ...preset.elkOptions,
