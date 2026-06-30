@@ -13,26 +13,11 @@ import type {
   PipelineResult,
   PipelineState,
 } from '../pipelineOrchestrator';
-import { runStage1PreGeneration } from './stage1-pregen';
-import { runMermaidGenerator } from './stage2-mermaid';
+import { runArchitecturePlanner } from './stage1-planner';
+import { generateDeterministicMermaid } from './deterministicMermaid';
 import { validateMermaid } from './stage3-validate';
-import { parseMermaid } from './mermaidParser';
 import { translateMermaidToReactFlowJSON } from '@/lib/mermaid/aiAdapter';
 import { scoreDiagram } from '../stage8-score';
-
-function buildLockedNodeIdMap(mermaidText: string): string {
-  const parsed = parseMermaid(mermaidText);
-  if (parsed.nodes.length === 0) return '';
-
-  const lockedIds = parsed.nodes.map(n =>
-    `  - "${n.label}" (id: ${n.id})`
-  ).join('\n');
-
-  return `LOCKED NODE IDs (you MUST reuse these exact IDs — do not rename or regenerate them):
-${lockedIds}
-
-IMPORTANT: Only add missing nodes if they are not already present. Never rename existing node IDs.`;
-}
 
 export async function runMermaidPipeline(
   userIntent: UserIntent,
@@ -40,8 +25,8 @@ export async function runMermaidPipeline(
 ): Promise<PipelineResult> {
   const diagramSize = userIntent.diagramSize ?? 'medium';
 
-  onProgress?.('Extracting metadata', 10);
-  
+  onProgress?.('Planning architecture', 10);
+
   // A1.5: Downstream guard check
   const promptLower = userIntent.description.toLowerCase();
   const archKeywords = [
@@ -55,18 +40,19 @@ export async function runMermaidPipeline(
   const hasArch = archKeywords.some(k => promptLower.includes(k));
   const hasExplicitEr = erKeywords.some(k => promptLower.includes(k));
 
-  // STAGE 1: Parallel pre-generation agents
-  const stage1Result = await runStage1PreGeneration(userIntent.description, diagramSize, userIntent.model);
-  const { formatConfig, styleConfig, inventoryConfig, edgeConfig, groupAssignments } = stage1Result;
+  // STAGE 1: Single Architecture Planner call — plans nodes, edges, groups in one shot
+  const plannerResult = await runArchitecturePlanner(userIntent.description, diagramSize, userIntent.model);
+  const { formatConfig, styleConfig, inventoryConfig, edgeConfig, groupAssignments } = plannerResult;
 
+  // Layout override (same as before)
   const isHorizontalRequested = promptLower.includes('horizontal') || promptLower.includes('horizontally') || promptLower.includes('left-to-right') || promptLower.includes('left to right') || promptLower.includes('graph lr') || promptLower.includes('horizontal layout');
   const isVerticalRequested = promptLower.includes('vertical') || promptLower.includes('vertically') || promptLower.includes('top-to-bottom') || promptLower.includes('top to bottom') || promptLower.includes('graph td') || promptLower.includes('graph tb') || promptLower.includes('vertical layout');
 
   if (isHorizontalRequested) {
-    logger.info('[DownstreamGuard] Override: horizontal layout requested in prompt. Forcing diagramType -> graph LR.');
+    logger.info('[DownstreamGuard] Override: horizontal layout requested. Forcing diagramType -> graph LR.');
     formatConfig.diagramType = 'graph LR';
   } else if (isVerticalRequested) {
-    logger.info('[DownstreamGuard] Override: vertical layout requested in prompt. Forcing diagramType -> graph TD.');
+    logger.info('[DownstreamGuard] Override: vertical layout requested. Forcing diagramType -> graph TD.');
     formatConfig.diagramType = 'graph TD';
   } else if (hasArch) {
     logger.warn('[DownstreamGuard] Override: prompt contains architecture keywords. Forcing diagramType -> graph TD.');
@@ -76,84 +62,35 @@ export async function runMermaidPipeline(
     formatConfig.diagramType = 'graph TD';
   }
 
-  onProgress?.('Pre-generation complete', 25);
+  onProgress?.('Architecture plan ready', 30);
 
-  let iteration = 0;
-  let repairInstructions: string | undefined = undefined;
-  let validationResult: ReturnType<typeof validateMermaid> | null = null;
-  const categoryAttempts: Record<string, number> = {
-    nodes: 0,
-    groups: 0,
-    edges: 0,
-  };
-  let mermaidText = '';
+  // STAGE 2: Deterministic Mermaid generation (no LLM)
+  onProgress?.('Generating Mermaid code', 40);
+  const { mermaidText } = generateDeterministicMermaid(
+    formatConfig,
+    inventoryConfig,
+    edgeConfig,
+    groupAssignments,
+  );
 
-  // STAGE 2 & 3: Generation & Validation Loop
-  // Max iterations set to 16 to allow up to 4 attempts for each of the 4 categories
-  while (iteration < 16) {
-    onProgress?.(`Generating Mermaid (Iteration ${iteration + 1})`, Math.min(75, 40 + iteration * 3));
+  logger.log('[MermaidPipeline] Deterministic Mermaid generated:', {
+    lines: mermaidText.split('\n').length,
+    nodes: inventoryConfig.nodeCount,
+    edges: edgeConfig.edgeCount,
+    groups: inventoryConfig.groups.length,
+  });
 
-    // Stage 2: Mermaid Generation
-    mermaidText = await runMermaidGenerator(
-      formatConfig,
-      inventoryConfig,
-      edgeConfig,
-      groupAssignments,
-      diagramSize,
-      repairInstructions,
-      userIntent.model
-    );
+  // STAGE 3: Programmatic Validation (sanity check — should always pass with deterministic gen)
+  const validationResult = validateMermaid(mermaidText, inventoryConfig, edgeConfig);
 
-    // Stage 3: Programmatic Validation
-    validationResult = validateMermaid(mermaidText, inventoryConfig, edgeConfig);
-
-    if (validationResult.isValid) {
-      logger.log(`[MermaidPipeline] Diagram successfully validated on iteration ${iteration + 1}`);
-      break;
-    }
-
-    logger.warn(`[MermaidPipeline] Validation failed on iteration ${iteration + 1}:\n${validationResult.repairInstructions}`);
-
-    // Track attempts per category (E8, E9)
-    let failingCategory = '';
-    if (validationResult.nodeIssues.length > 0) failingCategory = 'nodes';
-    else if (validationResult.groupIssues.length > 0) failingCategory = 'groups';
-    else if (validationResult.edgeIssues.length > 0) failingCategory = 'edges';
-
-    if (failingCategory) {
-      categoryAttempts[failingCategory] = (categoryAttempts[failingCategory] || 0) + 1;
-      if (categoryAttempts[failingCategory] >= 4) {
-        logger.error(`[MermaidPipeline] Category "${failingCategory}" failed validation 4 times. Halting.`);
-        throw new Error(
-          `validation_failed: Category "${failingCategory}" exceeded maximum repair attempts (4). Failed validation checks:\n${validationResult.repairInstructions}`
-        );
-      }
-    }
-
-    // Lock node IDs and pass validation errors as repair instructions for next iteration
-    const lockedIdSection = buildLockedNodeIdMap(mermaidText);
-    let repair = validationResult.repairInstructions || '';
-    if (lockedIdSection) {
-      repair = `${repair}\n\n${lockedIdSection}`;
-    }
-
-    repairInstructions = repair;
-    iteration++;
-  }
-
-  if (!validationResult) {
-    throw new Error('generation_failed: No validation result generated');
-  }
-
-  // Hard Gate Constraint: If validation fails after all iterations, halt and throw descriptive error
   if (!validationResult.isValid) {
-    logger.error('[MermaidPipeline] Maximum validation repair iterations reached. Halting pipeline.');
-    throw new Error(
-      `validation_failed: Maximum validation repair iterations reached. Failed validation checks:\n${validationResult.repairInstructions}`
-    );
+    logger.error('[MermaidPipeline] Sanity validation failed (unexpected):', validationResult.repairInstructions);
+    throw new Error(`validation_failed: ${validationResult.repairInstructions}`);
   }
 
-  // Deterministic Mermaid -> React Flow Translation, Layout, and Styling
+  logger.log('[MermaidPipeline] Diagram validated successfully.');
+
+  // STAGE 4: Deterministic Mermaid -> React Flow Translation, Layout, and Styling
   onProgress?.('Translating and styling diagram', 80);
   let rfNodes: any[], rfEdges: any[];
   try {
@@ -231,7 +168,7 @@ export async function runMermaidPipeline(
     reactFlowNodes: styledNodes as ReactFlowNode[],
     graph: null,
     score: diagramScore.score,
-    iteration,
+    iteration: 0,
     history: [],
     errors: [],
     useAWS: false,
