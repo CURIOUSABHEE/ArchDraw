@@ -104,7 +104,7 @@ const InteractiveLandingDemo = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-[520px] rounded-2xl bg-[#0f1011] border border-[#23252a] flex items-center justify-center">
+      <div className="w-full h-[780px] rounded-2xl bg-[#0f1011] border border-[#23252a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-[#5e6ad2]/30 border-t-[#5e6ad2] rounded-full animate-spin" />
           <span className="text-xs text-[#8a8f98] font-medium">Loading interactive canvas...</span>
