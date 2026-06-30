@@ -362,7 +362,7 @@ function HeroSection() {
         title="Redis Cache" 
         subtitle="In-Memory DB" 
         layer="data" 
-        accent="#a855f7" 
+        accent="#1E90FF" 
         className="right-0 bottom-[25%] translate-x-1/4 rotate-12" 
         delay="4.5s" 
       />
