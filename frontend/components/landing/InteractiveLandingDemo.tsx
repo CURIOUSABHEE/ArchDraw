@@ -355,6 +355,16 @@ const PRESETS: Record<'loadBalancer', PresetData> = {
       { id: 'server1', type: 'demoNode', parentId: 'SERVER_GROUP', position: { x: 60, y: 40 }, data: { label: 'Server 1', subtitle: 'Node.js App', layer: 'compute', icon: '💻' }, draggable: true },
       { id: 'server2', type: 'demoNode', parentId: 'SERVER_GROUP', position: { x: 300, y: 40 }, data: { label: 'Server 2', subtitle: 'Go Microservice', layer: 'compute', icon: '💻' }, draggable: true },
       { id: 'server3', type: 'demoNode', parentId: 'SERVER_GROUP', position: { x: 540, y: 40 }, data: { label: 'Monitoring Service', subtitle: 'Prometheus', layer: 'observe', icon: '📊' }, draggable: true },
+      // Invisible spacer node to push content up so the floating AI bar has background
+      { 
+        id: 'dummy-spacer', 
+        type: 'spacerNode', 
+        position: { x: 500, y: 740 }, 
+        data: {}, 
+        draggable: false, 
+        selectable: false,
+        deletable: false,
+      },
     ],
     edges: [
       { 
@@ -401,10 +411,15 @@ const PRESETS: Record<'loadBalancer', PresetData> = {
   },
 };
 
+function SpacerNode() {
+  return <div style={{ width: 1, height: 1 }} />;
+}
+
 // Custom NodeTypes registration
 const DEMO_NODE_TYPES = {
   demoNode: DemoNode,
   demoGroup: DemoGroup,
+  spacerNode: SpacerNode,
 };
 
 // Custom EdgeTypes registration
@@ -817,7 +832,7 @@ function InteractiveLandingDemoContent() {
             <span className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded transition-all ${
               isDemoDark ? 'bg-[#18191c] text-[#8a8f98]' : 'bg-[#e2e8f0] text-[#64748b]'
             }`}>
-              {nodes.filter(n => n.type !== 'demoGroup').length} nodes | {edges.length} edges
+              {nodes.filter(n => n.type !== 'demoGroup' && n.type !== 'spacerNode').length} nodes | {edges.length} edges
             </span>
 
             {/* Undo/Redo */}
@@ -931,7 +946,7 @@ function InteractiveLandingDemoContent() {
       </div>
 
       {/* Main viewport canvas */}
-      <div className="flex-1 min-h-0 relative pb-16">
+      <div className="flex-1 min-h-0 relative">
         {/* Left Floating Tool Palette */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-3 items-center">
           {/* Main vertical drawer card */}
