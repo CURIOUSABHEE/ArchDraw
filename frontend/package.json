@@ -15,7 +15,7 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "mcp:dev": "cd ../mcp-server && npx tsx src/index.ts",
-    "mcp:build": "cd ../mcp-server && npx tsc"
+    "mcp:build": "npx tsc -p ../mcp-server/tsconfig.json"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
