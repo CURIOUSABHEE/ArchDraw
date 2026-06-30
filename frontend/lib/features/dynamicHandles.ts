@@ -79,26 +79,53 @@ export function getDynamicHandles(
   let targetPosition = Position.Left;
   let dominantAxis = 'horizontal';
 
-  // Direct axis comparison: whichever axis has the greater distance between node
-  // centers determines the handle direction. This matches the standard React Flow
-  // floating edge pattern used with smoothstep paths.
-  if (Math.abs(dy) > Math.abs(dx)) {
-    dominantAxis = 'vertical';
-    if (dy > 0) {
-      sourcePosition = Position.Bottom;
-      targetPosition = Position.Top;
+  // Compare edge-to-edge gaps rather than center-to-center deltas.
+  // This ensures handles are placed on the sides closest to each other,
+  // even when nodes are offset on the opposite axis.
+  const sourceBottom = sourceRect.y + sourceRect.height;
+  const sourceRight = sourceRect.x + sourceRect.width;
+  const targetBottom = targetRect.y + targetRect.height;
+  const targetRight = targetRect.x + targetRect.width;
+
+  const gapBottomToTop = targetRect.y - sourceBottom;   // positive if target is below
+  const gapTopToBottom = sourceRect.y - targetBottom;   // positive if target is above
+  const gapRightToLeft = targetRect.x - sourceRight;    // positive if target is to the right
+  const gapLeftToRight = sourceRect.x - targetRight;    // positive if target is to the left
+
+  const vertGap = Math.max(gapBottomToTop, gapTopToBottom);
+  const horizGap = Math.max(gapRightToLeft, gapLeftToRight);
+
+  if (vertGap < 0 && horizGap < 0) {
+    // Both axes overlap — fall back to center-distance comparison
+    if (Math.abs(dy) > Math.abs(dx)) {
+      dominantAxis = 'vertical';
+      if (dy > 0) { sourcePosition = Position.Bottom; targetPosition = Position.Top; }
+      else { sourcePosition = Position.Top; targetPosition = Position.Bottom; }
     } else {
-      sourcePosition = Position.Top;
-      targetPosition = Position.Bottom;
+      dominantAxis = 'horizontal';
+      if (dx > 0 || (dx === 0 && dy >= 0)) { sourcePosition = Position.Right; targetPosition = Position.Left; }
+      else { sourcePosition = Position.Left; targetPosition = Position.Right; }
     }
-  } else {
+  } else if (vertGap < 0) {
+    // Vertical overlap — use horizontal handles
     dominantAxis = 'horizontal';
-    if (dx > 0 || (dx === 0 && dy >= 0)) {
-      sourcePosition = Position.Right;
-      targetPosition = Position.Left;
+    if (dx > 0 || (dx === 0 && dy >= 0)) { sourcePosition = Position.Right; targetPosition = Position.Left; }
+    else { sourcePosition = Position.Left; targetPosition = Position.Right; }
+  } else if (horizGap < 0) {
+    // Horizontal overlap — use vertical handles
+    dominantAxis = 'vertical';
+    if (dy > 0) { sourcePosition = Position.Bottom; targetPosition = Position.Top; }
+    else { sourcePosition = Position.Top; targetPosition = Position.Bottom; }
+  } else {
+    // Both gaps are positive — use the axis with closer facing edges
+    const useVertical = vertGap <= horizGap;
+    dominantAxis = useVertical ? 'vertical' : 'horizontal';
+    if (useVertical) {
+      if (dy > 0) { sourcePosition = Position.Bottom; targetPosition = Position.Top; }
+      else { sourcePosition = Position.Top; targetPosition = Position.Bottom; }
     } else {
-      sourcePosition = Position.Left;
-      targetPosition = Position.Right;
+      if (dx > 0 || (dx === 0 && dy >= 0)) { sourcePosition = Position.Right; targetPosition = Position.Left; }
+      else { sourcePosition = Position.Left; targetPosition = Position.Right; }
     }
   }
 

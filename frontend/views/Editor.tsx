@@ -225,14 +225,6 @@ export default function EditorPage() {
         store.setEdges([...existingEdges, ...processedEdges as Edge[]]);
       } else {
         importDiagram(processedNodes as unknown as Node[], processedEdges as unknown as Edge[]);
-        // Apply ELK layout immediately so toggling direction is consistent
-        setTimeout(() => {
-          const s = useDiagramStore.getState();
-          const presetId = s.activeLayoutPresetId;
-          if (presetId && presetId !== 'freeform') {
-            s.applyLayoutPresetById(presetId);
-          }
-        }, 100);
       }
 
       renameCanvas(store.activeCanvasId, canvasName);

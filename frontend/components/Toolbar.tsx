@@ -962,19 +962,22 @@ export function Toolbar() {
 
 function LayoutToggleButton() {
   const activeLayoutPresetId = useDiagramStore((s) => s.activeLayoutPresetId);
-  const toggleLayoutDirection = useDiagramStore((s) => s.toggleLayoutDirection);
 
   const isVertical = activeLayoutPresetId === 'layered-tb';
+  const nextLabel = isVertical ? 'Left → Right' : 'Top → Bottom';
+
+  const handleToggle = () => {
+    const store = useDiagramStore.getState();
+    const current = store.activeLayoutPresetId;
+    const next = current === 'layered-tb' ? 'layered-lr' : 'layered-tb';
+    store.applyLayoutPresetById(next);
+  };
 
   return (
     <button
-      onClick={toggleLayoutDirection}
+      onClick={handleToggle}
       className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-all"
-      title={
-        isVertical
-          ? 'Layout: Top → Bottom (click for Left → Right)'
-          : 'Layout: Left → Right (click for Top → Bottom)'
-      }
+      title={`Layout: ${isVertical ? 'Top → Bottom' : 'Left → Right'} (click for ${nextLabel})`}
     >
       {isVertical ? (
         <ArrowDownToLine className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
