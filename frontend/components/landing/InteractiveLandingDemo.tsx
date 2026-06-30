@@ -15,6 +15,7 @@ import ReactFlow, {
   ReactFlowProvider,
   addEdge,
   ConnectionLineType,
+  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { NodeResizer } from '@reactflow/node-resizer';
@@ -456,6 +457,25 @@ function InteractiveLandingDemoContent() {
   const [title, setTitle] = useState(PRESETS.loadBalancer.title);
   const [inputText, setInputText] = useState('');
   const [isDemoDark, setIsDemoDark] = useState(false);
+
+  const { fitView } = useReactFlow();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      requestAnimationFrame(() => {
+        fitView({ padding: 0.3 });
+      });
+    });
+
+    observer.observe(containerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [fitView]);
 
   // Undo/Redo States
   const [history, setHistory] = useState<Array<{ nodes: Node[]; edges: Edge[] }>>([
@@ -956,7 +976,7 @@ function InteractiveLandingDemoContent() {
       </div>
 
       {/* Main viewport canvas */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0" ref={containerRef}>
         {/* Left Floating Tool Palette */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-3 items-center">
           {/* Main vertical drawer card */}
