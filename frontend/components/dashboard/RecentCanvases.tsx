@@ -56,7 +56,7 @@ export function RecentCanvases() {
 
   return (
     <div className="mb-4">
-      <h3 className="text-[11px] font-semibold text-[#6B6B6B] uppercase tracking-wider mb-2 px-2">
+      <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2 px-2">
         Recent
       </h3>
       <div className="space-y-0.5">
@@ -68,7 +68,7 @@ export function RecentCanvases() {
             <div
               key={canvas.id}
               className={`recent-item flex items-center gap-2 cursor-pointer ${
-                isActive ? 'bg-[hsl(var(--muted))/0.5]' : ''
+                isActive ? 'bg-surface-page' : ''
               }`}
               onClick={() => handleClick(canvas.id)}
               onMouseEnter={(e) => handleMouseEnter(canvas.id, e)}
@@ -78,10 +78,10 @@ export function RecentCanvases() {
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ background: getColorByNodeCount(nodeCount) }}
               />
-              <span className="text-sm truncate flex-1 text-[#1A1A1A] dark:text-white">
+              <span className="text-sm truncate flex-1 text-text-primary">
                 {canvas.name.length > 20 ? canvas.name.slice(0, 20) + '..' : canvas.name}
               </span>
-              <span className="text-[10px] text-[#6B6B6B] flex-shrink-0">
+              <span className="text-[10px] text-text-muted flex-shrink-0">
                 {formatRelativeTime(canvas.lastAccessedAt)}
               </span>
             </div>

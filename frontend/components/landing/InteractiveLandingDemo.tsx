@@ -348,8 +348,8 @@ const PRESETS: Record<'loadBalancer', PresetData> = {
     nodes: [
       // Containers
       { id: 'CLIENT_GROUP', type: 'demoGroup', position: { x: 340, y: 40 }, style: { width: 320, height: 160 }, data: { label: 'CLIENT CONTAINER', color: '#6366f1' }, draggable: true },
-      { id: 'LB_GROUP', type: 'demoGroup', position: { x: 340, y: 240 }, style: { width: 320, height: 160 }, data: { label: 'LOAD BALANCER', color: '#22c55e' }, draggable: true },
-      { id: 'SERVER_GROUP', type: 'demoGroup', position: { x: 100, y: 440 }, style: { width: 800, height: 160 }, data: { label: 'SERVER POOL', color: '#a855f7' }, draggable: true },
+      { id: 'LB_GROUP', type: 'demoGroup', position: { x: 340, y: 252 }, style: { width: 320, height: 160 }, data: { label: 'LOAD BALANCER', color: '#22c55e' }, draggable: true },
+      { id: 'SERVER_GROUP', type: 'demoGroup', position: { x: 100, y: 512 }, style: { width: 800, height: 160 }, data: { label: 'SERVER POOL', color: '#a855f7' }, draggable: true },
       // Nodes
       { id: 'client-node', type: 'demoNode', parentId: 'CLIENT_GROUP', position: { x: 60, y: 40 }, data: { label: 'Client', subtitle: 'Web Browser / iOS', layer: 'client', icon: '🌐' }, draggable: true },
       { id: 'lb-node', type: 'demoNode', parentId: 'LB_GROUP', position: { x: 60, y: 40 }, data: { label: 'Load Balancer', subtitle: 'Nginx Proxy', layer: 'edge', icon: '⚡' }, draggable: true },
@@ -360,7 +360,7 @@ const PRESETS: Record<'loadBalancer', PresetData> = {
       { 
         id: 'dummy-spacer', 
         type: 'spacerNode', 
-        position: { x: 500, y: 740 }, 
+        position: { x: 500, y: 812 }, 
         data: {}, 
         draggable: false, 
         selectable: false,
@@ -702,7 +702,7 @@ function InteractiveLandingDemoContent() {
   }, [nodes, edges, setNodes, setEdges, pushState]);
 
   return (
-    <div className={`w-full h-[780px] rounded-2xl overflow-hidden shadow-2xl relative border transition-colors duration-300 demo-theme-container ${
+    <div className={`w-full h-[820px] rounded-2xl overflow-hidden shadow-2xl relative border transition-colors duration-300 demo-theme-container ${
       isDemoDark 
         ? 'dark dark-theme-forced bg-[#090b0d] text-[#f7f8f8] border-[#202327]' 
         : 'light-theme-forced bg-white text-[#0f172a] border-[#cbd5e1]'

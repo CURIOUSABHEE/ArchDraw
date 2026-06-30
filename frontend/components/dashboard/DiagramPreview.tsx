@@ -225,7 +225,7 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
   }
 
   return (
-    <div className="w-full h-full" style={{ background: 'hsl(var(--canvas-bg))' }}>
+    <div className="w-full h-full" style={{ background: 'var(--surface-page)' }}>
       <svg
         width="100%"
         height="100%"
@@ -234,7 +234,7 @@ export function DiagramPreview({ nodes, edges, width = 280, height = 160 }: Diag
       >
         <defs>
           <pattern id={`preview-grid-${width}-${height}`} width="16" height="16" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="0.55" fill="hsl(var(--grid-color))" opacity="0.65" />
+            <circle cx="1" cy="1" r="0.55" fill="var(--border-default)" opacity="0.65" />
           </pattern>
           {edges.map((edge, index) => {
             const color = getEdgeColor(edge);

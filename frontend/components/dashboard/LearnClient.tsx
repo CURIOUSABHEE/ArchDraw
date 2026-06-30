@@ -31,8 +31,8 @@ function TutorialCard({
   return (
     <button
       onClick={onClick}
-      className="p-5 rounded-[20px] text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-      style={{ background: 'hsl(var(--card))', boxShadow: '0 10px 40px hsl(var(--foreground) / 0.06)' }}
+      className="p-5 rounded-[20px] text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+      style={{ background: 'var(--surface-panel)', border: '1px solid var(--border-default)', boxShadow: '0 10px 40px rgba(0,0,0,0.03)' }}
     >
       <div className="flex items-start justify-between mb-3">
         <div

@@ -37,6 +37,18 @@
   --color-canvas: hsl(var(--canvas-bg));
   --color-grid: hsl(var(--grid-color));
 
+  --color-surface-page: var(--surface-page);
+  --color-surface-panel: var(--surface-panel);
+  --color-surface-card: var(--surface-card);
+  --color-border-strong: var(--border-strong);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-text: var(--accent-text);
+
   --color-lc: #010102;
   --color-ls1: #0f1011;
   --color-ls2: #141516;
@@ -145,6 +157,20 @@
     --accent-blue: 207 44% 65%;       /* #6FA8DC services/compute */
     --accent-amber: 38 50% 60%;       /* #D8AA59 storage/data */
     --accent-green: 145 25% 48%;      /* muted green for success */
+
+    /* ── Semantic design tokens (gray neutral + blue accent) ── */
+    --surface-page: #f7f7f5;
+    --surface-panel: #ffffff;
+    --surface-card: #ffffff;
+    --border-default: #e4e4df;
+    --border-strong: #cbd5e1;
+    --text-primary: #1c1c1a;
+    --text-secondary: #575752;
+    --text-muted: #8a8f98;
+    --accent: #5e6ad2;
+    --accent-hover: #4752b4;
+    --accent-bg: rgba(94, 106, 210, 0.08);
+    --accent-text: #5e6ad2;
   }
 
   .dark, :where(.dark, .dark *) {
@@ -203,6 +229,20 @@
     --accent-blue: 210 60% 55%;
     --accent-amber: 38 70% 55%;
     --accent-green: 145 20% 46%;
+
+    /* ── Semantic design tokens (gray neutral + blue accent) ── */
+    --surface-page: #090b0d;
+    --surface-panel: #121620;
+    --surface-card: #1e2235;
+    --border-default: #202327;
+    --border-strong: #3f444c;
+    --text-primary: #f7f8f8;
+    --text-secondary: #d0d6e0;
+    --text-muted: #8a8f98;
+    --accent: #5e6ad2;
+    --accent-hover: #828fff;
+    --accent-bg: rgba(130, 143, 255, 0.12);
+    --accent-text: #828fff;
   }
 }
 

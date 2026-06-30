@@ -89,10 +89,10 @@ export function DashboardClient({ templates, aiPrompts }: DashboardClientProps) 
       {/* Your Work Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[hsl(var(--foreground))]">
+          <h2 className="text-lg font-semibold text-text-primary">
           Your Work
           </h2>
-          <span className="hidden sm:inline text-xs font-medium text-[hsl(var(--muted-foreground))]">
+          <span className="hidden sm:inline text-xs font-medium text-text-muted">
             {canvases.length} saved canvases
           </span>
         </div>
@@ -129,7 +129,7 @@ export function DashboardClient({ templates, aiPrompts }: DashboardClientProps) 
 
       {/* Architecture Templates Section */}
       <div>
-        <h2 className="text-lg font-semibold text-[#1A1A1A] dark:text-white mb-4">
+        <h2 className="text-lg font-semibold text-text-primary mb-4">
           Architecture Templates
         </h2>
         <div className="flex gap-4 overflow-x-auto pb-2 px-1 -mx-1" style={{ scrollbarWidth: 'none' }}>
@@ -150,24 +150,25 @@ export function DashboardClient({ templates, aiPrompts }: DashboardClientProps) 
 
       {/* AI Quick Start Section */}
       <div>
-        <h2 className="text-lg font-semibold text-[#1A1A1A] dark:text-white mb-4">
+        <h2 className="text-lg font-semibold text-text-primary mb-4">
           AI Quick Start
         </h2>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-[#6B6B6B] dark:text-gray-400">
+          <span className="text-sm text-text-secondary">
             Try:
           </span>
           {aiPrompts.map((prompt) => (
             <button
               key={prompt}
               onClick={() => {}}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all hover:scale-[1.02] active:scale-[0.98] text-text-primary cursor-pointer"
               style={{
-                background: 'hsl(var(--card))',
-                boxShadow: '0 2px 8px hsl(var(--foreground) / 0.06)',
+                background: 'var(--surface-card)',
+                border: '1px solid var(--border-default)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
               }}
             >
-              <Sparkles className="w-3 h-3" />
+              <Sparkles className="w-3 h-3 text-accent" />
               {prompt}
             </button>
           ))}

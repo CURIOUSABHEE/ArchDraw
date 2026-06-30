@@ -113,6 +113,7 @@ export default function SimpleFloatingEdge({
         const excludedIds = new Set([source, target]);
         for (const [nid, node] of nodeInternals) {
           if (excludedIds.has(nid)) continue;
+          if (node.type === 'group' || node.type === 'demoGroup') continue;
           const pos = node.positionAbsolute ?? node.position;
           const w = node.width ?? 200;
           const h = node.height ?? 80;
@@ -216,6 +217,7 @@ export default function SimpleFloatingEdge({
       const nodeRects = new Map<string, NodeRect>();
       for (const [nid, node] of nodeInternals) {
         if (excludedIds.has(nid)) continue;
+        if (node.type === 'group' || node.type === 'demoGroup') continue;
         const pos = node.positionAbsolute ?? node.position;
         const w = node.width ?? 200;
         const h = node.height ?? 80;

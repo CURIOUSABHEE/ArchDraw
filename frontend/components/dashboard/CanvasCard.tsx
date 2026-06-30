@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ExternalLink, Copy, Trash2, Star } from 'lucide-react';
 import { Node, Edge } from 'reactflow';
 import { DiagramPreview } from '@/components/dashboard/DiagramPreview';
@@ -40,7 +40,16 @@ function getCanvasType(nodes: Node[]): string {
 
 export function CanvasCard({ id, name, nodes, edges, updatedAt, isPinned, isFavorite, onClick }: CanvasCardProps) {
   const [showActions, setShowActions] = useState(false);
+  const [isTouch, setIsTouch] = useState(false);
   const { toggleFavorite, duplicateCanvas, removeCanvas } = useDiagramStore();
+
+  useEffect(() => {
+    const touch = window.matchMedia('(pointer: coarse)').matches;
+    setIsTouch(touch);
+    if (touch) {
+      setShowActions(true);
+    }
+  }, []);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -65,17 +74,17 @@ export function CanvasCard({ id, name, nodes, edges, updatedAt, isPinned, isFavo
 
   return (
     <div
-      className="canvas-card h-[280px] rounded-xl overflow-hidden cursor-pointer bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.16)] flex flex-col"
-      style={{ boxShadow: '0 8px 24px hsl(var(--foreground) / 0.05)' }}
+      className="canvas-card h-[280px] rounded-xl overflow-hidden cursor-pointer bg-surface-panel border border-border flex flex-col"
+      style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.03)' }}
       onClick={onClick}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
+      onMouseEnter={() => !isTouch && setShowActions(true)}
+      onMouseLeave={() => !isTouch && setShowActions(false)}
     >
-      <div className="h-[188px] relative overflow-hidden border-b border-[hsl(var(--border)/0.12)]">
+      <div className="h-[188px] relative overflow-hidden border-b border-border">
         <DiagramPreview nodes={nodes} edges={edges} width={320} height={188} />
         
         {/* Type tag */}
-        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[hsl(var(--card)/0.92)] text-[hsl(var(--muted-foreground))] border border-[hsl(var(--border)/0.12)] backdrop-blur-sm">
+        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-card/92 text-text-muted border border-border backdrop-blur-sm">
           {canvasType}
         </div>
         
@@ -118,8 +127,8 @@ export function CanvasCard({ id, name, nodes, edges, updatedAt, isPinned, isFavo
       </div>
 
       <div className="p-4 flex-1 flex flex-col justify-center">
-        <h3 className="font-semibold text-[hsl(var(--foreground))] mb-2 truncate">{name}</h3>
-        <div className="flex items-center gap-2 text-[11px] text-[hsl(var(--muted-foreground))]">
+        <h3 className="font-semibold text-text-primary mb-2 truncate">{name}</h3>
+        <div className="flex items-center gap-2 text-[11px] text-text-muted">
           <span>{nodeCount} nodes</span>
           <span>•</span>
           <span>{edgeCount} edges</span>

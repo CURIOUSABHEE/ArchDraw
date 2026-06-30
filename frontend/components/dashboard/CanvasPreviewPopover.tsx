@@ -32,8 +32,8 @@ export function CanvasPreviewPopover({ canvas, position, onClose }: CanvasPrevie
         left: `${position.x}px`,
         top: `${position.y}px`,
         width: '280px',
-        background: 'hsl(var(--card))',
-        border: '1px solid hsl(var(--border) / 0.2)',
+        background: 'var(--surface-panel)',
+        border: '1px solid var(--border-default)',
       }}
       onMouseEnter={() => {}}
       onMouseLeave={onClose}
@@ -46,11 +46,11 @@ export function CanvasPreviewPopover({ canvas, position, onClose }: CanvasPrevie
           height={160}
         />
       </div>
-      <div className="px-3 py-2 border-t border-[hsl(var(--border))/0.1]">
-        <h4 className="text-sm font-medium text-[#1A1A1A] dark:text-white truncate">
+      <div className="px-3 py-2 border-t border-border">
+        <h4 className="text-sm font-medium text-text-primary truncate">
           {canvas.name}
         </h4>
-        <p className="text-[10px] text-[#6B6B6B] mt-0.5">
+        <p className="text-[10px] text-text-muted mt-0.5">
           {canvas.nodes?.length || 0} nodes • {canvas.edges?.length || 0} edges
         </p>
       </div>
