@@ -29,14 +29,17 @@ export function MermaidCodePanel({ onClose }: MermaidCodePanelProps) {
   const lastProcessedRef = useRef<string>('');
 
 
+  const activeLayoutPresetId = useDiagramStore((s) => s.activeLayoutPresetId);
+  const mermaidDirection = activeLayoutPresetId === 'layered-lr' ? 'LR' : 'TD';
+
   // Sync canvas changes to code panel only when structure actually changes
   const structureHash = useMemo(() => hashNodesEdges(nodes, edges), [nodes, edges]);
   useEffect(() => {
     if (isFocusedRef.current) return;
-    const currentMermaid = reactFlowToMermaid(nodes, edges);
+    const currentMermaid = reactFlowToMermaid(nodes, edges, mermaidDirection);
     setCode(currentMermaid);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [structureHash]);
+  }, [structureHash, mermaidDirection]);
 
   // Copy code handler
   const handleCopy = async () => {

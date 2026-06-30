@@ -8,13 +8,13 @@ function escapeLabel(label: string): string {
   return label.replace(/"/g, '\\"');
 }
 
-export function reactFlowToMermaid(nodes: Node[], edges: Edge[]): string {
+export function reactFlowToMermaid(nodes: Node[], edges: Edge[], direction: 'TD' | 'LR' = 'TD'): string {
   const groupNodes = nodes.filter(n => n.type === 'groupNode' || n.data?.isGroup);
   const groupIds = new Set(groupNodes.map(n => n.id));
   const regularNodes = nodes.filter(n => !groupIds.has(n.id));
 
   const lines: string[] = [];
-  lines.push('graph TD');
+  lines.push(`graph ${direction}`);
   lines.push('');
 
   for (const group of groupNodes) {

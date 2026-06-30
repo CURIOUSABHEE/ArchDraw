@@ -37,6 +37,8 @@ export interface DynamicHandleResult {
  * - top handle for upward connections (target above source)
  * Falls back to horizontal handles when nodes are on the same level.
  */
+const VERTICAL_BIAS = 1.5;
+
 export function getDynamicHandles(
   sourceRect: NodeRect,
   targetRect: NodeRect,
@@ -97,7 +99,7 @@ export function getDynamicHandles(
 
   if (vertGap < 0 && horizGap < 0) {
     // Both axes overlap — fall back to center-distance comparison
-    if (Math.abs(dy) > Math.abs(dx)) {
+    if (Math.abs(dy) > Math.abs(dx) / VERTICAL_BIAS) {
       dominantAxis = 'vertical';
       if (dy > 0) { sourcePosition = Position.Bottom; targetPosition = Position.Top; }
       else { sourcePosition = Position.Top; targetPosition = Position.Bottom; }
@@ -118,7 +120,7 @@ export function getDynamicHandles(
     else { sourcePosition = Position.Top; targetPosition = Position.Bottom; }
   } else {
     // Both gaps are positive — use the axis with closer facing edges
-    const useVertical = vertGap <= horizGap;
+    const useVertical = vertGap <= horizGap * VERTICAL_BIAS;
     dominantAxis = useVertical ? 'vertical' : 'horizontal';
     if (useVertical) {
       if (dy > 0) { sourcePosition = Position.Bottom; targetPosition = Position.Top; }
