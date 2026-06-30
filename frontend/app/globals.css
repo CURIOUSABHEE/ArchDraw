@@ -53,8 +53,8 @@
   --color-ls1: #0f1011;
   --color-ls2: #141516;
   --color-ls3: #18191a;
-  --color-lp: #5e6ad2;
-  --color-lph: #828fff;
+  --color-lp: #1E90FF;
+  --color-lph: #4dabf7;
   --color-li: #f7f8f8;
   --color-lim: #d0d6e0;
   --color-lis: #8a8f98;
@@ -167,10 +167,10 @@
     --text-primary: #1c1c1a;
     --text-secondary: #575752;
     --text-muted: #8a8f98;
-    --accent: #5e6ad2;
-    --accent-hover: #4752b4;
-    --accent-bg: rgba(94, 106, 210, 0.08);
-    --accent-text: #5e6ad2;
+    --accent: #1E90FF;
+    --accent-hover: #1c7ed6;
+    --accent-bg: rgba(30, 144, 255, 0.08);
+    --accent-text: #1E90FF;
   }
 
   .dark, :where(.dark, .dark *) {
@@ -239,10 +239,10 @@
     --text-primary: #f7f8f8;
     --text-secondary: #d0d6e0;
     --text-muted: #8a8f98;
-    --accent: #5e6ad2;
-    --accent-hover: #828fff;
-    --accent-bg: rgba(130, 143, 255, 0.12);
-    --accent-text: #828fff;
+    --accent: #1E90FF;
+    --accent-hover: #4dabf7;
+    --accent-bg: rgba(30, 144, 255, 0.12);
+    --accent-text: #4dabf7;
   }
 }
 

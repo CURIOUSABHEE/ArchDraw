@@ -48,37 +48,37 @@ const FEATURES_GRID = [
   {
     title: 'AI-generated diagrams',
     desc: 'Describe your architecture in plain English; the pipeline generates structured, validated Mermaid and renders it instantly.',
-    icon: <Sparkles className="w-5 h-5 text-[#5e6ad2]" />
+    icon: <Sparkles className="w-5 h-5 text-accent" />
   },
   {
     title: 'Mermaid-first pipeline',
     desc: 'Write Mermaid directly or let AI generate it. Same pipeline either way: validated, enriched, and laid out correctly.',
-    icon: <CodeIcon className="w-5 h-5 text-[#5e6ad2]" />
+    icon: <CodeIcon className="w-5 h-5 text-accent" />
   },
   {
     title: 'Smart auto-layout',
     desc: 'Dagre-powered layout with automatic handle selection. Nodes position themselves; you focus on the architecture.',
-    icon: <Layers className="w-5 h-5 text-[#5e6ad2]" />
+    icon: <Layers className="w-5 h-5 text-accent" />
   },
   {
     title: 'Subgraph support',
     desc: 'Group nodes into containers with Mermaid subgraphs. Nested layouts render with correct parent-child positioning.',
-    icon: <FolderIcon className="w-5 h-5 text-[#5e6ad2]" />
+    icon: <FolderIcon className="w-5 h-5 text-accent" />
   },
   {
     title: 'Interactive React Flow canvas',
     desc: 'Every diagram is a live, zoomable, pannable canvas — not a static image until you choose to export one.',
-    icon: <MousePointer className="w-5 h-5 text-[#5e6ad2]" />
+    icon: <MousePointer className="w-5 h-5 text-accent" />
   },
   {
     title: 'Multiple diagram types',
     desc: 'Flowcharts, sequence diagrams, system architecture, ERDs. Handles the full range of Mermaid specs.',
-    icon: <Database className="w-5 h-5 text-[#5e6ad2]" />
+    icon: <Database className="w-5 h-5 text-accent" />
   },
   {
     title: 'Export & share',
     desc: 'PNG, SVG, or a live shareable link. Dark theme, clean layout, presentation-ready by default.',
-    icon: <Globe className="w-5 h-5 text-[#5e6ad2]" />
+    icon: <Globe className="w-5 h-5 text-accent" />
   },
 ];
 
@@ -420,7 +420,7 @@ function ProblemSection() {
     {
       title: 'Losing 30 minutes in formatting',
       desc: 'Wasting precious minutes tweaking alignments, colors, and line nodes to make it look decent enough to share.',
-      icon: <Clock className="w-5 h-5 text-[#5e6ad2]" />
+      icon: <Clock className="w-5 h-5 text-accent" />
     },
     {
       title: 'Design is not your day job',
@@ -568,7 +568,7 @@ function HowItWorksSection() {
                 <div className="w-2.5 h-2.5 rounded-full bg-[#27a644]" />
                 <span className="ml-2 text-[11px] text-[#575752] font-mono">console // step_{activeStep + 1}_preview</span>
               </div>
-              <span className="text-[10px] font-mono text-[#5e6ad2]">
+              <span className="text-[10px] font-mono text-accent">
                 {activeStep === 0 ? 'INPUT' : activeStep === 1 ? 'AI PIPELINE' : 'READY TO SHARE'}
               </span>
             </div>
@@ -578,9 +578,9 @@ function HowItWorksSection() {
                 <div className="w-full max-w-md mx-auto space-y-4 animate-in fade-in zoom-in-95 duration-200">
                   <div className="text-[11px] font-mono text-[#575752]">Enter system architecture context:</div>
                   <div className="bg-white border border-[#e4e4df] rounded-lg p-4 font-mono text-xs text-[#1c1c1a] leading-relaxed relative min-h-[120px] shadow-sm">
-                    <span className="text-[#5e6ad2] mr-1">Input:</span> 
+                    <span className="text-accent mr-1">Input:</span> 
                     I want to draw a microservice backend. A client sends events to a Gateway, which forwards valid payloads to a RabbitMQ Broker. An Event Consumer parses it and saves outputs into a PostgreSQL database, while caching lookups in Redis.
-                    <span className="w-2 h-4 bg-[#5e6ad2] inline-block animate-pulse absolute bottom-4 right-4" />
+                    <span className="w-2 h-4 bg-accent inline-block animate-pulse absolute bottom-4 right-4" />
                   </div>
                   <div className="flex items-center justify-between text-[10px] text-[#8a8f98] font-mono">
                     <span>Characters: 247</span>
@@ -600,7 +600,7 @@ function HowItWorksSection() {
                           <span className="text-[10px] font-bold text-[#1c1c1a] block">Client</span>
                         </div>
                         <div className="text-center font-mono text-[#8a8f98] text-xs font-semibold">→</div>
-                        <div className="border border-[#5e6ad2]/70 bg-white p-2 rounded text-center col-span-1 shadow-[0_0_10px_rgba(94,106,210,0.1)]">
+                        <div className="border border-accent/70 bg-white p-2 rounded text-center col-span-1 shadow-[0_0_10px_rgba(30,144,255,0.08)]">
                           <span className="text-[10px] font-bold text-[#1c1c1a] block">Gateway</span>
                         </div>
                         <div className="text-center font-mono text-[#8a8f98] text-xs font-semibold">→</div>
@@ -707,7 +707,7 @@ function FeatureCardGrid() {
 function InteractiveDemoSection() {
   return (
     <section className="py-20 px-6 bg-[#f7f7f5] relative border-t border-[#e4e4df]">
-      <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#5e6ad2]/2 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-accent/2 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-[1600px] mx-auto px-8 flex flex-col items-center relative z-10">
         <div className="text-center max-w-2xl mx-auto mb-10">
@@ -760,7 +760,7 @@ function WhoUsesSection() {
     {
       title: 'Students',
       desc: 'Practice system design interview diagrams, or finish project docs fast without getting stuck dragging margins.',
-      icon: <BookOpen className="w-5 h-5 text-[#5e6ad2]" />
+      icon: <BookOpen className="w-5 h-5 text-accent" />
     },
     {
       title: 'Engineers & Teams',
@@ -942,7 +942,7 @@ function PricingSection() {
                 <div className="text-xs text-[#575752] font-medium block mb-1">
                   Want updates and locked-in launch discount? Join waitlist:
                 </div>
-                <div className="flex gap-2 bg-[#f9f9f7] border border-[#e4e4df] focus-within:border-[#5e6ad2] rounded-lg p-1.5 transition-colors relative">
+                <div className="flex gap-2 bg-[#f9f9f7] border border-[#e4e4df] focus-within:border-accent rounded-lg p-1.5 transition-colors relative">
                   <div className="flex items-center pl-2 text-[#8a8f98]">
                     <Mail size="14" />
                   </div>
