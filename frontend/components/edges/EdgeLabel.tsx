@@ -20,15 +20,9 @@ export function EdgeLabel({ edgeId, label }: EdgeLabelProps) {
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Normalize label text (uppercase and max 4 words)
   const getCleanedText = useCallback((txt?: string): string => {
     if (!txt) return '';
-    const cleaned = txt.trim().toUpperCase();
-    const words = cleaned.split(/\s+/);
-    if (words.length > 4) {
-      return words.slice(0, 4).join(' ');
-    }
-    return cleaned;
+    return txt.trim().toUpperCase();
   }, []);
 
   const displayText = label?.trim() ? getCleanedText(label) : null;

@@ -70,8 +70,8 @@
 
 .node-wrapper.selected .node-card,
 .node-card.selected {
-  box-shadow: var(--node-shadow-selected);
-  border-color: var(--node-accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 4px 14px rgba(0,0,0,0.1);
+  border-color: var(--accent);
 }
 
 /* ── Shine Overlay ─────────────────────────────────────────────── */
@@ -221,7 +221,8 @@
 }
 
 .dark .node-wrapper.selected .node-card {
-  box-shadow: var(--node-shadow-selected), inset 0 0 12px var(--node-glow, rgba(52,211,153,0.15));
+  box-shadow: 0 0 0 2px var(--accent), 5px 5px 0 #0d0f1b, 10px 10px 0 #151828, 0 2px 6px rgba(0,0,0,0.4), inset 0 0 12px var(--node-glow, rgba(52,211,153,0.15));
+  border-color: var(--accent);
 }
 
 /* ── Database Cylinder ─────────────────────────────────────────── */

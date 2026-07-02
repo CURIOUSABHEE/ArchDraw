@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { Position } from 'reactflow';
 import * as fc from 'fast-check';
-import { getDynamicHandles, getHandleCoordinate, type NodeRect } from './dynamicHandles';
+import { getDynamicHandles, getHandleCoordinate, type NodeRect, VERTICAL_BIAS } from './dynamicHandles';
 
 // Arbitrary generator for valid node rectangles
 const nodeRectArbitrary = fc.record({
@@ -49,7 +49,19 @@ describe('Property-Based Tests: Dynamic Handle Positioning', () => {
         fc.property(nodeRectArbitrary, nodeRectArbitrary, (sourceRect, targetRect) => {
           const result = getDynamicHandles(sourceRect, targetRect);
 
-          // Calculate centers
+          const sourceRight = sourceRect.x + sourceRect.width;
+          const sourceBottom = sourceRect.y + sourceRect.height;
+          const targetRight = targetRect.x + targetRect.width;
+          const targetBottom = targetRect.y + targetRect.height;
+
+          const gapBottomToTop = targetRect.y - sourceBottom;
+          const gapTopToBottom = sourceRect.y - targetBottom;
+          const gapRightToLeft = targetRect.x - sourceRight;
+          const gapLeftToRight = sourceRect.x - targetRight;
+
+          const vertGap = Math.max(gapBottomToTop, gapTopToBottom);
+          const horizGap = Math.max(gapRightToLeft, gapLeftToRight);
+
           const sourceCX = sourceRect.x + sourceRect.width / 2;
           const sourceCY = sourceRect.y + sourceRect.height / 2;
           const targetCX = targetRect.x + targetRect.width / 2;
@@ -57,32 +69,41 @@ describe('Property-Based Tests: Dynamic Handle Positioning', () => {
 
           let dx = targetCX - sourceCX;
           let dy = targetCY - sourceCY;
-
-          // Normalize values extremely close to 0 to match implementation tolerance
           if (Math.abs(dx) < 1e-9) dx = 0;
           if (Math.abs(dy) < 1e-9) dy = 0;
 
-          // Verify handle selection matches implementation: vertical axis wins if
-          // vertical distance exceeds horizontal distance (direct axis comparison)
-          if (Math.abs(dy) > Math.abs(dx)) {
-            if (dy > 0) {
-              expect(result.sourcePosition).toBe(Position.Bottom);
-              expect(result.targetPosition).toBe(Position.Top);
+          // Replicate the decision logic to determine expected handles
+          let expectedSource: Position;
+          let expectedTarget: Position;
+
+          if (vertGap < 0 && horizGap < 0) {
+            if (Math.abs(dy) > Math.abs(dx) / VERTICAL_BIAS) {
+              expectedSource = dy > 0 ? Position.Bottom : Position.Top;
+              expectedTarget = dy > 0 ? Position.Top : Position.Bottom;
             } else {
-              expect(result.sourcePosition).toBe(Position.Top);
-              expect(result.targetPosition).toBe(Position.Bottom);
+              expectedSource = (dx > 0 || (dx === 0 && dy >= 0)) ? Position.Right : Position.Left;
+              expectedTarget = (dx > 0 || (dx === 0 && dy >= 0)) ? Position.Left : Position.Right;
             }
+          } else if (vertGap < 0) {
+            expectedSource = (dx > 0 || (dx === 0 && dy >= 0)) ? Position.Right : Position.Left;
+            expectedTarget = (dx > 0 || (dx === 0 && dy >= 0)) ? Position.Left : Position.Right;
+          } else if (horizGap < 0) {
+            expectedSource = dy > 0 ? Position.Bottom : Position.Top;
+            expectedTarget = dy > 0 ? Position.Top : Position.Bottom;
           } else {
-            if (dx > 0 || (dx === 0 && dy >= 0)) {
-              expect(result.sourcePosition).toBe(Position.Right);
-              expect(result.targetPosition).toBe(Position.Left);
+            if (vertGap <= horizGap * VERTICAL_BIAS) {
+              expectedSource = dy > 0 ? Position.Bottom : Position.Top;
+              expectedTarget = dy > 0 ? Position.Top : Position.Bottom;
             } else {
-              expect(result.sourcePosition).toBe(Position.Left);
-              expect(result.targetPosition).toBe(Position.Right);
+              expectedSource = (dx > 0 || (dx === 0 && dy >= 0)) ? Position.Right : Position.Left;
+              expectedTarget = (dx > 0 || (dx === 0 && dy >= 0)) ? Position.Left : Position.Right;
             }
           }
+
+          expect(result.sourcePosition).toBe(expectedSource);
+          expect(result.targetPosition).toBe(expectedTarget);
         }),
-        { numRuns: 100 }
+        { numRuns: 200 }
       );
     });
   });

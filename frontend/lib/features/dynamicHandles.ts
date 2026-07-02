@@ -37,7 +37,7 @@ export interface DynamicHandleResult {
  * - top handle for upward connections (target above source)
  * Falls back to horizontal handles when nodes are on the same level.
  */
-const VERTICAL_BIAS = 1.5;
+export const VERTICAL_BIAS = 1.5;
 
 export function getDynamicHandles(
   sourceRect: NodeRect,
@@ -224,8 +224,10 @@ export function getObstacleAwareHandles(
   const excluded = excludedNodeIds ?? new Set();
 
   function scorePair(sp: Position, tp: Position): { collisions: number; pathLen: number } {
-    const sh = getHandleCoordinate(sourceRect, sp, 'source');
-    const th = getHandleCoordinate(targetRect, tp, 'target');
+    // No type passed — compute handle coordinates at the node edge center,
+    // matching getSimpleHandlePosition used for actual edge drawing.
+    const sh = getHandleCoordinate(sourceRect, sp);
+    const th = getHandleCoordinate(targetRect, tp);
     const sx = sh.x, sy = sh.y, tx = th.x, ty = th.y;
     const sourceIsH = sp === Position.Left || sp === Position.Right;
     const targetIsH = tp === Position.Left || tp === Position.Right;

@@ -128,8 +128,8 @@ export default function SimpleFloatingEdge({
         sourcePos = handles.sourcePosition;
         targetPos = handles.targetPosition;
 
-        const sourceShift = getEdgeShiftOffset(source, id, sourcePos, edges, nodeInternals, 12);
-        const targetShift = getEdgeShiftOffset(target, id, targetPos, edges, nodeInternals, 12);
+        const sourceShift = getEdgeShiftOffset(source, id, sourcePos, edges, nodeInternals, 12, intermediateNodeRects.size > 0 ? intermediateNodeRects : undefined, excludedIds);
+        const targetShift = getEdgeShiftOffset(target, id, targetPos, edges, nodeInternals, 12, intermediateNodeRects.size > 0 ? intermediateNodeRects : undefined, excludedIds);
 
         const sourceXY = getSimpleHandlePosition(sourceRect.x, sourceRect.y, sourceRect.width, sourceRect.height, sourcePos, sourceShift);
         const targetXY = getSimpleHandlePosition(targetRect.x, targetRect.y, targetRect.width, targetRect.height, targetPos, targetShift);
@@ -226,92 +226,61 @@ export default function SimpleFloatingEdge({
 
       const nodeRectParam = nodeRects.size > 0 ? nodeRects : undefined;
 
-      // Try handle pairs: the obstacle-aware selection first, then the 4 explicit orientations.
-      // For each pair, run the full collision avoidance pipeline and verify the result
-      // actually avoids all intermediate nodes before accepting it.
-      const pairsToTry: Array<{ sourcePosition: Position; targetPosition: Position }> = [
-        { sourcePosition: sourcePos, targetPosition: targetPos },
-        { sourcePosition: Position.Right, targetPosition: Position.Left },
-        { sourcePosition: Position.Left, targetPosition: Position.Right },
-        { sourcePosition: Position.Top, targetPosition: Position.Bottom },
-        { sourcePosition: Position.Bottom, targetPosition: Position.Top },
-      ];
+      // Use the primary handle pair from edgeParams (which uses getObstacleAwareHandles).
+      // No fallback to other pairs — changing handle sides mid-drag causes abrupt path
+      // snapping. The collision-free waypoint system routes around obstacles for this pair.
+      const sourceShift = getEdgeShiftOffset(source, id, sourcePos, edges, nodeInternals, 12, nodeRectParam, excludedIds);
+      const targetShift = getEdgeShiftOffset(target, id, targetPos, edges, nodeInternals, 12, nodeRectParam, excludedIds);
 
-      const seen = new Set<string>();
-      for (const pair of pairsToTry) {
-        const key = `${pair.sourcePosition}-${pair.targetPosition}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
+      const sh = getSimpleHandlePosition(sourceRect.x, sourceRect.y, sourceRect.width, sourceRect.height, sourcePos, sourceShift);
+      const th = getSimpleHandlePosition(targetRect.x, targetRect.y, targetRect.width, targetRect.height, targetPos, targetShift);
 
-        const sourceShift = getEdgeShiftOffset(source, id, pair.sourcePosition, edges, nodeInternals, 12);
-        const targetShift = getEdgeShiftOffset(target, id, pair.targetPosition, edges, nodeInternals, 12);
+      const pairIsVertical = (sourcePos === Position.Top || sourcePos === Position.Bottom) &&
+                             (targetPos === Position.Top || targetPos === Position.Bottom);
+      const pairIsHorizontal = (sourcePos === Position.Left || sourcePos === Position.Right) &&
+                               (targetPos === Position.Left || targetPos === Position.Right);
 
-        const sh = getSimpleHandlePosition(sourceRect.x, sourceRect.y, sourceRect.width, sourceRect.height, pair.sourcePosition, sourceShift);
-        const th = getSimpleHandlePosition(targetRect.x, targetRect.y, targetRect.width, targetRect.height, pair.targetPosition, targetShift);
+      let startX = sh.x;
+      let startY = sh.y;
+      let endX = th.x;
+      let endY = th.y;
 
-        const pairIsVertical = (pair.sourcePosition === Position.Top || pair.sourcePosition === Position.Bottom) &&
-                               (pair.targetPosition === Position.Top || pair.targetPosition === Position.Bottom);
-        const pairIsHorizontal = (pair.sourcePosition === Position.Left || pair.sourcePosition === Position.Right) &&
-                                 (pair.targetPosition === Position.Left || pair.targetPosition === Position.Right);
+      if (pairIsVertical && Math.abs(startX - endX) < 16) {
+        endX = startX;
+      } else if (pairIsHorizontal && Math.abs(startY - endY) < 16) {
+        endY = startY;
+      }
 
-        let startX = sh.x;
-        let startY = sh.y;
-        let endX = th.x;
-        let endY = th.y;
+      const waypoints = getCollisionFreeWaypoints({
+        sourceX: startX, sourceY: startY,
+        targetX: endX, targetY: endY,
+        sourcePosition: sourcePos,
+        targetPosition: targetPos,
+        borderRadius, edgeOffset,
+        nodeRects: nodeRectParam,
+        excludedNodeIds: excludedIds,
+      });
 
-        if (pairIsVertical && Math.abs(startX - endX) < 16) {
-          endX = startX;
-        } else if (pairIsHorizontal && Math.abs(startY - endY) < 16) {
-          endY = startY;
-        }
-
-        const waypoints = getCollisionFreeWaypoints({
-          sourceX: startX, sourceY: startY,
-          targetX: endX, targetY: endY,
-          sourcePosition: pair.sourcePosition,
-          targetPosition: pair.targetPosition,
-          borderRadius, edgeOffset,
-          nodeRects: nodeRectParam,
-          excludedNodeIds: excludedIds,
-        });
-
-        // Verify waypoints actually avoid all intermediate nodes
-        let collides = false;
-        for (let i = 0; i < waypoints.length - 1; i++) {
-          for (const [, nr] of nodeRects) {
-            if (segmentIntersectsRect(waypoints[i].x, waypoints[i].y, waypoints[i + 1].x, waypoints[i + 1].y, nr.x, nr.y, nr.w, nr.h)) {
-              collides = true;
-              break;
-            }
+      // Verify waypoints actually avoid all intermediate nodes
+      let collides = false;
+      for (let i = 0; i < waypoints.length - 1; i++) {
+        for (const [, nr] of nodeRects) {
+          if (segmentIntersectsRect(waypoints[i].x, waypoints[i].y, waypoints[i + 1].x, waypoints[i + 1].y, nr.x, nr.y, nr.w, nr.h)) {
+            collides = true;
+            break;
           }
-          if (collides) break;
         }
-
-        if (!collides) {
-          return buildSmoothStepSvg(waypoints, borderRadius);
-        }
+        if (collides) break;
       }
 
-      // All pairs collided. Fall back to default pair path (will be dimmed via useEdgeColors)
-      let fallbackStartX = sx;
-      let fallbackStartY = sy;
-      let fallbackEndX = tx;
-      let fallbackEndY = ty;
-
-      const fallbackIsVertical = (sourcePos === Position.Top || sourcePos === Position.Bottom) &&
-                                 (targetPos === Position.Top || targetPos === Position.Bottom);
-      const fallbackIsHorizontal = (sourcePos === Position.Left || sourcePos === Position.Right) &&
-                                   (targetPos === Position.Left || targetPos === Position.Right);
-
-      if (fallbackIsVertical && Math.abs(fallbackStartX - fallbackEndX) < 16) {
-        fallbackEndX = fallbackStartX;
-      } else if (fallbackIsHorizontal && Math.abs(fallbackStartY - fallbackEndY) < 16) {
-        fallbackEndY = fallbackStartY;
+      if (!collides) {
+        return buildSmoothStepSvg(waypoints, borderRadius);
       }
 
+      // Fallback: direct path (extremely rare — only when computeWaypoints can't route around obstacles)
       return getCollisionFreeSmoothStepPath({
-        sourceX: fallbackStartX, sourceY: fallbackStartY,
-        targetX: fallbackEndX, targetY: fallbackEndY,
+        sourceX: startX, sourceY: startY,
+        targetX: endX, targetY: endY,
         sourcePosition: sourcePos,
         targetPosition: targetPos,
         borderRadius, edgeOffset,

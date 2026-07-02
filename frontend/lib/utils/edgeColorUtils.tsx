@@ -33,7 +33,7 @@ export function getFlowColor(
     src.includes('auth') || src.includes('login') || src.includes('signup') || src.includes('oauth') || src.includes('session') || src.includes('jwt') || src.includes('authorize') || src.includes('identity') ||
     tgt.includes('auth') || tgt.includes('login') || tgt.includes('signup') || tgt.includes('oauth') || tgt.includes('session') || tgt.includes('jwt') || tgt.includes('authorize') || tgt.includes('identity');
 
-  if (isAuth) return '#A855F7';
+  if (isAuth) return '#1E90FF';
 
   const isCache = 
     lbl.includes('cache') || lbl.includes('redis') || lbl.includes('memcached') || lbl.includes('caching') ||
@@ -64,9 +64,6 @@ const MARKER_DEFS = (
     <marker id="marker-orange" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#F97316" />
     </marker>
-    <marker id="marker-purple" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
-      <path d="M 0 0 L 0 6 L 6 3 z" fill="#A855F7" />
-    </marker>
     <marker id="marker-blue" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#3B82F6" />
     </marker>
@@ -83,7 +80,7 @@ const MARKER_DEFS = (
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#10B981" />
     </marker>
     <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
-      <path d="M 0 0 L 0 6 L 6 3 z" fill="#8B5CF6" />
+      <path d="M 0 0 L 0 6 L 6 3 z" fill="#3B82F6" />
     </marker>
     <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#6B7280" />
@@ -131,9 +128,6 @@ export const edgeMarkerDefsHTML = `
     <marker id="marker-orange" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#F97316" />
     </marker>
-    <marker id="marker-purple" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
-      <path d="M 0 0 L 0 6 L 6 3 z" fill="#A855F7" />
-    </marker>
     <marker id="marker-blue" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#3B82F6" />
     </marker>
@@ -150,7 +144,7 @@ export const edgeMarkerDefsHTML = `
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#10B981" />
     </marker>
     <marker id="arrow-event" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
-      <path d="M 0 0 L 0 6 L 6 3 z" fill="#8B5CF6" />
+      <path d="M 0 0 L 0 6 L 6 3 z" fill="#3B82F6" />
     </marker>
     <marker id="arrow-dep" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
       <path d="M 0 0 L 0 6 L 6 3 z" fill="#6B7280" />

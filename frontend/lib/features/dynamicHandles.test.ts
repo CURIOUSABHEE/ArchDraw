@@ -249,10 +249,10 @@ describe('getEdgeShiftOffset', () => {
     const offsetAct = getEdgeShiftOffset('Observe', 'edge-act', Position.Top, edges, nodeInternals, 12);
     const offsetTaskDone = getEdgeShiftOffset('Observe', 'edge-taskdone', Position.Top, edges, nodeInternals, 12);
 
-    // Observe -> TaskDone (left) has other node TaskDone with smaller X (170) than Act (310).
-    // So edge-taskdone is sorted first (offset = -6), edge-act is sorted second (offset = 6).
-    expect(offsetTaskDone).toBe(-6);
-    expect(offsetAct).toBe(6);
+    // 2 edges on the same side, evenly spaced at 15px centered on the node.
+    // Original order preserved: edge-act first (idx 0 → -7.5), edge-taskdone second (idx 1 → +7.5).
+    expect(offsetAct).toBe(-7.5);
+    expect(offsetTaskDone).toBe(7.5);
   });
 
   it('should assign stable offsets to bidirectional edges to prevent crossing', () => {
@@ -277,16 +277,14 @@ describe('getEdgeShiftOffset', () => {
     const offsetB_ab = getEdgeShiftOffset('NodeB', 'e-ab', Position.Left, edges, nodeInternals, 12);
     const offsetB_ba = getEdgeShiftOffset('NodeB', 'e-ba', Position.Left, edges, nodeInternals, 12);
 
-    // They should be offset deterministically by edge ID comparison (e-ab < e-ba).
-    // For NodeA, both have NodeB as other node (cy = 140).
-    // So 'e-ab' index 0 -> offset = -6. 'e-ba' index 1 -> offset = 6.
-    expect(offsetA_ab).toBe(-6);
-    expect(offsetA_ba).toBe(6);
+    // 2 edges per side, evenly spaced 15px centered on the node.
+    // Order preserves edges array order: e-ab (idx 0 → -7.5), e-ba (idx 1 → +7.5).
+    expect(offsetA_ab).toBe(-7.5);
+    expect(offsetA_ba).toBe(7.5);
 
-    // For NodeB, both have NodeA as other node (cy = 140).
-    // 'e-ab' index 0 -> offset = -6. 'e-ba' index 1 -> offset = 6.
-    expect(offsetB_ab).toBe(-6);
-    expect(offsetB_ba).toBe(6);
+    // Same ordering on NodeB side.
+    expect(offsetB_ab).toBe(-7.5);
+    expect(offsetB_ba).toBe(7.5);
 
     // Note that because both connect at NodeA.Right (y: cy - 6 / cy + 6) and NodeB.Left (y: cy - 6 / cy + 6),
     // they run parallel (A.Right_top connects to B.Left_top, A.Right_bottom connects to B.Left_bottom).

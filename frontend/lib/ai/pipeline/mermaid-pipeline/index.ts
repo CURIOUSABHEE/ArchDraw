@@ -9,24 +9,75 @@ import type {
   DiagramScore,
   PipelineDiagnostics,
 } from '../types';
-import type {
-  PipelineResult,
-  PipelineState,
-} from '../pipelineOrchestrator';
-import { runStage1PreGeneration } from './stage1-pregen';
+import type { PipelineResult, PipelineState } from './types';
+import { runArchitecturePlanner } from './stage1-planner';
+import { validatePlan } from './planValidator';
 import { translatePlanToReactFlow } from '@/lib/mermaid/planTranslator';
 import { scoreDiagram } from '../stage8-score';
+
+function generateFallbackPlan(prompt: string) {
+  const nodes = ['User', 'API Gateway', 'Service', 'Database'];
+  const groups = ['Client', 'API', 'Service', 'Data'];
+  const groupAssignments: Record<string, string> = {
+    'User': 'Client',
+    'API Gateway': 'API',
+    'Service': 'Service',
+    'Database': 'Data',
+  };
+  const edges = [
+    { from: 'User', to: 'API Gateway', label: 'request', bidirectional: false },
+    { from: 'API Gateway', to: 'Service', label: 'route', bidirectional: false },
+    { from: 'Service', to: 'Database', label: 'query', bidirectional: false },
+  ];
+
+  return {
+    formatConfig: {
+      format: 'mermaid' as const,
+      diagramType: 'graph TD' as const,
+      optionalVariants: [],
+    },
+    styleConfig: {
+      primaryColor: '#2563EB',
+      secondaryColor: '#4F46E5',
+      background: '#F9FAFB',
+      backgroundColor: '#F9FAFB',
+      fontFamily: 'Inter',
+      theme: 'default',
+      nodeTypeStyles: {
+        client: '#2563EB',
+        edge: '#4F46E5',
+        gateway: '#4F46E5',
+        application: '#4F46E5',
+        data: '#1e293b',
+        queue: '#1e293b',
+        observability: '#475569',
+        external: '#64748b',
+      },
+    },
+    inventoryConfig: {
+      nodes,
+      groups,
+      nodeCount: nodes.length,
+    },
+    edgeConfig: {
+      edges,
+      edgeCount: edges.length,
+    },
+    groupAssignments,
+  };
+}
 
 export async function runMermaidPipeline(
   userIntent: UserIntent,
   onProgress?: (step: string, progress: number) => void
 ): Promise<PipelineResult> {
   const diagramSize = userIntent.diagramSize ?? 'medium';
+  const prompt = userIntent.description;
 
   onProgress?.('Planning architecture', 10);
 
   // A1.5: Downstream guard check
-  const promptLower = userIntent.description.toLowerCase();
+  const promptLower = prompt.toLowerCase();
   const archKeywords = [
     'architecture', 'platform', 'microservice', 'container', 'service', 'layer', 'flow', 'cdn',
     'load balancer', 'infrastructure', 'deployment', 'system design', 'pipeline', 'cluster', 'api gateway'
@@ -38,9 +89,24 @@ export async function runMermaidPipeline(
   const hasArch = archKeywords.some(k => promptLower.includes(k));
   const hasExplicitEr = erKeywords.some(k => promptLower.includes(k));
 
-  // STAGE 1: Multi-agent pre-generation — 4 focused agents for a quality architecture plan
-  const stage1Result = await runStage1PreGeneration(userIntent.description, diagramSize, userIntent.model);
-  const { formatConfig, styleConfig, inventoryConfig, edgeConfig, groupAssignments } = stage1Result;
+  // STAGE 1: Planner — single LLM call for complete architecture plan
+  let plan = await runArchitecturePlanner(prompt, diagramSize, userIntent.model);
+  let { formatConfig, styleConfig, inventoryConfig, edgeConfig, groupAssignments } = plan;
+
+  // Retry once if planner returned no nodes
+  if (inventoryConfig.nodeCount === 0) {
+    logger.warn('[Pipeline] Planner returned 0 nodes. Retrying with stronger instructions...');
+    const retryPrompt = `${prompt}\n\nIMPORTANT: Include at least 3-6 relevant components and their connections.`;
+    plan = await runArchitecturePlanner(retryPrompt, diagramSize, userIntent.model);
+    ({ formatConfig, styleConfig, inventoryConfig, edgeConfig, groupAssignments } = plan);
+  }
+
+  // Fallback to default plan if still empty
+  if (inventoryConfig.nodeCount === 0) {
+    logger.warn('[Pipeline] Planner returned 0 nodes after retry. Using fallback plan.');
+    plan = generateFallbackPlan(prompt);
+    ({ formatConfig, styleConfig, inventoryConfig, edgeConfig, groupAssignments } = plan);
+  }
 
   // Layout override
   const isHorizontalRequested = promptLower.includes('horizontal') || promptLower.includes('horizontally') || promptLower.includes('left-to-right') || promptLower.includes('left to right') || promptLower.includes('graph lr') || promptLower.includes('horizontal layout');
@@ -53,14 +119,27 @@ export async function runMermaidPipeline(
     logger.info('[DownstreamGuard] Override: vertical layout requested. Forcing diagramType -> graph TD.');
     formatConfig.diagramType = 'graph TD';
   } else if (hasArch) {
-    logger.warn('[DownstreamGuard] Override: prompt contains architecture keywords. Forcing diagramType -> graph TD.');
-    formatConfig.diagramType = 'graph TD';
+    logger.info('[DownstreamGuard] Using horizontal layout for architecture diagram. Forcing diagramType -> graph LR.');
+    formatConfig.diagramType = 'graph LR';
   } else if (formatConfig.diagramType === 'erDiagram' && !hasExplicitEr) {
-    logger.warn('[DownstreamGuard] Override: erDiagram forbidden without explicit database/ER trigger words. Forcing diagramType -> graph TD.');
-    formatConfig.diagramType = 'graph TD';
+    logger.info('[DownstreamGuard] erDiagram forbidden without explicit database/ER trigger words. Forcing diagramType -> graph LR.');
+    formatConfig.diagramType = 'graph LR';
   }
 
   onProgress?.('Architecture plan ready', 30);
+
+  // STAGE 1.5: Programmatic validation + plan repair
+  onProgress?.('Validating architecture plan', 40);
+  const validationResult = validatePlan({ formatConfig, styleConfig, inventoryConfig, edgeConfig, groupAssignments });
+  if (validationResult.fixed.length > 0) {
+    logger.log(`[Pipeline] Plan validator fixed ${validationResult.fixed.length} issue(s):`);
+    for (const msg of validationResult.fixed) logger.log(`  ✓ ${msg}`);
+  }
+  if (validationResult.warnings.length > 0) {
+    logger.log(`[Pipeline] Plan validator produced ${validationResult.warnings.length} warning(s):`);
+    for (const msg of validationResult.warnings) logger.log(`  ⚠ ${msg}`);
+  }
+  ({ formatConfig, styleConfig, inventoryConfig, edgeConfig, groupAssignments } = validationResult.plan);
 
   // STAGE 2: Direct translation from plan to ReactFlow (no Mermaid)
   onProgress?.('Translating and laying out diagram', 50);

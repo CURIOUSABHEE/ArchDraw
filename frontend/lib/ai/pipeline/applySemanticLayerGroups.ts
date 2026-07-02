@@ -1,5 +1,4 @@
 import type { LayoutedNode, PipelineLayer } from './types';
-import { normalizeLayer } from './stage6-layout';
 
 export interface SemanticGroupMeta {
   label: string;
@@ -26,6 +25,31 @@ export interface ApplySemanticLayerGroupsOptions {
   padding?: number;
   /** Top padding in px — extra clearance for the label tag (default 72). */
   paddingTop?: number;
+}
+
+function normalizeLayer(layer?: string): string {
+  if (!layer) return 'application';
+  const clean = layer.toLowerCase().trim().replace(/[\s-]/g, '');
+
+  if (clean === 'presentation' || clean === 'client' || clean === 'frontend') return 'client';
+  if (clean === 'edge' || clean === 'infrastructure') return 'edge';
+  if (clean === 'gateway') return 'gateway';
+  if (clean === 'compute' || clean === 'application' || clean === 'compute/application') return 'application';
+  if (clean === 'async' || clean === 'queue') return 'queue';
+  if (clean === 'data' || clean === 'cache' || clean === 'storage') return 'data';
+  if (clean === 'observe' || clean === 'observability' || clean === 'monitoring') return 'observability';
+  if (clean === 'thirdparty' || clean === 'external') return 'external';
+
+  if (clean.includes('client') || clean.includes('present') || clean.includes('frontend')) return 'client';
+  if (clean.includes('edge') || clean.includes('infra')) return 'edge';
+  if (clean.includes('gate')) return 'gateway';
+  if (clean.includes('compute') || (clean.includes('app') && !clean.includes('frontend'))) return 'application';
+  if (clean.includes('async') || clean.includes('queue') || clean.includes('bus') || clean.includes('stream')) return 'queue';
+  if (clean.includes('data') || clean.includes('db') || clean.includes('cache') || clean.includes('store') || clean.includes('sql') || clean.includes('mongo')) return 'data';
+  if (clean.includes('observe') || clean.includes('monitor') || clean.includes('log') || clean.includes('trace') || clean.includes('alert')) return 'observability';
+  if (clean.includes('third') || clean.includes('ext') || clean.includes('api') || clean.includes('vendor')) return 'external';
+
+  return 'application';
 }
 
 export function getSemanticGroupKey(node: Pick<LayoutedNode, 'layer' | 'label'>): string {

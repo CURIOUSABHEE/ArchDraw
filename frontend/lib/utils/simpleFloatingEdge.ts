@@ -1,5 +1,5 @@
 import { Edge, Node, Position } from 'reactflow';
-import { getDynamicHandles } from '@/lib/features/dynamicHandles';
+import { getDynamicHandles, getObstacleAwareHandles } from '@/lib/features/dynamicHandles';
 import type { NodeRect } from '@/lib/features/dynamicHandles';
 
 export interface EdgePositions {
@@ -64,13 +64,24 @@ export function getEdgeShiftOffset(
   side: Position,
   edges: Edge[],
   nodeInternals: Map<string, Node>,
-  spacing: number = 15
+  spacing: number = 15,
+  allNodeRects?: Map<string, { id: string; x: number; y: number; w: number; h: number }>,
+  excludedNodeIds?: Set<string>,
 ): number {
   const node = nodeInternals.get(nodeId);
   if (!node) return 0;
 
   const currentEdge = (edges || []).find(e => e.id === edgeId);
   const isSource = currentEdge?.source === nodeId;
+
+  // If multiple edges share the same source+target (same direction), merge their handles.
+  // They have the same origin and destination — no need for parallel offset.
+  if (currentEdge) {
+    const hasSameDirectionSibling = (edges || []).some(e =>
+      e.id !== edgeId && e.source === currentEdge.source && e.target === currentEdge.target
+    );
+    if (hasSameDirectionSibling) return 0;
+  }
   
   // Find all edges that connect to this node on the given side
   const connectedEdges = (edges || []).map(e => {
@@ -98,7 +109,9 @@ export function getEdgeShiftOffset(
     // Use the same handle-selection logic as SimpleFloatingEdge (getObstacleAwareHandles
     // wraps getDynamicHandles) to ensure offset calculations stay in sync with
     // the actual handle positions rendered on the canvas.
-    const { sourcePosition, targetPosition } = getDynamicHandles(sRect, tRect);
+    const { sourcePosition, targetPosition } = allNodeRects
+      ? getObstacleAwareHandles(sRect, tRect, allNodeRects, excludedNodeIds, e.id, e.source, e.target)
+      : getDynamicHandles(sRect, tRect);
     
     if (e.source === nodeId && sourcePosition === side) {
       return { edge: e, otherNodeCenter: tCenter };
@@ -113,33 +126,10 @@ export function getEdgeShiftOffset(
   const totalNodeEdges = (edges || []).filter(e => e.source === nodeId || e.target === nodeId).length;
   if (totalNodeEdges <= 1) return 0;
 
-  // Always apply a baseline offset to separate outgoing (source) from incoming (target)
-  // connections on the same node, even when there's only one edge per side — this
-  // prevents the visual "merged line" effect when edges enter and exit at the same
-  // centerpoint on opposite sides.
-  const baseOffset = isSource ? spacing * 0.5 : -spacing * 0.5;
-  if (connectedEdges.length <= 1) return baseOffset;
+  const idx = connectedEdges.findIndex(e => e.edge.id === edgeId);
+  if (idx === -1) return 0;
 
-  // Sort connected edges by other node's coordinate along the axis of the side:
-  // - For Left/Right: perpendicular axis is Y, so sort by cy
-  // - For Top/Bottom: perpendicular axis is X, so sort by cx
-  const isHorizontalSide = side === Position.Left || side === Position.Right;
-  
-  connectedEdges.sort((a, b) => {
-    const valA = isHorizontalSide ? a.otherNodeCenter.cy : a.otherNodeCenter.cx;
-    const valB = isHorizontalSide ? b.otherNodeCenter.cy : b.otherNodeCenter.cx;
-    
-    if (Math.abs(valA - valB) < 0.01) {
-      // Stable tie-break by edge ID
-      return a.edge.id.localeCompare(b.edge.id);
-    }
-    return valA - valB;
-  });
-
-  const index = connectedEdges.findIndex(e => e.edge.id === edgeId);
-  if (index === -1) return 0;
-
-  return (index - (connectedEdges.length - 1) / 2) * spacing;
+  return (idx - (connectedEdges.length - 1) / 2) * 15;
 }
 
 export function getSimpleHandlePosition(

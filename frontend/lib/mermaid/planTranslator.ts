@@ -1,10 +1,11 @@
-import type { FormatConfig, StyleConfig, InventoryConfig, EdgeConfig } from '@/lib/ai/pipeline/mermaid-pipeline/stage1-pregen'
+import type { FormatConfig, StyleConfig, InventoryConfig, EdgeConfig } from '@/lib/ai/pipeline/mermaid-pipeline/types'
 import { applyLayout } from './layout'
 import { sizeSubgraphs } from './subgraphSizing'
 import type { RFObjects, RFNode, RFEdge } from './types'
 import { NODE_WIDTH, NODE_HEIGHT, SUBGRAPH_PADDING } from './types'
 import { hexToRgba } from '@/lib/utils'
 import type { Node, Edge } from 'reactflow'
+import logger from '@/lib/logger'
 
 function toNodeId(name: string): string {
   return name
@@ -14,63 +15,101 @@ function toNodeId(name: string): string {
     || 'node'
 }
 
-function detectShape(name: string): string {
+// ── Unified classification — single source of truth for shape + serviceType ──
+
+interface NodeClassification {
+  shape: string
+  serviceType: string
+}
+
+function classifyNode(name: string, groupName?: string): NodeClassification {
   const lower = name.toLowerCase()
+
+  // If the planner put it in Client or Data or Gateway layer, use that as primary signal
+  if (groupName) {
+    const g = groupName.toLowerCase()
+    if (g.includes('client')) {
+      return { shape: 'rounded', serviceType: 'client' }
+    }
+    if (g.includes('data') || g.includes('storage') || g.includes('database')) {
+      return { shape: 'cylinder', serviceType: 'database' }
+    }
+    if (g.includes('gateway') || g.includes('lb') || g.includes('load')) {
+      return { shape: 'diamond', serviceType: 'load-balancer' }
+    }
+    if (g.includes('observability') || g.includes('monitor') || g.includes('log')) {
+      return { shape: 'rounded', serviceType: 'observability' }
+    }
+  }
+
+  // Name-based fallback (only used when group is ambiguous or missing)
   if (
     lower.includes('database') || lower.includes('db') ||
     lower.includes('cache') || lower.includes('redis') ||
     lower.includes('postgres') || lower.includes('mysql') ||
     lower.includes('mongodb') || lower.includes('dynamodb') ||
     lower.includes('cassandra') || lower.includes('data store') ||
-    lower.includes('lake')
-  ) return 'cylinder'
+    lower.includes('lake') || lower.includes('store') ||
+    lower.includes('storage') || lower.includes('warehouse') ||
+    lower.includes('s3') || lower.includes('bucket') ||
+    lower.includes('firestore')
+  ) return { shape: 'cylinder', serviceType: 'database' }
+
   if (
     lower.includes('load balancer') || lower.includes('lb') ||
     lower.includes('gateway') || lower.includes('api gateway') ||
     lower.includes('proxy') || lower.includes('ingress') ||
     lower.includes('traff')
-  ) return 'diamond'
+  ) return { shape: 'diamond', serviceType: 'load-balancer' }
+
   if (
     lower.includes('queue') || lower.includes('broker') ||
     lower.includes('kafka') || lower.includes('rabbitmq') ||
     lower.includes('message bus') || lower.includes('event') ||
-    lower.includes('pub/sub') || lower.includes('stream')
-  ) return 'circle'
+    lower.includes('pub/sub') || lower.includes('stream') ||
+    lower.includes('topic')
+  ) return { shape: 'circle', serviceType: 'queue' }
+
   if (
     lower.includes('external') || lower.includes('third party') ||
     lower.includes('saas') || lower.includes('cdn') ||
     lower.includes('cloud') || lower.includes('vpc')
-  ) return 'hexagon'
+  ) return { shape: 'hexagon', serviceType: 'external-service' }
+
   if (
     lower === 'user' || lower === 'client' ||
     lower.includes('browser') || lower.includes('mobile') ||
-    lower.includes('desktop')
-  ) return 'rounded'
-  return 'rounded'
-}
+    lower.includes('desktop') || lower.includes('app')
+  ) return { shape: 'rounded', serviceType: 'client' }
 
-function detectServiceType(name: string): string {
-  const lower = name.toLowerCase()
-  if (lower.includes('database') || lower.includes('db') || lower.includes('cache') ||
-      lower.includes('redis') || lower.includes('data store')) return 'database'
-  if (lower.includes('load balancer') || lower.includes('gateway') ||
-      lower.includes('proxy') || lower.includes('ingress')) return 'load-balancer'
-  if (lower.includes('queue') || lower.includes('broker') || lower.includes('kafka') ||
-      lower.includes('event')) return 'queue'
-  if (lower.includes('external') || lower.includes('third') || lower.includes('cdn') ||
-      lower.includes('saas')) return 'external-service'
-  if (lower === 'user' || lower.includes('client') || lower.includes('browser') ||
-      lower.includes('mobile')) return 'client'
-  return 'service'
+  if (
+    lower.includes('log') || lower.includes('monitor') ||
+    lower.includes('observability') || lower.includes('metric') ||
+    lower.includes('tracing') || lower.includes('alert')
+  ) return { shape: 'rounded', serviceType: 'observability' }
+
+  return { shape: 'rounded', serviceType: 'service' }
 }
 
 const SERVICE_TYPE_META: Record<string, { typeId: string; icon: string; category: string }> = {
-  'database':        { typeId: 'database',        icon: 'Database',  category: 'data' },
-  'load-balancer':   { typeId: 'load-balancer',   icon: 'GitBranch', category: 'networking' },
-  'queue':           { typeId: 'queue',            icon: 'Inbox',     category: 'messaging' },
-  'external-service':{ typeId: 'external-service', icon: 'Globe',     category: 'external' },
-  'client':          { typeId: 'client',           icon: 'Monitor',   category: 'client' },
-  'service':         { typeId: 'service',          icon: 'Box',       category: 'compute' },
+  'database':         { typeId: 'database',         icon: 'Database',  category: 'data' },
+  'load-balancer':    { typeId: 'load-balancer',    icon: 'GitBranch', category: 'networking' },
+  'queue':            { typeId: 'queue',             icon: 'Inbox',     category: 'messaging' },
+  'external-service': { typeId: 'external-service',  icon: 'Globe',     category: 'external' },
+  'client':           { typeId: 'client',            icon: 'Monitor',   category: 'client' },
+  'observability':    { typeId: 'observability',     icon: 'Activity',  category: 'observability' },
+  'service':          { typeId: 'service',           icon: 'Box',       category: 'compute' },
+}
+
+// Category-based color overrides (applied on top of theme primary color)
+const CATEGORY_COLORS: Record<string, string> = {
+  'data':           '#1e293b',
+  'networking':     '#4F46E5',
+  'messaging':      '#0891b2',
+  'external':       '#64748b',
+  'client':         '#2563EB',
+  'observability':  '#475569',
+  'compute':        '#4F46E5',
 }
 
 export function translatePlanToReactFlow(
@@ -85,8 +124,32 @@ export function translatePlanToReactFlow(
   const diagramType = formatConfig.diagramType
   const direction = diagramType === 'graph LR' ? 'LR' as const : 'TD' as const
 
+  // ── Deduplicate: detect node names that normalize to the same ID ──
+  const idOccurrences = new Map<string, string[]>()
+  for (const name of nodeNames) {
+    const id = toNodeId(name)
+    if (!idOccurrences.has(id)) idOccurrences.set(id, [])
+    idOccurrences.get(id)!.push(name)
+  }
+  for (const [id, names] of idOccurrences) {
+    if (names.length > 1) {
+      logger.warn(`[planTranslator] Multiple nodes normalize to same ID "${id}": ${names.join(', ')} — using first occurrence, others dropped`)
+    }
+  }
+
+  // Deduplicated node list (first occurrence wins)
+  const seenIds = new Set<string>()
+  const dedupedNodeNames: string[] = []
+  for (const name of nodeNames) {
+    const id = toNodeId(name)
+    if (!seenIds.has(id)) {
+      seenIds.add(id)
+      dedupedNodeNames.push(name)
+    }
+  }
+
   const groupNodes: Record<string, string[]> = {}
-  for (const nodeName of nodeNames) {
+  for (const nodeName of dedupedNodeNames) {
     const group = groupAssignments[nodeName] || 'Default Layer'
     if (!groupNodes[group]) groupNodes[group] = []
     groupNodes[group].push(nodeName)
@@ -126,10 +189,11 @@ export function translatePlanToReactFlow(
   }
 
   // Create leaf nodes
-  for (const nodeName of nodeNames) {
+  for (const nodeName of dedupedNodeNames) {
     const id = toNodeId(nodeName)
-    const shape = detectShape(nodeName)
-    const serviceType = detectServiceType(nodeName)
+    const groupName = groupAssignments[nodeName]
+    const { shape, serviceType } = classifyNode(nodeName, groupName)
+
     const parentGroupId = nodeToGroupMap.get(nodeName)
     const config = {
       width: NODE_WIDTH,
@@ -137,6 +201,8 @@ export function translatePlanToReactFlow(
     }
 
     const meta = SERVICE_TYPE_META[serviceType] || SERVICE_TYPE_META['service']
+    const categoryColor = CATEGORY_COLORS[meta.category] || styleConfig.primaryColor
+
     const rfNode: RFNode = {
       id,
       type: 'shapeNode',
@@ -148,7 +214,7 @@ export function translatePlanToReactFlow(
         nodeWidth: config.width,
         nodeHeight: config.height,
         typeId: meta.typeId,
-        color: styleConfig.primaryColor,
+        color: categoryColor,
         category: meta.category,
         icon: meta.icon,
       },
@@ -164,13 +230,31 @@ export function translatePlanToReactFlow(
     rfNodes.push(rfNode)
   }
 
-  // Create edges
+  // Create edges with collision-resistant IDs (include label to allow parallel edges)
+  const edgeIdSet = new Set<string>()
   for (const edge of rawEdges) {
     const fromId = toNodeId(edge.from)
     const toId = toNodeId(edge.to)
-    if (fromId === toId) continue
+    if (fromId === toId) {
+      logger.warn(`[planTranslator] Self-loop edge dropped: "${edge.from}" → "${edge.to}" (both normalize to "${fromId}")`)
+      continue
+    }
+    if (!edge.label) {
+      logger.warn(`[planTranslator] Edge with empty label dropped: "${edge.from}" → "${edge.to}"`)
+      continue
+    }
 
-    const edgeId = `${fromId}-${toId}`
+    const labelPart = edge.label.replace(/[^a-z0-9]+/gi, '-').slice(0, 30)
+    let edgeId = `${fromId}->${toId}`
+    if (labelPart) edgeId += `-${labelPart}`
+
+    // Deduplicate edges with same from+to+label
+    if (edgeIdSet.has(edgeId)) {
+      logger.warn(`[planTranslator] Duplicate edge dropped: "${edge.from}" → "${edge.to}" ("${edge.label}")`)
+      continue
+    }
+    edgeIdSet.add(edgeId)
+
     rfEdges.push({
       id: edgeId,
       source: fromId,
@@ -178,21 +262,33 @@ export function translatePlanToReactFlow(
       sourceHandle: null,
       targetHandle: null,
       type: 'simpleFloating',
-      label: edge.label || undefined,
+      label: edge.label,
       data: {
-        label: edge.label || undefined,
+        label: edge.label,
         connectionType: 'sync',
         edgeVariant: 'solid',
       },
     })
   }
 
-  // Apply dagre layout (reuses existing layout engine)
-  const rfObjects: RFObjects = { nodes: rfNodes, edges: rfEdges }
-  const layouted = applyLayout(rfObjects, direction)
+  // ── Apply dagre layout with error boundary ──
+  let layouted: RFObjects
+  try {
+    const rfObjects: RFObjects = { nodes: rfNodes, edges: rfEdges }
+    layouted = applyLayout(rfObjects, direction)
+  } catch (err) {
+    logger.error('[planTranslator] Layout failed, falling back to un-laid-out nodes:', err)
+    layouted = { nodes: rfNodes, edges: rfEdges }
+  }
 
-  // Size subgraph containers
-  const sized = sizeSubgraphs(layouted.nodes)
+  // ── Size subgraph containers with error boundary ──
+  let sized: RFNode[]
+  try {
+    sized = sizeSubgraphs(layouted.nodes)
+  } catch (err) {
+    logger.error('[planTranslator] Subgraph sizing failed, using layout positions as-is:', err)
+    sized = layouted.nodes
+  }
 
   // Apply styling
   const subgraphIds = new Set(Object.keys(groupNodes).map(toNodeId))
@@ -215,13 +311,14 @@ export function translatePlanToReactFlow(
         },
       } as Node
     }
+    const nodeColor = (node.data as any)?.color || styleConfig.primaryColor
     return {
       ...node,
       type: 'shapeNode',
       data: {
         ...node.data,
         style: {
-          backgroundColor: styleConfig.primaryColor,
+          backgroundColor: nodeColor,
           color: '#FFFFFF',
           borderRadius: '8px',
           fontFamily: styleConfig.fontFamily,
